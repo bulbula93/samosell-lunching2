@@ -1,0 +1,22 @@
+STEP 2 — Marketplace schema
+
+1. ამ zip-ის ფაილები ჩააკოპირე პროექტში.
+2. Supabase -> SQL Editor-ში გაუშვი: supabase/02_marketplace_schema.sql
+3. თუ უკვე გაქვს გაშვებული dev server, გააჩერე და თავიდან გაუშვი.
+4. გახსენი:
+   http://localhost:3000/test-marketplace
+
+ამ ნაბიჯის შემდეგ გექნება:
+- brands
+- sizes
+- profiles
+- listings
+- listing_images
+- favorites
+- chats
+- messages
+- listings_catalog view
+
+შენიშვნა:
+- listings ჯერ ცარიელი იქნება, სანამ auth + create listing flow არ ჩავსვამთ.
+- brands და sizes seed-ით შეივსება ავტომატურად.

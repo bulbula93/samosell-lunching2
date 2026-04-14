@@ -1,0 +1,23 @@
+STEP 3
+
+ამ ეტაპზე დამატებულია:
+- /register
+- /login
+- /dashboard
+- /dashboard/profile
+- /dashboard/listings
+- /dashboard/listings/new
+
+რა უნდა გააკეთო:
+1. zip ამოაარქივე და ფაილები ჩააკოპირე პროექტში
+2. replacement-ს დაეთანხმე
+3. პროექტის ფოლდერიდან გაუშვი npm run dev
+4. გახსენი /register და შექმენი ახალი ანგარიში
+5. მერე შედი /login-იდან
+6. გახსენი /dashboard/profile და შეავსე პროფილი
+7. გახსენი /dashboard/listings/new და შექმენი პირველი draft listing
+8. შემდეგ გადაამოწმე /dashboard/listings
+
+შენიშვნა:
+- ეს step ჯერ არ შეიცავს image upload-ს
+- image upload და public listing detail page იქნება შემდეგ step-ში

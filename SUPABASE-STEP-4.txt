@@ -1,0 +1,24 @@
+STEP 4
+
+ამ step-ში დამატებულია:
+- ქავერ სურათის ატვირთვა create listing ფორმიდან
+- Supabase Storage bucket: listing-images
+- cover_image_url ველი listings ცხრილში
+- public catalog გვერდი: /catalog
+- public listing details გვერდი: /listing/[slug]
+- მთავარი გვერდიდან active listings-ის გამოჩენა
+
+რა უნდა გაუშვა Supabase-ში:
+1. გახსენი ფაილი: supabase/03_listing_media_public_pages.sql
+2. მთლიანად დააკოპირე
+3. Supabase -> SQL Editor -> New query
+4. ჩასვი და დააჭირე Run
+
+რა უნდა გამოცადო:
+1. /dashboard/listings/new
+2. შექმენი ახალი listing
+3. ატვირთე cover image
+4. ჩართე გამოქვეყნება
+5. გახსენი /catalog
+6. გახსენი /listing/slug
+7. გახსენი /test-marketplace

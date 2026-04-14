@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "FiraGO";
+  src: url("https://cdn.jsdelivr.net/npm/fontsource-firago@4.0.0/files/firago-all-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FiraGO";
+  src: url("https://cdn.jsdelivr.net/npm/fontsource-firago@4.0.0/files/firago-all-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FiraGO";
+  src: url("https://cdn.jsdelivr.net/npm/fontsource-firago@4.0.0/files/firago-all-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FiraGO";
+  src: url("https://cdn.jsdelivr.net/npm/fontsource-firago@4.0.0/files/firago-all-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "FiraGO";
+  src: url("https://cdn.jsdelivr.net/npm/fontsource-firago@4.0.0/files/firago-all-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("https://cdn.jsdelivr.net/npm/@fontsource/plus-jakarta-sans@5.2.8/files/plus-jakarta-sans-latin-ext-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #ececec;
+  --foreground: #171717;
+  --font-body: "FiraGO", "Noto Sans Georgian", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-logo-fallback: "Plus Jakarta Sans", "FiraGO", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-bg: #fdfcfa;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f5f5f3;
+  --color-text: #171717;
+  --color-text-soft: #525252;
+  --color-line: #e5e5e5;
+  --color-brand: #f88a51;
+  --color-brand-hover: #ef7d46;
+  --color-brand-soft: #fff0e7;
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(248, 138, 81, 0.18);
+  color: #171717;
+}
+
+@layer components {
+  .ui-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .ui-section {
+    @apply py-10 sm:py-12 lg:py-16;
+  }
+
+  .ui-card {
+    @apply rounded-[1rem] border border-line bg-surface shadow-[0_12px_34px_rgba(23,23,23,0.05)];
+  }
+
+  .ui-card-hover {
+    @apply transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(23,23,23,0.08)];
+  }
+
+  .ui-pill {
+    @apply inline-flex items-center rounded-full border border-line bg-white px-3.5 py-2 text-sm font-medium text-text-soft;
+  }
+
+  .ui-pill-soft {
+    @apply inline-flex items-center rounded-full bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand;
+  }
+
+  .ui-pill-vip {
+    @apply inline-flex items-center justify-center rounded-full border border-brand/10 bg-brand px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_8px_18px_rgba(45,95,79,0.16)] transition;
+  }
+
+  .ui-pill-vip-soft {
+    @apply inline-flex items-center justify-center rounded-full border border-brand/15 bg-brand-soft px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-brand;
+  }
+
+  .ui-pill-promoted {
+    @apply inline-flex items-center justify-center rounded-full border border-sky-200 bg-sky-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-sky-900;
+  }
+
+  .ui-pill-featured {
+    @apply inline-flex items-center justify-center rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-fuchsia-900;
+  }
+
+  .ui-btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-hover;
+  }
+
+  .ui-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:bg-surface-alt;
+  }
+
+  .ui-btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-text-soft transition hover:bg-surface-alt hover:text-text;
+  }
+
+  .ui-input {
+    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-2 focus:ring-brand-soft;
+  }
+
+  .ui-search {
+    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-2 focus:ring-brand-soft;
+  }
+
+  .ui-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.22em] text-text-soft;
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .font-logo {
+    font-family: "Plus Jakarta Sans", var(--font-logo-fallback);
+  }
+}

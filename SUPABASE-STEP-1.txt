@@ -1,0 +1,7 @@
+1) ეს ფაილები ჩააკოპირე პროექტის root-ში.
+2) .env.local.example გადაარქვი .env.local-ად.
+3) ჩასვი შენი რეალური Supabase URL და Publishable Key.
+4) Supabase-ის SQL Editor-ში გაუშვი supabase/01_categories.sql.
+5) ტერმინალში გაუშვი: npm install
+6) მერე გაუშვი: npm run dev
+7) გახსენი: http://localhost:3000/test-db
