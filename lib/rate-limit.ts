@@ -11,6 +11,11 @@ const ACTION_RULES = {
     maxHits: 60,
     label: "განცხადების სურათების ატვირთვა",
   },
+  listing_status_update: {
+    windowSeconds: 10 * 60,
+    maxHits: 30,
+    label: "განცხადების სტატუსის შეცვლა",
+  },
   chat_start: {
     windowSeconds: 10 * 60,
     maxHits: 20,

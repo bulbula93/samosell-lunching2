@@ -1,106 +1,234 @@
-import { requireAuthenticatedUser } from "@/lib/auth"
 import Link from "next/link"
-import { activePromotionBadges, formatDateOnly } from "@/lib/boosts"
-import { conditionLabel, listingStatusLabel } from "@/lib/listings"
-import { deleteListingAction, updateListingStatusAction } from "@/app/dashboard/listings/actions"
-import SmartImage from "@/components/shared/SmartImage"
-import DeleteListingInlineButton from "@/components/dashboard/DeleteListingInlineButton"
+import { redirect } from "next/navigation"
+import ListingManagementCard, {
+  type ListingManagementItem,
+} from "@/components/dashboard/ListingManagementCard"
+import MyListingsPagination from "@/components/dashboard/MyListingsPagination"
+import { requireAuthenticatedUser } from "@/lib/auth"
+import {
+  MY_LISTINGS_FILTERS,
+  MY_LISTINGS_PAGE_SIZE,
+  getMyListingsPath,
+  isListingStatus,
+  parseMyListingsFilter,
+  parseMyListingsPage,
+  type MyListingsFilter,
+} from "@/lib/my-listings"
 
-const statusTabs = [
-  { key: "all", label: "ყველა" },
-  { key: "draft", label: "დრაფტები" },
-  { key: "active", label: "აქტიური" },
-  { key: "sold", label: "გაყიდული" },
-  { key: "archived", label: "არქივი" },
-] as const
+type MyListingsSearchParams = {
+  created?: string | string[]
+  updated?: string | string[]
+  status?: string | string[]
+  flash?: string | string[]
+  page?: string | string[]
+}
 
-function flashMessageLabel(value?: string) {
-  switch (value) {
-    case "published": return "განცხადება გამოქვეყნდა."
-    case "draft": return "განცხადება დრაფტში გადავიდა."
-    case "sold": return "განცხადება გაყიდულად მოინიშნა."
-    case "archived": return "განცხადება არქივში გადავიდა."
-    case "updated": return "განცხადება წარმატებით განახლდა."
-    case "deleted": return "განცხადება მთლიანად წაიშალა საიტიდან."
-    case "1": return "ოპერაცია წარმატებით შესრულდა."
-    case "created": return "განცხადება წარმატებით შეიქმნა."
-    default: return value || ""
+const LISTING_SELECT =
+  "id, title, slug, price, currency, status, created_at, updated_at, cover_image_url, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot"
+
+function readParam(value?: string | string[]) {
+  return typeof value === "string" ? value : ""
+}
+
+function getFlashMessage(params: MyListingsSearchParams) {
+  if (readParam(params.created)) return "განცხადება წარმატებით შეიქმნა."
+  if (readParam(params.updated)) return "განცხადება წარმატებით განახლდა."
+
+  switch (readParam(params.flash)) {
+    case "created":
+      return "განცხადება წარმატებით შეიქმნა."
+    case "updated":
+      return "განცხადება წარმატებით განახლდა."
+    case "deleted":
+      return "განცხადება წაიშალა."
+    default:
+      return ""
   }
 }
 
-export default async function DashboardListingsPage({ searchParams }: { searchParams?: Promise<{ created?: string | string[]; updated?: string | string[]; status?: string | string[]; flash?: string | string[] }> }) {
+function countQueryForFilter(
+  supabase: Awaited<ReturnType<typeof requireAuthenticatedUser>>["supabase"],
+  userId: string,
+  filter: MyListingsFilter
+) {
+  const query = supabase
+    .from("listings")
+    .select("id", { count: "exact", head: true })
+    .eq("seller_id", userId)
+
+  return filter === "all" ? query : query.eq("status", filter)
+}
+
+export default async function DashboardListingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<MyListingsSearchParams>
+}) {
   const params = (await searchParams) ?? {}
-  const activeTab = typeof params.status === "string" ? params.status : "all"
-  const flashRaw = typeof params.flash === "string" ? params.flash : undefined
-  const created = typeof params.created === "string" ? params.created : undefined
-  const updated = typeof params.updated === "string" ? params.updated : undefined
+  const activeFilter = parseMyListingsFilter(readParam(params.status))
+  const page = parseMyListingsPage(readParam(params.page))
+  const rangeFrom = (page - 1) * MY_LISTINGS_PAGE_SIZE
+  const rangeTo = rangeFrom + MY_LISTINGS_PAGE_SIZE - 1
+  const flashMessage = getFlashMessage(params)
 
-  const { supabase, user } = await requireAuthenticatedUser("/dashboard/listings")
+  const { supabase, user } = await requireAuthenticatedUser(
+    getMyListingsPath(activeFilter, page)
+  )
 
-  const baseQuery = supabase.from("listings").select("id, title, slug, price, currency, condition, status, created_at, published_at, cover_image_url, is_vip, vip_until, promoted_until, featured_until, featured_slot").eq("seller_id", user.id).order("created_at", { ascending: false })
-  const listingsQuery = activeTab === "all" ? baseQuery : baseQuery.eq("status", activeTab)
+  let listingsQuery = supabase
+    .from("listings")
+    .select(LISTING_SELECT, { count: "exact" })
+    .eq("seller_id", user.id)
 
-  const [{ data: listings }, { count: allCount }, { count: draftCount }, { count: activeCount }, { count: soldCount }, { count: archivedCount }] = await Promise.all([
+  if (activeFilter !== "all") {
+    listingsQuery = listingsQuery.eq("status", activeFilter)
+  }
+
+  listingsQuery = listingsQuery
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(rangeFrom, rangeTo)
+
+  const [listingsResponse, ...countResponses] = await Promise.all([
     listingsQuery,
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", user.id),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "draft"),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "active"),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "sold"),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "archived"),
+    ...MY_LISTINGS_FILTERS.map((filter) =>
+      countQueryForFilter(supabase, user.id, filter.value)
+    ),
   ])
 
-  const counts: Record<string, number> = { all: allCount ?? 0, draft: draftCount ?? 0, active: activeCount ?? 0, sold: soldCount ?? 0, archived: archivedCount ?? 0 }
-  const flashMessage = flashRaw ? flashMessageLabel(flashRaw) : created ? "განცხადება წარმატებით შეიქმნა." : updated ? "განცხადება წარმატებით განახლდა." : ""
+  const queryError =
+    listingsResponse.error || countResponses.find((response) => response.error)?.error
+
+  if (queryError) {
+    console.error("my_listings_query_failed", queryError.message)
+    throw new Error("MY_LISTINGS_QUERY_FAILED")
+  }
+
+  const rawListings = listingsResponse.data ?? []
+  if (rawListings.some((item) => !isListingStatus(item.status))) {
+    console.error("my_listings_invalid_status")
+    throw new Error("MY_LISTINGS_INVALID_STATUS")
+  }
+
+  const listings = rawListings as ListingManagementItem[]
+  const totalCount = listingsResponse.count ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalCount / MY_LISTINGS_PAGE_SIZE))
+
+  if (totalCount > 0 && page > totalPages) {
+    redirect(getMyListingsPath(activeFilter, totalPages))
+  }
+
+  const counts = Object.fromEntries(
+    MY_LISTINGS_FILTERS.map((filter, index) => [
+      filter.value,
+      countResponses[index]?.count ?? 0,
+    ])
+  ) as Record<MyListingsFilter, number>
+  const accountIsEmpty = counts.all === 0
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">განცხადებები</div>
-          <h1 className="mt-3 text-4xl font-black">ჩემი განცხადებები</h1>
-          <p className="mt-3 max-w-2xl text-neutral-600">აქედან მართავ საკუთარ განცხადებებს: აქვეყნებ, არედაქტირებ, არქივში გადაგაქვს, გაყიდულად ნიშნავ და სურვილის შემთხვევაში აძლიერებ ხილვადობას.</p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/billing" className="rounded-full border border-neutral-300 px-4 py-2 font-semibold text-neutral-700">VIP განთავსების შეკვეთები</Link>
-          <Link href="/dashboard/listings/new" className="rounded-full bg-black px-4 py-2 font-semibold text-white">ახალი განცხადება</Link>
-        </div>
-      </div>
+    <main className="min-h-screen bg-bg py-7 text-text sm:py-10">
+      <div className="ui-container max-w-6xl">
+        <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="ui-eyebrow">გაყიდვების სივრცე</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">
+              ჩემი განცხადებები
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-text-soft sm:text-base">
+              ნახე, განაახლე და უსაფრთხოდ მართე საკუთარი განცხადებების ხილვადობა.
+            </p>
+          </div>
+          <Link href="/dashboard/listings/new" className="ui-btn-primary w-full sm:w-auto">
+            <span aria-hidden="true" className="mr-2 text-lg">＋</span>
+            ახალი განცხადება
+          </Link>
+        </header>
 
-      {flashMessage ? <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{flashMessage}</div> : null}
+        {flashMessage ? (
+          <p
+            role="status"
+            className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+          >
+            {flashMessage}
+          </p>
+        ) : null}
 
-      <div className="mb-6 flex flex-wrap gap-3">{statusTabs.map((tab) => <Link key={tab.key} href={tab.key === "all" ? "/dashboard/listings" : `/dashboard/listings?status=${tab.key}`} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "bg-black text-white" : "border border-neutral-300 bg-white text-neutral-700"}`}>{tab.label} ({counts[tab.key] ?? 0})</Link>)}</div>
+        <nav aria-label="განცხადებების სტატუსით გაფილტვრა" className="mt-7">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:px-0">
+            {MY_LISTINGS_FILTERS.map((filter) => {
+              const isActive = filter.value === activeFilter
+              return (
+                <Link
+                  key={filter.value}
+                  href={getMyListingsPath(filter.value)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 py-2 text-sm font-bold transition ${
+                    isActive
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-white text-text-soft hover:border-brand/40 hover:bg-brand-soft/40 hover:text-text"
+                  }`}
+                >
+                  {filter.label}
+                  <span
+                    className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                      isActive ? "bg-white/15 text-white" : "bg-surface-alt text-text-soft"
+                    }`}
+                  >
+                    {counts[filter.value]}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
 
-      <div className="space-y-4">
-        {listings && listings.length > 0 ? listings.map((item) => {
-          const badges = activePromotionBadges(item)
-          return (
-            <div key={item.id} className="grid gap-4 rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-sm lg:grid-cols-[120px_1fr_auto] lg:items-center">
-              <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-neutral-200"><SmartImage src={item.cover_image_url} alt={item.title} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" /></div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-lg font-bold text-neutral-900">{item.title}</div>
-                  {badges.map((badge) => <span key={badge} className="rounded-full bg-neutral-100 px-3 py-1 text-[11px] font-semibold text-neutral-700">{badge}</span>)}
-                </div>
-                <div className="mt-1 text-sm text-neutral-500">{item.price} {item.currency === "GEL" ? "₾" : item.currency} · {conditionLabel(item.condition)} · {listingStatusLabel(item.status)}</div>
-                <div className="mt-1 text-xs text-neutral-400">შექმნილია: {formatDateOnly(item.created_at)}</div>
-                <div className="mt-1 text-xs text-neutral-400">{item.published_at ? `გამოქვეყნდა: ${formatDateOnly(item.published_at)}` : "ჯერ არ არის გამოქვეყნებული"}</div>
-              </div>
-              <div className="flex flex-col gap-2 lg:items-end">
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <Link href={`/dashboard/listings/${item.id}/promote`} className="rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900">VIP განთავსება</Link>
-                  <Link href={`/dashboard/listings/${item.id}/edit`} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">რედაქტირება</Link>
-                  <Link href={`/listing/${item.slug}`} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">საჯარო გვერდი</Link>
-                </div>
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  {item.status !== "active" ? <form action={updateListingStatusAction}><input type="hidden" name="listingId" value={item.id} /><input type="hidden" name="intent" value={item.status === "sold" || item.status === "archived" ? "reactivate" : "publish"} /><input type="hidden" name="filter" value={activeTab} /><button className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">გამოქვეყნება</button></form> : <form action={updateListingStatusAction}><input type="hidden" name="listingId" value={item.id} /><input type="hidden" name="intent" value="unpublish" /><input type="hidden" name="filter" value={activeTab} /><button className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">დრაფტში დაბრუნება</button></form>}
-                  {item.status !== "sold" ? <form action={updateListingStatusAction}><input type="hidden" name="listingId" value={item.id} /><input type="hidden" name="intent" value="sold" /><input type="hidden" name="filter" value={activeTab} /><button className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">გაყიდულია</button></form> : null}
-                  {item.status !== "archived" ? <form action={updateListingStatusAction}><input type="hidden" name="listingId" value={item.id} /><input type="hidden" name="intent" value="archive" /><input type="hidden" name="filter" value={activeTab} /><button className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">არქივში გადატანა</button></form> : null}
-                  <DeleteListingInlineButton listingId={item.id} listingTitle={item.title} filter={activeTab} action={deleteListingAction} />
-                </div>
-              </div>
+        {listings.length > 0 ? (
+          <>
+            <section aria-label="ჩემი განცხადებების სია" className="mt-6 space-y-4">
+              {listings.map((item) => (
+                <ListingManagementCard key={item.id} item={item} />
+              ))}
+            </section>
+            <MyListingsPagination
+              filter={activeFilter}
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalCount}
+            />
+          </>
+        ) : (
+          <section
+            role="status"
+            className="ui-card mt-6 border-dashed px-5 py-12 text-center sm:px-8 sm:py-16"
+          >
+            <div
+              aria-hidden="true"
+              className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-2xl text-brand"
+            >
+              {accountIsEmpty ? "＋" : "⌕"}
             </div>
-          )
-        }) : <div className="rounded-[2rem] border border-neutral-200 bg-white px-6 py-10 text-sm text-neutral-600 shadow-sm">ამ სტატუსში განცხადება არ მოიძებნა.</div>}
+            <h2 className="mt-5 text-2xl font-black">
+              {accountIsEmpty
+                ? "პირველი განცხადება დაამატე"
+                : "ამ სტატუსით განცხადება არ არის"}
+            </h2>
+            <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-text-soft">
+              {accountIsEmpty
+                ? "ატვირთე ნივთის ფოტოები, მიუთითე ფასი და რამდენიმე წუთში გამოაქვეყნე."
+                : "აირჩიე სხვა სტატუსი ან დაბრუნდი ყველა განცხადების სიაში."}
+            </p>
+            {accountIsEmpty ? (
+              <Link href="/dashboard/listings/new" className="ui-btn-primary mt-7">
+                განცხადების დამატება
+              </Link>
+            ) : (
+              <Link href="/dashboard/listings" className="ui-btn-secondary mt-7">
+                ყველა განცხადება
+              </Link>
+            )}
+          </section>
+        )}
       </div>
     </main>
   )
