@@ -5,13 +5,26 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 
 function safeNextPath(value: string) {
-  if (!value || !value.startsWith("/")) return "/catalog"
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.startsWith("/\\")
+  ) {
+    return "/catalog"
+  }
   return value
+}
+
+function favoriteErrorPath(nextPath: string) {
+  if (!nextPath.startsWith("/listing/")) return nextPath
+  const url = new URL(nextPath, "https://samosell.ge")
+  url.searchParams.set("favorite", "error")
+  return `${url.pathname}${url.search}`
 }
 
 export async function toggleFavoriteAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
-  const listingSlug = String(formData.get("listingSlug") || "")
   const nextPath = safeNextPath(String(formData.get("nextPath") || "/catalog"))
 
   if (!listingId) {
@@ -27,6 +40,21 @@ export async function toggleFavoriteAction(formData: FormData) {
     redirect(`/login?next=${encodeURIComponent(nextPath)}`)
   }
 
+  const { data: listing, error: listingError } = await supabase
+    .from("listings")
+    .select("id, slug, seller_id, status")
+    .eq("id", listingId)
+    .maybeSingle()
+
+  if (
+    listingError ||
+    !listing ||
+    listing.status !== "active" ||
+    listing.seller_id === user.id
+  ) {
+    redirect(favoriteErrorPath(nextPath))
+  }
+
   const { data: existingFavorite, error: existingError } = await supabase
     .from("favorites")
     .select("id")
@@ -35,11 +63,16 @@ export async function toggleFavoriteAction(formData: FormData) {
     .maybeSingle()
 
   if (existingError) {
-    redirect(nextPath)
+    redirect(favoriteErrorPath(nextPath))
   }
 
   if (existingFavorite?.id) {
-    await supabase.from("favorites").delete().eq("id", existingFavorite.id).eq("user_id", user.id)
+    const { error: deleteError } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("id", existingFavorite.id)
+      .eq("user_id", user.id)
+    if (deleteError) redirect(favoriteErrorPath(nextPath))
   } else {
     const { error: insertError } = await supabase.from("favorites").insert({
       user_id: user.id,
@@ -47,7 +80,7 @@ export async function toggleFavoriteAction(formData: FormData) {
     })
 
     if (insertError && insertError.code !== "23505") {
-      redirect(nextPath)
+      redirect(favoriteErrorPath(nextPath))
     }
   }
 
@@ -56,6 +89,6 @@ export async function toggleFavoriteAction(formData: FormData) {
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/favorites")
   revalidatePath(nextPath)
-  if (listingSlug) revalidatePath(`/listing/${listingSlug}`)
+  revalidatePath(`/listing/${listing.slug}`)
   redirect(nextPath)
 }

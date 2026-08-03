@@ -1,32 +1,50 @@
-import { SkeletonBlock } from "@/components/shared/SectionSkeleton"
+import { ka } from "@/lib/i18n/ka"
 
 export default function ListingLoading() {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
-        <div className="space-y-4">
-          <SkeletonBlock className="aspect-[4/5] w-full rounded-[2rem]" />
-          <div className="grid grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SkeletonBlock key={index} className="aspect-[4/5] w-full rounded-2xl" />
-            ))}
-          </div>
+    <>
+      <div aria-hidden="true" className="h-[72px] border-b border-line bg-white" />
+      <main
+        className="min-h-screen bg-bg"
+        aria-busy="true"
+        aria-label={ka.listingDetail.loading}
+      >
+        <div className="ui-container pt-6">
+          <div className="ui-skeleton h-4 w-64 max-w-full" />
         </div>
-        <div className="space-y-6">
-          <div className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-            <SkeletonBlock className="h-4 w-28" />
-            <SkeletonBlock className="mt-4 h-10 w-full max-w-xl" />
-            <SkeletonBlock className="mt-5 h-8 w-40" />
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <SkeletonBlock key={index} className="h-5 w-full" />
-              ))}
+        <section className="ui-container pb-16 pt-7">
+          <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.08fr)_minmax(22rem,0.92fr)] lg:gap-10">
+            <div>
+              <div className="ui-skeleton aspect-[4/5] w-full sm:aspect-square" />
+              <div className="mt-3 flex gap-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="ui-skeleton aspect-square w-20 sm:w-24" />
+                ))}
+              </div>
+            </div>
+            <div className="ui-card p-5 sm:p-6">
+              <div className="ui-skeleton h-8 w-32" />
+              <div className="ui-skeleton mt-5 h-4 w-24" />
+              <div className="ui-skeleton mt-3 h-10 w-full max-w-md" />
+              <div className="ui-skeleton mt-5 h-10 w-40" />
+              <div className="mt-8 grid grid-cols-2 gap-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="ui-skeleton h-14 w-full" />
+                ))}
+              </div>
+              <div className="ui-skeleton mt-8 h-28 w-full" />
+              <div className="ui-skeleton mt-8 h-20 w-full" />
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                <div className="ui-skeleton h-11 w-full" />
+                <div className="ui-skeleton h-11 w-full" />
+              </div>
             </div>
           </div>
-          <SkeletonBlock className="h-48 w-full rounded-[2rem]" />
-          <SkeletonBlock className="h-56 w-full rounded-[2rem]" />
-        </div>
-      </div>
-    </main>
+        </section>
+        <p role="status" className="ui-sr-status">
+          {ka.listingDetail.loading}
+        </p>
+      </main>
+    </>
   )
 }

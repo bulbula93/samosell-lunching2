@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useMemo, useState } from "react"
 import { ka } from "@/lib/i18n/ka"
+import { getSafeImageSource } from "@/lib/media"
 
 type SmartImageProps = {
   src?: string | null
@@ -27,19 +28,7 @@ export default function SmartImage({
   const [failed, setFailed] = useState(false)
 
   const safeSrc = useMemo(() => {
-    const value = String(src ?? "").trim()
-    if (!value) return ""
-    if (value.startsWith("/")) return value
-    try {
-      const url = new URL(value)
-      const allowed =
-        url.protocol === "https:" &&
-        url.hostname === "lxsvjzbiuewgwpajqrwr.supabase.co" &&
-        url.pathname.startsWith("/storage/v1/object/public/")
-      return allowed ? url.toString() : ""
-    } catch {
-      return ""
-    }
+    return getSafeImageSource(src) ?? ""
   }, [src])
 
   if (!safeSrc || failed) {

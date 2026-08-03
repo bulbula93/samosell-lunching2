@@ -1,46 +1,90 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
+import { ka } from "@/lib/i18n/ka"
 
-type ShareButtonProps = { url: string; title: string; text?: string; className?: string; compact?: boolean }
+type ShareButtonProps = {
+  url: string
+  title: string
+  text?: string
+  className?: string
+  compact?: boolean
+}
 
-export default function ShareButton({ url, title, text, className = "", compact = false }: ShareButtonProps) {
-  const [status, setStatus] = useState<"idle" | "copied" | "error">("idle")
-  const label = useMemo(() => {
-    if (status === "copied") return compact ? "დაკოპირდა" : "ლინკი დაკოპირდა"
-    if (status === "error") return compact ? "ვერ დაკოპირდა" : "გაზიარება ვერ შესრულდა"
-    return "გაზიარება"
-  }, [compact, status])
+type ShareStatus = "idle" | "sharing" | "copied" | "error"
+
+export default function ShareButton({
+  url,
+  title,
+  text,
+  className = "",
+  compact = false,
+}: ShareButtonProps) {
+  const [status, setStatus] = useState<ShareStatus>("idle")
+  const label =
+    status === "copied"
+      ? ka.listingDetail.linkCopied
+      : status === "error"
+        ? ka.listingDetail.shareFailed
+        : ka.listingDetail.share
+
+  function resetStatus() {
+    window.setTimeout(() => setStatus("idle"), 1800)
+  }
 
   async function handleClick() {
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
+    if (status === "sharing") return
+    setStatus("sharing")
+
+    if (navigator.share) {
+      try {
         await navigator.share({ title, text, url })
         setStatus("idle")
         return
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setStatus("idle")
+          return
+        }
       }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return
     }
+
     try {
-      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-        setStatus("copied")
-        window.setTimeout(() => setStatus("idle"), 1800)
+      if (!navigator.clipboard?.writeText) {
+        setStatus("error")
+        resetStatus()
         return
       }
-      if (typeof window !== "undefined") {
-        window.prompt("დააკოპირე ლინკი", url)
-        setStatus("copied")
-        window.setTimeout(() => setStatus("idle"), 1800)
-        return
-      }
-      setStatus("error")
+
+      await navigator.clipboard.writeText(url)
+      setStatus("copied")
+      resetStatus()
     } catch {
       setStatus("error")
-      window.setTimeout(() => setStatus("idle"), 1800)
+      resetStatus()
     }
   }
 
-  return <button type="button" onClick={handleClick} className={[(compact ? "rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-text transition hover:bg-surface-alt" : "rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:bg-surface-alt"), className].filter(Boolean).join(" ")}>{label}</button>
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={status === "sharing"}
+        className={[
+          compact
+            ? "rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-text transition hover:bg-surface-alt disabled:cursor-wait disabled:opacity-65"
+            : "rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:border-brand/40 hover:bg-brand-soft/40 disabled:cursor-wait disabled:opacity-65",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {label}
+      </button>
+      <span className="ui-sr-status" role="status" aria-live="polite" aria-atomic="true">
+        {status === "copied" || status === "error" ? label : ""}
+      </span>
+    </>
+  )
 }

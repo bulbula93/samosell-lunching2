@@ -1,20 +1,7 @@
 import Link from "next/link"
-import ProductRelatedListingCard from "@/components/listings/ProductRelatedListingCard"
+import MarketplaceProductCard from "@/components/listings/MarketplaceProductCard"
+import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
-
-function ArrowButton({ direction }: { direction: "left" | "right" }) {
-  return (
-    <button
-      type="button"
-      aria-label={direction === "left" ? "წინა" : "შემდეგი"}
-      className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-black/16 bg-white text-[#FD681B] transition hover:bg-[#FAFAFA]"
-    >
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-4 w-4">
-        <path d={direction === "left" ? "M14.5 5 8 11.5 14.5 18" : "M9.5 5 16 11.5 9.5 18"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
-  )
-}
 
 export default function SimilarListingsSection({
   listingSlug,
@@ -25,34 +12,44 @@ export default function SimilarListingsSection({
   similarItems: CatalogListing[]
   favoriteIds: string[]
 }) {
-  const visibleItems = similarItems.slice(0, 5)
+  if (similarItems.length === 0) return null
+
+  const visibleItems = similarItems.slice(0, 8)
 
   return (
-    <section className="mx-auto w-full max-w-[1440px] px-4 pb-20 pt-[56px] sm:px-6 lg:px-8 xl:px-[80px]">
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-3">
-            <h2 className="text-[28px] font-bold uppercase leading-8 text-[#2D2D2D]">ბოლოს დამატებული პროდუქტები</h2>
-            <div className="flex items-center gap-4">
-              <span className="text-[16px] font-medium leading-6 text-[#2D2D2D]">{similarItems.length || 456} განცხადება</span>
-              <Link href="/catalog" className="inline-flex h-10 items-center justify-center rounded-full border-2 border-[#2D2D2D] px-4 text-[14px] font-semibold text-[#2D2D2D] transition hover:bg-[#F7F7F7]">
-                ნახე ყველა
-              </Link>
-            </div>
+    <section
+      aria-labelledby="similar-listings-heading"
+      className="border-t border-line bg-white"
+    >
+      <div className="ui-container py-12 sm:py-16">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="ui-eyebrow">{ka.listingDetail.category}</p>
+            <h2
+              id="similar-listings-heading"
+              className="mt-2 text-2xl font-black text-text sm:text-3xl"
+            >
+              {ka.listingDetail.similar}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
+              {ka.listingDetail.similarDescription}
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <ArrowButton direction="left" />
-            <ArrowButton direction="right" />
-          </div>
+          <Link href="/catalog" className="ui-btn-secondary">
+            {ka.home.viewAll}
+          </Link>
         </div>
 
-        {visibleItems.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-            {visibleItems.map((item) => (
-              <ProductRelatedListingCard key={item.id} item={item} currentPath={`/listing/${listingSlug}`} isFavorited={favoriteIds.includes(item.id)} />
-            ))}
-          </div>
-        ) : null}
+        <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4">
+          {visibleItems.map((item) => (
+            <MarketplaceProductCard
+              key={item.id}
+              item={item}
+              currentPath={`/listing/${listingSlug}`}
+              isFavorited={favoriteIds.includes(item.id)}
+            />
+          ))}
+        </div>
       </div>
     </section>
   )

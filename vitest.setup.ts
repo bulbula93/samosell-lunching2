@@ -3,6 +3,11 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
 import { afterEach, vi } from "vitest"
 
+process.env.NEXT_PUBLIC_SUPABASE_URL ??= "https://lxsvjzbiuewgwpajqrwr.supabase.co"
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??= "test-publishable-key"
+process.env.NEXT_PUBLIC_SITE_URL ??= "https://samosell.ge"
+process.env.SITE_URL ??= "https://samosell.ge"
+
 afterEach(() => {
   cleanup()
 })

@@ -2,56 +2,86 @@ import Link from "next/link"
 import StartChatButton from "@/components/chat/StartChatButton"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import Avatar from "@/components/shared/Avatar"
-import { conditionLabel, formatPrice, genderLabel } from "@/lib/listings"
-import type { ListingSellerProfile } from "@/lib/listing-page"
+import ShareButton from "@/components/shared/ShareButton"
+import { ka } from "@/lib/i18n/ka"
+import {
+  conditionLabel,
+  formatPrice,
+  formatPublishedDate,
+  genderLabel,
+} from "@/lib/listings"
+import {
+  formatJoinDate,
+  listingDetailStatusLabel,
+  type ListingSellerProfile,
+} from "@/lib/listing-page"
 import type { CatalogListing } from "@/types/marketplace"
 
-function PhoneIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-6 w-6">
-      <path d="M6.7 3.5h3.1l1.1 4.4-2 1.7a14 14 0 0 0 5.2 5.2l1.7-2 4.4 1.1v3.1a1.8 1.8 0 0 1-1.9 1.8A15.8 15.8 0 0 1 3.5 5.4 1.8 1.8 0 0 1 5.3 3.5h1.4Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+type ListingOverviewCardProps = {
+  listing: CatalogListing
+  sellerProfile?: ListingSellerProfile | null
+  sellerLabel: string
+  sellerAvatarSrc: string | null
+  sellerActiveListingsCount: number
+  isOwner: boolean
+  isAuthenticated: boolean
+  canChat: boolean
+  isFavorited: boolean
+  chatError: string
+  favoriteError: string
+  reportFlash: string
+  isBlocked: boolean
+  isBlockedBySeller: boolean
+  sellerSuspended: boolean
+  shareUrl: string
 }
 
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-6 w-6">
-      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6A2.5 2.5 0 0 1 16.5 15H11l-4.5 3v-3H7.5A2.5 2.5 0 0 1 5 12.5v-6Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
+type DetailItem = {
+  label: string
+  value: string
 }
 
-function StarRow() {
-  return (
-    <div className="flex items-center gap-1 text-[#F88A51]">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <svg key={index} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
-          <path d="M12 2.9 14.8 8.6l6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20l1-6.1-4.4-4.4 6.1-.9L12 2.9Z" />
-        </svg>
-      ))}
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-4 w-4 text-[#F88A51]">
-        <path d="M12 2.9 14.8 8.6l6.2.9-4.5 4.4 1.1 6.2L12 17.2 6.4 20l1-6.1-4.4-4.4 6.1-.9L12 2.9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      </svg>
-    </div>
-  )
+function statusClasses(status?: string | null) {
+  if (status === "sold") return "border-neutral-300 bg-neutral-100 text-neutral-800"
+  if (status === "reserved") return "border-amber-200 bg-amber-50 text-amber-900"
+  return "border-emerald-200 bg-emerald-50 text-emerald-900"
 }
 
-function DetailChip({ label, value, className = "" }: { label: string; value: string; className?: string }) {
-  return (
-    <div className={className}>
-      <div className="mb-2 text-[16px] font-normal leading-4 text-[#5F6368]">{label}</div>
-      <div className="inline-flex min-h-8 items-center justify-center rounded-[4px] border border-[#2D2D2D] bg-[#2D2D2D] px-4 text-[16px] font-medium leading-8 text-[#E7E7E7]">
-        {value}
-      </div>
-    </div>
-  )
+function getStatusMessage(status?: string | null) {
+  if (status === "reserved") return ka.listingDetail.reservedMessage
+  if (status === "sold") return ka.listingDetail.soldMessage
+  return ""
 }
 
-function sanitizePhone(phone?: string | null) {
-  if (!phone) return null
-  const trimmed = phone.trim()
-  return trimmed.length > 0 ? trimmed : null
+function buildDetailItems(listing: CatalogListing) {
+  const details: Array<DetailItem | null> = [
+    listing.category_name
+      ? { label: ka.listingDetail.category, value: listing.category_name }
+      : null,
+    listing.brand_name
+      ? { label: ka.listingDetail.brand, value: listing.brand_name }
+      : null,
+    listing.size_label
+      ? { label: ka.listingDetail.size, value: listing.size_label }
+      : null,
+    listing.condition
+      ? { label: ka.listingDetail.condition, value: conditionLabel(listing.condition) }
+      : null,
+    listing.color
+      ? { label: ka.listingDetail.color, value: listing.color }
+      : null,
+    listing.material
+      ? { label: ka.listingDetail.material, value: listing.material }
+      : null,
+    listing.gender
+      ? { label: ka.listingDetail.section, value: genderLabel(listing.gender) }
+      : null,
+    listing.city
+      ? { label: ka.listingDetail.location, value: listing.city }
+      : null,
+  ]
+
+  return details.filter((item): item is DetailItem => Boolean(item))
 }
 
 export default function ListingOverviewCard({
@@ -65,136 +95,253 @@ export default function ListingOverviewCard({
   canChat,
   isFavorited,
   chatError,
+  favoriteError,
   reportFlash,
   isBlocked,
   isBlockedBySeller,
   sellerSuspended,
-}: {
-  listing: CatalogListing
-  sellerProfile?: ListingSellerProfile | null
-  sellerLabel: string
-  sellerAvatarSrc: string | null
-  sellerActiveListingsCount: number
-  isOwner: boolean
-  isAuthenticated: boolean
-  canChat: boolean
-  isFavorited: boolean
-  chatError: string
-  reportFlash: string
-  isBlocked: boolean
-  isBlockedBySeller: boolean
-  sellerSuspended: boolean
-}) {
-  const phone = sanitizePhone(sellerProfile?.store_phone) || "+995 555 444 333"
-  const sellerProfileHref = sellerProfile?.username ? `/seller/${sellerProfile.username}` : null
-  const sellerItemsLabel = `${sellerActiveListingsCount} ნივთი`
-  const description = listing.description?.trim() || "აქ კლიენტი დაწერს რამე დამატებით ინფორმაციას, მაგალითად რა ფერია, რა მატერიაა, და რატომ ყიდის ამ ნივთს."
-  const sectionValue = genderLabel(listing.gender)
-  const categoryValue = listing.category_name || "ფეხსაცმელი"
-  const sizeValue = listing.size_label || "44"
-  const conditionValue = conditionLabel(listing.condition)
-  const cityValue = listing.city || "თბილისი"
+  shareUrl,
+}: ListingOverviewCardProps) {
+  const isActive = listing.status === "active"
+  const statusMessage = getStatusMessage(listing.status)
+  const details = buildDetailItems(listing)
+  const description = listing.description?.trim() || ""
+  const sellerJoinedAt = formatJoinDate(
+    sellerProfile?.created_at || listing.seller_created_at,
+  )
+  const sellerProfileHref = sellerProfile?.username
+    ? `/seller/${encodeURIComponent(sellerProfile.username)}`
+    : null
+  const messagingUnavailable =
+    isActive &&
+    !isOwner &&
+    isAuthenticated &&
+    !canChat &&
+    (isBlocked || isBlockedBySeller || sellerSuspended)
 
   return (
-    <div className="w-full max-w-[616px] space-y-4 text-[#2D2D2D]">
-      <div className="flex items-start gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[24px] font-medium uppercase leading-8 text-[#2D2D2D]">{listing.title}</h1>
-        </div>
-        <FavoriteToggleForm
-          listingId={listing.id}
-          listingSlug={listing.slug}
-          nextPath={`/listing/${listing.slug}`}
-          isFavorited={isFavorited}
-          compact
-          className="h-8 w-8 rounded-full border-0 bg-[#212831] hover:bg-[#171d24]"
-        />
+    <article
+      aria-labelledby="listing-title"
+      className="ui-card min-w-0 p-5 sm:p-6 lg:sticky lg:top-28"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span
+          className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1.5 text-xs font-bold ${statusClasses(listing.status)}`}
+        >
+          {listingDetailStatusLabel(listing.status)}
+        </span>
+        {listing.is_vip && isActive ? (
+          <span className="ui-pill-vip">VIP</span>
+        ) : null}
       </div>
 
-      <div className="text-[24px] font-bold leading-8 text-[#2D2D2D]">{formatPrice(listing.price, listing.currency)}</div>
+      <header className="mt-5">
+        {listing.brand_name ? (
+          <p className="text-sm font-bold uppercase tracking-[0.12em] text-brand">
+            {listing.brand_name}
+          </p>
+        ) : null}
+        <h1
+          id="listing-title"
+          className="mt-2 break-words text-2xl font-black leading-tight text-text [overflow-wrap:anywhere] sm:text-3xl"
+        >
+          {listing.title}
+        </h1>
+        <p className="mt-4 text-3xl font-black tracking-tight text-text sm:text-4xl">
+          {formatPrice(listing.price, listing.currency)}
+        </p>
+      </header>
 
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-4">
-        <DetailChip label="კატეგორია" value={sectionValue} className="w-[112px]" />
-        <DetailChip label="ქვეკატეგორია" value={categoryValue} className="w-[134px]" />
-        <DetailChip label="ზომა" value={sizeValue} className="w-[69px]" />
-        <DetailChip label="კონდიცია" value={conditionValue} className="w-[84px]" />
-        <DetailChip label="ლოკაცია" value={cityValue} className="min-w-[92px] flex-1" />
+      {statusMessage ? (
+        <p
+          role="status"
+          className="mt-5 rounded-xl border border-line bg-surface-alt px-4 py-3 text-sm leading-6 text-text-soft"
+        >
+          {statusMessage}
+        </p>
+      ) : null}
+
+      {details.length > 0 ? (
+        <section aria-labelledby="listing-details-heading" className="mt-7 border-t border-line pt-6">
+          <h2 id="listing-details-heading" className="text-lg font-black text-text">
+            {ka.listingDetail.details}
+          </h2>
+          <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
+            {details.map((item) => (
+              <div key={item.label} className="min-w-0 border-b border-line/70 pb-3">
+                <dt className="text-xs font-semibold text-text-soft">{item.label}</dt>
+                <dd className="mt-1 break-words text-sm font-bold text-text [overflow-wrap:anywhere]">
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
+
+      {description ? (
+        <section aria-labelledby="listing-description-heading" className="mt-7 border-t border-line pt-6">
+          <h2 id="listing-description-heading" className="text-lg font-black text-text">
+            {ka.listingDetail.description}
+          </h2>
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-text-soft [overflow-wrap:anywhere]">
+            {description}
+          </p>
+        </section>
+      ) : null}
+
+      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-soft">
+        {listing.published_at ? (
+          <span>
+            {ka.listingDetail.published}: {formatPublishedDate(listing.published_at)}
+          </span>
+        ) : null}
+        {(listing.views_count ?? 0) > 0 ? (
+          <span>
+            {listing.views_count} {ka.listingDetail.views}
+          </span>
+        ) : null}
+        {(listing.favorites_count ?? 0) > 0 ? (
+          <span>
+            {listing.favorites_count} {ka.listingDetail.favorites}
+          </span>
+        ) : null}
       </div>
 
-      <div className="rounded-[8px] bg-[#F3F3F3] p-4 text-[16px] leading-6 text-[#2D2D2D]/75">
-        {description}
-      </div>
+      <section aria-labelledby="listing-seller-heading" className="mt-7 border-t border-line pt-6">
+        <h2 id="listing-seller-heading" className="text-lg font-black text-text">
+          {ka.listingDetail.seller}
+        </h2>
 
-      <div className="border-b border-[#2E3134]/30 pb-4">
-        <div className="flex items-start gap-3">
+        <div className="mt-4 flex min-w-0 items-center gap-3">
           {sellerProfileHref ? (
-            <Link href={sellerProfileHref} className="shrink-0">
-              <Avatar src={sellerAvatarSrc} alt={sellerLabel} fallbackText={sellerLabel} sizeClassName="h-12 w-12" textClassName="text-sm" className="border-0 shadow-none ring-0" />
+            <Link
+              href={sellerProfileHref}
+              aria-label={`${sellerLabel} — ${ka.listingDetail.viewProfile}`}
+              className="shrink-0 rounded-full"
+            >
+              <Avatar
+                src={sellerAvatarSrc}
+                alt={sellerLabel}
+                fallbackText={sellerLabel}
+                sizeClassName="h-14 w-14"
+                textClassName="text-base"
+              />
             </Link>
           ) : (
-            <Avatar src={sellerAvatarSrc} alt={sellerLabel} fallbackText={sellerLabel} sizeClassName="h-12 w-12" textClassName="text-sm" className="border-0 shadow-none ring-0" />
+            <Avatar
+              src={sellerAvatarSrc}
+              alt={sellerLabel}
+              fallbackText={sellerLabel}
+              sizeClassName="h-14 w-14"
+              textClassName="text-base"
+              className="shrink-0"
+            />
           )}
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <div className="truncate text-[16px] font-medium leading-6 text-[#2D2D2D]">{sellerLabel}</div>
-              {sellerProfileHref ? (
-                <Link href={sellerProfileHref} className="text-[16px] font-bold leading-5 text-[#F88A51] underline underline-offset-2">
-                  {sellerItemsLabel}
-                </Link>
-              ) : (
-                <span className="text-[16px] font-bold leading-5 text-[#F88A51] underline underline-offset-2">{sellerItemsLabel}</span>
-              )}
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-[16px] leading-5 text-[#2D2D2D]">
-              <StarRow />
-              <span>(4.3)</span>
+            {sellerProfileHref ? (
+              <Link
+                href={sellerProfileHref}
+                className="block truncate rounded-md text-base font-black text-text transition hover:text-brand"
+              >
+                {sellerLabel}
+              </Link>
+            ) : (
+              <p className="truncate text-base font-black text-text">{sellerLabel}</p>
+            )}
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
+              {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
+              {sellerJoinedAt ? (
+                <span>
+                  {ka.listingDetail.memberSince}: {sellerJoinedAt}
+                </span>
+              ) : null}
+              {sellerActiveListingsCount > 0 ? (
+                <span>
+                  {sellerActiveListingsCount} {ka.listingDetail.activeListings}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="border-b border-[#C2C3C4] pb-4">
-        <div className="mb-4 text-[16px] font-semibold leading-4 text-[#2D2D2D]">საკონტაქტო ინფორმაცია</div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <a
-            href={`tel:${phone.replace(/\s+/g, "")}`}
-            className="inline-flex min-h-[60px] items-center justify-center gap-4 rounded-[16px] border border-black bg-white px-4 text-[20px] font-medium leading-7 text-[#2D2D2D]"
-          >
-            <PhoneIcon />
-            <span className="truncate">{phone}</span>
-          </a>
+        {sellerProfile?.bio ? (
+          <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
+            {sellerProfile.bio}
+          </p>
+        ) : null}
+      </section>
 
+      <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
+        <div className="grid gap-3 sm:grid-cols-2">
           {isOwner ? (
-            <Link href={`/dashboard/listings/${listing.id}/edit`} className="inline-flex min-h-[60px] items-center justify-center gap-4 rounded-[16px] bg-[#F88A51] px-4 text-[20px] font-medium leading-6 text-white transition hover:bg-[#ef7d46]">
-              <ChatIcon />
-              <span>რედაქტირება</span>
+            <Link
+              href={`/dashboard/listings/${listing.id}/edit`}
+              className="ui-btn-primary w-full text-center"
+            >
+              {ka.listingDetail.edit}
             </Link>
-          ) : isAuthenticated ? (
-            canChat ? (
-              <div className="[&_button]:inline-flex [&_button]:min-h-[60px] [&_button]:w-full [&_button]:items-center [&_button]:justify-center [&_button]:gap-4 [&_button]:rounded-[16px] [&_button]:bg-[#F88A51] [&_button]:px-4 [&_button]:text-[20px] [&_button]:font-medium [&_button]:leading-6 [&_button]:text-white [&_button]:transition hover:[&_button]:bg-[#ef7d46]">
-                <StartChatButton listingId={listing.id} listingSlug={listing.slug} label="ონლაინ ჩატი" icon={<ChatIcon />} />
-              </div>
-            ) : (
-              <button type="button" disabled className="inline-flex min-h-[60px] items-center justify-center gap-4 rounded-[16px] bg-[#D9D9D9] px-4 text-[20px] font-medium leading-6 text-white">
-                <ChatIcon />
-                <span>ონლაინ ჩატი</span>
-              </button>
-            )
-          ) : (
-            <Link href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`} className="inline-flex min-h-[60px] items-center justify-center gap-4 rounded-[16px] bg-[#F88A51] px-4 text-[20px] font-medium leading-6 text-white transition hover:bg-[#ef7d46]">
-              <ChatIcon />
-              <span>ონლაინ ჩატი</span>
-            </Link>
-          )}
-        </div>
-      </div>
+          ) : null}
 
-      {chatError ? <div className="rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{chatError}</div> : null}
-      {reportFlash ? <div className="rounded-[8px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{reportFlash}</div> : null}
-      {!isOwner && isBlocked ? <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">ეს მომხმარებელი დაბლოკილი გაქვს.</div> : null}
-      {!isOwner && isBlockedBySeller ? <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">ამ მომხმარებელმა შენთვის შეტყობინებები შეზღუდა.</div> : null}
-      {!isOwner && sellerSuspended ? <div className="rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">გამყიდველის ანგარიში დროებით შეზღუდულია.</div> : null}
-    </div>
+          {isActive && !isOwner ? (
+            <FavoriteToggleForm
+              listingId={listing.id}
+              listingSlug={listing.slug}
+              nextPath={`/listing/${listing.slug}`}
+              isFavorited={isFavorited}
+              className="min-h-11 w-full rounded-xl"
+            />
+          ) : null}
+
+          <ShareButton
+            url={shareUrl}
+            title={listing.title}
+            text={`${listing.title} — ${formatPrice(listing.price, listing.currency)}`}
+            className="min-h-11 w-full"
+          />
+
+          {isActive && !isOwner && isAuthenticated && canChat ? (
+            <StartChatButton
+              listingId={listing.id}
+              listingSlug={listing.slug}
+              className="ui-btn-primary min-h-11 w-full"
+              label={ka.listingDetail.messageSeller}
+            />
+          ) : null}
+
+          {isActive && !isOwner && !isAuthenticated ? (
+            <Link
+              href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`}
+              className="ui-btn-primary w-full text-center sm:col-span-2"
+            >
+              {ka.listingDetail.loginToMessage}
+            </Link>
+          ) : null}
+        </div>
+
+        {messagingUnavailable ? (
+          <p role="status" className="mt-4 text-sm leading-6 text-text-soft">
+            {ka.listingDetail.messageUnavailable}
+          </p>
+        ) : null}
+      </section>
+
+      {chatError ? (
+        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {chatError}
+        </p>
+      ) : null}
+      {favoriteError ? (
+        <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {favoriteError}
+        </p>
+      ) : null}
+      {reportFlash ? (
+        <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {reportFlash}
+        </p>
+      ) : null}
+    </article>
   )
 }

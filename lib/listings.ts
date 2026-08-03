@@ -104,7 +104,13 @@ export function genderLabel(gender?: string | null) {
 export function formatPrice(value: number | string, currency = "GEL") {
   const amount = typeof value === "string" ? Number(value) : value
   const safeAmount = Number.isFinite(amount) ? amount : 0
-  return `${safeAmount} ${currency === "GEL" ? "₾" : currency}`
+  const hasFraction = Math.round(safeAmount * 100) % 100 !== 0
+  const formatted = new Intl.NumberFormat("ka-GE", {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(safeAmount)
+
+  return `${formatted} ${currency === "GEL" ? "₾" : currency}`
 }
 
 export function formatPublishedDate(value?: string | null) {
