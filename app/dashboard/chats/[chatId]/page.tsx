@@ -2,69 +2,104 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
+import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
-import { chatCounterpartyName } from "@/lib/chats"
+import {
+  CHAT_MESSAGE_PAGE_SIZE,
+  canSendChatMessageForStatus,
+  chatCounterpartyName,
+  isChatUuid,
+} from "@/lib/chats"
+import { requireAuthenticatedUser } from "@/lib/auth"
 import { formatPrice } from "@/lib/listings"
-import { createClient } from "@/lib/supabase/server"
 import type { ChatMessage, ChatThread } from "@/types/chat"
 
 export default async function ChatThreadPage({ params }: { params: Promise<{ chatId: string }> }) {
   const { chatId } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) notFound()
+  if (!isChatUuid(chatId)) notFound()
 
-  const { data: thread } = await supabase
+  const { supabase, user } = await requireAuthenticatedUser(`/dashboard/chats/${chatId}`)
+
+  const { data: thread, error: threadError } = await supabase
     .from("chat_threads")
     .select(
-      "id, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived"
+      "id, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url"
     )
     .eq("id", chatId)
+    .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
     .maybeSingle()
 
+  if (threadError) throw new Error("CHAT_THREAD_QUERY_FAILED", { cause: threadError })
   if (!thread) notFound()
 
-  const readField = thread.buyer_id === user.id ? "buyer_last_read_at" : "seller_last_read_at"
-  await supabase.from("chats").update({ [readField]: new Date().toISOString() }).eq("id", chatId)
+  const { error: readError } = await supabase.rpc("mark_chat_read", {
+    p_chat_id: chatId,
+  })
+  if (readError) {
+    console.error("Chat read state update failed.", { chatId })
+  }
 
-  const { data: messages } = await supabase
+  const { data: messages, error: messagesError } = await supabase
     .from("messages")
     .select("id, chat_id, sender_id, body, created_at")
     .eq("chat_id", chatId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(CHAT_MESSAGE_PAGE_SIZE + 1)
 
+  if (messagesError) throw new Error("CHAT_MESSAGES_QUERY_FAILED", { cause: messagesError })
   const typedThread = thread as ChatThread
-  const typedMessages = (messages ?? []) as ChatMessage[]
+  const messageRows = (messages ?? []) as ChatMessage[]
+  const hasOlderMessages = messageRows.length > CHAT_MESSAGE_PAGE_SIZE
+  const typedMessages = messageRows
+    .slice(0, CHAT_MESSAGE_PAGE_SIZE)
+    .reverse()
   const otherPartyLabel = chatCounterpartyName(typedThread)
+  const canSend = canSendChatMessageForStatus(typedThread.listing_status)
+  const listingIsPublic = typedThread.listing_status === "active"
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <main className="ui-container py-8 sm:py-10">
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">ჩათი</div>
-          <h1 className="mt-3 text-3xl font-black sm:text-4xl">{typedThread.listing_title}</h1>
-          <div className="mt-3 flex flex-wrap gap-3 text-sm text-neutral-600">
+          <div className="ui-eyebrow">შეტყობინებები</div>
+          <h1 className="mt-3 break-words text-3xl font-black text-text sm:text-4xl">
+            {typedThread.listing_title}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-text-soft">
             <span>{formatPrice(typedThread.price, typedThread.currency)}</span>
             <span>·</span>
             <span>{otherPartyLabel}</span>
-            {typedThread.counterparty_city ? <><span>·</span><span>{typedThread.counterparty_city}</span></> : null}
-            {typedThread.is_archived ? <><span>·</span><span>არქივშია</span></> : null}
+            {typedThread.counterparty_city ? (
+              <>
+                <span>·</span>
+                <span>{typedThread.counterparty_city}</span>
+              </>
+            ) : null}
+            <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-bold">
+              {typedThread.listing_status}
+            </span>
+            {typedThread.is_archived ? (
+              <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-bold">
+                შენს არქივშია
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/chats" className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">
-            ყველა ჩათი
+          <Link href="/dashboard/chats" className="ui-btn-secondary">
+            ყველა მიმოწერა
           </Link>
-          <Link href={`/listing/${typedThread.listing_slug}`} className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">
-            განცხადების ნახვა
-          </Link>
+          {listingIsPublic ? (
+            <Link href={`/listing/${typedThread.listing_slug}`} className="ui-btn-primary">
+              განცხადების ნახვა
+            </Link>
+          ) : null}
           <form action={updateChatVisibilityAction}>
             <input type="hidden" name="chatId" value={typedThread.id} />
             <input type="hidden" name="intent" value={typedThread.is_archived ? "restore" : "archive"} />
-            <input type="hidden" name="nextPath" value={typedThread.is_archived ? `/dashboard/chats/${typedThread.id}` : "/dashboard/chats"} />
-            <button className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">
+            <input type="hidden" name="returnTo" value="thread" />
+            <button className="ui-btn-secondary">
               {typedThread.is_archived ? "არქივიდან დაბრუნება" : "დამალვა"}
             </button>
           </form>
@@ -75,37 +110,57 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
         <ChatThreadClient
           chatId={typedThread.id}
           currentUserId={user.id}
-          readField={readField}
           initialMessages={typedMessages}
           otherPartyLabel={otherPartyLabel}
+          canSend={canSend}
+          initialHasMore={hasOlderMessages}
         />
 
         <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">მეორე მხარე</div>
-            <div className="mt-3 text-2xl font-black text-neutral-900">{otherPartyLabel}</div>
-            <div className="mt-3 space-y-2 text-sm text-neutral-700">
-              <div><span className="font-semibold">ქალაქი:</span> {typedThread.counterparty_city || "—"}</div>
-              <div><span className="font-semibold">როლი:</span> {typedThread.buyer_id === user.id ? "გამყიდველი" : "მყიდველი"}</div>
-              <div><span className="font-semibold">ბოლო აქტივობა:</span> {typedThread.last_message_created_at ? new Date(typedThread.last_message_created_at).toLocaleString("ka-GE") : "ჯერ არ არის"}</div>
+          <section aria-labelledby="counterparty-title" className="ui-card p-6">
+            <div className="ui-eyebrow">მეორე მხარე</div>
+            <div className="mt-4 flex items-center gap-3">
+              <Avatar
+                src={typedThread.counterparty_avatar_url}
+                alt={otherPartyLabel}
+                fallbackText={otherPartyLabel}
+                sizeClassName="h-12 w-12"
+              />
+              <div className="min-w-0">
+                <h2 id="counterparty-title" className="truncate text-xl font-black text-text">
+                  {otherPartyLabel}
+                </h2>
+                <p className="mt-1 text-sm text-text-soft">
+                  {typedThread.buyer_id === user.id ? "გამყიდველი" : "მყიდველი"}
+                </p>
+              </div>
             </div>
-          </div>
+            {typedThread.counterparty_city ? (
+              <p className="mt-4 text-sm text-text-soft">
+                მდებარეობა: {typedThread.counterparty_city}
+              </p>
+            ) : null}
+          </section>
 
-          <div className="rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">განცხადება</div>
+          <section aria-labelledby="chat-listing-title" className="ui-card p-6">
+            <div className="ui-eyebrow">განცხადების კონტექსტი</div>
             <div className="mt-3 flex gap-4">
-              <div className="h-28 w-24 overflow-hidden rounded-[1.25rem] bg-neutral-200">
+              <div className="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-alt">
                 <SmartImage src={typedThread.cover_image_url} alt={typedThread.listing_title} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-lg font-black text-neutral-900">{typedThread.listing_title}</div>
-                <div className="mt-1 text-sm text-neutral-600">{formatPrice(typedThread.price, typedThread.currency)}</div>
-                <div className="mt-4 text-sm text-neutral-600">
-                  ეს დიალოგი მიბმულია კონკრეტულად ამ განცხადებაზე. თუ ნივთის სტატუსს შეცვლი, ჩათი შენარჩუნდება.
+                <h2 id="chat-listing-title" className="break-words text-lg font-black text-text">
+                  {typedThread.listing_title}
+                </h2>
+                <div className="mt-1 text-sm text-text-soft">
+                  {formatPrice(typedThread.price, typedThread.currency)}
                 </div>
+                <p className="mt-4 text-sm leading-6 text-text-soft">
+                  ისტორია ინახება განცხადების სტატუსის ცვლილების შემდეგაც.
+                </p>
               </div>
             </div>
-          </div>
+          </section>
         </aside>
       </div>
     </main>

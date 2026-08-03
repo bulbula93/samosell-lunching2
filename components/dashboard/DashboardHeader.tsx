@@ -83,7 +83,7 @@ export default function DashboardHeader({
           <Link href="/dashboard/reports" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">რეპორტები</Link>
           <Link href="/dashboard/listings" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">ჩემი განცხადებები</Link>
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">VIP განთავსება</Link>
-          <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">ჩათები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
+          <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           {isAdmin ? (
             <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 px-4 py-2 text-amber-900">
               ადმინისტრირება
@@ -95,7 +95,7 @@ export default function DashboardHeader({
           <Link href="/dashboard" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">კაბინეტი</Link>
           <Link href="/dashboard/listings" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">განცხადებები</Link>
           <Link href="/dashboard/favorites" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">ფავორიტები{favoriteCount > 0 ? ` · ${favoriteCount}` : ""}</Link>
-          <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">ჩათები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
+          <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">VIP განთავსება</Link>
           {isAdmin ? <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">ადმინისტრირება</Link> : null}
         </div>

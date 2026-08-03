@@ -3,124 +3,289 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
-import { humanizeSupabaseError } from "@/lib/listings"
-import { enforceRateLimit } from "@/lib/rate-limit"
+import {
+  CHAT_MESSAGE_PAGE_SIZE,
+  chatErrorMessage,
+  isChatUuid,
+  validateChatMessageBody,
+} from "@/lib/chats"
+import { isValidListingSlug } from "@/lib/listing-page"
+import { createClient } from "@/lib/supabase/server"
+import type { ChatMessage, ChatMessageCursor } from "@/types/chat"
 
-function buildListingRedirect(slug: string, message?: string) {
-  if (!message) return `/listing/${slug}`
-  const search = new URLSearchParams({ chatError: message })
-  return `/listing/${slug}?${search.toString()}`
+export type StartChatState = {
+  ok: false
+  message: string
 }
 
-export async function startChatAction(formData: FormData) {
-  const listingId = String(formData.get("listingId") || "")
-  const listingSlug = String(formData.get("listingSlug") || "")
+export type SendChatMessageResult =
+  | { ok: true; message: ChatMessage }
+  | { ok: false; code: "unauthorized" | "invalid" | "not_found" | "server_error"; message: string }
 
-  if (!listingId || !listingSlug) {
-    redirect("/catalog")
-  }
+export type LoadOlderMessagesResult =
+  | { ok: true; messages: ChatMessage[]; hasMore: boolean }
+  | { ok: false; code: "unauthorized" | "invalid" | "not_found" | "server_error"; message: string }
 
-  const { supabase, user } = await requireAuthenticatedUser(`/listing/${listingSlug}`)
+type AuthenticatedChatContext = {
+  supabase: Awaited<ReturnType<typeof createClient>>
+  user: { id: string }
+}
 
-  try {
-    await enforceRateLimit(supabase, "chat_start")
-  } catch (error) {
-    redirect(buildListingRedirect(listingSlug, humanizeSupabaseError(error instanceof Error ? error.message : "")))
-  }
+type MessageRpcRow = {
+  message_id: string
+  message_body: string
+  message_created_at: string
+}
 
-  const { data: listing, error: listingError } = await supabase
-    .from("listings")
-    .select("id, slug, seller_id, status")
-    .eq("id", listingId)
-    .maybeSingle()
+type StartMessageRpcRow = MessageRpcRow & {
+  chat_id: string
+}
 
-  if (listingError || !listing) {
-    redirect(buildListingRedirect(listingSlug, "განცხადება ვერ მოიძებნა."))
-  }
+async function getAuthenticatedChatContext(): Promise<AuthenticatedChatContext | null> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
-  if (listing.seller_id === user.id) {
-    redirect(`/dashboard/listings`)
-  }
+  if (error || !user) return null
+  return { supabase, user: { id: user.id } }
+}
 
-  if (listing.status !== "active") {
-    redirect(buildListingRedirect(listing.slug, "ჩატი მხოლოდ აქტიურ განცხადებაზე შეგიძლია დაიწყო."))
-  }
-
-  const [{ data: sellerProfile }, { data: myBlock }, { data: theirBlock }] = await Promise.all([
-    supabase.from("profiles").select("is_suspended").eq("id", listing.seller_id).maybeSingle(),
-    supabase.from("user_blocks").select("id").eq("blocker_id", user.id).eq("blocked_id", listing.seller_id).maybeSingle(),
-    supabase.from("user_blocks").select("id").eq("blocker_id", listing.seller_id).eq("blocked_id", user.id).maybeSingle(),
-  ])
-
-  if (sellerProfile?.is_suspended) {
-    redirect(buildListingRedirect(listing.slug, "ამ გამყიდველთან მიწერა დროებით შეზღუდულია."))
-  }
-
-  if (myBlock?.id || theirBlock?.id) {
-    redirect(buildListingRedirect(listing.slug, "ჩატის დაწყება ვერ მოხერხდა, რადგან ერთ-ერთ მხარეს ბლოკი აქვს ჩართული."))
-  }
-
-  const { data: existingChat } = await supabase
+async function canAccessChat(
+  context: AuthenticatedChatContext,
+  chatId: string,
+) {
+  const { data, error } = await context.supabase
     .from("chats")
     .select("id")
-    .eq("listing_id", listing.id)
-    .eq("buyer_id", user.id)
-    .eq("seller_id", listing.seller_id)
+    .eq("id", chatId)
+    .or(`buyer_id.eq.${context.user.id},seller_id.eq.${context.user.id}`)
     .maybeSingle()
 
-  if (existingChat?.id) {
-    redirect(`/dashboard/chats/${existingChat.id}`)
+  if (error) throw error
+  return Boolean(data)
+}
+
+function buildMessage(
+  row: MessageRpcRow,
+  chatId: string,
+  senderId: string,
+): ChatMessage {
+  return {
+    id: row.message_id,
+    chat_id: chatId,
+    sender_id: senderId,
+    body: row.message_body,
+    created_at: row.message_created_at,
+  }
+}
+
+export async function startChatAction(
+  _previousState: StartChatState,
+  formData: FormData,
+): Promise<StartChatState> {
+  const listingId = formData.get("listingId")
+  const listingSlugValue = formData.get("listingSlug")
+  const clientRequestId = formData.get("clientRequestId")
+  const messageValidation = validateChatMessageBody(formData.get("body"))
+  const listingSlug =
+    typeof listingSlugValue === "string" && isValidListingSlug(listingSlugValue)
+      ? listingSlugValue
+      : ""
+  const returnPath = listingSlug ? `/listing/${listingSlug}` : "/catalog"
+
+  const { supabase } = await requireAuthenticatedUser(returnPath)
+
+  if (!isChatUuid(listingId) || !isChatUuid(clientRequestId)) {
+    return {
+      ok: false,
+      message: "მოთხოვნის მონაცემები არასწორია. განაახლე გვერდი და სცადე თავიდან.",
+    }
+  }
+  if (!messageValidation.ok) {
+    return { ok: false, message: messageValidation.message }
   }
 
-  const { data: insertedChat, error: insertError } = await supabase
-    .from("chats")
-    .insert({
-      listing_id: listing.id,
-      buyer_id: user.id,
-      seller_id: listing.seller_id,
-      buyer_last_read_at: new Date().toISOString(),
+  const { data, error } = await supabase
+    .rpc("start_chat_with_message", {
+      p_listing_id: listingId,
+      p_body: messageValidation.body,
+      p_client_request_id: clientRequestId,
     })
-    .select("id")
     .single()
 
-  if (insertError || !insertedChat) {
-    redirect(buildListingRedirect(listing.slug, humanizeSupabaseError(insertError?.message)))
-  }
-
-  redirect(`/dashboard/chats/${insertedChat.id}`)
-}
-
-export async function updateChatVisibilityAction(formData: FormData) {
-  const chatId = String(formData.get("chatId") || "")
-  const intent = String(formData.get("intent") || "")
-  const nextPath = String(formData.get("nextPath") || "/dashboard/chats")
-
-  if (!chatId || !intent) redirect(nextPath)
-
-  const { supabase, user } = await requireAuthenticatedUser(nextPath)
-
-  const { data: chat } = await supabase
-    .from("chats")
-    .select("id, buyer_id, seller_id")
-    .eq("id", chatId)
-    .maybeSingle()
-
-  if (!chat) redirect("/dashboard/chats")
-
-  const isBuyer = chat.buyer_id === user.id
-  const isSeller = chat.seller_id === user.id
-  if (!isBuyer && !isSeller) redirect("/dashboard/chats")
-
-  const field = isBuyer ? "buyer_archived_at" : "seller_archived_at"
-  const payload = intent === "archive" ? { [field]: new Date().toISOString() } : { [field]: null }
-
-  const { error } = await supabase.from("chats").update(payload).eq("id", chatId)
-
-  if (error) {
-    redirect(`/dashboard/chats?flash=${encodeURIComponent(humanizeSupabaseError(error.message))}`)
+  const row = data as StartMessageRpcRow | null
+  if (error || !row?.chat_id) {
+    return { ok: false, message: chatErrorMessage(error?.message) }
   }
 
   revalidatePath("/dashboard/chats")
-  revalidatePath(`/dashboard/chats/${chatId}`)
+  revalidatePath(`/dashboard/chats/${row.chat_id}`)
+  redirect(`/dashboard/chats/${row.chat_id}`)
+}
+
+export async function sendChatMessageAction(
+  input: {
+    chatId: string
+    body: string
+    clientRequestId: string
+  },
+): Promise<SendChatMessageResult> {
+  const context = await getAuthenticatedChatContext()
+  if (!context) {
+    return {
+      ok: false,
+      code: "unauthorized",
+      message: "სესია დასრულებულია. ხელახლა შედი ანგარიშში.",
+    }
+  }
+
+  if (!isChatUuid(input?.chatId) || !isChatUuid(input?.clientRequestId)) {
+    return { ok: false, code: "invalid", message: "მოთხოვნის მონაცემები არასწორია." }
+  }
+
+  const messageValidation = validateChatMessageBody(input?.body)
+  if (!messageValidation.ok) {
+    return { ok: false, code: "invalid", message: messageValidation.message }
+  }
+
+  try {
+    const { data, error } = await context.supabase
+      .rpc("send_chat_message", {
+        p_chat_id: input.chatId,
+        p_body: messageValidation.body,
+        p_client_request_id: input.clientRequestId,
+      })
+      .single()
+
+    const row = data as MessageRpcRow | null
+    if (error || !row?.message_id) {
+      const message = chatErrorMessage(error?.message)
+      const code = String(error?.message ?? "").includes("conversation_not_found")
+        ? "not_found"
+        : "server_error"
+      return { ok: false, code, message }
+    }
+
+    revalidatePath("/dashboard/chats")
+    revalidatePath(`/dashboard/chats/${input.chatId}`)
+
+    return {
+      ok: true,
+      message: buildMessage(row, input.chatId, context.user.id),
+    }
+  } catch {
+    return {
+      ok: false,
+      code: "server_error",
+      message: chatErrorMessage(),
+    }
+  }
+}
+
+export async function loadOlderMessagesAction(
+  chatId: string,
+  cursor: ChatMessageCursor,
+): Promise<LoadOlderMessagesResult> {
+  const context = await getAuthenticatedChatContext()
+  if (!context) {
+    return {
+      ok: false,
+      code: "unauthorized",
+      message: "სესია დასრულებულია. ხელახლა შედი ანგარიშში.",
+    }
+  }
+
+  const beforeDate = new Date(cursor?.createdAt ?? "")
+  if (
+    !isChatUuid(chatId) ||
+    !isChatUuid(cursor?.id) ||
+    Number.isNaN(beforeDate.getTime())
+  ) {
+    return { ok: false, code: "invalid", message: "ძველი შეტყობინებების მოთხოვნა არასწორია." }
+  }
+
+  try {
+    if (!(await canAccessChat(context, chatId))) {
+      return {
+        ok: false,
+        code: "not_found",
+        message: "მიმოწერა ვერ მოიძებნა ან მასზე წვდომა არ გაქვს.",
+      }
+    }
+
+    const before = beforeDate.toISOString()
+    const { data, error } = await context.supabase
+      .from("messages")
+      .select("id, chat_id, sender_id, body, created_at")
+      .eq("chat_id", chatId)
+      .or(`created_at.lt.${before},and(created_at.eq.${before},id.lt.${cursor.id})`)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(CHAT_MESSAGE_PAGE_SIZE + 1)
+
+    if (error) throw error
+
+    const rows = (data ?? []) as ChatMessage[]
+    const hasMore = rows.length > CHAT_MESSAGE_PAGE_SIZE
+    const messages = rows
+      .slice(0, CHAT_MESSAGE_PAGE_SIZE)
+      .reverse()
+
+    return { ok: true, messages, hasMore }
+  } catch {
+    return {
+      ok: false,
+      code: "server_error",
+      message: "ძველი შეტყობინებები ვერ ჩაიტვირთა. სცადე ხელახლა.",
+    }
+  }
+}
+
+export async function markChatReadAction(chatId: string) {
+  const context = await getAuthenticatedChatContext()
+  if (!context || !isChatUuid(chatId)) return { ok: false as const }
+
+  const { data, error } = await context.supabase.rpc("mark_chat_read", {
+    p_chat_id: chatId,
+  })
+
+  if (error || data !== true) return { ok: false as const }
+  revalidatePath("/dashboard/chats")
+  return { ok: true as const }
+}
+
+export async function updateChatVisibilityAction(formData: FormData) {
+  const chatId = formData.get("chatId")
+  const intent = formData.get("intent")
+  const returnTo = formData.get("returnTo")
+
+  if (!isChatUuid(chatId) || (intent !== "archive" && intent !== "restore")) {
+    redirect("/dashboard/chats")
+  }
+
+  const threadPath = `/dashboard/chats/${chatId}`
+  const nextPath = returnTo === "thread" && intent === "restore"
+    ? threadPath
+    : intent === "restore"
+      ? "/dashboard/chats?show=archived"
+      : "/dashboard/chats"
+  const { supabase } = await requireAuthenticatedUser(nextPath)
+
+  const { data, error } = await supabase.rpc("set_chat_archived", {
+    p_chat_id: chatId,
+    p_archived: intent === "archive",
+  })
+
+  if (error || data !== true) {
+    const search = new URLSearchParams({
+      flash: "მიმოწერის მდგომარეობა ვერ შეიცვალა. სცადე ხელახლა.",
+    })
+    redirect(`/dashboard/chats?${search.toString()}`)
+  }
+
+  revalidatePath("/dashboard/chats")
+  revalidatePath(threadPath)
   redirect(nextPath)
 }

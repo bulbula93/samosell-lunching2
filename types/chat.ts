@@ -17,6 +17,7 @@ export type ChatThread = {
   counterparty_username: string | null
   counterparty_full_name: string | null
   counterparty_city: string | null
+  counterparty_avatar_url?: string | null
   last_message_body: string | null
   last_message_sender_id: string | null
   last_message_created_at: string | null
@@ -31,4 +32,9 @@ export type ChatMessage = {
   sender_id: string
   body: string
   created_at: string
+}
+
+export type ChatMessageCursor = {
+  createdAt: string
+  id: string
 }
