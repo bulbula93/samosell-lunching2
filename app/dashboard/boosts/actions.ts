@@ -30,6 +30,8 @@ type ListingRow = {
   promoted_until?: string | null
   featured_until?: string | null
   featured_slot?: number | null
+  home_banner_until?: string | null
+  home_banner_slot?: number | null
 }
 
 type AdminOrderRow = {
@@ -80,7 +82,7 @@ async function requireAdmin() {
 async function getOwnedListing(supabase: Awaited<ReturnType<typeof createClient>>, listingId: string, sellerId: string) {
   const { data, error } = await supabase
     .from("listings")
-    .select("id, seller_id, slug, title, is_vip, vip_until, promoted_until, featured_until, featured_slot")
+    .select("id, seller_id, slug, title, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot")
     .eq("id", listingId)
     .eq("seller_id", sellerId)
     .maybeSingle()
@@ -250,7 +252,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
         payment_reference,
         notes,
         listing_boost_products!inner(id, name, placement, duration_days, price, currency, is_active),
-        listings!inner(id, seller_id, slug, title, is_vip, vip_until, promoted_until, featured_until, featured_slot)
+        listings!inner(id, seller_id, slug, title, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot)
       `)
       .eq("id", orderId)
       .maybeSingle()
@@ -287,6 +289,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
         vip: buildBoostDurationEndsAt(listing.vip_until, durationDays),
         promoted: buildBoostDurationEndsAt(listing.promoted_until, durationDays),
         featured: buildBoostDurationEndsAt(listing.featured_until, durationDays),
+        banner: buildBoostDurationEndsAt(listing.home_banner_until, durationDays),
       }
 
       if (placement === "vip" || placement === "combo") {
@@ -303,6 +306,11 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
         nextListingUpdate.featured_slot = Number.isFinite(featuredSlot as number) ? featuredSlot : listing.featured_slot ?? null
       }
 
+      if (placement === "banner_home") {
+        nextListingUpdate.home_banner_until = nextEndsAtByPlacement.banner
+        nextListingUpdate.home_banner_slot = Number.isFinite(featuredSlot as number) ? featuredSlot : listing.home_banner_slot ?? 1
+      }
+
       const resolvedEndsAt =
         placement === "vip"
           ? nextEndsAtByPlacement.vip
@@ -310,6 +318,8 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
             ? nextEndsAtByPlacement.promoted
             : placement === "featured_home"
               ? nextEndsAtByPlacement.featured
+              : placement === "banner_home"
+                ? nextEndsAtByPlacement.banner
               : [nextEndsAtByPlacement.vip, nextEndsAtByPlacement.promoted, nextEndsAtByPlacement.featured]
                   .filter(Boolean)
                   .sort()

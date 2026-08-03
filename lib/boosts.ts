@@ -16,6 +16,8 @@ export function placementLabel(value?: string | null) {
       return "Promoted"
     case "featured_home":
       return "Featured"
+    case "banner_home":
+      return "მთავარი გვერდის ბანერი"
     case "combo":
       return "VIP + Featured"
     default:

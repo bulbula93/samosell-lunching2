@@ -28,6 +28,8 @@ type TbcOrderSyncRow = {
     promoted_until?: string | null
     featured_until?: string | null
     featured_slot?: number | null
+    home_banner_until?: string | null
+    home_banner_slot?: number | null
   } | null
   listing_boost_products?: {
     id: string
@@ -57,7 +59,7 @@ async function getOrderForSyncByPayId(payId: string) {
       cancelled_at,
       failure_reason,
       last_payment_sync_at,
-      listings!inner(id, is_vip, vip_until, promoted_until, featured_until, featured_slot),
+      listings!inner(id, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot),
       listing_boost_products!inner(id, placement, duration_days)
     `)
     .eq("provider_payment_id", payId)
@@ -210,6 +212,7 @@ async function activateOrderAfterSuccessfulTbc(
     vip: buildBoostDurationEndsAt(listing.vip_until, durationDays),
     promoted: buildBoostDurationEndsAt(listing.promoted_until, durationDays),
     featured: buildBoostDurationEndsAt(listing.featured_until, durationDays),
+    banner: buildBoostDurationEndsAt(listing.home_banner_until, durationDays),
   }
 
   if (placement === "vip" || placement === "combo") {
@@ -226,6 +229,11 @@ async function activateOrderAfterSuccessfulTbc(
     nextListingUpdate.featured_slot = listing.featured_slot ?? 1
   }
 
+  if (placement === "banner_home") {
+    nextListingUpdate.home_banner_until = nextEndsAtByPlacement.banner
+    nextListingUpdate.home_banner_slot = listing.home_banner_slot ?? 1
+  }
+
   const resolvedEndsAt =
     placement === "vip"
       ? nextEndsAtByPlacement.vip
@@ -233,6 +241,8 @@ async function activateOrderAfterSuccessfulTbc(
         ? nextEndsAtByPlacement.promoted
         : placement === "featured_home"
           ? nextEndsAtByPlacement.featured
+          : placement === "banner_home"
+            ? nextEndsAtByPlacement.banner
           : [nextEndsAtByPlacement.vip, nextEndsAtByPlacement.promoted, nextEndsAtByPlacement.featured]
               .filter(Boolean)
               .sort()

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
 
 export const baseListingSelect =
-  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, is_home_banner, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, cover_image_url, published_at, favorites_count, views_count, status"
 
 export type MegaMenuItem = {
   label: string
@@ -254,9 +254,17 @@ function getHeroImages(items: CatalogListing[]): HomeHeroImages {
 export async function getHomePageData(): Promise<HomePageData> {
   const supabase = await createClient()
 
-  const [authResponse, featuredResponse, vipResponse, latestResponse, popularResponse, activeCountResponse, vipCountResponse] =
+  const [authResponse, bannerResponse, featuredResponse, vipResponse, latestResponse, popularResponse, activeCountResponse, vipCountResponse] =
     await Promise.all([
       supabase.auth.getUser(),
+      supabase
+        .from("listings_catalog")
+        .select(baseListingSelect)
+        .eq("status", "active")
+        .eq("is_home_banner", true)
+        .order("home_banner_slot", { ascending: true, nullsFirst: false })
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(4),
       supabase
         .from("listings_catalog")
         .select(baseListingSelect)
@@ -297,6 +305,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     ])
 
   const user = authResponse.data.user
+  const bannerItems = (bannerResponse.data ?? []) as CatalogListing[]
   const featuredItems = (featuredResponse.data ?? []) as CatalogListing[]
   const vipItems = (vipResponse.data ?? []) as CatalogListing[]
   const latestItems = (latestResponse.data ?? []) as CatalogListing[]
@@ -317,14 +326,6 @@ export async function getHomePageData(): Promise<HomePageData> {
     if (item?.id) collectionUsedIds.add(item.id)
     return { ...definition, item }
   })
-
-  const shoeMatch = ["shoe", "sneaker", "boot", "loafer", "heel", "ფეხსაცმ"]
-  const bannerUsedIds = new Set<string>()
-  const bannerItems = Array.from({ length: 4 }, () => {
-    const item = pickListing(combinedItems, shoeMatch, bannerUsedIds)
-    if (item?.id) bannerUsedIds.add(item.id)
-    return item
-  }).filter(Boolean) as CatalogListing[]
 
   return {
     user,
