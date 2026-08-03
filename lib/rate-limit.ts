@@ -6,6 +6,11 @@ const ACTION_RULES = {
     maxHits: 12,
     label: "განცხადებების შექმნა",
   },
+  listing_upload: {
+    windowSeconds: 60 * 60,
+    maxHits: 60,
+    label: "განცხადების სურათების ატვირთვა",
+  },
   chat_start: {
     windowSeconds: 10 * 60,
     maxHits: 20,

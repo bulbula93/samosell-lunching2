@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { getPublicEnv } from "@/lib/env"
 
 export async function updateSession(request: NextRequest) {
@@ -21,7 +22,24 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  await supabase.auth.getClaims()
+  const { data: claimsData } = await supabase.auth.getClaims()
+
+  if (request.nextUrl.pathname.startsWith("/dashboard") && !claimsData?.claims?.sub) {
+    const returnPath = getSafeAuthRedirectPath(
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+      "/dashboard"
+    )
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/login"
+    loginUrl.search = ""
+    loginUrl.searchParams.set("next", returnPath)
+
+    const redirectResponse = NextResponse.redirect(loginUrl)
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie)
+    }
+    return redirectResponse
+  }
 
   return supabaseResponse
 }

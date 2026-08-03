@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation"
+import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { createClient } from "@/lib/supabase/server"
-
-function safeNextPath(value?: string | null, fallback = "/") {
-  if (!value || !value.startsWith("/")) return fallback
-  return value
-}
 
 export async function requireAuthenticatedUser(nextPath?: string) {
   const supabase = await createClient()
@@ -13,7 +9,7 @@ export async function requireAuthenticatedUser(nextPath?: string) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    const next = safeNextPath(nextPath, "/dashboard")
+    const next = getSafeAuthRedirectPath(nextPath, "/dashboard")
     redirect(`/login?next=${encodeURIComponent(next)}`)
   }
 

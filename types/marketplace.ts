@@ -62,6 +62,7 @@ export type ListingImage = {
 
 export type ListingFormInitialData = {
   id?: string
+  slug?: string
   title: string
   description: string
   price: string

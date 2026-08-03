@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { isListingImageMimeType } from "@/lib/listing-form"
 
 export const MAX_LISTING_IMAGES = 8
 export const MAX_IMAGE_FILE_SIZE_MB = 7
@@ -37,8 +38,9 @@ export async function generateUniqueListingSlug(
 }
 
 export function validateImageFile(file: File) {
-  if (!file.type.startsWith("image/")) return "მხოლოდ სურათის ფაილების ატვირთვაა შესაძლებელი."
+  if (!isListingImageMimeType(file.type)) return "ატვირთე მხოლოდ JPEG, PNG ან WEBP სურათი."
   if (file.size > MAX_IMAGE_FILE_SIZE_BYTES) return `ფაილი ძალიან დიდია. მაქსიმალური ზომაა ${MAX_IMAGE_FILE_SIZE_MB}MB.`
+  if (file.size === 0) return "ცარიელი ფაილის ატვირთვა შეუძლებელია."
   return null
 }
 
