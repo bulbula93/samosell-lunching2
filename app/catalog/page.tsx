@@ -137,29 +137,30 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   return (
-    <main className="min-h-screen bg-bg text-text">
+    <>
       <SiteHeader />
+      <main className="min-h-screen bg-bg text-text">
+        <section className="ui-container py-7 sm:py-10">
+          <CatalogPageHeader totalCount={totalCount} />
 
-      <section className="ui-container py-7 sm:py-10">
-        <CatalogPageHeader totalCount={totalCount} />
+          <CatalogLandingFilters
+            categories={uniqueCategories}
+            brands={uniqueBrands}
+            sizes={uniqueSizes}
+            colors={uniqueColors}
+            cities={cityOptions}
+            values={{ q, category, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
+          />
 
-        <CatalogLandingFilters
-          categories={uniqueCategories}
-          brands={uniqueBrands}
-          sizes={uniqueSizes}
-          colors={uniqueColors}
-          cities={cityOptions}
-          values={{ q, category, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
-        />
+          <div className="mt-8">
+            <CatalogResultsGrid listings={listings} currentPath={currentPath} favoriteIds={favoriteIds} />
+          </div>
 
-        <div className="mt-8">
-          <CatalogResultsGrid listings={listings} currentPath={currentPath} favoriteIds={favoriteIds} />
-        </div>
-
-        <div className="mt-10">
-          <CatalogPagination page={page} totalPages={totalPages} totalItems={totalCount} pageSize={PAGE_SIZE} pageHref={(nextPage: number) => getCatalogPath(queryParams, nextPage)} />
-        </div>
-      </section>
-    </main>
+          <div className="mt-10">
+            <CatalogPagination page={page} totalPages={totalPages} totalItems={totalCount} pageSize={PAGE_SIZE} pageHref={(nextPage: number) => getCatalogPath(queryParams, nextPage)} />
+          </div>
+        </section>
+      </main>
+    </>
   )
 }

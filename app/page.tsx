@@ -28,9 +28,11 @@ export default async function Home() {
   const data = await getHomePageData()
 
   return (
-    <main className="min-h-screen bg-bg text-text">
+    <>
       <SiteHeader />
-      <HomePageContent data={data} />
-    </main>
+      <main className="min-h-screen bg-bg text-text">
+        <HomePageContent data={data} />
+      </main>
+    </>
   )
 }

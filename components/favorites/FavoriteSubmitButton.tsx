@@ -37,7 +37,7 @@ export default function FavoriteSubmitButton({
         aria-pressed={isFavorited}
         title={isFavorited ? "ფავორიტებში დამატებულია" : "ფავორიტებში დამატება"}
         className={[
-          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand bg-brand transition duration-200",
+          "inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand bg-brand transition duration-200",
           "disabled:cursor-wait disabled:opacity-70",
           "hover:scale-[1.04] hover:bg-brand-hover active:scale-[0.96]",
           className ?? "",

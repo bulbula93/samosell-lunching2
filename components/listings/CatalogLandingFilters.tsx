@@ -28,12 +28,25 @@ export default function CatalogLandingFilters({
 }: CatalogFilterOptions & { values: CatalogFilterValues }) {
   const options = { categories, brands, sizes, colors, cities }
   const chips: Array<{ key: FilterKey | "price"; label: string }> = []
-  if (values.category) chips.push({ key: "category", label: getCatalogItemLabel(values.category) })
+  if (values.q) chips.push({ key: "q", label: `ძებნა: ${values.q}` })
+  if (values.category) {
+    const categoryLabel = categories.find((item) => item.slug === values.category)?.name || getCatalogItemLabel(values.category)
+    chips.push({ key: "category", label: categoryLabel })
+  }
   if (values.brand) chips.push({ key: "brand", label: values.brand })
   if (values.size) chips.push({ key: "size", label: `ზომა ${values.size}` })
   if (values.condition) chips.push({ key: "condition", label: values.condition })
   if (values.city) chips.push({ key: "city", label: values.city })
   if (values.color) chips.push({ key: "color", label: values.color })
+  if (values.gender) {
+    const genderLabels: Record<string, string> = {
+      women: "ქალებისთვის",
+      men: "მამაკაცებისთვის",
+      unisex: "უნისექსი",
+      kids: "ბავშვებისთვის",
+    }
+    chips.push({ key: "gender", label: genderLabels[values.gender] || values.gender })
+  }
   if (values.vip === "1") chips.push({ key: "vip", label: "VIP" })
   if (values.min_price || values.max_price) chips.push({ key: "price", label: `${values.min_price || "0"}–${values.max_price || "∞"} ₾` })
   const activeCount = chips.length

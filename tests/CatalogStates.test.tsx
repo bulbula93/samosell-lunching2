@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import CatalogError from "@/app/catalog/error"
 import CatalogLoading from "@/app/catalog/loading"
+import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import CatalogResultsGrid from "@/components/listings/CatalogResultsGrid"
 import { ka } from "@/lib/i18n/ka"
 import { makeListing } from "@/tests/fixtures"
@@ -52,5 +53,34 @@ describe("catalog states", () => {
     expect(reset).toHaveBeenCalledOnce()
 
     errorSpy.mockRestore()
+  })
+
+  it("renders real search and category values as removable Georgian filter chips", () => {
+    render(
+      <CatalogLandingFilters
+        categories={[{ slug: "women", name: "ქალის ტანსაცმელი" }]}
+        brands={[]}
+        sizes={[]}
+        colors={[]}
+        cities={[]}
+        values={{
+          q: "კაბა",
+          category: "women",
+          brand: "",
+          size: "",
+          color: "",
+          city: "",
+          condition: "",
+          gender: "",
+          vip: "",
+          sort: "price_asc",
+          min_price: "",
+          max_price: "",
+        }}
+      />,
+    )
+
+    expect(screen.getByRole("link", { name: "ძებნა: კაბა ფილტრის მოხსნა" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "ქალის ტანსაცმელი ფილტრის მოხსნა" })).toBeInTheDocument()
   })
 })

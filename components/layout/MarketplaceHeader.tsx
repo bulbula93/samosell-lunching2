@@ -15,14 +15,14 @@ export default function MarketplaceHeader({
   userState: MarketplaceUserState
 }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-line bg-white/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-line bg-white/95">
       <div className="ui-container flex min-h-[72px] items-center gap-3 py-3 lg:gap-5">
         <MobileNavigation items={items} userState={userState} />
 
         <Link
           href="/"
           aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
-          className="shrink-0 font-logo text-[25px] font-black tracking-[-0.045em] text-brand transition hover:text-brand-hover sm:text-[29px]"
+          className="inline-flex min-h-11 shrink-0 items-center font-logo text-[25px] font-black tracking-[-0.045em] text-brand transition hover:text-brand-hover sm:text-[29px]"
         >
           {ka.brand}
         </Link>
@@ -32,7 +32,7 @@ export default function MarketplaceHeader({
         </Link>
 
         <div className="hidden min-w-0 flex-1 md:block">
-          <MarketplaceSearch />
+          <MarketplaceSearch id="desktop-marketplace-search" />
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
@@ -107,7 +107,7 @@ export default function MarketplaceHeader({
       </div>
 
       <div className="border-t border-line px-4 pb-3 pt-3 md:hidden">
-        <MarketplaceSearch compact />
+        <MarketplaceSearch compact id="mobile-header-marketplace-search" />
       </div>
 
       <nav aria-label="კატეგორიები" className="hidden border-t border-line bg-bg/90 lg:block">

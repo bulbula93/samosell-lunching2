@@ -116,7 +116,7 @@ export default function MobileNavigation({
             </div>
 
             <div className="border-b border-line p-5">
-              <MarketplaceSearch compact />
+              <MarketplaceSearch compact id="mobile-menu-marketplace-search" />
             </div>
 
             <nav aria-label="მობილური კატეგორიები" className="p-3">
