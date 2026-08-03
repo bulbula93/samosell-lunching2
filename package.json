@@ -2,13 +2,14 @@
   "name": "samosell",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.17.1",
   "engines": {
     "node": "22.x"
   },
   "scripts": {
     "clean": "node scripts/clean-next-cache.mjs",
-    "dev": "npm run clean && next dev --webpack",
-    "build": "npm run clean && next build --webpack",
+    "dev": "node scripts/clean-next-cache.mjs && next dev --webpack",
+    "build": "node scripts/clean-next-cache.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
