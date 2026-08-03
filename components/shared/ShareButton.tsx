@@ -11,7 +11,7 @@ type ShareButtonProps = {
   compact?: boolean
 }
 
-type ShareStatus = "idle" | "sharing" | "copied" | "error"
+type ShareStatus = "idle" | "sharing" | "shared" | "copied" | "error"
 
 export default function ShareButton({
   url,
@@ -22,7 +22,9 @@ export default function ShareButton({
 }: ShareButtonProps) {
   const [status, setStatus] = useState<ShareStatus>("idle")
   const label =
-    status === "copied"
+    status === "shared"
+      ? ka.listingDetail.shareComplete
+      : status === "copied"
       ? ka.listingDetail.linkCopied
       : status === "error"
         ? ka.listingDetail.shareFailed
@@ -39,7 +41,8 @@ export default function ShareButton({
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url })
-        setStatus("idle")
+        setStatus("shared")
+        resetStatus()
         return
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -83,7 +86,9 @@ export default function ShareButton({
         {label}
       </button>
       <span className="ui-sr-status" role="status" aria-live="polite" aria-atomic="true">
-        {status === "copied" || status === "error" ? label : ""}
+        {status === "shared" || status === "copied" || status === "error"
+          ? label
+          : ""}
       </span>
     </>
   )

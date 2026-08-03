@@ -9,6 +9,33 @@ afterEach(() => {
 })
 
 describe("ShareButton", () => {
+  it("announces successful Web Share completion", async () => {
+    const share = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: share,
+    })
+
+    render(
+      <ShareButton
+        url="https://samosell.ge/listing/linen-jacket"
+        title="სელის ქურთუკი"
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole("button", { name: ka.listingDetail.share }),
+    )
+
+    expect(share).toHaveBeenCalledWith({
+      title: "სელის ქურთუკი",
+      text: undefined,
+      url: "https://samosell.ge/listing/linen-jacket",
+    })
+    expect(screen.getByRole("status")).toHaveTextContent(
+      ka.listingDetail.shareComplete,
+    )
+  })
+
   it("copies the canonical URL when Web Share is unavailable", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, "share", {

@@ -81,6 +81,7 @@ export const ka = {
     messageUnavailable: "გამყიდველთან მიწერა ამჟამად მიუწვდომელია.",
     favoriteFailed: "რჩეულების განახლება ვერ მოხერხდა. სცადე თავიდან.",
     share: "გაზიარება",
+    shareComplete: "გაზიარებულია",
     linkCopied: "ბმული დაკოპირდა",
     shareFailed: "გაზიარება ვერ შესრულდა",
     similar: "მსგავსი ნივთები",
