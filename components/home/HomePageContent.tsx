@@ -1,0 +1,47 @@
+import HomeCollectionsSection from "@/components/home/HomeCollectionsSection"
+import HomeHowItWorks from "@/components/home/HomeHowItWorks"
+import HomeMarketplaceEmptyState from "@/components/home/HomeMarketplaceEmptyState"
+import HomeProductsSection from "@/components/home/HomeProductsSection"
+import HomePromoBanner from "@/components/home/HomePromoBanner"
+import HomeSearchHeroSection from "@/components/home/HomeSearchHeroSection"
+import { ka } from "@/lib/i18n/ka"
+import type { HomePageData } from "@/lib/home-page"
+
+export default function HomePageContent({ data }: { data: HomePageData }) {
+  return (
+    <>
+      <HomeSearchHeroSection items={data.heroItems} />
+      {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
+      <HomeProductsSection
+        title={ka.home.latest}
+        description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`}
+        href="/catalog?sort=latest"
+        items={data.latestItems}
+        favoriteIds={data.favoriteIds}
+      />
+      <HomeProductsSection
+        title={ka.home.popular}
+        description="დალაგებულია რეალური რჩეულებისა და ნახვების რაოდენობის მიხედვით."
+        href="/catalog?sort=popular"
+        items={data.popularItems}
+        favoriteIds={data.favoriteIds}
+      />
+      <HomePromoBanner bannerItems={data.bannerItems} />
+      <HomeProductsSection
+        title={ka.home.affordable}
+        description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით."
+        href="/catalog?sort=price_asc"
+        items={data.affordableItems}
+        favoriteIds={data.favoriteIds}
+      />
+      <HomeProductsSection
+        title={ka.home.vintage}
+        href="/catalog?category=vintage"
+        items={data.vintageItems}
+        favoriteIds={data.favoriteIds}
+      />
+      <HomeCollectionsSection brands={data.popularBrands} />
+      <HomeHowItWorks />
+    </>
+  )
+}

@@ -1,35 +1,24 @@
-import { SkeletonBlock } from "@/components/shared/SectionSkeleton"
+import { MarketplaceProductCardSkeleton } from "@/components/listings/MarketplaceProductCard"
 
 export default function CatalogLoading() {
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <div className="space-y-4">
-        <SkeletonBlock className="h-4 w-32" />
-        <SkeletonBlock className="h-10 w-full max-w-2xl" />
-        <SkeletonBlock className="h-6 w-full max-w-3xl" />
-      </div>
-      <div className="mt-8 rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-[2fr_repeat(4,1fr)]">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <SkeletonBlock key={index} className="h-12 w-full" />
-          ))}
-        </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[repeat(4,1fr)_auto_auto]">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <SkeletonBlock key={index} className="h-12 w-full" />
-          ))}
-        </div>
-      </div>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-white p-4 shadow-sm">
-            <SkeletonBlock className="aspect-[4/5] w-full" />
-            <SkeletonBlock className="mt-4 h-6 w-4/5" />
-            <SkeletonBlock className="mt-2 h-4 w-3/5" />
-            <SkeletonBlock className="mt-4 h-5 w-2/5" />
+    <main className="min-h-screen bg-bg" aria-busy="true" aria-label="კატალოგი იტვირთება">
+      <div className="h-[72px] border-b border-line bg-white" />
+      <div className="ui-container py-8 sm:py-10">
+        <div className="ui-skeleton h-4 w-40" />
+        <div className="ui-skeleton mt-4 h-10 w-64" />
+        <div className="ui-skeleton mt-3 h-5 w-full max-w-2xl" />
+        <div className="ui-card mt-8 hidden p-4 lg:block">
+          <div className="grid grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, index) => <div key={index} className="ui-skeleton h-11" />)}
           </div>
-        ))}
+        </div>
+        <div className="ui-skeleton mt-6 h-11 w-full lg:hidden" />
+        <div className="mt-9 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, index) => <MarketplaceProductCardSkeleton key={index} />)}
+        </div>
       </div>
+      <p role="status" className="ui-sr-status">კატალოგი იტვირთება</p>
     </main>
   )
 }

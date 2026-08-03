@@ -1,12 +1,16 @@
-import { formatCount } from "@/lib/catalog-page"
+import { ka } from "@/lib/i18n/ka"
 
 export default function CatalogPageHeader({ totalCount }: { totalCount: number }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:mb-7">
+    <header className="flex flex-col gap-3 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-[28px] font-bold uppercase leading-8 tracking-[-0.02em] text-[#2D2D2D]">პოპულარული სამოსები</h1>
-        <p className="mt-1 text-[16px] font-medium leading-6 text-[#2D2D2D]">({formatCount(totalCount)} განცხადება)</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">SAMOSELL marketplace</p>
+        <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-text sm:text-4xl">{ka.catalog.title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-text-soft">{ka.catalog.description}</p>
       </div>
-    </div>
+      <p className="shrink-0 text-sm font-bold text-text" aria-live="polite">
+        {new Intl.NumberFormat("ka-GE").format(totalCount)} ნივთი
+      </p>
+    </header>
   )
 }

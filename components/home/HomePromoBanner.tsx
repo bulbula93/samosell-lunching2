@@ -7,15 +7,17 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
 
   if (!featured) {
     return (
-      <section className="bg-[#ECECEC] px-4 pb-10 sm:px-6">
-        <div className="mx-auto flex min-h-[260px] max-w-[1392px] items-center overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#2E3134_0%,#4A3328_55%,#F88A51_160%)] px-7 py-10 text-white sm:px-12">
-          <div className="max-w-xl">
-            <div className="text-xs font-bold uppercase tracking-[0.22em] text-[#F9A578]">SamoSell რეკლამა</div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">გამოჩნდი მთავარ გვერდზე</h2>
-            <p className="mt-4 max-w-lg text-sm leading-7 text-white/75 sm:text-base">
-              გააძლიერე შენი განცხადება VIP სტატუსით ან დაიკავე მთავარი სარეკლამო ბანერი.
-            </p>
-            <Link href="/dashboard/listings" className="mt-7 inline-flex h-12 items-center rounded-lg bg-[#F88A51] px-6 text-sm font-bold text-[#2E3134] transition hover:bg-[#ff9d69]">
+      <section className="border-b border-line bg-white py-10">
+        <div className="ui-container">
+          <div className="overflow-hidden rounded-3xl border border-brand/15 bg-[radial-gradient(circle_at_90%_10%,rgba(158,227,218,0.4),transparent_34%),linear-gradient(125deg,#073f3b,#075a53)] px-6 py-9 text-white sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+            <div className="max-w-2xl">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9EE3DA]">SAMOSELL რეკლამა</p>
+              <h2 className="mt-3 text-2xl font-black tracking-[-0.025em] sm:text-3xl">გამოჩნდი მთავარ გვერდზე</h2>
+              <p className="mt-3 text-sm leading-7 text-white/75">
+                გააძლიერე შენი აქტიური განცხადება VIP სტატუსით ან მთავარი გვერდის სარეკლამო ბანერით.
+              </p>
+            </div>
+            <Link href="/dashboard/listings" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft lg:mt-0">
               აირჩიე განცხადება
             </Link>
           </div>
@@ -24,40 +26,38 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
     )
   }
 
-  const seller = featured.seller_username || featured.seller_full_name || "SamoSell გამყიდველი"
+  const seller = featured.seller_username || featured.seller_full_name || "SAMOSELL გამყიდველი"
 
   return (
-    <section className="bg-[#ECECEC] px-4 pb-10 sm:px-6">
-      <Link
-        href={`/listing/${featured.slug}`}
-        aria-label={`${featured.title} — სარეკლამო განცხადების ნახვა`}
-        className="group relative mx-auto block min-h-[300px] max-w-[1392px] overflow-hidden rounded-2xl bg-[#202225] text-white shadow-[0_24px_70px_rgba(46,49,52,0.16)] sm:min-h-[360px]"
-      >
-        <SmartImage
-          src={featured.cover_image_url}
-          alt={featured.title}
-          wrapperClassName="absolute inset-0 h-full w-full"
-          className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]"
-          fallbackLabel="სარეკლამო ბანერი"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(20,20,22,0.94)_0%,rgba(20,20,22,0.72)_40%,rgba(20,20,22,0.12)_78%,rgba(20,20,22,0.2)_100%)]" />
-        <div className="relative z-10 flex min-h-[300px] max-w-2xl flex-col justify-end p-7 sm:min-h-[360px] sm:p-12">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-[#F88A51] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#2E3134]">რეკლამა</span>
-            <span className="text-xs font-semibold text-white/70">{seller}</span>
-          </div>
-          <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-5xl">{featured.title}</h2>
-          <p className="mt-3 line-clamp-2 max-w-xl text-sm leading-7 text-white/75 sm:text-base">
-            {featured.description || "აღმოაჩინე ეს გამორჩეული შეთავაზება SamoSell-ზე."}
-          </p>
-          <div className="mt-7 flex items-center gap-4">
-            <span className="inline-flex h-12 items-center rounded-lg bg-white px-6 text-sm font-bold text-[#2E3134] transition group-hover:bg-[#F88A51]">
+    <section className="border-b border-line bg-white py-10">
+      <div className="ui-container">
+        <Link
+          href={`/listing/${featured.slug}`}
+          aria-label={`${featured.title} — სარეკლამო განცხადების ნახვა`}
+          className="group relative block min-h-[300px] overflow-hidden rounded-3xl bg-brand text-white shadow-[0_24px_60px_rgba(7,63,59,0.16)] sm:min-h-[360px]"
+        >
+          <SmartImage
+            src={featured.cover_image_url}
+            alt={featured.title}
+            wrapperClassName="absolute inset-0 h-full w-full"
+            className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+            fallbackLabel="სარეკლამო განცხადება"
+            sizes="(max-width: 768px) 100vw, 1440px"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,63,59,0.96)_0%,rgba(7,63,59,0.78)_44%,rgba(7,63,59,0.12)_82%)]" />
+          <div className="relative z-10 flex min-h-[300px] max-w-2xl flex-col justify-end p-7 sm:min-h-[360px] sm:p-12">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-lg bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-brand">რეკლამა</span>
+              <span className="text-xs font-semibold text-white/75">{seller}</span>
+            </div>
+            <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">{featured.title}</h2>
+            {featured.description ? <p className="mt-3 line-clamp-2 max-w-xl text-sm leading-7 text-white/75 sm:text-base">{featured.description}</p> : null}
+            <span className="mt-7 inline-flex h-12 w-fit items-center rounded-xl bg-white px-6 text-sm font-black text-brand transition group-hover:bg-brand-soft">
               შეთავაზების ნახვა
             </span>
-            <span className="text-lg font-black">{featured.price} {featured.currency === "GEL" ? "₾" : featured.currency}</span>
           </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </section>
   )
 }

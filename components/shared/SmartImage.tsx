@@ -1,6 +1,8 @@
 "use client"
 
+import Image from "next/image"
 import { useMemo, useState } from "react"
+import { ka } from "@/lib/i18n/ka"
 
 type SmartImageProps = {
   src?: string | null
@@ -9,6 +11,7 @@ type SmartImageProps = {
   className?: string
   fallbackLabel?: string
   loading?: "eager" | "lazy"
+  sizes?: string
 }
 
 export default function SmartImage({
@@ -16,15 +19,27 @@ export default function SmartImage({
   alt,
   wrapperClassName = "",
   className = "",
-  fallbackLabel = "სურათი არ არის",
+  fallbackLabel = ka.product.imageUnavailable,
   loading = "lazy",
+  sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw",
 }: SmartImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
 
   const safeSrc = useMemo(() => {
     const value = String(src ?? "").trim()
-    return value.length > 0 ? value : ""
+    if (!value) return ""
+    if (value.startsWith("/")) return value
+    try {
+      const url = new URL(value)
+      const allowed =
+        url.protocol === "https:" &&
+        url.hostname === "lxsvjzbiuewgwpajqrwr.supabase.co" &&
+        url.pathname.startsWith("/storage/v1/object/public/")
+      return allowed ? url.toString() : ""
+    } catch {
+      return ""
+    }
   }, [src])
 
   if (!safeSrc || failed) {
@@ -41,12 +56,12 @@ export default function SmartImage({
         aria-hidden="true"
         className={`absolute inset-0 bg-[linear-gradient(110deg,rgba(229,229,229,0.9),rgba(245,245,245,0.95),rgba(229,229,229,0.9))] bg-[length:200%_100%] transition-opacity duration-300 ${loaded ? "pointer-events-none opacity-0" : "animate-pulse opacity-100"}`}
       />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={safeSrc}
         alt={alt}
-        loading={loading}
-        decoding="async"
+        fill
+        sizes={sizes}
+        priority={loading === "eager"}
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
         className={`h-full w-full object-cover transition duration-300 ${loaded ? "scale-100 opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-sm"} ${className}`}

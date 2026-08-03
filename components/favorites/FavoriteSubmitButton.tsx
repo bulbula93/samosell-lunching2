@@ -37,13 +37,13 @@ export default function FavoriteSubmitButton({
         aria-pressed={isFavorited}
         title={isFavorited ? "ფავორიტებში დამატებულია" : "ფავორიტებში დამატება"}
         className={[
-          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#212831] bg-[#212831] transition duration-200",
+          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-brand bg-brand transition duration-200",
           "disabled:cursor-wait disabled:opacity-70",
-          "hover:scale-[1.04] hover:bg-[#171d24] active:scale-[0.96]",
+          "hover:scale-[1.04] hover:bg-brand-hover active:scale-[0.96]",
           className ?? "",
         ].join(" ")}
       >
-        <span className={isFavorited ? "text-[#F88A51]" : "text-white"}>
+        <span className={isFavorited ? "text-[#b9fff5]" : "text-white"}>
           <HeartIcon compact />
         </span>
       </button>
@@ -60,12 +60,12 @@ export default function FavoriteSubmitButton({
         "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition",
         "disabled:cursor-wait disabled:opacity-70",
         isFavorited
-          ? "border-[#212831] bg-[#212831] text-white hover:bg-[#171d24]"
-          : "border-[#2D2D2D] bg-white text-[#2D2D2D] hover:border-[#F88A51] hover:text-[#F88A51]",
+          ? "border-brand bg-brand text-white hover:bg-brand-hover"
+          : "border-line bg-white text-text hover:border-brand hover:text-brand",
         className ?? "",
       ].join(" ")}
     >
-      <span className={isFavorited ? "text-[#F88A51]" : "text-[#212831]"}>
+      <span className={isFavorited ? "text-[#b9fff5]" : "text-brand"}>
         <HeartIcon />
       </span>
       <span>{pending ? "იტვირთება..." : isFavorited ? "შენახულია" : "ფავორიტებში"}</span>

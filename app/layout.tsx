@@ -49,11 +49,17 @@ export default function RootLayout({
   return (
     <html lang="ka" className="h-full antialiased">
       <body className="min-h-full bg-bg text-text">
+        <a
+          href="#main-content"
+          className="fixed left-4 top-3 z-[120] -translate-y-20 rounded-xl bg-brand px-4 py-3 text-sm font-bold text-white shadow-lg transition focus:translate-y-0"
+        >
+          მთავარ კონტენტზე გადასვლა
+        </a>
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>
         <div className="flex min-h-screen flex-col">
-          <div className="flex-1">{children}</div>
+          <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div>
           <SiteFooter />
         </div>
       </body>

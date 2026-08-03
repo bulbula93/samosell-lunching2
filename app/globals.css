@@ -49,24 +49,29 @@
 }
 
 :root {
-  --background: #ececec;
-  --foreground: #171717;
+  --background: #f6f8f7;
+  --foreground: #172321;
   --font-body: "FiraGO", "Noto Sans Georgian", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-logo-fallback: "Plus Jakarta Sans", "FiraGO", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --brand-950: #073f3b;
+  --brand-900: #075a53;
+  --brand-800: #086c62;
+  --brand-100: #dceeea;
+  --brand-50: #eff8f6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-bg: #fdfcfa;
+  --color-bg: #f6f8f7;
   --color-surface: #ffffff;
-  --color-surface-alt: #f5f5f3;
-  --color-text: #171717;
-  --color-text-soft: #525252;
-  --color-line: #e5e5e5;
-  --color-brand: #f88a51;
-  --color-brand-hover: #ef7d46;
-  --color-brand-soft: #fff0e7;
+  --color-surface-alt: #eef3f1;
+  --color-text: #172321;
+  --color-text-soft: #52615e;
+  --color-line: #d7e1de;
+  --color-brand: #075a53;
+  --color-brand-hover: #064a45;
+  --color-brand-soft: #dceeea;
   --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
 }
@@ -86,13 +91,33 @@ body {
 }
 
 ::selection {
-  background: rgba(248, 138, 81, 0.18);
-  color: #171717;
+  background: rgba(7, 90, 83, 0.2);
+  color: #172321;
+}
+
+:focus-visible {
+  outline: 3px solid #14a596;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 @layer components {
   .ui-container {
-    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8;
   }
 
   .ui-section {
@@ -100,7 +125,7 @@ body {
   }
 
   .ui-card {
-    @apply rounded-[1rem] border border-line bg-surface shadow-[0_12px_34px_rgba(23,23,23,0.05)];
+    @apply rounded-2xl border border-line bg-surface shadow-[0_10px_30px_rgba(7,63,59,0.05)];
   }
 
   .ui-card-hover {
@@ -132,11 +157,11 @@ body {
   }
 
   .ui-btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-hover;
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-brand px-5 py-3 text-sm font-bold text-white transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-55;
   }
 
   .ui-btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:bg-surface-alt;
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-line bg-white px-5 py-3 text-sm font-bold text-text transition hover:border-brand/40 hover:bg-brand-soft/40 disabled:cursor-not-allowed disabled:opacity-55;
   }
 
   .ui-btn-ghost {
@@ -144,11 +169,11 @@ body {
   }
 
   .ui-input {
-    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-2 focus:ring-brand-soft;
+    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft;
   }
 
   .ui-search {
-    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-2 focus:ring-brand-soft;
+    @apply h-11 w-full rounded-xl border border-line bg-white px-4 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft;
   }
 
   .ui-eyebrow {
@@ -161,5 +186,13 @@ body {
 
   .font-logo {
     font-family: "Plus Jakarta Sans", var(--font-logo-fallback);
+  }
+
+  .ui-skeleton {
+    @apply animate-pulse rounded-xl bg-[linear-gradient(110deg,#e5ece9_8%,#f3f6f5_18%,#e5ece9_33%)] bg-[length:200%_100%];
+  }
+
+  .ui-sr-status {
+    @apply sr-only;
   }
 }

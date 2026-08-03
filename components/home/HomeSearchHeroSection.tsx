@@ -1,63 +1,72 @@
+import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
-import type { HomeHeroImages } from "@/lib/home-page"
+import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
-function SearchIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
-      <path d="M10.5 17C14.0899 17 17 14.0899 17 10.5C17 6.91015 14.0899 4 10.5 4C6.91015 4 4 6.91015 4 10.5C4 14.0899 6.91015 17 10.5 17Z" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M15.5 15.5L20 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
+export default function HomeSearchHeroSection({ items }: { items: CatalogListing[] }) {
+  const [primary, secondary, tertiary] = items
 
-function FloatingHeroCard({ item, className, alt }: { item: CatalogListing | null | undefined; className: string; alt: string }) {
   return (
-    <div className={`absolute overflow-hidden border-4 border-white bg-white shadow-[0_14px_30px_rgba(45,45,45,0.12)] ${className}`}>
-      <SmartImage
-        src={item?.cover_image_url}
-        alt={alt}
-        wrapperClassName="h-full w-full"
-        className="h-full w-full object-cover"
-        fallbackLabel="ახალი ნივთი"
-        loading="eager"
-      />
-    </div>
-  )
-}
-
-export default function HomeSearchHeroSection({ heroImages }: { heroImages: HomeHeroImages }) {
-  return (
-    <section className="relative overflow-hidden bg-[linear-gradient(90deg,#EBA173_0%,#DABA73_100%)]">
-      <div className="mx-auto relative min-h-[231px] max-w-[1440px] px-4 py-8 sm:px-6 lg:px-10 lg:py-0">
-        <div className="hidden lg:block">
-          <FloatingHeroCard item={heroImages.left} alt="მარცხენა ნივთი" className="left-[32px] top-[57px] h-[118px] w-[91px] -rotate-[28.82deg] rounded-[25px]" />
-          <FloatingHeroCard item={heroImages.right} alt="მარჯვენა ნივთი" className="right-[153px] top-[14px] h-[154px] w-[116px] rotate-[11.8deg] rounded-[38px]" />
-          <FloatingHeroCard item={heroImages.rightSmall} alt="მარჯვენა პატარა ნივთი" className="right-[30px] top-[110px] h-[103px] w-[77px] rotate-[17.73deg] rounded-[24px]" />
+    <section className="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_15%,rgba(40,170,153,0.22),transparent_32%),linear-gradient(135deg,#eff8f6_0%,#f9fbfa_54%,#e5f1ee_100%)]">
+      <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:grid-cols-[1.08fr_0.92fr] md:py-16 lg:min-h-[570px]">
+        <div className="max-w-2xl">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">{ka.home.eyebrow}</p>
+          <h1 className="mt-5 text-[clamp(2.45rem,6vw,5rem)] font-black leading-[1.02] tracking-[-0.045em] text-text">
+            {ka.home.title}
+          </h1>
+          <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
+            {ka.home.description}
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/catalog" className="ui-btn-primary min-h-12 px-7 text-base">
+              {ka.home.startShopping}
+            </Link>
+            <Link href="/dashboard/listings/new" className="ui-btn-secondary min-h-12 px-7 text-base">
+              {ka.home.startSelling}
+            </Link>
+          </div>
+          <p className="mt-6 text-sm font-semibold text-text-soft">
+            რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
+          </p>
         </div>
 
-        <div className="mx-auto max-w-[950px] lg:pt-[26px]">
-          <div className="relative ml-[110px] inline-flex h-10 items-center rounded-full bg-white px-5 text-[16px] font-medium leading-6 text-[#2D2D2D] shadow-[0_4px_12px_rgba(0,0,0,0.05)] max-lg:ml-0">
-            რას ეძებ?
-            <span className="absolute -left-3.5 bottom-[-11px] h-3 w-3 rounded-full border-4 border-[#EBA173] bg-white" />
-          </div>
-
-          <form action="/catalog" className="relative mt-4 flex h-[48px] items-center rounded-full border border-black/30 bg-[#ECECEC] pl-6 pr-[118px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:mx-auto lg:max-w-[822px]">
-            <input
-              type="text"
-              name="q"
-              defaultValue='მოძებნე "ვინტაჟ მარგელო"'
-              className="h-full w-full bg-transparent text-[16px] font-medium leading-6 text-[#444] outline-none placeholder:text-[#444]"
+        <div className="relative mx-auto h-[340px] w-full max-w-[520px] sm:h-[420px]" aria-label="SAMOSELL-ის განცხადებების კოლაჟი">
+          <div className="absolute left-[8%] top-[6%] h-[72%] w-[58%] rotate-[-4deg] overflow-hidden rounded-[28px] border-8 border-white bg-surface shadow-[0_28px_80px_rgba(7,63,59,0.18)]">
+            <SmartImage
+              src={primary?.cover_image_url}
+              alt={primary?.title || "SAMOSELL-ის განცხადება"}
+              wrapperClassName="h-full w-full"
+              className="h-full w-full object-cover"
+              fallbackLabel="აქ გამოჩნდება ახალი ნივთი"
+              loading="eager"
+              sizes="(max-width: 768px) 60vw, 360px"
             />
-            <div className="absolute right-[108px] top-1/2 h-6 w-px -translate-y-1/2 bg-black/15" />
-            <button
-              type="submit"
-              className="absolute right-[6px] top-1/2 inline-flex h-[38px] w-[96px] -translate-y-1/2 items-center justify-center gap-2 rounded-full border border-[#99562A] bg-[#F88A51] text-[14px] font-medium leading-6 text-white shadow-[0_4px_12px_rgba(248,138,81,0.3)] transition hover:bg-[#ef7b3f]"
-            >
-              <SearchIcon className="h-4 w-4" />
-              ძებნა
-            </button>
-          </form>
+          </div>
+          <div className="absolute right-[3%] top-[11%] h-[47%] w-[38%] rotate-[7deg] overflow-hidden rounded-[22px] border-[6px] border-white bg-surface shadow-[0_22px_55px_rgba(7,63,59,0.14)]">
+            <SmartImage
+              src={secondary?.cover_image_url}
+              alt={secondary?.title || "SAMOSELL-ის განცხადება"}
+              wrapperClassName="h-full w-full"
+              className="h-full w-full object-cover"
+              fallbackLabel="ახალი ნივთი"
+              loading="eager"
+              sizes="(max-width: 768px) 38vw, 220px"
+            />
+          </div>
+          <div className="absolute bottom-[2%] right-[12%] h-[42%] w-[38%] rotate-[3deg] overflow-hidden rounded-[22px] border-[6px] border-white bg-surface shadow-[0_22px_55px_rgba(7,63,59,0.14)]">
+            <SmartImage
+              src={tertiary?.cover_image_url}
+              alt={tertiary?.title || "SAMOSELL-ის განცხადება"}
+              wrapperClassName="h-full w-full"
+              className="h-full w-full object-cover"
+              fallbackLabel="გამორჩეული ნივთი"
+              sizes="(max-width: 768px) 38vw, 220px"
+            />
+          </div>
+          <div className="absolute bottom-[7%] left-0 rounded-2xl border border-brand/15 bg-white/95 px-4 py-3 shadow-[0_14px_34px_rgba(7,63,59,0.12)] backdrop-blur">
+            <div className="text-xs font-bold text-brand">მეორე სიცოცხლე ნივთებს</div>
+            <div className="mt-1 text-sm font-black text-text">საკუთარი სტილი შენს წესებზე</div>
+          </div>
         </div>
       </div>
     </section>
