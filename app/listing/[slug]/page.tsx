@@ -11,6 +11,7 @@ import {
   fetchListingPageData,
   generateListingMetadata,
   reportMessageLabel,
+  safetyMessageLabel,
   type ListingPageQueryParams,
 } from "@/lib/listing-page"
 import { getUserAvatar } from "@/lib/profiles"
@@ -55,8 +56,16 @@ export default async function ListingDetailsPage({
   const chatError = typeof query.chatError === "string" ? query.chatError : ""
   const favoriteError =
     query.favorite === "error" ? ka.listingDetail.favoriteFailed : ""
-  const reportFlash =
-    typeof query.report === "string" ? reportMessageLabel(query.report) : ""
+  const reportCode = typeof query.report === "string" ? query.report : ""
+  const safetyCode = typeof query.safety === "string" ? query.safety : ""
+  const reportFlash = reportMessageLabel(reportCode)
+  const safetyFlash = safetyMessageLabel(safetyCode)
+  const reportIsError = Boolean(
+    reportCode && reportCode !== "ok" && reportCode !== "user-ok",
+  )
+  const safetyIsError = Boolean(
+    safetyCode && safetyCode !== "blocked" && safetyCode !== "unblocked",
+  )
   const sellerLabel =
     sellerProfile?.full_name ||
     listing.seller_full_name ||
@@ -103,6 +112,9 @@ export default async function ListingDetailsPage({
               chatError={chatError}
               favoriteError={favoriteError}
               reportFlash={reportFlash}
+              reportIsError={reportIsError}
+              safetyFlash={safetyFlash}
+              safetyIsError={safetyIsError}
               isBlocked={isBlocked}
               isBlockedBySeller={isBlockedBySeller}
               sellerSuspended={Boolean(sellerProfile?.is_suspended)}

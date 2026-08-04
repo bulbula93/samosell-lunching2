@@ -3,146 +3,247 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAdminUser, requireAuthenticatedUser } from "@/lib/auth"
-import { humanizeSupabaseError } from "@/lib/listings"
-import { enforceRateLimit } from "@/lib/rate-limit"
+import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
+import {
+  isModerationDecision,
+  isUuid,
+  MODERATION_NOTE_MAX_LENGTH,
+  moderationErrorMessage,
+  type ReportKind,
+  validateReportInput,
+  withSafeFeedback,
+} from "@/lib/moderation"
 
-function safeNextPath(value: string, fallback = "/catalog") {
-  return value && value.startsWith("/") ? value : fallback
+function getReportKind(value: string): ReportKind | null {
+  return value === "listing" || value === "user" ? value : null
+}
+
+function revalidateModerationPaths(nextPath?: string) {
+  revalidatePath("/dashboard")
+  revalidatePath("/dashboard/reports")
+  revalidatePath("/dashboard/chats")
+  revalidatePath("/admin")
+  revalidatePath("/admin/reports")
+
+  if (nextPath) {
+    const safePath = getSafeAuthRedirectPath(nextPath, "/catalog")
+    revalidatePath(new URL(safePath, "https://samosell.local").pathname)
+  }
 }
 
 export async function submitListingReportAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
-  const sellerId = String(formData.get("sellerId") || "")
   const listingSlug = String(formData.get("listingSlug") || "")
-  const reason = String(formData.get("reason") || "other")
+  const reason = String(formData.get("reason") || "")
   const details = String(formData.get("details") || "").trim()
-  const nextPath = safeNextPath(String(formData.get("nextPath") || `/listing/${listingSlug}`), `/listing/${listingSlug}`)
+  const fallback = listingSlug ? `/listing/${encodeURIComponent(listingSlug)}` : "/catalog"
+  const nextPath = getSafeAuthRedirectPath(
+    String(formData.get("nextPath") || fallback),
+    fallback,
+  )
+  const validationError = validateReportInput("listing", reason, details)
 
-  if (!listingId || !sellerId || !listingSlug) redirect(nextPath)
-
-  const { supabase, user } = await requireAuthenticatedUser(nextPath)
-
-  if (user.id === sellerId) redirect(`${nextPath}?report=own`)
-
-  try {
-    await enforceRateLimit(supabase, "listing_report")
-  } catch (error) {
-    redirect(`${nextPath}?report=${encodeURIComponent(humanizeSupabaseError(error instanceof Error ? error.message : ""))}`)
+  if (!isUuid(listingId) || validationError) {
+    redirect(
+      withSafeFeedback(
+        nextPath,
+        "report",
+        validationError || "რეპორტის მონაცემები არასწორია.",
+        fallback,
+      ),
+    )
   }
 
-  const { data: existing } = await supabase
-    .from("listing_reports")
-    .select("id")
-    .eq("listing_id", listingId)
-    .eq("reporter_id", user.id)
-    .maybeSingle()
+  const { supabase } = await requireAuthenticatedUser(nextPath)
+  const { error } = await supabase.rpc("submit_listing_report", {
+    p_listing_id: listingId,
+    p_reason: reason,
+    p_details: details,
+  })
 
-  const payload = {
-    listing_id: listingId,
-    reporter_id: user.id,
-    seller_id: sellerId,
-    reason,
-    details,
-    status: "open",
-    moderation_note: null,
-    reviewed_by: null,
-    reviewed_at: null,
+  if (error) {
+    redirect(
+      withSafeFeedback(
+        nextPath,
+        "report",
+        moderationErrorMessage(error.message),
+        fallback,
+      ),
+    )
   }
 
-  const { error } = existing?.id
-    ? await supabase.from("listing_reports").update(payload).eq("id", existing.id).eq("reporter_id", user.id)
-    : await supabase.from("listing_reports").insert(payload)
+  revalidateModerationPaths(nextPath)
+  redirect(withSafeFeedback(nextPath, "report", "ok", fallback))
+}
 
-  if (error) redirect(`${nextPath}?report=${encodeURIComponent(humanizeSupabaseError(error.message))}`)
+export async function submitUserReportAction(formData: FormData) {
+  const reportedUserId = String(formData.get("reportedUserId") || "")
+  const contextListingId = String(formData.get("contextListingId") || "")
+  const reason = String(formData.get("reason") || "")
+  const details = String(formData.get("details") || "").trim()
+  const nextPath = getSafeAuthRedirectPath(
+    String(formData.get("nextPath") || "/catalog"),
+    "/catalog",
+  )
+  const validationError = validateReportInput("user", reason, details)
 
-  revalidatePath(nextPath)
-  revalidatePath("/dashboard/reports")
-  revalidatePath("/admin")
-  revalidatePath("/admin/reports")
-  redirect(`${nextPath}?report=ok`)
+  if (
+    !isUuid(reportedUserId) ||
+    (contextListingId && !isUuid(contextListingId)) ||
+    validationError
+  ) {
+    redirect(
+      withSafeFeedback(
+        nextPath,
+        "report",
+        validationError || "რეპორტის მონაცემები არასწორია.",
+      ),
+    )
+  }
+
+  const { supabase } = await requireAuthenticatedUser(nextPath)
+  const { error } = await supabase.rpc("submit_user_report", {
+    p_reported_user_id: reportedUserId,
+    p_reason: reason,
+    p_details: details,
+    p_context_listing_id: contextListingId || null,
+  })
+
+  if (error) {
+    redirect(
+      withSafeFeedback(
+        nextPath,
+        "report",
+        moderationErrorMessage(error.message),
+      ),
+    )
+  }
+
+  revalidateModerationPaths(nextPath)
+  redirect(withSafeFeedback(nextPath, "report", "user-ok"))
 }
 
 export async function toggleBlockUserAction(formData: FormData) {
   const blockedId = String(formData.get("blockedId") || "")
-  const nextPath = safeNextPath(String(formData.get("nextPath") || "/catalog"))
-  if (!blockedId) redirect(nextPath)
+  const shouldBlock = String(formData.get("shouldBlock") || "") === "true"
+  const nextPath = getSafeAuthRedirectPath(
+    String(formData.get("nextPath") || "/catalog"),
+    "/catalog",
+  )
 
-  const { supabase, user } = await requireAuthenticatedUser(nextPath)
-  if (user.id === blockedId) redirect(nextPath)
-
-  const { data: existing } = await supabase
-    .from("user_blocks")
-    .select("id")
-    .eq("blocker_id", user.id)
-    .eq("blocked_id", blockedId)
-    .maybeSingle()
-
-  if (existing?.id) {
-    await supabase.from("user_blocks").delete().eq("id", existing.id).eq("blocker_id", user.id)
-  } else {
-    await supabase.from("user_blocks").insert({ blocker_id: user.id, blocked_id: blockedId })
+  if (!isUuid(blockedId)) {
+    redirect(withSafeFeedback(nextPath, "safety", "მომხმარებელი ვერ მოიძებნა."))
   }
 
-  revalidatePath(nextPath)
-  revalidatePath("/dashboard/chats")
-  revalidatePath("/dashboard/reports")
-  redirect(nextPath)
+  const { supabase } = await requireAuthenticatedUser(nextPath)
+  const { error } = await supabase.rpc("set_user_blocked", {
+    p_blocked_id: blockedId,
+    p_blocked: shouldBlock,
+  })
+
+  if (error) {
+    redirect(
+      withSafeFeedback(
+        nextPath,
+        "safety",
+        moderationErrorMessage(error.message),
+      ),
+    )
+  }
+
+  revalidateModerationPaths(nextPath)
+  redirect(
+    withSafeFeedback(
+      nextPath,
+      "safety",
+      shouldBlock ? "blocked" : "unblocked",
+    ),
+  )
 }
 
-export async function reviewListingReportAction(formData: FormData) {
+export async function reviewModerationReportAction(formData: FormData) {
+  const reportKind = getReportKind(String(formData.get("reportKind") || ""))
   const reportId = String(formData.get("reportId") || "")
-  const listingId = String(formData.get("listingId") || "")
-  const sellerId = String(formData.get("sellerId") || "")
   const decision = String(formData.get("decision") || "")
   const moderationNote = String(formData.get("moderationNote") || "").trim()
+  const adminPath = "/admin/reports"
 
-  if (!reportId || !listingId || !sellerId || !decision) redirect("/admin/reports")
-
-  const { supabase, user } = await requireAdminUser("/dashboard")
-
-  let reportStatus = "reviewing"
-  if (decision === "resolved") reportStatus = "resolved"
-  if (decision === "dismissed") reportStatus = "dismissed"
-  if (decision === "hide_listing") reportStatus = "resolved"
-  if (decision === "suspend_seller") reportStatus = "resolved"
-
-  const { error: reportError } = await supabase
-    .from("listing_reports")
-    .update({
-      status: reportStatus,
-      moderation_note: moderationNote || null,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", reportId)
-
-  if (reportError) redirect(`/admin/reports?flash=${encodeURIComponent(humanizeSupabaseError(reportError.message))}`)
-
-  if (decision === "hide_listing") {
-    await supabase.from("listings").update({ status: "archived" }).eq("id", listingId)
+  if (
+    !reportKind ||
+    !isUuid(reportId) ||
+    !isModerationDecision(decision) ||
+    decision === "restore_user" ||
+    moderationNote.length > MODERATION_NOTE_MAX_LENGTH
+  ) {
+    redirect(
+      withSafeFeedback(
+        adminPath,
+        "flash",
+        "მოდერაციის მონაცემები არასწორია.",
+        adminPath,
+      ),
+    )
   }
 
-  if (decision === "suspend_seller") {
-    await supabase.from("profiles").update({ is_suspended: true }).eq("id", sellerId)
+  const { supabase } = await requireAdminUser("/dashboard")
+  const { error } = await supabase.rpc("review_moderation_report", {
+    p_report_kind: reportKind,
+    p_report_id: reportId,
+    p_decision: decision,
+    p_moderation_note: moderationNote,
+  })
 
-    await supabase.from("listings").update({ status: "archived" }).eq("seller_id", sellerId).eq("status", "active")
+  if (error) {
+    redirect(
+      withSafeFeedback(
+        adminPath,
+        "flash",
+        moderationErrorMessage(error.message),
+        adminPath,
+      ),
+    )
   }
 
+  revalidateModerationPaths()
   revalidatePath("/catalog")
-  revalidatePath("/dashboard")
-  revalidatePath("/dashboard/listings")
-  revalidatePath("/dashboard/reports")
-  revalidatePath("/admin")
-  revalidatePath("/admin/reports")
-  redirect(`/admin/reports?flash=${decision}`)
+  redirect(withSafeFeedback(adminPath, "flash", decision, adminPath))
 }
 
 export async function restoreSellerAction(formData: FormData) {
-  const sellerId = String(formData.get("sellerId") || "")
-  if (!sellerId) redirect("/admin/reports")
+  const reportKind = getReportKind(String(formData.get("reportKind") || ""))
+  const reportId = String(formData.get("reportId") || "")
+  const adminPath = "/admin/reports"
+
+  if (!reportKind || !isUuid(reportId)) {
+    redirect(
+      withSafeFeedback(
+        adminPath,
+        "flash",
+        "რეპორტი ვერ მოიძებნა.",
+        adminPath,
+      ),
+    )
+  }
+
   const { supabase } = await requireAdminUser("/dashboard")
-  await supabase.from("profiles").update({ is_suspended: false }).eq("id", sellerId)
-  revalidatePath("/admin")
-  revalidatePath("/admin/reports")
-  redirect("/admin/reports?flash=restored")
+  const { error } = await supabase.rpc("review_moderation_report", {
+    p_report_kind: reportKind,
+    p_report_id: reportId,
+    p_decision: "restore_user",
+    p_moderation_note: "",
+  })
+
+  if (error) {
+    redirect(
+      withSafeFeedback(
+        adminPath,
+        "flash",
+        moderationErrorMessage(error.message),
+        adminPath,
+      ),
+    )
+  }
+
+  revalidateModerationPaths()
+  redirect(withSafeFeedback(adminPath, "flash", "restored", adminPath))
 }

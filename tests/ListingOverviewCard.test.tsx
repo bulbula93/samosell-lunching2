@@ -133,7 +133,7 @@ describe("ListingOverviewCard", () => {
         {...baseProps}
         isAuthenticated
         canChat
-        listing={makeListing()}
+        listing={makeListing({ seller_id: "seller-1" })}
       />,
     )
 
@@ -142,6 +142,28 @@ describe("ListingOverviewCard", () => {
     ).toBeInTheDocument()
     expect(
       screen.queryByRole("link", { name: ka.listingDetail.loginToMessage }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("განცხადების დარეპორტება")).toBeInTheDocument()
+    expect(screen.getByText("მომხმარებლის დარეპორტება")).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "მომხმარებლის დაბლოკვა" }),
+    ).toBeInTheDocument()
+  })
+
+  it("does not show report or block mutations to the listing owner", () => {
+    render(
+      <ListingOverviewCard
+        {...baseProps}
+        isOwner
+        isAuthenticated
+        listing={makeListing({ seller_id: "seller-1" })}
+      />,
+    )
+
+    expect(screen.queryByText("განცხადების დარეპორტება")).not.toBeInTheDocument()
+    expect(screen.queryByText("მომხმარებლის დარეპორტება")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "მომხმარებლის დაბლოკვა" }),
     ).not.toBeInTheDocument()
   })
 

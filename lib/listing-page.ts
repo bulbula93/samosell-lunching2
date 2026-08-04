@@ -21,6 +21,7 @@ export type ListingPageQueryParams = {
   chatError?: string | string[]
   favorite?: string | string[]
   report?: string | string[]
+  safety?: string | string[]
 }
 
 export type ListingSellerProfile = {
@@ -81,8 +82,21 @@ export function reportMessageLabel(value?: string) {
   switch (value) {
     case "ok":
       return "რეპორტი მიღებულია. მადლობა უკუკავშირისთვის."
+    case "user-ok":
+      return "მომხმარებლის რეპორტი მიღებულია. მადლობა უკუკავშირისთვის."
     case "own":
       return "საკუთარ განცხადებას ვერ დაარეპორტებ."
+    default:
+      return value || ""
+  }
+}
+
+export function safetyMessageLabel(value?: string) {
+  switch (value) {
+    case "blocked":
+      return "მომხმარებელი დაბლოკილია. მასთან ახალი შეტყობინებების გაცვლა შეჩერდა."
+    case "unblocked":
+      return "მომხმარებელს ბლოკი მოეხსნა."
     default:
       return value || ""
   }

@@ -1,6 +1,9 @@
 import Link from "next/link"
 import StartChatButton from "@/components/chat/StartChatButton"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
+import BlockUserForm from "@/components/moderation/BlockUserForm"
+import ReportListingForm from "@/components/moderation/ReportListingForm"
+import ReportUserForm from "@/components/moderation/ReportUserForm"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import { ka } from "@/lib/i18n/ka"
@@ -30,6 +33,9 @@ type ListingOverviewCardProps = {
   chatError: string
   favoriteError: string
   reportFlash: string
+  reportIsError?: boolean
+  safetyFlash?: string
+  safetyIsError?: boolean
   isBlocked: boolean
   isBlockedBySeller: boolean
   sellerSuspended: boolean
@@ -97,6 +103,9 @@ export default function ListingOverviewCard({
   chatError,
   favoriteError,
   reportFlash,
+  reportIsError = false,
+  safetyFlash = "",
+  safetyIsError = false,
   isBlocked,
   isBlockedBySeller,
   sellerSuspended,
@@ -273,6 +282,47 @@ export default function ListingOverviewCard({
         ) : null}
       </section>
 
+      {!isOwner && listing.seller_id ? (
+        <section
+          aria-labelledby="listing-safety-heading"
+          className="mt-7 border-t border-line pt-6"
+        >
+          <h2 id="listing-safety-heading" className="text-lg font-black text-text">
+            უსაფრთხოება
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-text-soft">
+            საეჭვო განცხადება ან ქცევა შეგიძლია კონფიდენციალურად გამოგვიგზავნო.
+          </p>
+
+          {isAuthenticated ? (
+            <div className="mt-4 grid gap-3">
+              <ReportListingForm
+                listingId={listing.id}
+                listingSlug={listing.slug}
+                nextPath={`/listing/${listing.slug}`}
+              />
+              <ReportUserForm
+                reportedUserId={listing.seller_id}
+                contextListingId={listing.id}
+                nextPath={`/listing/${listing.slug}`}
+              />
+              <BlockUserForm
+                blockedId={listing.seller_id}
+                nextPath={`/listing/${listing.slug}`}
+                isBlocked={isBlocked}
+              />
+            </div>
+          ) : (
+            <Link
+              href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`}
+              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4"
+            >
+              უსაფრთხოების მოქმედებებისთვის გაიარე ავტორიზაცია
+            </Link>
+          )}
+        </section>
+      ) : null}
+
       <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
           {isOwner ? (
@@ -338,8 +388,27 @@ export default function ListingOverviewCard({
         </p>
       ) : null}
       {reportFlash ? (
-        <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p
+          role={reportIsError ? "alert" : "status"}
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            reportIsError
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
           {reportFlash}
+        </p>
+      ) : null}
+      {safetyFlash ? (
+        <p
+          role={safetyIsError ? "alert" : "status"}
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            safetyIsError
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          {safetyFlash}
         </p>
       ) : null}
     </article>

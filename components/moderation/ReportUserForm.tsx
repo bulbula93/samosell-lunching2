@@ -1,34 +1,36 @@
-import { submitListingReportAction } from "@/app/moderation/actions"
+import { submitUserReportAction } from "@/app/moderation/actions"
 import ModerationSubmitButton from "@/components/moderation/ModerationSubmitButton"
 import { REPORT_DETAILS_MAX_LENGTH } from "@/lib/moderation"
 
-type ReportListingFormProps = {
-  listingId: string
-  listingSlug: string
-  nextPath: string
-}
-
-export default function ReportListingForm({
-  listingId,
-  listingSlug,
+export default function ReportUserForm({
+  reportedUserId,
+  contextListingId,
   nextPath,
-}: ReportListingFormProps) {
-  const reasonId = `listing-report-reason-${listingId}`
-  const detailsId = `listing-report-details-${listingId}`
+}: {
+  reportedUserId: string
+  contextListingId?: string
+  nextPath: string
+}) {
+  const reasonId = `user-report-reason-${reportedUserId}`
+  const detailsId = `user-report-details-${reportedUserId}`
 
   return (
     <details className="rounded-xl border border-line bg-surface-alt">
       <summary className="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-semibold text-text marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-        განცხადების დარეპორტება
+        მომხმარებლის დარეპორტება
       </summary>
-      <form action={submitListingReportAction} className="border-t border-line p-4">
-        <input type="hidden" name="listingId" value={listingId} />
-        <input type="hidden" name="listingSlug" value={listingSlug} />
+      <form action={submitUserReportAction} className="border-t border-line p-4">
+        <input type="hidden" name="reportedUserId" value={reportedUserId} />
+        <input
+          type="hidden"
+          name="contextListingId"
+          value={contextListingId || ""}
+        />
         <input type="hidden" name="nextPath" value={nextPath} />
 
         <p className="text-xs leading-5 text-text-soft">
-          გამოგზავნე სიგნალი მხოლოდ წესების დარღვევის, ყალბი ინფორმაციის ან
-          აკრძალული ნივთის შემთხვევაში.
+          გამოიყენე თაღლითობის, სპამის, მუქარის ან სხვის სახელად წარმოდგენის
+          შემთხვევაში.
         </p>
 
         <div className="mt-4 grid gap-3">
@@ -47,10 +49,10 @@ export default function ReportListingForm({
               required
             >
               <option value="spam">სპამი</option>
-              <option value="fake">ყალბი განცხადება</option>
-              <option value="prohibited">აკრძალული ნივთი</option>
-              <option value="abuse">შეურაცხმყოფელი შინაარსი</option>
-              <option value="wrong_info">არასწორი ინფორმაცია</option>
+              <option value="scam">თაღლითობის მცდელობა</option>
+              <option value="harassment">შეწუხება ან მუქარა</option>
+              <option value="impersonation">სხვის სახელად წარმოდგენა</option>
+              <option value="prohibited">აკრძალული ქცევა</option>
               <option value="other">სხვა</option>
             </select>
           </div>
@@ -69,16 +71,12 @@ export default function ReportListingForm({
               maxLength={REPORT_DETAILS_MAX_LENGTH}
               className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft/70"
               placeholder="მოკლედ აღწერე პრობლემა"
-              aria-describedby={`${detailsId}-hint`}
             />
-            <p id={`${detailsId}-hint`} className="mt-1 text-xs text-text-soft">
-              მაქსიმუმ {REPORT_DETAILS_MAX_LENGTH} სიმბოლო.
-            </p>
           </div>
         </div>
 
         <ModerationSubmitButton
-          idleLabel="რეპორტის გაგზავნა"
+          idleLabel="მომხმარებლის რეპორტი"
           pendingLabel="იგზავნება…"
           className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         />
