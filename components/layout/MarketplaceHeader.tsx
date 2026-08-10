@@ -81,6 +81,9 @@ export default function MarketplaceHeader({
                   <Link href="/dashboard/listings" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     ჩემი განცხადებები
                   </Link>
+                  <Link href="/dashboard/orders" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    შეკვეთები
+                  </Link>
                   {userState.isAdmin ? (
                     <Link href="/admin" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                       ადმინისტრირება

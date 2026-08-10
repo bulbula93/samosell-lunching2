@@ -151,6 +151,9 @@ export default function MobileNavigation({
                   <Link href="/dashboard/favorites" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     {ka.nav.favorites}
                   </Link>
+                  <Link href="/dashboard/orders" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                    შეკვეთები
+                  </Link>
                   <Link href="/dashboard/profile" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                     {userState.profileLabel}
                   </Link>

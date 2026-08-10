@@ -16,6 +16,11 @@ const ACTION_RULES = {
     maxHits: 30,
     label: "განცხადების სტატუსის შეცვლა",
   },
+  order_status_update: {
+    windowSeconds: 10 * 60,
+    maxHits: 30,
+    label: "შეკვეთის სტატუსის შეცვლა",
+  },
   chat_start: {
     windowSeconds: 10 * 60,
     maxHits: 20,

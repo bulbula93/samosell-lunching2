@@ -54,6 +54,7 @@ export default function DashboardHeader({
                   <Link href="/dashboard" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">კაბინეტი</Link>
                   <Link href="/dashboard/profile" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">პროფილი</Link>
                   <Link href="/dashboard/listings" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">ჩემი განცხადებები</Link>
+                  <Link href="/dashboard/orders" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">შეკვეთები</Link>
                   <Link href="/dashboard/favorites" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">
                     ფავორიტები{favoriteCount > 0 ? ` · ${favoriteCount}` : ""}
                   </Link>
@@ -82,6 +83,7 @@ export default function DashboardHeader({
           <Link href="/dashboard/favorites" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">ფავორიტები{favoriteCount > 0 ? ` · ${favoriteCount}` : ""}</Link>
           <Link href="/dashboard/reports" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">რეპორტები</Link>
           <Link href="/dashboard/listings" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">ჩემი განცხადებები</Link>
+          <Link href="/dashboard/orders" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">შეკვეთები</Link>
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">VIP განთავსება</Link>
           <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           {isAdmin ? (
@@ -94,6 +96,7 @@ export default function DashboardHeader({
         <div className="flex gap-2 overflow-x-auto pb-1 md:hidden">
           <Link href="/dashboard" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">კაბინეტი</Link>
           <Link href="/dashboard/listings" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">განცხადებები</Link>
+          <Link href="/dashboard/orders" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">შეკვეთები</Link>
           <Link href="/dashboard/favorites" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">ფავორიტები{favoriteCount > 0 ? ` · ${favoriteCount}` : ""}</Link>
           <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">VIP განთავსება</Link>

@@ -7,6 +7,7 @@ type StatIconName =
   | "drafts"
   | "favorites"
   | "chats"
+  | "orders"
   | "reports"
   | "vipOrders"
   | "activeVip"
@@ -47,6 +48,13 @@ function StatIcon({ iconName }: { iconName: StatIconName }) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={common} aria-hidden="true">
         <path d="M6 18.25 3.75 20V7A3.25 3.25 0 0 1 7 3.75h10A3.25 3.25 0 0 1 20.25 7v6A3.25 3.25 0 0 1 17 16.25H9.5L6 18.25Z" />
         <path d="M8 8.75h8M8 12.25h5.5" />
+      </svg>
+    ),
+    orders: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={common} aria-hidden="true">
+        <path d="M5 7.25h14l-1 12H6l-1-12Z" />
+        <path d="M8.5 9.25V6a3.5 3.5 0 0 1 7 0v3.25" />
+        <path d="M9 13h6" />
       </svg>
     ),
     reports: (
