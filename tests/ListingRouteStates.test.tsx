@@ -24,6 +24,8 @@ describe("listing route states", () => {
     expect(canRenderListingStatus("active", false)).toBe(true)
     expect(canRenderListingStatus("reserved", false)).toBe(false)
     expect(canRenderListingStatus("sold", false)).toBe(false)
+    expect(canRenderListingStatus("reserved", false, true)).toBe(true)
+    expect(canRenderListingStatus("sold", false, true)).toBe(true)
     expect(canRenderListingStatus("reserved", true)).toBe(true)
     expect(canRenderListingStatus("sold", true)).toBe(true)
     expect(canRenderListingStatus("draft", true)).toBe(false)

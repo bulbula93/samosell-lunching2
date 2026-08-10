@@ -3,10 +3,12 @@ import { cache } from "react"
 import { ka } from "@/lib/i18n/ka"
 import { conditionLabel, formatPrice } from "@/lib/listings"
 import { getSafeImageSource } from "@/lib/media"
+import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, truncateDescription } from "@/lib/seo"
 import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing, ListingImage } from "@/types/marketplace"
+import type { SellerReviewData } from "@/types/review"
 
 const LISTING_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i
 const OWNER_VISIBLE_STATUSES = new Set(["active", "reserved", "sold"])
@@ -22,6 +24,7 @@ export type ListingPageQueryParams = {
   favorite?: string | string[]
   report?: string | string[]
   safety?: string | string[]
+  review?: string | string[]
 }
 
 export type ListingSellerProfile = {
@@ -61,15 +64,23 @@ export type ListingPageData = {
   canChat: boolean
   isBlocked: boolean
   isBlockedBySeller: boolean
+  isBuyerParticipant: boolean
+  canReview: boolean
+  viewerId: string | null
+  reviewData: SellerReviewData
 }
 
 export function isValidListingSlug(value: string) {
   return value.length > 0 && value.length <= 160 && LISTING_SLUG_PATTERN.test(value)
 }
 
-export function canRenderListingStatus(status: string | null | undefined, isOwner: boolean) {
+export function canRenderListingStatus(
+  status: string | null | undefined,
+  isOwner: boolean,
+  isParticipant = false,
+) {
   if (status === "active") return true
-  return isOwner && OWNER_VISIBLE_STATUSES.has(String(status ?? ""))
+  return (isOwner || isParticipant) && OWNER_VISIBLE_STATUSES.has(String(status ?? ""))
 }
 
 export function listingDetailStatusLabel(status?: string | null) {
@@ -209,7 +220,30 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   if (!listing) return null
 
   const isOwner = Boolean(user?.id && listing.seller_id === user.id)
-  if (!canRenderListingStatus(listing.status, isOwner)) return null
+  const shouldCheckBuyerParticipation = Boolean(
+    user &&
+      !isOwner &&
+      listing.seller_id &&
+      (listing.status === "reserved" || listing.status === "sold"),
+  )
+  const buyerChatResponse = shouldCheckBuyerParticipation
+    ? await supabase
+        .from("chats")
+        .select("id")
+        .eq("listing_id", listing.id)
+        .eq("buyer_id", user!.id)
+        .eq("seller_id", listing.seller_id!)
+        .maybeSingle()
+    : { data: null, error: null }
+
+  if (buyerChatResponse.error) {
+    throw new Error("LISTING_PARTICIPANT_QUERY_FAILED", {
+      cause: buyerChatResponse.error,
+    })
+  }
+
+  const isBuyerParticipant = Boolean(buyerChatResponse.data)
+  if (!canRenderListingStatus(listing.status, isOwner, isBuyerParticipant)) return null
 
   const isActive = listing.status === "active"
   const sellerProfileQuery = listing.seller_id
@@ -239,7 +273,19 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .limit(8)
     : Promise.resolve({ data: [] as CatalogListing[], error: null })
 
-  const shouldLoadViewerData = Boolean(user && !isOwner && isActive)
+  const shouldLoadRelationshipData = Boolean(
+    user && !isOwner && (isActive || isBuyerParticipant),
+  )
+  const shouldLoadFavoriteData = Boolean(user && !isOwner && isActive)
+  const reviewDataQuery = listing.seller_id
+    ? fetchSellerReviewData(supabase, listing.seller_id, {
+        listingId: listing.id,
+        limit: 12,
+      })
+    : Promise.resolve({
+        summary: { reviewCount: 0, averageScore: null },
+        reviews: [],
+      } satisfies SellerReviewData)
   const [
     imagesResponse,
     sellerProfileResponse,
@@ -249,6 +295,8 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     favoritesResponse,
     myBlockResponse,
     theirBlockResponse,
+    viewerProfileResponse,
+    reviewData,
   ] = await Promise.all([
     supabase
       .from("listing_images")
@@ -258,7 +306,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     sellerProfileQuery,
     sellerActiveCountQuery,
     similarItemsQuery,
-    shouldLoadViewerData
+    shouldLoadFavoriteData
       ? supabase
           .from("favorites")
           .select("id")
@@ -269,7 +317,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
-    shouldLoadViewerData && listing.seller_id
+    shouldLoadRelationshipData && listing.seller_id
       ? supabase
           .from("user_blocks")
           .select("id")
@@ -277,7 +325,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
           .eq("blocked_id", listing.seller_id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
-    shouldLoadViewerData && listing.seller_id
+    shouldLoadRelationshipData && listing.seller_id
       ? supabase
           .from("user_blocks")
           .select("id")
@@ -285,13 +333,22 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
           .eq("blocked_id", user!.id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    shouldLoadRelationshipData
+      ? supabase
+          .from("profiles")
+          .select("id, is_suspended")
+          .eq("id", user!.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    reviewDataQuery,
   ])
 
   const criticalError =
     imagesResponse.error ||
     sellerProfileResponse.error ||
     sellerActiveCountResponse.error ||
-    similarItemsResponse.error
+    similarItemsResponse.error ||
+    viewerProfileResponse.error
 
   if (criticalError) {
     throw new Error("LISTING_RELATED_QUERY_FAILED", { cause: criticalError })
@@ -301,10 +358,19 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const isBlocked = Boolean(myBlockResponse.data)
   const isBlockedBySeller = Boolean(theirBlockResponse.data)
   const canChat =
-    shouldLoadViewerData &&
+    shouldLoadRelationshipData &&
+    isActive &&
     !isBlocked &&
     !isBlockedBySeller &&
     !sellerProfile?.is_suspended
+  const canReview = Boolean(
+    listing.status === "sold" &&
+      isBuyerParticipant &&
+      !isBlocked &&
+      !isBlockedBySeller &&
+      !sellerProfile?.is_suspended &&
+      !viewerProfileResponse.data?.is_suspended,
+  )
 
   return {
     listing,
@@ -319,5 +385,9 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     canChat,
     isBlocked,
     isBlockedBySeller,
+    isBuyerParticipant,
+    canReview,
+    viewerId: user?.id ?? null,
+    reviewData,
   }
 }

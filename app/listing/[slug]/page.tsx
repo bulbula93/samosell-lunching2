@@ -6,6 +6,7 @@ import ListingGallery from "@/components/listings/ListingGallery"
 import ListingOverviewCard from "@/components/listings/ListingOverviewCard"
 import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker"
 import SimilarListingsSection from "@/components/listings/SimilarListingsSection"
+import ListingReviewsSection from "@/components/reviews/ListingReviewsSection"
 import { ka } from "@/lib/i18n/ka"
 import {
   fetchListingPageData,
@@ -51,6 +52,9 @@ export default async function ListingDetailsPage({
     canChat,
     isBlocked,
     isBlockedBySeller,
+    canReview,
+    viewerId,
+    reviewData,
   } = pageData
 
   const chatError = typeof query.chatError === "string" ? query.chatError : ""
@@ -58,6 +62,7 @@ export default async function ListingDetailsPage({
     query.favorite === "error" ? ka.listingDetail.favoriteFailed : ""
   const reportCode = typeof query.report === "string" ? query.report : ""
   const safetyCode = typeof query.safety === "string" ? query.safety : ""
+  const reviewCode = typeof query.review === "string" ? query.review : ""
   const reportFlash = reportMessageLabel(reportCode)
   const safetyFlash = safetyMessageLabel(safetyCode)
   const reportIsError = Boolean(
@@ -118,10 +123,21 @@ export default async function ListingDetailsPage({
               isBlocked={isBlocked}
               isBlockedBySeller={isBlockedBySeller}
               sellerSuspended={Boolean(sellerProfile?.is_suspended)}
+              sellerReviewSummary={reviewData.summary}
               shareUrl={absoluteUrl(`/listing/${listing.slug}`)}
             />
           </div>
         </section>
+
+        <ListingReviewsSection
+          listingId={listing.id}
+          listingSlug={listing.slug}
+          summary={reviewData.summary}
+          reviews={reviewData.reviews}
+          canReview={canReview}
+          viewerId={viewerId}
+          feedbackCode={reviewCode}
+        />
 
         <SimilarListingsSection
           listingSlug={listing.slug}

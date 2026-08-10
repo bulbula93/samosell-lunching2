@@ -4,6 +4,7 @@ import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import BlockUserForm from "@/components/moderation/BlockUserForm"
 import ReportListingForm from "@/components/moderation/ReportListingForm"
 import ReportUserForm from "@/components/moderation/ReportUserForm"
+import ReviewSummary from "@/components/reviews/ReviewSummary"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import { ka } from "@/lib/i18n/ka"
@@ -19,6 +20,7 @@ import {
   type ListingSellerProfile,
 } from "@/lib/listing-page"
 import type { CatalogListing } from "@/types/marketplace"
+import type { SellerReviewSummary } from "@/types/review"
 
 type ListingOverviewCardProps = {
   listing: CatalogListing
@@ -39,6 +41,7 @@ type ListingOverviewCardProps = {
   isBlocked: boolean
   isBlockedBySeller: boolean
   sellerSuspended: boolean
+  sellerReviewSummary?: SellerReviewSummary
   shareUrl: string
 }
 
@@ -109,6 +112,7 @@ export default function ListingOverviewCard({
   isBlocked,
   isBlockedBySeller,
   sellerSuspended,
+  sellerReviewSummary,
   shareUrl,
 }: ListingOverviewCardProps) {
   const isActive = listing.status === "active"
@@ -272,6 +276,11 @@ export default function ListingOverviewCard({
                 </span>
               ) : null}
             </div>
+            {sellerReviewSummary && sellerReviewSummary.reviewCount > 0 ? (
+              <div className="mt-2">
+                <ReviewSummary summary={sellerReviewSummary} compact />
+              </div>
+            ) : null}
           </div>
         </div>
 

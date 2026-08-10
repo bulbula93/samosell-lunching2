@@ -7,8 +7,10 @@ import SmartImage from "@/components/shared/SmartImage"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
 import ShareButton from "@/components/shared/ShareButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
+import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
 import { absoluteUrl, truncateDescription } from "@/lib/seo"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
+import { fetchSellerReviewData } from "@/lib/reviews"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
@@ -84,7 +86,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: listings }, { count: totalListingsCount }, { count: activeListingsCount }, favoritesResponse] = await Promise.all([
+  const [{ data: listings }, { count: totalListingsCount }, { count: activeListingsCount }, favoritesResponse, sellerReviewData] = await Promise.all([
     supabase
       .from("listings_catalog")
       .select(listingSelect)
@@ -94,6 +96,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", profile.id),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", profile.id).eq("status", "active"),
     user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : Promise.resolve({ data: [] as { listing_id: string }[] }),
+    fetchSellerReviewData(supabase, profile.id, { limit: 8 }),
   ])
 
   const sellerListings = (listings ?? []) as CatalogListing[]
@@ -213,6 +216,8 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
           </div>
         </div>
       </section>
+
+      <SellerReviewsSection data={sellerReviewData} />
 
       <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
