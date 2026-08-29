@@ -12,14 +12,22 @@
 
 ## Redirect URL-ები
 
-Google OAuth callback უნდა ემთხვეოდეს Supabase-ის callback მისამართს, რომელსაც Providers გვერდზე ხედავ.
+Google Cloud Console-ში **Authorized redirect URI** უნდა იყოს Supabase-ის callback (არა Next.js route):
 
-ლოკალურად ჩვეულებრივ დაგჭირდება მსგავსი მისამართები:
-- `http://localhost:3000/auth/callback`
+- `https://lxsvjzbiuewgwpajqrwr.supabase.co/auth/v1/callback`
 
-პროდუქციაში:
-- `https://samosell.ge/auth/callback`
-- ან შენი Vercel domain-ის callback
+Supabase-ში **Authentication → URL Configuration**:
+
+- Site URL: `https://samosell.ge`
+- Redirect allow list: `https://samosell.ge/auth/callback`
+- ლოკალური განვითარებისთვის დამატებით: `http://localhost:3000/auth/callback`
+
+Production environment-ში ორივე ცვლადი canonical domain-ზე უნდა მიუთითებდეს:
+
+- `NEXT_PUBLIC_SITE_URL=https://samosell.ge`
+- `SITE_URL=https://samosell.ge`
+
+აპლიკაცია Google flow-ს canonical `/auth/callback` route-ზე აბრუნებს, code-ს server-side ცვლის session cookie-ებში და მხოლოდ უსაფრთხო შიდა `next` მისამართზე გადადის.
 
 ## პროექტში რა შეიცვალა
 

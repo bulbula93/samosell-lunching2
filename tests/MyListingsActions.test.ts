@@ -202,6 +202,30 @@ describe("my listings status action", () => {
     expect(update.getPayload()).toEqual({ status: "draft", published_at: null })
   })
 
+  it("blocks publication when the authenticated seller has no contact phone", async () => {
+    const lookup = lookupBuilder({
+      id: listingId,
+      slug: "test-listing",
+      status: "draft",
+      updated_at: updatedAt,
+      published_at: null,
+    })
+    const profile = lookupBuilder({ store_phone: null })
+    const from = vi.fn().mockReturnValueOnce(lookup).mockReturnValueOnce(profile)
+    mocks.createClient.mockResolvedValue({ auth: auth({ id: ownerId }), from })
+
+    const result = await updateListingStatusAction({
+      listingId,
+      nextStatus: "active",
+      expectedUpdatedAt: updatedAt,
+    })
+
+    expect(result).toMatchObject({ ok: false, code: "invalid" })
+    expect(result.message).toContain("ტელეფონი")
+    expect(from).toHaveBeenNthCalledWith(2, "profiles")
+    expect(mocks.revalidatePath).not.toHaveBeenCalled()
+  })
+
   it("keeps database details private on a failed update", async () => {
     const lookup = lookupBuilder({
       id: listingId,

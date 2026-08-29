@@ -47,7 +47,20 @@ const validForm = {
   color: "შავი",
   material: "ტყავი",
   city: "თბილისი",
+  sellerPhone: "+995 555 12 34 56",
   publishNow: true,
+}
+
+function profileUpdateBuilder(error: Error | null = null) {
+  return {
+    update: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({
+      data: error ? null : { id: ownerId },
+      error,
+    }),
+  }
 }
 
 function storageStub() {
@@ -132,12 +145,14 @@ describe("listing form server actions", () => {
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
     }
+    const profileQuery = profileUpdateBuilder()
 
     mocks.createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
       from: vi.fn((table: string) => {
         if (table === "listings") return listings
         if (table === "categories") return categoryQuery
+        if (table === "profiles") return profileQuery
         throw new Error(`Unexpected table ${table}`)
       }),
       storage: storageStub(),
@@ -170,6 +185,7 @@ describe("listing form server actions", () => {
     expect(insertedPayload).not.toHaveProperty("owner_id")
     expect(insertedPayload).not.toHaveProperty("views_count")
     expect(insertedPayload).not.toHaveProperty("is_vip")
+    expect(profileQuery.update).toHaveBeenCalledWith({ store_phone: "+995 555 12 34 56" })
     expect(mocks.rateLimit).toHaveBeenCalledWith(expect.anything(), "listing_create")
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/catalog")
   })
@@ -224,6 +240,7 @@ describe("listing form server actions", () => {
       eq: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue({ data: [], error: null }),
     }
+    const profileQuery = profileUpdateBuilder()
 
     mocks.createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
@@ -231,6 +248,7 @@ describe("listing form server actions", () => {
         if (table === "listings") return listingBuilder
         if (table === "categories") return categoryBuilder
         if (table === "listing_images") return imagesBuilder
+        if (table === "profiles") return profileQuery
         throw new Error(`Unexpected table ${table}`)
       }),
       storage: storageStub(),
@@ -276,6 +294,29 @@ describe("listing form server actions", () => {
         price: expect.any(String),
         condition: expect.any(String),
       }),
+    })
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it("rejects a missing seller phone before database access", async () => {
+    const from = vi.fn()
+    mocks.createClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
+      from,
+      storage: storageStub(),
+    })
+
+    const result = await saveListingAction({
+      mode: "create",
+      listingId,
+      form: { ...validForm, sellerPhone: "" },
+      images: [],
+    })
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "invalid",
+      fieldErrors: expect.objectContaining({ sellerPhone: expect.any(String) }),
     })
     expect(from).not.toHaveBeenCalled()
   })
@@ -330,11 +371,13 @@ describe("listing form server actions", () => {
       delete: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
     }
+    const profileQuery = profileUpdateBuilder()
     mocks.createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
       from: vi.fn((table: string) => {
         if (table === "categories") return categoryQuery
         if (table === "listings") return listings
+        if (table === "profiles") return profileQuery
         throw new Error(`Unexpected table ${table}`)
       }),
       storage: storageStub(),

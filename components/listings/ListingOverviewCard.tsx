@@ -21,6 +21,7 @@ import {
 } from "@/lib/listing-page"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
+import { getSellerPhoneHref } from "@/lib/phone"
 
 type ListingOverviewCardProps = {
   listing: CatalogListing
@@ -125,6 +126,7 @@ export default function ListingOverviewCard({
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
+  const sellerPhoneHref = getSellerPhoneHref(sellerProfile?.store_phone)
   const messagingUnavailable =
     isActive &&
     !isOwner &&
@@ -288,6 +290,16 @@ export default function ListingOverviewCard({
           <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
             {sellerProfile.bio}
           </p>
+        ) : null}
+
+        {sellerPhoneHref ? (
+          <a
+            href={sellerPhoneHref}
+            className="ui-btn-secondary mt-4 min-h-11 w-full text-center"
+            aria-label={`${sellerLabel}-სთან ტელეფონით დაკავშირება: ${sellerProfile?.store_phone}`}
+          >
+            დარეკვა · {sellerProfile?.store_phone}
+          </a>
         ) : null}
       </section>
 

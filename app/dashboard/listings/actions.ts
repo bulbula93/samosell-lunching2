@@ -12,6 +12,7 @@ import {
   type ListingStatus,
 } from "@/lib/my-listings"
 import { enforceRateLimit } from "@/lib/rate-limit"
+import { isValidSellerPhone } from "@/lib/phone"
 
 function buildRedirect(filter: string, result: string) {
   const search = new URLSearchParams()
@@ -155,6 +156,26 @@ export async function updateListingStatusAction(
     }
   }
 
+  if (nextStatus === "active") {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("store_phone")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profileError) {
+      console.error("listing_status_phone_lookup_failed", profileError.message)
+      return { ok: false, code: "server_error", message: "ტელეფონის შემოწმება ვერ მოხერხდა. სცადე ხელახლა." }
+    }
+    if (!isValidSellerPhone(profile?.store_phone)) {
+      return {
+        ok: false,
+        code: "invalid",
+        message: "გამოქვეყნებამდე პროფილში შეავსე მოქმედი საკონტაქტო ტელეფონი.",
+      }
+    }
+  }
+
   let publishedAt = ownedListing.published_at
   if (nextStatus === "active" && !publishedAt) publishedAt = new Date().toISOString()
   if (nextStatus === "draft") publishedAt = null
@@ -172,6 +193,13 @@ export async function updateListingStatusAction(
     .maybeSingle()
 
   if (updateError) {
+    if (updateError.message.includes("seller_phone_required")) {
+      return {
+        ok: false,
+        code: "invalid",
+        message: "გამოქვეყნებამდე პროფილში შეავსე მოქმედი საკონტაქტო ტელეფონი.",
+      }
+    }
     console.error("listing_status_update_failed", updateError.message)
     return {
       ok: false,

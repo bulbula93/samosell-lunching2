@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react"
 import type { Provider } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
+import { getPublicEnv } from "@/lib/env"
 
 type SocialAuthButtonsProps = {
   mode: "login" | "register"
@@ -42,7 +43,7 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
 
     try {
       const safeNext = getSafeAuthRedirectPath(nextPath)
-      const redirectUrl = new URL("/auth/callback", window.location.origin)
+      const redirectUrl = new URL("/auth/callback", getPublicEnv().siteUrl)
       redirectUrl.searchParams.set("next", safeNext)
 
       const { error: authError } = await supabase.auth.signInWithOAuth({

@@ -18,6 +18,7 @@ const validInput = {
   color: "შავი",
   material: "ტყავი",
   city: "თბილისი",
+  sellerPhone: "+995 555 12 34 56",
   publishNow: true,
 }
 
@@ -72,6 +73,15 @@ describe("listing form validation", () => {
       expect(result.fieldErrors.gender).toBeTruthy()
     }
   })
+
+  it.each(["", "123", "+995<script>", "+995 555 12 34 56 7890"])(
+    "rejects an invalid public seller phone %s",
+    (sellerPhone) => {
+      const result = validateListingInput({ ...validInput, sellerPhone })
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.fieldErrors.sellerPhone).toBeTruthy()
+    },
+  )
 
   it("uses an explicit MIME allowlist and a 7 MB size limit", () => {
     expect(validateImageFile(new File(["ok"], "item.jpg", { type: "image/jpeg" }))).toBeNull()

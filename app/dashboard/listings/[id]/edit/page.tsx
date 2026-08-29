@@ -21,7 +21,7 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
   if (listingError) throw new Error("Owned listing could not be loaded.")
   if (!listing) notFound()
 
-  const [categoriesResult, brandsResult, sizesResult, imagesResult, currentBrandResult] = await Promise.all([
+  const [categoriesResult, brandsResult, sizesResult, imagesResult, currentBrandResult, profileResult] = await Promise.all([
     supabase.from("categories").select("id, name").order("id", { ascending: true }),
     supabase.from("brands").select("id, name").eq("is_active", true).order("name", { ascending: true }),
     supabase.from("sizes").select("id, label").order("sort_order", { ascending: true }),
@@ -33,6 +33,7 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
     listing.brand_id
       ? supabase.from("brands").select("id, name").eq("id", listing.brand_id).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    supabase.from("profiles").select("store_phone").eq("id", user.id).maybeSingle(),
   ])
 
   if (
@@ -40,7 +41,8 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
     brandsResult.error ||
     sizesResult.error ||
     imagesResult.error ||
-    currentBrandResult.error
+    currentBrandResult.error ||
+    profileResult.error
   ) {
     throw new Error("Listing editor data could not be loaded.")
   }
@@ -79,6 +81,7 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
           brands={brands}
           sizes={sizesResult.data ?? []}
           initialData={initialData}
+          initialSellerPhone={profileResult.data?.store_phone ?? ""}
         />
         <DeleteListingCard listingId={listing.id} listingTitle={listing.title} action={deleteListingAction} />
       </div>

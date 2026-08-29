@@ -72,7 +72,10 @@ describe("ListingOverviewCard", () => {
       screen.getByRole("button", { name: /რჩეულებში დამატება/ }),
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: ka.listingDetail.share })).toBeInTheDocument()
-    expect(screen.queryByText("+995 555 000 000")).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("link", { name: /ნინო-სთან ტელეფონით დაკავშირება/ }),
+    ).toHaveAttribute("href", "tel:+995555000000")
+    expect(screen.getByText(/\+995 555 000 000/)).toBeInTheDocument()
     expect(screen.queryByText("პირადი მისამართი")).not.toBeInTheDocument()
     expect(screen.queryByText(/4\.3|rating|checkout|ყიდვა/i)).not.toBeInTheDocument()
   })

@@ -17,7 +17,7 @@ export const listingSelect =
   "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
-  "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url"
+  "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone"
 
 export type ListingPageQueryParams = {
   chatError?: string | string[]

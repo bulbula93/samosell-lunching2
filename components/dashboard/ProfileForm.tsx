@@ -6,6 +6,7 @@ import SmartImage from "@/components/shared/SmartImage"
 import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/listings"
 import { getSellerVisualAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/client"
+import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 
 type ProfileFormProps = {
   userId: string
@@ -202,6 +203,13 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
     setError("")
     setSuccess("")
 
+    const normalizedPhone = normalizeSellerPhone(storePhone)
+    if (normalizedPhone && !isValidSellerPhone(normalizedPhone)) {
+      setError("შეიყვანე მოქმედი საკონტაქტო ტელეფონი 7–15 ციფრით.")
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
 
     const previousAvatarUrl = avatarUrl
@@ -245,7 +253,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         seller_type: sellerType,
         store_logo_url: sellerType === "store" ? nextStoreLogoUrl || null : null,
         store_banner_url: sellerType === "store" ? nextStoreBannerUrl || null : null,
-        store_phone: sellerType === "store" ? storePhone.trim() || null : null,
+        store_phone: normalizedPhone || null,
         store_whatsapp: sellerType === "store" ? storeWhatsapp.trim() || null : null,
         store_telegram: sellerType === "store" ? storeTelegram.trim() || null : null,
         store_instagram: sellerType === "store" ? storeInstagram.trim() || null : null,
@@ -370,6 +378,26 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         className="hidden"
       />
 
+      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
+        <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">საჯარო კონტაქტი</div>
+        <div className="mt-2 text-xl font-black text-neutral-950">გამყიდველის ტელეფონი</div>
+        <p className="mt-1 text-sm leading-6 text-neutral-600">
+          გამყიდველისთვის ნომერი სავალდებულოა: ის საჯაროდ გამოჩნდება განცხადებებზე და მყიდველი პირდაპირ დარეკვას შეძლებს.
+        </p>
+        <label htmlFor="seller-phone" className="mt-4 mb-2 block text-sm font-semibold">ტელეფონი</label>
+        <input
+          id="seller-phone"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          maxLength={SELLER_PHONE_MAX_LENGTH}
+          value={storePhone}
+          onChange={(event) => setStorePhone(event.target.value)}
+          className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
+          placeholder="მაგ: +995 555 12 34 56"
+        />
+      </div>
+
       {sellerType === "store" ? (
         <>
           <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5">
@@ -429,10 +457,6 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold">ტელეფონი</label>
-              <input value={storePhone} onChange={(e) => setStorePhone(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: +995 555 12 34 56" />
-            </div>
             <div>
               <label className="mb-2 block text-sm font-semibold">WhatsApp</label>
               <input value={storeWhatsapp} onChange={(e) => setStoreWhatsapp(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: +995 555 12 34 56 ან wa.me ბმული" />

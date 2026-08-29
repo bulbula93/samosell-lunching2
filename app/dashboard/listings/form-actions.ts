@@ -435,6 +435,16 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     }
 
     const data = validation.data
+    const { data: updatedProfile, error: phoneUpdateError } = await supabase
+      .from("profiles")
+      .update({ store_phone: data.sellerPhone })
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle()
+    if (phoneUpdateError || !updatedProfile) {
+      throw phoneUpdateError ?? new Error("Seller profile is missing.")
+    }
+
     const slug = await generateUniqueListingSlug(
       supabase,
       data.title,

@@ -36,6 +36,7 @@ const props = {
   categories: [{ id: 1, name: "ტანსაცმელი" }],
   brands: [{ id: "177f3329-6c04-4c40-8f33-873ab3ee4f76", name: "Zara" }],
   sizes: [{ id: "277f3329-6c04-4c40-8f33-873ab3ee4f76", label: "M" }],
+  initialSellerPhone: "+995 555 12 34 56",
 }
 
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
@@ -69,6 +70,8 @@ describe("CreateListingForm", () => {
     expect(screen.getByRole("heading", { name: "გაყიდე ნივთი მარტივად" })).toBeInTheDocument()
     expect(screen.getByLabelText(/^სათაური/)).toBeRequired()
     expect(screen.getByLabelText(/^კატეგორია/)).toContainHTML("ტანსაცმელი")
+    expect(screen.getByLabelText(/^გამყიდველის ტელეფონი/)).toBeRequired()
+    expect(screen.getByLabelText(/^გამყიდველის ტელეფონი/)).toHaveValue("+995 555 12 34 56")
     expect(screen.getByLabelText("განცხადების სურათების არჩევა")).toHaveAttribute(
       "accept",
       "image/jpeg,image/png,image/webp"
@@ -115,7 +118,11 @@ describe("CreateListingForm", () => {
     expect(mocks.save).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: "create",
-        form: expect.objectContaining({ title: "ტყავის ქურთუკი", publishNow: true }),
+        form: expect.objectContaining({
+          title: "ტყავის ქურთუკი",
+          sellerPhone: "+995 555 12 34 56",
+          publishNow: true,
+        }),
       })
     )
     expect(mocks.push).toHaveBeenCalledWith("/listing/tyavis-kurtuki")

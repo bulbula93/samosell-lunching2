@@ -23,6 +23,7 @@ import {
   validateImageFile,
 } from "@/lib/listings"
 import type { ListingFormInitialData, ListingImage } from "@/types/marketplace"
+import { SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 
 type Option = { id: string; name?: string; label?: string }
 type CategoryOption = { id: number; name: string }
@@ -35,6 +36,7 @@ export type CreateListingFormProps = {
   sizes: Option[]
   mode?: "create" | "edit"
   initialData?: ListingFormInitialData
+  initialSellerPhone?: string
 }
 
 const emptyInitialData: ListingFormInitialData = {
@@ -107,6 +109,7 @@ function TextInput({
   inputMode,
   maxLength,
   helper,
+  autoComplete,
 }: {
   id: string
   label: string
@@ -118,6 +121,7 @@ function TextInput({
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]
   maxLength?: number
   helper?: string
+  autoComplete?: string
 }) {
   const helperId = helper ? `${id}-helper` : undefined
   const describedBy = [helperId, error ? fieldErrorId(id) : null].filter(Boolean).join(" ") || undefined
@@ -136,6 +140,7 @@ function TextInput({
         required={required}
         inputMode={inputMode}
         maxLength={maxLength}
+        autoComplete={autoComplete}
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
@@ -246,6 +251,7 @@ export default function CreateListingForm({
   sizes,
   mode = "create",
   initialData = emptyInitialData,
+  initialSellerPhone = "",
 }: CreateListingFormProps) {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
@@ -264,6 +270,7 @@ export default function CreateListingForm({
   const [color, setColor] = useState(initialData.color)
   const [material, setMaterial] = useState(initialData.material)
   const [city, setCity] = useState(initialData.city)
+  const [sellerPhone, setSellerPhone] = useState(initialSellerPhone)
   const [publishNow, setPublishNow] = useState(initialData.status === "active")
   const [images, setImages] = useState<EditableImage[]>(() => mapExistingImages(initialData.images))
   const [fieldErrors, setFieldErrors] = useState<ListingFieldErrors>({})
@@ -317,6 +324,7 @@ export default function CreateListingForm({
     color,
     material,
     city,
+    sellerPhone,
     publishNow,
   }
 
@@ -530,6 +538,7 @@ export default function CreateListingForm({
   const colorId = `${formPrefix}-color`
   const materialId = `${formPrefix}-material`
   const cityId = `${formPrefix}-city`
+  const sellerPhoneId = `${formPrefix}-seller-phone`
   const imagesId = `${formPrefix}-images`
   const cancelHref = isEdit && initialData.slug ? `/listing/${initialData.slug}` : "/dashboard/listings"
 
@@ -864,6 +873,28 @@ export default function CreateListingForm({
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-contact-heading`}>
+        <h2 id={`${formPrefix}-contact-heading`} className="text-lg font-black text-text">საკონტაქტო ტელეფონი</h2>
+        <p className="mt-1 text-sm leading-6 text-text-soft">
+          ნომერი სავალდებულოა და საჯაროდ გამოჩნდება განცხადების გვერდზე, რათა მყიდველმა პირდაპირ დაგირეკოს.
+        </p>
+        <div className="mt-5 max-w-xl">
+          <TextInput
+            id={sellerPhoneId}
+            label="გამყიდველის ტელეფონი"
+            value={sellerPhone}
+            onChange={(value) => { setSellerPhone(value); clearFieldError("sellerPhone") }}
+            error={fieldErrors.sellerPhone}
+            required
+            inputMode="tel"
+            autoComplete="tel"
+            maxLength={SELLER_PHONE_MAX_LENGTH}
+            placeholder="მაგ: +995 555 12 34 56"
+            helper="დაშვებულია 7–15 ციფრი; შეგიძლია გამოიყენო +, სივრცე, ფრჩხილები და ტირე."
+          />
         </div>
       </section>
 

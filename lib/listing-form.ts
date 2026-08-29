@@ -1,3 +1,5 @@
+import { isValidSellerPhone, normalizeSellerPhone } from "@/lib/phone"
+
 export const LISTING_TEXT_LIMITS = {
   titleMin: 3,
   titleMax: 120,
@@ -40,6 +42,7 @@ export type ListingFormInput = {
   color: string
   material: string
   city: string
+  sellerPhone: string
   publishNow: boolean
 }
 
@@ -59,6 +62,7 @@ export type ValidatedListingInput = {
   color: string | null
   material: string | null
   city: string | null
+  sellerPhone: string
   publishNow: boolean
 }
 
@@ -146,6 +150,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
   const color = normalizeOptionalText(input.color)
   const material = normalizeOptionalText(input.material)
   const city = normalizeOptionalText(input.city)
+  const sellerPhone = normalizeSellerPhone(input.sellerPhone)
 
   if (color && textLength(color) > LISTING_TEXT_LIMITS.colorMax) {
     fieldErrors.color = `ფერი არ უნდა აღემატებოდეს ${LISTING_TEXT_LIMITS.colorMax} სიმბოლოს.`
@@ -157,6 +162,10 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
 
   if (city && textLength(city) > LISTING_TEXT_LIMITS.cityMax) {
     fieldErrors.city = `ქალაქი არ უნდა აღემატებოდეს ${LISTING_TEXT_LIMITS.cityMax} სიმბოლოს.`
+  }
+
+  if (!isValidSellerPhone(sellerPhone)) {
+    fieldErrors.sellerPhone = "შეიყვანე მოქმედი ტელეფონის ნომერი 7–15 ციფრით."
   }
 
   if (Object.keys(fieldErrors).length > 0 || !price) {
@@ -178,6 +187,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
       color,
       material,
       city,
+      sellerPhone,
       publishNow: input.publishNow,
     },
   }
