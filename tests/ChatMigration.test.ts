@@ -29,6 +29,15 @@ const rpcFixMigration = readFileSync(
   ),
   "utf8",
 )
+const chatViewPrivilegesMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260829120336_tighten_chat_threads_view_privileges.sql",
+  ),
+  "utf8",
+)
 
 describe("secure messaging migration", () => {
   it("fixes seller ownership and keeps duplicate conversations constrained", () => {
@@ -76,6 +85,15 @@ describe("secure messaging migration", () => {
     expect(rpcFixMigration).toContain("v_result_body")
     expect(rpcFixMigration).toContain(
       "values (\n    v_chat_id,\n    v_buyer_id,\n    v_validated_body,",
+    )
+  })
+
+  it("keeps the participant inbox view read-only for API roles", () => {
+    expect(chatViewPrivilegesMigration).toContain(
+      "revoke all on table public.chat_threads from anon, authenticated",
+    )
+    expect(chatViewPrivilegesMigration).toContain(
+      "grant select on table public.chat_threads to authenticated",
     )
   })
 })
