@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { cache } from "react"
+import { rankSimilarListings } from "@/lib/discovery"
 import { ka } from "@/lib/i18n/ka"
 import { conditionLabel, formatPrice } from "@/lib/listings"
 import { getSafeImageSource } from "@/lib/media"
@@ -14,7 +15,7 @@ const LISTING_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i
 const OWNER_VISIBLE_STATUSES = new Set(["active", "reserved", "sold"])
 
 export const listingSelect =
-  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
   "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone"
@@ -274,7 +275,10 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .eq("status", "active")
     : Promise.resolve({ count: 0, error: null })
 
-  const similarItemsQuery = isActive && listing.category_slug
+  const emptyRelatedQuery = () =>
+    Promise.resolve({ data: [] as CatalogListing[], error: null })
+
+  const similarCategoryQuery = isActive && listing.category_slug
     ? supabase
         .from("listings_catalog")
         .select(listingSelect)
@@ -282,8 +286,30 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .eq("category_slug", listing.category_slug)
         .neq("id", listing.id)
         .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(8)
-    : Promise.resolve({ data: [] as CatalogListing[], error: null })
+        .limit(48)
+    : emptyRelatedQuery()
+
+  const similarGenderQuery = isActive && listing.gender
+    ? supabase
+        .from("listings_catalog")
+        .select(listingSelect)
+        .eq("status", "active")
+        .eq("gender", listing.gender)
+        .neq("id", listing.id)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(32)
+    : emptyRelatedQuery()
+
+  const similarBrandQuery = isActive && listing.brand_name
+    ? supabase
+        .from("listings_catalog")
+        .select(listingSelect)
+        .eq("status", "active")
+        .eq("brand_name", listing.brand_name)
+        .neq("id", listing.id)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(24)
+    : emptyRelatedQuery()
 
   const shouldLoadRelationshipData = Boolean(
     user && !isOwner && (isActive || isBuyerParticipant),
@@ -302,7 +328,9 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     imagesResponse,
     sellerProfileResponse,
     sellerActiveCountResponse,
-    similarItemsResponse,
+    similarCategoryResponse,
+    similarGenderResponse,
+    similarBrandResponse,
     favoriteRowResponse,
     favoritesResponse,
     myBlockResponse,
@@ -317,7 +345,9 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
       .order("sort_order", { ascending: true }),
     sellerProfileQuery,
     sellerActiveCountQuery,
-    similarItemsQuery,
+    similarCategoryQuery,
+    similarGenderQuery,
+    similarBrandQuery,
     shouldLoadFavoriteData
       ? supabase
           .from("favorites")
@@ -359,7 +389,9 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     imagesResponse.error ||
     sellerProfileResponse.error ||
     sellerActiveCountResponse.error ||
-    similarItemsResponse.error ||
+    similarCategoryResponse.error ||
+    similarGenderResponse.error ||
+    similarBrandResponse.error ||
     viewerProfileResponse.error
 
   if (criticalError) {
@@ -383,13 +415,22 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
       !sellerProfile?.is_suspended &&
       !viewerProfileResponse.data?.is_suspended,
   )
+  const similarItems = rankSimilarListings(
+    listing,
+    [
+      ...((similarCategoryResponse.data ?? []) as CatalogListing[]),
+      ...((similarGenderResponse.data ?? []) as CatalogListing[]),
+      ...((similarBrandResponse.data ?? []) as CatalogListing[]),
+    ],
+    8,
+  )
 
   return {
     listing,
     images: (imagesResponse.data ?? []) as ListingImage[],
     sellerProfile,
     sellerActiveListingsCount: sellerActiveCountResponse.count ?? 0,
-    similarItems: (similarItemsResponse.data ?? []) as CatalogListing[],
+    similarItems,
     favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
     isFavorited: Boolean(favoriteRowResponse.data),
     isAuthenticated: Boolean(user),
