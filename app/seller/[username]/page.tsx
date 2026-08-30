@@ -2,15 +2,17 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import SiteHeader from "@/components/layout/SiteHeader"
-import Avatar from "@/components/shared/Avatar"
-import SmartImage from "@/components/shared/SmartImage"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
-import ShareButton from "@/components/shared/ShareButton"
-import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
-import { absoluteUrl, truncateDescription } from "@/lib/seo"
+import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import Avatar from "@/components/shared/Avatar"
+import ShareButton from "@/components/shared/ShareButton"
+import SmartImage from "@/components/shared/SmartImage"
+import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
+import { absoluteUrl, truncateDescription } from "@/lib/seo"
+import { getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
@@ -21,28 +23,6 @@ const listingSelect =
 function formatJoinDate(value?: string | null) {
   if (!value) return "—"
   return new Intl.DateTimeFormat("ka-GE", { year: "numeric", month: "long" }).format(new Date(value))
-}
-
-function buildTrustReasons({
-  isVerified,
-  activeCount,
-  totalViews,
-  totalFavorites,
-  city,
-}: {
-  isVerified: boolean
-  activeCount: number
-  totalViews: number
-  totalFavorites: number
-  city?: string | null
-}) {
-  const reasons: string[] = []
-  if (isVerified) reasons.push("დადასტურებული გამყიდველის პროფილი")
-  if (activeCount > 0) reasons.push(`${activeCount} აქტიური განცხადება კატალოგში`)
-  if (totalViews > 0) reasons.push(`${totalViews} ჯამური ნახვა აქტიურ ნივთებზე`)
-  if (totalFavorites > 0) reasons.push(`${totalFavorites} ფავორიტში დამატება აქტიურ ნივთებზე`)
-  if (city) reasons.push(`განცხადებები ქვეყნდება ${city}-დან`)
-  return reasons.slice(0, 4)
 }
 
 async function fetchSeller(username: string) {
@@ -86,30 +66,37 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: listings }, { count: totalListingsCount }, { count: activeListingsCount }, favoritesResponse, sellerReviewData] = await Promise.all([
+  const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData] = await Promise.all([
     supabase
       .from("listings_catalog")
       .select(listingSelect)
       .eq("status", "active")
       .eq("seller_username", username)
       .order("published_at", { ascending: false }),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", profile.id),
-    supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", profile.id).eq("status", "active"),
-    user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : Promise.resolve({ data: [] as { listing_id: string }[] }),
+    supabase
+      .rpc("get_public_seller_listing_counts", { p_seller_id: profile.id })
+      .maybeSingle(),
+    user
+      ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
+      : Promise.resolve({ data: [] as { listing_id: string }[] }),
     fetchSellerReviewData(supabase, profile.id, { limit: 8 }),
   ])
+
+  if (sellerCountsResponse.error) {
+    throw new Error("SELLER_TRUST_STATS_FAILED", { cause: sellerCountsResponse.error })
+  }
 
   const sellerListings = (listings ?? []) as CatalogListing[]
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
   const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
   const boostedListings = sellerListings.filter((item) => item.is_vip || item.is_promoted || item.is_featured).length
-  const trustReasons = buildTrustReasons({
-    isVerified: Boolean(profile.is_seller_verified),
-    activeCount: activeListingsCount ?? 0,
-    totalViews,
-    totalFavorites,
-    city: profile.city,
+  const activeListingsCount = Number(sellerCountsResponse.data?.active_count ?? 0)
+  const soldListingsCount = Number(sellerCountsResponse.data?.sold_count ?? 0)
+  const trustSignals = getSellerTrustSignals({
+    profile,
+    soldListingsCount,
+    reviewSummary: sellerReviewData.summary,
   })
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${username}`)
@@ -166,7 +153,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
                 <div className="mt-6 flex flex-wrap gap-2">
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ქალაქი: {profile.city || "არ არის მითითებული"}</span>
-                  <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">აქტიური განცხადებები: {activeListingsCount ?? 0}</span>
+                  <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">აქტიური განცხადებები: {activeListingsCount}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ტიპი: {sellerTypeLabel(profile.seller_type)}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">VIP განცხადებები: {boostedListings}</span>
                 </div>
@@ -177,8 +164,8 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 {[
-                  { label: "სულ განცხადებები", value: totalListingsCount ?? 0 },
-                  { label: "აქტიური განცხადებები", value: activeListingsCount ?? 0 },
+                  { label: "აქტიური განცხადებები", value: activeListingsCount },
+                  { label: "გაყიდულად მონიშნული", value: soldListingsCount },
                   { label: "ჯამური ნახვები", value: totalViews },
                   { label: "ფავორიტები", value: totalFavorites },
                   { label: "VIP", value: boostedListings },
@@ -191,14 +178,13 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 ))}
               </div>
 
-              {trustReasons.length > 0 ? (
+              {trustSignals.length > 0 ? (
                 <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">რატომ ენდობიან</div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {trustReasons.map((reason) => (
-                      <span key={reason} className="rounded-full bg-white/10 px-3 py-2 text-sm font-semibold text-white">{reason}</span>
-                    ))}
-                  </div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">დადასტურებული სიგნალები</div>
+                  <SellerTrustBadges signals={trustSignals} variant="dark" className="mt-4" />
+                  <p className="mt-4 text-xs leading-5 text-white/55">
+                    ტელეფონის მითითება არ ნიშნავს ნომრის ვერიფიკაციას; გაყიდვების მაჩვენებელი ეფუძნება გაყიდულად მონიშნულ განცხადებებს.
+                  </p>
                 </div>
               ) : null}
 
