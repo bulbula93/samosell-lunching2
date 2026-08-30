@@ -1,9 +1,7 @@
 import Link from "next/link"
 import StartChatButton from "@/components/chat/StartChatButton"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
-import BlockUserForm from "@/components/moderation/BlockUserForm"
-import ReportListingForm from "@/components/moderation/ReportListingForm"
-import ReportUserForm from "@/components/moderation/ReportUserForm"
+import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
@@ -326,23 +324,13 @@ export default function ListingOverviewCard({
           </p>
 
           {isAuthenticated ? (
-            <div className="mt-4 grid gap-3">
-              <ReportListingForm
-                listingId={listing.id}
-                listingSlug={listing.slug}
-                nextPath={`/listing/${listing.slug}`}
-              />
-              <ReportUserForm
-                reportedUserId={listing.seller_id}
-                contextListingId={listing.id}
-                nextPath={`/listing/${listing.slug}`}
-              />
-              <BlockUserForm
-                blockedId={listing.seller_id}
-                nextPath={`/listing/${listing.slug}`}
-                isBlocked={isBlocked}
-              />
-            </div>
+            <ListingSafetyActions
+              listingId={listing.id}
+              listingSlug={listing.slug}
+              sellerId={listing.seller_id}
+              nextPath={`/listing/${listing.slug}`}
+              isBlocked={isBlocked}
+            />
           ) : (
             <Link
               href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`}
