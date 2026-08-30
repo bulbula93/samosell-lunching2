@@ -70,7 +70,7 @@ export default function SiteFooter() {
           </div>
           <div>
             <h2 className="text-sm font-black">დაბრუნება</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება</p>
+            <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება და SAMOSELL.GE არ იღებს პასუხისმგებლობას ნივთებთან დაკავშირებულ პრობლემებზე</p>
           </div>
           <div>
             <h2 className="text-sm font-black">სოციალური ქსელები</h2>
