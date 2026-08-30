@@ -38,7 +38,7 @@ export default function SiteFooter() {
               {ka.brand}
             </Link>
             <p className="mt-4 text-sm leading-7 text-white/70">
-              ქართული marketplace მეორადი, ვინტაჟური და ახალი ტანსაცმლისთვის, ფეხსაცმლისა და აქსესუარებისთვის.
+              ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
             </p>
             <Link href="/dashboard/listings/new" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
@@ -66,21 +66,21 @@ export default function SiteFooter() {
         <div className="grid gap-6 border-b border-white/15 py-7 sm:grid-cols-3">
           <div>
             <h2 className="text-sm font-black">მიწოდება</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">ცენტრალიზებული მიწოდების სერვისი ჯერ არ არის ჩართული.</p>
+            <p className="mt-2 text-xs leading-6 text-white/60">ცენტრალიზებული მიწოდების სერვისი ჯერ არ არის ჩართული</p>
           </div>
           <div>
             <h2 className="text-sm font-black">დაბრუნება</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება.</p>
+            <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება</p>
           </div>
           <div>
             <h2 className="text-sm font-black">სოციალური ქსელები</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">ოფიციალური არხები გამოქვეყნდება მათი დადასტურების შემდეგ.</p>
+            <p className="mt-2 text-xs leading-6 text-white/60">ოფიციალური არხები გამოქვეყნდება მათი დადასტურების შემდეგ</p>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 pt-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} {SITE_NAME}. ყველა უფლება დაცულია.</p>
-          <p>იყიდე და გაყიდე პასუხისმგებლობით.</p>
+          <p>© {new Date().getFullYear()} {SITE_NAME} ყველა უფლება დაცულია</p>
+          <p>იყიდე და გაყიდე პასუხისმგებლობით</p>
         </div>
       </div>
     </footer>

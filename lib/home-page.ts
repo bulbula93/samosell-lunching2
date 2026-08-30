@@ -57,10 +57,8 @@ export async function getHomePageData(): Promise<HomePageData> {
       .from("listings_catalog")
       .select(baseListingSelect)
       .eq("status", "active")
+      .eq("is_vip", true)
       .not("cover_image_url", "is", null)
-      .order("is_vip", { ascending: false })
-      .order("is_featured", { ascending: false })
-      .order("is_promoted", { ascending: false })
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(3),
     supabase

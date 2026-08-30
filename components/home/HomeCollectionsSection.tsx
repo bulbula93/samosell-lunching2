@@ -9,7 +9,7 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
     <section id="brands" className="border-b border-line bg-white py-12 sm:py-16">
       <div className="ui-container">
         <h2 className="text-2xl font-black tracking-[-0.025em] text-text sm:text-3xl">{ka.home.brands}</h2>
-        <p className="mt-2 text-sm leading-6 text-text-soft">ბრენდები დალაგებულია აქტიური განცხადებების რაოდენობის მიხედვით.</p>
+        <p className="mt-2 text-sm leading-6 text-text-soft">ბრენდები დალაგებულია აქტიური განცხადებების რაოდენობის მიხედვით</p>
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {brands.map((brand) => (
             <Link

@@ -12,9 +12,9 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
           <div className="overflow-hidden rounded-3xl border border-brand/15 bg-[radial-gradient(circle_at_90%_10%,rgba(158,227,218,0.4),transparent_34%),linear-gradient(125deg,#073f3b,#075a53)] px-6 py-9 text-white sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
             <div className="max-w-2xl">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9EE3DA]">SAMOSELL რეკლამა</p>
-              <h2 className="mt-3 text-2xl font-black tracking-[-0.025em] sm:text-3xl">გამოჩნდი მთავარ გვერდზე</h2>
+              <h2 className="mt-3 text-2xl font-black tracking-[-0.025em] sm:text-3xl">შექმენი VIP განცხადება</h2>
               <p className="mt-3 text-sm leading-7 text-white/75">
-                გააძლიერე შენი აქტიური განცხადება VIP სტატუსით ან მთავარი გვერდის სარეკლამო ბანერით.
+                გახადე შენი განცხადება უფრო პოპულარული
               </p>
             </div>
             <Link href="/dashboard/listings" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft lg:mt-0">

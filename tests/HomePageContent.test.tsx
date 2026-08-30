@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import HomePageContent from "@/components/home/HomePageContent"
+import SiteFooter from "@/components/layout/SiteFooter"
 import { ka } from "@/lib/i18n/ka"
 import type { HomePageData } from "@/lib/home-page"
 import { makeListing } from "@/tests/fixtures"
@@ -34,22 +35,45 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()
-    expect(screen.getByText("დაუბრუნე ნივთებს მეორე სიცოცხლე")).toBeInTheDocument()
+    expect(screen.getByText("ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "შექმენი VIP განცხადება" })).toBeInTheDocument()
+    expect(screen.getByText("გახადე შენი განცხადება უფრო პოპულარული")).toBeInTheDocument()
   })
 
-  it("renders the real listing photos supplied for the hero collage", () => {
+  it("renders only real VIP listings in the hero cards", () => {
     const data = makeHomeData()
     data.heroItems = [
-      makeListing({ id: "latest-1", title: "უახლესი კაბა", cover_image_url: "/latest-1.jpg" }),
-      makeListing({ id: "latest-2", title: "უახლესი პალტო", cover_image_url: "/latest-2.jpg" }),
-      makeListing({ id: "latest-3", title: "უახლესი ჩანთა", cover_image_url: "/latest-3.jpg" }),
+      makeListing({ id: "vip-1", title: "VIP კაბა", cover_image_url: "/vip-1.jpg", is_vip: true }),
+      makeListing({ id: "vip-2", title: "VIP პალტო", cover_image_url: "/vip-2.jpg", is_vip: true }),
+      makeListing({ id: "regular-1", title: "ჩვეულებრივი ჩანთა", cover_image_url: "/regular-1.jpg", is_vip: false }),
     ]
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByAltText("უახლესი კაბა")).toBeInTheDocument()
-    expect(screen.getByAltText("უახლესი პალტო")).toBeInTheDocument()
-    expect(screen.getByAltText("უახლესი ჩანთა")).toBeInTheDocument()
+    expect(screen.getByAltText("VIP კაბა")).toBeInTheDocument()
+    expect(screen.getByAltText("VIP პალტო")).toBeInTheDocument()
+    expect(screen.queryByAltText("ჩვეულებრივი ჩანთა")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "VIP განცხადება: VIP კაბა" })).toHaveAttribute("href", "/listing/linen-jacket")
+  })
+
+  it("shows a truthful VIP promotion when no active VIP listing exists", () => {
+    const data = makeHomeData()
+    data.heroItems = []
+
+    render(<HomePageContent data={data} />)
+
+    expect(screen.getByText("VIP სივრცე")).toBeInTheDocument()
+    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP განცხადებები")).toBeInTheDocument()
+    expect(screen.getAllByRole("link", { name: "შექმენი VIP განცხადება" })[0]).toHaveAttribute("href", "/dashboard/listings")
+  })
+
+  it("renders the requested footer description without a sentence-ending period", () => {
+    render(<SiteFooter />)
+
+    const description = screen.getByText(
+      "ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე",
+    )
+    expect(description.textContent?.endsWith(".")).toBe(false)
   })
 
   it("does not invent product sections when their data source is empty", () => {

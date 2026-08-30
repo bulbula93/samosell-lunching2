@@ -21,7 +21,7 @@ export default function HomePageContent({ data }: { data: HomePageData }) {
       />
       <HomeProductsSection
         title={ka.home.popular}
-        description="დალაგებულია რეალური რჩეულებისა და ნახვების რაოდენობის მიხედვით."
+        description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით"
         href="/catalog?sort=popular"
         items={data.popularItems}
         favoriteIds={data.favoriteIds}
@@ -29,7 +29,7 @@ export default function HomePageContent({ data }: { data: HomePageData }) {
       <HomePromoBanner bannerItems={data.bannerItems} />
       <HomeProductsSection
         title={ka.home.affordable}
-        description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით."
+        description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით"
         href="/catalog?sort=price_asc"
         items={data.affordableItems}
         favoriteIds={data.favoriteIds}
