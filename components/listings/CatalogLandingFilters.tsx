@@ -4,7 +4,7 @@ import CatalogFilterFields, {
   type CatalogFilterValues,
 } from "@/components/listings/CatalogFilterFields"
 import MobileFiltersDrawer from "@/components/listings/MobileFiltersDrawer"
-import { getCatalogItemLabel } from "@/lib/catalog-taxonomy"
+import { getCatalogItemLabel, getCatalogSectionLabel } from "@/lib/catalog-taxonomy"
 import { ka } from "@/lib/i18n/ka"
 
 type FilterKey = keyof CatalogFilterValues
@@ -20,19 +20,19 @@ function buildCatalogHref(values: CatalogFilterValues) {
 
 export default function CatalogLandingFilters({
   categories,
-  brands,
   sizes,
   colors,
   cities,
   values,
 }: CatalogFilterOptions & { values: CatalogFilterValues }) {
-  const options = { categories, brands, sizes, colors, cities }
+  const options = { categories, sizes, colors, cities }
   const chips: Array<{ key: FilterKey | "price"; label: string }> = []
   if (values.q) chips.push({ key: "q", label: `ძებნა: ${values.q}` })
   if (values.category) {
-    const categoryLabel = categories.find((item) => item.slug === values.category)?.name || getCatalogItemLabel(values.category)
+    const categoryLabel = categories.find((item) => item.slug === values.category)?.name || getCatalogSectionLabel(values.category)
     chips.push({ key: "category", label: categoryLabel })
   }
+  if (values.item_type) chips.push({ key: "item_type", label: getCatalogItemLabel(values.item_type) })
   if (values.brand) chips.push({ key: "brand", label: values.brand })
   if (values.size) chips.push({ key: "size", label: `ზომა ${values.size}` })
   if (values.condition) chips.push({ key: "condition", label: values.condition })
