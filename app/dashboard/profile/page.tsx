@@ -1,4 +1,6 @@
+import ProfileCompletionIndicator from "@/components/dashboard/ProfileCompletionIndicator"
 import ProfileForm from "@/components/dashboard/ProfileForm"
+import { getProfileCompletion } from "@/lib/profile-completion"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardProfilePage() {
@@ -13,6 +15,15 @@ export default async function DashboardProfilePage() {
     .eq("id", user!.id)
     .maybeSingle()
 
+  const completion = getProfileCompletion({
+    full_name: profile?.full_name,
+    city: profile?.city,
+    avatar_url: profile?.avatar_url,
+    seller_type: profile?.seller_type,
+    store_logo_url: profile?.store_logo_url,
+    store_phone: profile?.store_phone,
+  })
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <div className="mb-8">
@@ -20,6 +31,8 @@ export default async function DashboardProfilePage() {
         <h1 className="mt-3 text-4xl font-black">პროფილის რედაქტირება</h1>
         <p className="mt-3 max-w-2xl text-neutral-600">განაახლე ის ინფორმაცია, რომელსაც მყიდველები და გამყიდველები შენს ანგარიშთან ერთად ხედავენ.</p>
       </div>
+
+      <ProfileCompletionIndicator completion={completion} className="mb-6" />
 
       <ProfileForm
         userId={user!.id}
