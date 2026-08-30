@@ -8,7 +8,7 @@ const migration = readFileSync(
 )
 
 const finalSecurityMigration = readFileSync(
-  join(process.cwd(), "supabase", "migrations", "20260830151500_finalize_listing_boost_security.sql"),
+  join(process.cwd(), "supabase", "migrations", "20260830151727_finalize_listing_boost_security.sql"),
   "utf8",
 )
 
