@@ -1,8 +1,14 @@
-import { getCatalogItemKeywords, getCatalogItemLabel, TOP_LEVEL_CATEGORY_SLUGS } from "@/lib/catalog-taxonomy"
+import {
+  getCatalogItemKeywords,
+  getCatalogItemLabel,
+  getCatalogSectionLabel,
+  TOP_LEVEL_CATEGORY_SLUGS,
+} from "@/lib/catalog-taxonomy"
 
 export type CatalogSearchParams = {
   q?: string | string[]
   category?: string | string[]
+  item_type?: string | string[]
   brand?: string | string[]
   size?: string | string[]
   color?: string | string[]
@@ -20,6 +26,7 @@ export type CatalogSearchParams = {
 export type CatalogFilters = {
   q: string
   category: string
+  item_type: string
   brand: string
   size: string
   color: string
@@ -53,21 +60,32 @@ type CatalogFilterable = {
   lte: (column: string, value: number) => unknown
 }
 
+function addItemKeywords(searchTerms: Set<string>, value?: string) {
+  if (!value) return
+  for (const keyword of getCatalogItemKeywords(value)) searchTerms.add(keyword)
+}
+
 export function applyCatalogFilters<T>(query: T, filters: Record<string, string>) {
   let next = query as T & CatalogFilterable
 
   const searchTerms = new Set<string>()
   if (filters.q) searchTerms.add(filters.q)
 
-  if (filters.category) {
-    if (TOP_LEVEL_CATEGORY_SLUGS.has(filters.category)) {
-      next = next.eq("category_slug", filters.category) as T & CatalogFilterable
-    } else {
-      for (const keyword of getCatalogItemKeywords(filters.category)) {
-        searchTerms.add(keyword)
-      }
+  const category = filters.category
+  if (category) {
+    if (category === "women" || category === "men" || category === "kids") {
+      next = next.eq("gender", category) as T & CatalogFilterable
+    } else if (category === "accessories" || category === "vintage") {
+      next = next.eq("category_slug", category) as T & CatalogFilterable
+    } else if (category === "footwear" || category === "bags") {
+      addItemKeywords(searchTerms, category)
+    } else if (!TOP_LEVEL_CATEGORY_SLUGS.has(category)) {
+      // Backward compatibility for old links where the item type lived in `category`.
+      addItemKeywords(searchTerms, category)
     }
   }
+
+  addItemKeywords(searchTerms, filters.item_type)
 
   if (searchTerms.size > 0) {
     const clauses = Array.from(searchTerms).flatMap((term) => [
@@ -79,12 +97,15 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
     next = next.or(Array.from(new Set(clauses)).join(",")) as T & CatalogFilterable
   }
 
+  // Keep legacy brand URLs working, but the current catalog UI no longer exposes a brand dropdown.
   if (filters.brand) next = next.eq("brand_name", filters.brand) as T & CatalogFilterable
   if (filters.size) next = next.eq("size_label", filters.size) as T & CatalogFilterable
   if (filters.color) next = next.eq("color", filters.color) as T & CatalogFilterable
   if (filters.city) next = next.eq("city", filters.city) as T & CatalogFilterable
   if (filters.condition) next = next.eq("condition", filters.condition) as T & CatalogFilterable
-  if (filters.gender) next = next.eq("gender", filters.gender) as T & CatalogFilterable
+  if (filters.gender && category !== "women" && category !== "men" && category !== "kids") {
+    next = next.eq("gender", filters.gender) as T & CatalogFilterable
+  }
   if (filters.vip === "1") next = next.eq("is_vip", true) as T & CatalogFilterable
   if (filters.min_price) {
     const minPrice = Number.parseInt(filters.min_price, 10)
@@ -111,7 +132,8 @@ export function summarizeFilters(filters: Record<string, string>) {
   const conditionLabels: Record<string, string> = { new: "ახალი", like_new: "თითქმის ახალი", good: "კარგი", fair: "საშუალო" }
   const genderLabels: Record<string, string> = { women: "ქალები", men: "კაცები", unisex: "უნისექსი", kids: "ბავშვები" }
   if (filters.q) active.push(`ძებნა: ${filters.q}`)
-  if (filters.category) active.push(`კატეგორია: ${getCatalogItemLabel(filters.category)}`)
+  if (filters.category) active.push(`კატეგორია: ${getCatalogSectionLabel(filters.category)}`)
+  if (filters.item_type) active.push(`ნივთის ტიპი: ${getCatalogItemLabel(filters.item_type)}`)
   if (filters.brand) active.push(`ბრენდი: ${filters.brand}`)
   if (filters.size) active.push(`ზომა: ${filters.size}`)
   if (filters.color) active.push(`ფერი: ${filters.color}`)
@@ -127,6 +149,7 @@ export function resolveCatalogState(params: CatalogSearchParams = {}) {
   const filters: CatalogFilters = {
     q: safeQueryValue(readParam(params.q)),
     category: readParam(params.category),
+    item_type: readParam(params.item_type),
     brand: readParam(params.brand),
     size: readParam(params.size),
     color: readParam(params.color),
