@@ -16,6 +16,14 @@ import {
   type ListingFormInput,
   validateListingInput,
 } from "@/lib/listing-form"
+import {
+  GEORGIA_CITIES,
+  listingSizeTypeOptions,
+  normalizeListingSizeType,
+  recommendedListingSizeType,
+  sizeGroupMatchesType,
+  type ListingSizeType,
+} from "@/lib/marketplace-options"
 import { createClient } from "@/lib/supabase/client"
 import {
   listingStatusLabel,
@@ -26,14 +34,15 @@ import type { ListingFormInitialData, ListingImage } from "@/types/marketplace"
 import { SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 
 type Option = { id: string; name?: string; label?: string }
-type CategoryOption = { id: number; name: string }
+type CategoryOption = { id: number; name: string; slug?: string | null }
+type SizeOption = { id: string; label?: string; group_name?: string | null }
 type EditableImage = { id: string; kind: "existing" | "new"; imageUrl: string; file?: File }
 type ToggleOption = { value: string; label: string; helper?: string }
 
 export type CreateListingFormProps = {
   categories: CategoryOption[]
   brands: Option[]
-  sizes: Option[]
+  sizes: SizeOption[]
   mode?: "create" | "edit"
   initialData?: ListingFormInitialData
   initialSellerPhone?: string
@@ -75,8 +84,6 @@ const genderOptions: ToggleOption[] = [
   { value: "kids", label: "ბავშვებისთვის" },
   { value: "unisex", label: "უნისექსი" },
 ]
-
-const cityPresets = ["თბილისი", "ბათუმი", "ქუთაისი", "რუსთავი", "გორი", "თელავი"]
 
 function mapExistingImages(images: ListingImage[]): EditableImage[] {
   return images
@@ -257,6 +264,10 @@ export default function CreateListingForm({
   const supabase = useMemo(() => createClient(), [])
   const isEdit = mode === "edit"
   const canChangePublication = !isEdit || initialData.status === "active" || initialData.status === "draft"
+  const initialSelectedSize = sizes.find((item) => item.id === initialData.size_id)
+  const initialCategorySlug = categories.find((item) => item.id === initialData.category_id)?.slug
+  const initialSizeType = normalizeListingSizeType(initialSelectedSize?.group_name)
+    ?? recommendedListingSizeType(initialCategorySlug, initialData.gender)
 
   const [title, setTitle] = useState(initialData.title)
   const [description, setDescription] = useState(initialData.description)
@@ -264,6 +275,7 @@ export default function CreateListingForm({
   const [categoryId, setCategoryId] = useState<number | "">(initialData.category_id)
   const [brandId, setBrandId] = useState(initialData.brand_id)
   const [sizeId, setSizeId] = useState(initialData.size_id)
+  const [sizeType, setSizeType] = useState<ListingSizeType>(initialSizeType)
   const [condition, setCondition] = useState(initialData.condition)
   const [saleType, setSaleType] = useState(initialData.sale_type)
   const [gender, setGender] = useState(initialData.gender)
@@ -284,6 +296,27 @@ export default function CreateListingForm({
   const submittingRef = useRef(false)
   const imagesRef = useRef(images)
   const formPrefix = useId().replace(/:/g, "")
+
+  const selectedCategorySlug = useMemo(
+    () => categories.find((item) => item.id === categoryId)?.slug ?? "",
+    [categories, categoryId],
+  )
+  const sizeTypeChoices = useMemo(() => listingSizeTypeOptions(gender), [gender])
+  const filteredSizes = useMemo(() => {
+    const byLabel = new Map<string, SizeOption>()
+    for (const item of sizes) {
+      if (!sizeGroupMatchesType(item.group_name, sizeType)) continue
+      const key = item.label ?? item.id
+      if (!byLabel.has(key)) byLabel.set(key, item)
+    }
+    const selected = sizes.find((item) => item.id === sizeId)
+    if (selected) byLabel.set(selected.label ?? selected.id, selected)
+    return Array.from(byLabel.values())
+  }, [sizes, sizeType, sizeId])
+  const cityOptions = useMemo(
+    () => Array.from(new Set([...GEORGIA_CITIES, ...(initialData.city ? [initialData.city] : [])])),
+    [initialData.city],
+  )
 
   useEffect(() => {
     imagesRef.current = images
@@ -534,6 +567,7 @@ export default function CreateListingForm({
   const priceId = `${formPrefix}-price`
   const categoryIdField = `${formPrefix}-category`
   const brandIdField = `${formPrefix}-brand`
+  const sizeTypeId = `${formPrefix}-size-type`
   const sizeIdField = `${formPrefix}-size`
   const colorId = `${formPrefix}-color`
   const materialId = `${formPrefix}-material`
@@ -770,7 +804,15 @@ export default function CreateListingForm({
             id={categoryIdField}
             label="კატეგორია"
             value={categoryId ? String(categoryId) : ""}
-            onChange={(value) => { setCategoryId(Number(value) || ""); clearFieldError("categoryId") }}
+            onChange={(value) => {
+              const nextCategoryId = Number(value) || ""
+              const nextCategorySlug = categories.find((item) => item.id === nextCategoryId)?.slug
+              setCategoryId(nextCategoryId)
+              setSizeType(recommendedListingSizeType(nextCategorySlug, gender))
+              setSizeId("")
+              clearFieldError("categoryId")
+              clearFieldError("sizeId")
+            }}
             options={categories.map((item) => ({ value: String(item.id), label: item.name }))}
             placeholder="აირჩიე კატეგორია"
             error={fieldErrors.categoryId}
@@ -786,11 +828,23 @@ export default function CreateListingForm({
             error={fieldErrors.brandId}
           />
           <SelectField
+            id={sizeTypeId}
+            label="ზომის ტიპი"
+            value={sizeType}
+            onChange={(value) => {
+              setSizeType(value as ListingSizeType)
+              setSizeId("")
+              clearFieldError("sizeId")
+            }}
+            options={sizeTypeChoices}
+            placeholder="აირჩიე ზომის ტიპი"
+          />
+          <SelectField
             id={sizeIdField}
             label="ზომა"
             value={sizeId}
             onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }}
-            options={sizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
+            options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
             placeholder="ზომის გარეშე"
             error={fieldErrors.sizeId}
           />
@@ -815,7 +869,13 @@ export default function CreateListingForm({
           <TogglePills
             legend="ვისთვისაა"
             value={gender}
-            onChange={(value) => { setGender(value); clearFieldError("gender") }}
+            onChange={(value) => {
+              setGender(value)
+              setSizeType(recommendedListingSizeType(selectedCategorySlug, value))
+              setSizeId("")
+              clearFieldError("gender")
+              clearFieldError("sizeId")
+            }}
             options={genderOptions.filter((option) => LISTING_GENDERS.includes(option.value as typeof LISTING_GENDERS[number]))}
             error={fieldErrors.gender}
             columns={4}
@@ -846,32 +906,15 @@ export default function CreateListingForm({
             placeholder="მაგ: ტყავი"
           />
           <div className="sm:col-span-2">
-            <TextInput
+            <SelectField
               id={cityId}
               label="ქალაქი"
               value={city}
               onChange={(value) => { setCity(value); clearFieldError("city") }}
+              options={cityOptions.map((item) => ({ value: item, label: item }))}
+              placeholder="აირჩიე ქალაქი"
               error={fieldErrors.city}
-              maxLength={LISTING_TEXT_LIMITS.cityMax}
-              placeholder="მაგ: თბილისი"
             />
-            <div className="mt-3 flex flex-wrap gap-2" aria-label="ქალაქის სწრაფი არჩევა">
-              {cityPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => { setCity(preset); clearFieldError("city") }}
-                  aria-pressed={city === preset}
-                  className={`min-h-11 rounded-full border px-4 py-2 text-sm font-bold transition ${
-                    city === preset
-                      ? "border-brand bg-brand-soft text-brand"
-                      : "border-line bg-white text-text-soft hover:border-brand/40"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </section>
