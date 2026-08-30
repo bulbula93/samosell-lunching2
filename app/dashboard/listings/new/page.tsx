@@ -1,5 +1,7 @@
 import CreateListingForm from "@/components/dashboard/CreateListingForm"
+import ProfilePhoneRequiredCard from "@/components/dashboard/ProfilePhoneRequiredCard"
 import { requireAuthenticatedUser } from "@/lib/auth"
+import { isValidSellerPhone } from "@/lib/phone"
 
 export default async function DashboardNewListingPage() {
   const { supabase, user } = await requireAuthenticatedUser("/dashboard/listings/new")
@@ -14,14 +16,23 @@ export default async function DashboardNewListingPage() {
     throw new Error("Listing form lookups could not be loaded.")
   }
 
+  const sellerPhone = profileResult.data?.store_phone ?? ""
+
   return (
     <main className="min-h-screen bg-bg px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
-      <CreateListingForm
-        categories={categoriesResult.data ?? []}
-        brands={brandsResult.data ?? []}
-        sizes={sizesResult.data ?? []}
-        initialSellerPhone={profileResult.data?.store_phone ?? ""}
-      />
+      {!isValidSellerPhone(sellerPhone) ? (
+        <ProfilePhoneRequiredCard />
+      ) : (
+        <>
+          <style>{`section[aria-labelledby$="-contact-heading"] { display: none; }`}</style>
+          <CreateListingForm
+            categories={categoriesResult.data ?? []}
+            brands={brandsResult.data ?? []}
+            sizes={sizesResult.data ?? []}
+            initialSellerPhone={sellerPhone}
+          />
+        </>
+      )}
     </main>
   )
 }
