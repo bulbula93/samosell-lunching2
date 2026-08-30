@@ -20,6 +20,11 @@ import type { CatalogListing } from "@/types/marketplace"
 const listingSelect =
   "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, cover_image_url, published_at, favorites_count, views_count, status"
 
+type PublicSellerListingCounts = {
+  active_count?: number | string | null
+  sold_count?: number | string | null
+}
+
 function formatJoinDate(value?: string | null) {
   if (!value) return "—"
   return new Intl.DateTimeFormat("ka-GE", { year: "numeric", month: "long" }).format(new Date(value))
@@ -86,13 +91,14 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     throw new Error("SELLER_TRUST_STATS_FAILED", { cause: sellerCountsResponse.error })
   }
 
+  const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const sellerListings = (listings ?? []) as CatalogListing[]
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
   const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
   const boostedListings = sellerListings.filter((item) => item.is_vip || item.is_promoted || item.is_featured).length
-  const activeListingsCount = Number(sellerCountsResponse.data?.active_count ?? 0)
-  const soldListingsCount = Number(sellerCountsResponse.data?.sold_count ?? 0)
+  const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
+  const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
   const trustSignals = getSellerTrustSignals({
     profile,
     soldListingsCount,
