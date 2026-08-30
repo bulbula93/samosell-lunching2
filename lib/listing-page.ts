@@ -245,6 +245,18 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const isBuyerParticipant = Boolean(buyerChatResponse.data)
   if (!canRenderListingStatus(listing.status, isOwner, isBuyerParticipant)) return null
 
+  const selectedBuyerResponse =
+    user && !isOwner && listing.status === "sold"
+      ? await supabase.rpc("is_selected_listing_buyer", { p_listing_id: listing.id })
+      : { data: false, error: null }
+
+  if (selectedBuyerResponse.error) {
+    throw new Error("LISTING_SELECTED_BUYER_QUERY_FAILED", {
+      cause: selectedBuyerResponse.error,
+    })
+  }
+
+  const isSelectedBuyer = Boolean(selectedBuyerResponse.data)
   const isActive = listing.status === "active"
   const sellerProfileQuery = listing.seller_id
     ? supabase
@@ -365,7 +377,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     !sellerProfile?.is_suspended
   const canReview = Boolean(
     listing.status === "sold" &&
-      isBuyerParticipant &&
+      isSelectedBuyer &&
       !isBlocked &&
       !isBlockedBySeller &&
       !sellerProfile?.is_suspended &&
