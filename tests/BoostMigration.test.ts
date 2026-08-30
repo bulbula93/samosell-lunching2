@@ -7,6 +7,16 @@ const migration = readFileSync(
   "utf8",
 )
 
+const finalSecurityMigration = readFileSync(
+  join(process.cwd(), "supabase", "migrations", "20260830151500_finalize_listing_boost_security.sql"),
+  "utf8",
+)
+
+const boostActions = readFileSync(
+  join(process.cwd(), "app", "dashboard", "boosts", "actions.ts"),
+  "utf8",
+)
+
 describe("hardened listing boosts migration", () => {
   it("blocks ordinary clients from changing every promotion field", () => {
     expect(migration).toContain("private.protect_listing_promotion_fields")
@@ -60,5 +70,39 @@ describe("hardened listing boosts migration", () => {
     expect(migration).toContain("when 'promoted_7d' then 14.90")
     expect(migration).toContain("when 'combo_7d' then 34.90")
     expect(migration).toContain("when 'home_banner_7d' then 39.90")
+  })
+
+  it("protects promotion fields when a listing is first inserted", () => {
+    expect(finalSecurityMigration).toContain("if tg_op = 'INSERT' then")
+    expect(finalSecurityMigration).toContain("coalesce(new.is_vip, false) = true")
+    for (const field of [
+      "vip_until",
+      "promoted_until",
+      "featured_until",
+      "featured_slot",
+      "home_banner_until",
+      "home_banner_slot",
+    ]) {
+      expect(finalSecurityMigration).toContain(`new.${field} is not null`)
+    }
+    expect(finalSecurityMigration).toContain("before insert or update on public.listings")
+  })
+
+  it("removes raw seller boost-order insertion and uses the trusted server client", () => {
+    expect(finalSecurityMigration).toContain('drop policy if exists "sellers can create own boost orders"')
+    expect(finalSecurityMigration).toContain("revoke insert on table public.listing_boost_orders from anon, authenticated")
+    expect(finalSecurityMigration).toContain("grant insert on table public.listing_boost_orders to service_role")
+    expect(boostActions).toContain("const trustedClient = createAdminClient()")
+    expect(boostActions).toContain('trustedClient.from("listing_boost_orders").insert')
+  })
+
+  it("renews VIP MAX from active VIP MAX only and preserves longer standalone placements", () => {
+    expect(finalSecurityMigration).toContain("v_combo_until timestamp with time zone")
+    expect(finalSecurityMigration).toContain("o.id <> v_order.id")
+    expect(finalSecurityMigration).toContain("p.placement = 'combo'")
+    expect(finalSecurityMigration).toContain("v_anchor := greatest(v_now, coalesce(v_combo_until, v_now))")
+    expect(finalSecurityMigration).toContain("v_listing.vip_until := greatest(coalesce(v_listing.vip_until, v_ends_at), v_ends_at)")
+    expect(finalSecurityMigration).toContain("v_listing.promoted_until := greatest(coalesce(v_listing.promoted_until, v_ends_at), v_ends_at)")
+    expect(finalSecurityMigration).toContain("v_listing.featured_until := greatest(coalesce(v_listing.featured_until, v_ends_at), v_ends_at)")
   })
 })
