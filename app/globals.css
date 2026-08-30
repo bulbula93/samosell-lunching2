@@ -196,3 +196,25 @@ body {
     @apply sr-only;
   }
 }
+
+/* Listing form publication status labels */
+header.ui-card.overflow-hidden > div.border-b.border-line button[aria-pressed] {
+  font-size: 0;
+}
+
+header.ui-card.overflow-hidden > div.border-b.border-line button[aria-pressed]::after {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+header.ui-card.overflow-hidden > div.border-b.border-line button[aria-pressed="true"]::after {
+  content: "გამოქვეყნება";
+}
+
+header.ui-card.overflow-hidden > div.border-b.border-line button[aria-pressed="false"]::after {
+  content: "დრაფტი";
+}
+
+[id$="-price-helper"] {
+  display: none;
+}
