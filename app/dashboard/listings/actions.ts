@@ -22,10 +22,26 @@ function buildRedirect(filter: string, result: string) {
   return `/dashboard/listings?${search.toString()}`
 }
 
+export type ListingBuyerCandidate = {
+  id: string
+  label: string
+  username: string | null
+  fullName: string | null
+}
+
+export type ListingBuyerCandidatesResult =
+  | { ok: true; candidates: ListingBuyerCandidate[] }
+  | {
+      ok: false
+      code: "unauthorized" | "invalid" | "not_found" | "server_error"
+      message: string
+    }
+
 export type UpdateListingStatusInput = {
   listingId: string
   nextStatus: string
   expectedUpdatedAt: string
+  soldToUserId?: string | null
 }
 
 export type UpdateListingStatusResult =
@@ -56,12 +72,147 @@ function statusSuccessMessage(status: ListingStatus) {
     case "reserved":
       return "განცხადება დაჯავშნილად მოინიშნა."
     case "sold":
-      return "განცხადება გაყიდულად მოინიშნა."
+      return "განცხადება გაყიდულად მოინიშნა. არჩეულ მყიდველს შეფასების დატოვება შეეძლება."
     case "archived":
       return "განცხადება არქივში გადავიდა."
     default:
       return "სტატუსი განახლდა."
   }
+}
+
+function buyerLabel(profile: { full_name: string | null; username: string | null }, index: number) {
+  const fullName = profile.full_name?.trim()
+  if (fullName) return fullName
+  const username = profile.username?.trim()
+  if (username) return `@${username}`
+  return `მყიდველი ${index + 1}`
+}
+
+export async function getListingBuyerCandidatesAction(
+  listingIdInput: string,
+): Promise<ListingBuyerCandidatesResult> {
+  const listingId = String(listingIdInput ?? "")
+  if (!isUuid(listingId)) {
+    return { ok: false, code: "invalid", message: "განცხადების იდენტიფიკატორი არასწორია." }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { ok: false, code: "unauthorized", message: "სესია დასრულდა. თავიდან შედი ანგარიშში." }
+  }
+
+  const { data: listing, error: listingError } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("seller_id", user.id)
+    .maybeSingle()
+
+  if (listingError) {
+    console.error("listing_buyer_candidates_listing_failed", listingError.message)
+    return { ok: false, code: "server_error", message: "მყიდველების სიის ჩატვირთვა ვერ მოხერხდა." }
+  }
+  if (!listing) {
+    return { ok: false, code: "not_found", message: "განცხადება ვერ მოიძებნა ან მისი მართვის უფლება არ გაქვს." }
+  }
+
+  const { data: chats, error: chatsError } = await supabase
+    .from("chats")
+    .select("id, buyer_id")
+    .eq("listing_id", listingId)
+    .eq("seller_id", user.id)
+
+  if (chatsError) {
+    console.error("listing_buyer_candidates_chats_failed", chatsError.message)
+    return { ok: false, code: "server_error", message: "მყიდველების სიის ჩატვირთვა ვერ მოხერხდა." }
+  }
+  if (!chats?.length) return { ok: true, candidates: [] }
+
+  const chatIds = chats.map((chat) => chat.id)
+  const { data: messages, error: messagesError } = await supabase
+    .from("messages")
+    .select("chat_id, sender_id")
+    .in("chat_id", chatIds)
+
+  if (messagesError) {
+    console.error("listing_buyer_candidates_messages_failed", messagesError.message)
+    return { ok: false, code: "server_error", message: "მყიდველების სიის ჩატვირთვა ვერ მოხერხდა." }
+  }
+
+  const buyerByChat = new Map(chats.map((chat) => [chat.id, chat.buyer_id]))
+  const eligibleBuyerIds = Array.from(
+    new Set(
+      (messages ?? [])
+        .filter((message) => buyerByChat.get(message.chat_id) === message.sender_id)
+        .map((message) => message.sender_id)
+        .filter((id): id is string => typeof id === "string" && isUuid(id)),
+    ),
+  )
+
+  if (eligibleBuyerIds.length === 0) return { ok: true, candidates: [] }
+
+  const { data: profiles, error: profilesError } = await supabase
+    .from("profiles")
+    .select("id, username, full_name, is_suspended")
+    .in("id", eligibleBuyerIds)
+    .eq("is_suspended", false)
+
+  if (profilesError) {
+    console.error("listing_buyer_candidates_profiles_failed", profilesError.message)
+    return { ok: false, code: "server_error", message: "მყიდველების სიის ჩატვირთვა ვერ მოხერხდა." }
+  }
+
+  const candidates = (profiles ?? [])
+    .map((profile, index) => ({
+      id: profile.id,
+      label: buyerLabel(profile, index),
+      username: profile.username ?? null,
+      fullName: profile.full_name ?? null,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, "ka"))
+
+  return { ok: true, candidates }
+}
+
+async function validateSelectedBuyer(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  listingId: string,
+  sellerId: string,
+  buyerId: string,
+) {
+  const { data: chat, error: chatError } = await supabase
+    .from("chats")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("seller_id", sellerId)
+    .eq("buyer_id", buyerId)
+    .maybeSingle()
+
+  if (chatError || !chat) return false
+
+  const [{ data: buyerProfile, error: buyerProfileError }, { data: buyerMessage, error: messageError }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", buyerId)
+        .eq("is_suspended", false)
+        .maybeSingle(),
+      supabase
+        .from("messages")
+        .select("id")
+        .eq("chat_id", chat.id)
+        .eq("sender_id", buyerId)
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+  return !buyerProfileError && !messageError && Boolean(buyerProfile && buyerMessage)
 }
 
 export async function updateListingStatusAction(
@@ -70,17 +221,22 @@ export async function updateListingStatusAction(
   const listingId = String(input?.listingId ?? "")
   const nextStatus = String(input?.nextStatus ?? "")
   const expectedUpdatedAt = String(input?.expectedUpdatedAt ?? "")
+  const soldToUserId = input?.soldToUserId ? String(input.soldToUserId) : null
 
   if (
     !isUuid(listingId) ||
     !isListingStatus(nextStatus) ||
     !expectedUpdatedAt ||
-    Number.isNaN(new Date(expectedUpdatedAt).getTime())
+    Number.isNaN(new Date(expectedUpdatedAt).getTime()) ||
+    (nextStatus === "sold" && (!soldToUserId || !isUuid(soldToUserId)))
   ) {
     return {
       ok: false,
       code: "invalid",
-      message: "სტატუსის მოთხოვნა არასწორია. განაახლე გვერდი და სცადე ხელახლა.",
+      message:
+        nextStatus === "sold"
+          ? "გაყიდულად მონიშვნამდე აირჩიე მყიდველი."
+          : "სტატუსის მოთხოვნა არასწორია. განაახლე გვერდი და სცადე ხელახლა.",
     }
   }
 
@@ -156,6 +312,17 @@ export async function updateListingStatusAction(
     }
   }
 
+  if (nextStatus === "sold") {
+    const buyerIsValid = await validateSelectedBuyer(supabase, listingId, user.id, soldToUserId!)
+    if (!buyerIsValid) {
+      return {
+        ok: false,
+        code: "invalid",
+        message: "არჩეული მყიდველი ამ განცხადების მიმოწერაში ვერ დადასტურდა. განაახლე გვერდი და სცადე ხელახლა.",
+      }
+    }
+  }
+
   if (nextStatus === "active") {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -185,6 +352,7 @@ export async function updateListingStatusAction(
     .update({
       status: nextStatus,
       published_at: publishedAt,
+      sold_to_user_id: nextStatus === "sold" ? soldToUserId : null,
     })
     .eq("id", listingId)
     .eq("seller_id", user.id)
@@ -198,6 +366,16 @@ export async function updateListingStatusAction(
         ok: false,
         code: "invalid",
         message: "გამოქვეყნებამდე პროფილში შეავსე მოქმედი საკონტაქტო ტელეფონი.",
+      }
+    }
+    if (
+      updateError.message.includes("sold_buyer_required") ||
+      updateError.message.includes("invalid_sold_buyer")
+    ) {
+      return {
+        ok: false,
+        code: "invalid",
+        message: "მყიდველი ვერ დადასტურდა. აირჩიე ადამიანი, რომელმაც ამ ნივთზე მოგწერა.",
       }
     }
     console.error("listing_status_update_failed", updateError.message)
@@ -229,7 +407,6 @@ export async function updateListingStatusAction(
     message: statusSuccessMessage(updatedListing.status),
   }
 }
-
 
 export async function deleteListingAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
