@@ -22,9 +22,9 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
   if (!listing) notFound()
 
   const [categoriesResult, brandsResult, sizesResult, imagesResult, currentBrandResult, profileResult] = await Promise.all([
-    supabase.from("categories").select("id, name").order("id", { ascending: true }),
+    supabase.from("categories").select("id, name, slug").order("id", { ascending: true }),
     supabase.from("brands").select("id, name").eq("is_active", true).order("name", { ascending: true }),
-    supabase.from("sizes").select("id, label").order("sort_order", { ascending: true }),
+    supabase.from("sizes").select("id, label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase
       .from("listing_images")
       .select("id, image_url, sort_order, listing_id")
