@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation"
 import CreateListingForm from "@/components/dashboard/CreateListingForm"
 import DeleteListingCard from "@/components/dashboard/DeleteListingCard"
+import ProfilePhoneRequiredCard from "@/components/dashboard/ProfilePhoneRequiredCard"
 import { deleteListingAction } from "@/app/dashboard/listings/actions"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import { isUuid } from "@/lib/listing-form"
+import { isValidSellerPhone } from "@/lib/phone"
 import type { ListingFormInitialData } from "@/types/marketplace"
 
 export default async function DashboardEditListingPage({ params }: { params: Promise<{ id: string }> }) {
@@ -71,18 +73,26 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
     published_at: listing.published_at,
     images: (imagesResult.data ?? []).map((image) => ({ id: image.id, image_url: image.image_url, sort_order: image.sort_order })),
   }
+  const sellerPhone = profileResult.data?.store_phone ?? ""
 
   return (
     <main className="min-h-screen bg-bg px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <CreateListingForm
-          mode="edit"
-          categories={categoriesResult.data ?? []}
-          brands={brands}
-          sizes={sizesResult.data ?? []}
-          initialData={initialData}
-          initialSellerPhone={profileResult.data?.store_phone ?? ""}
-        />
+        {!isValidSellerPhone(sellerPhone) ? (
+          <ProfilePhoneRequiredCard />
+        ) : (
+          <>
+            <style>{`section[aria-labelledby$="-contact-heading"] { display: none; }`}</style>
+            <CreateListingForm
+              mode="edit"
+              categories={categoriesResult.data ?? []}
+              brands={brands}
+              sizes={sizesResult.data ?? []}
+              initialData={initialData}
+              initialSellerPhone={sellerPhone}
+            />
+          </>
+        )}
         <DeleteListingCard listingId={listing.id} listingTitle={listing.title} action={deleteListingAction} />
       </div>
     </main>
