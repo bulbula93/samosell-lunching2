@@ -44,8 +44,9 @@ export default async function DashboardFavoritesPage() {
           </div>
           <h1 className="mt-3 text-4xl font-black">შენახული ნივთები</h1>
           <p className="mt-3 max-w-2xl text-neutral-600">
-            აქ ნახავ შენს ფავორიტებში დამატებულ აქტიურ განცხადებებს. გულის ღილაკით ნებისმიერ დროს
-            შეგიძლია ამოშალო სიიდან.
+            აქ ნახავ შენს ფავორიტებში დამატებულ აქტიურ განცხადებებს. თუ შენახულ ნივთს ფასი
+            დაუკლეს, შეტყობინებას ავტომატურად მიიღებ. გულის ღილაკით ნივთი ნებისმიერ დროს შეგიძლია
+            ამოშალო სიიდან.
           </p>
         </div>
 
@@ -81,7 +82,7 @@ export default async function DashboardFavoritesPage() {
           <div className="text-2xl font-black text-neutral-900">ჯერ არაფერი გაქვს შენახული</div>
           <p className="mt-3 max-w-2xl leading-7">
             გადადი კატალოგში, მონიშნე სასურველი ნივთები გულის ღილაკით და ეს გვერდი ავტომატურად
-            შეივსება.
+            შეივსება. თუ შენახული აქტიური ნივთის ფასი შემცირდება, ამას შეტყობინებებში ნახავ.
           </p>
           <div className="mt-6">
             <Link href="/catalog" className="rounded-full bg-black px-5 py-3 text-sm font-semibold text-white">
