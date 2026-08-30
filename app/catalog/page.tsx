@@ -13,6 +13,8 @@ import {
   type CatalogSearchParams,
   summarizeFilters,
 } from "@/lib/catalog-page"
+import { getCatalogItemOptions } from "@/lib/catalog-taxonomy"
+import { GEORGIA_CITIES, getCatalogSizeLabels } from "@/lib/marketplace-options"
 import { absoluteUrl, buildCatalogDescription, buildCatalogTitle } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
@@ -95,7 +97,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     countQuery,
     supabase.from("categories").select("slug, name").order("name", { ascending: true }),
     supabase.from("brands").select("name").order("name", { ascending: true }),
-    supabase.from("sizes").select("label").order("label", { ascending: true }),
+    supabase.from("sizes").select("label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase.from("listings_catalog").select("color").eq("status", "active"),
     supabase.from("listings_catalog").select("city").eq("status", "active"),
     user
@@ -125,13 +127,18 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     throw new Error(`catalog_data_failed:${queryError.message}`)
   }
 
+  const taxonomyCategories = getCatalogItemOptions(gender).map((item) => ({ slug: item.value, name: item.label }))
   const uniqueCategories = Array.from(
-    new Map((categories ?? []).filter((item) => item.slug && item.name).map((item) => [item.slug, item] as const)).values()
+    new Map(
+      [...(categories ?? []).filter((item) => item.slug && item.name), ...taxonomyCategories]
+        .map((item) => [item.slug, item] as const)
+    ).values()
   )
   const uniqueBrands = Array.from(new Set((brands ?? []).map((item: { name?: string | null }) => normalizeText(item?.name)).filter(Boolean)))
-  const uniqueSizes = Array.from(new Set((sizes ?? []).map((item: { label?: string | null }) => normalizeText(item?.label)).filter(Boolean)))
+  const uniqueSizes = getCatalogSizeLabels(sizes ?? [], category, gender, size)
   const uniqueColors = Array.from(new Set((colorsRaw ?? []).map((item: { color?: string | null }) => normalizeText(item?.color)).filter(Boolean)))
-  const cityOptions = Array.from(new Set((citiesRaw ?? []).map((item: { city?: string | null }) => normalizeText(item?.city)).filter(Boolean)))
+  const legacyCities = (citiesRaw ?? []).map((item: { city?: string | null }) => normalizeText(item?.city)).filter(Boolean)
+  const cityOptions = Array.from(new Set([...GEORGIA_CITIES, ...legacyCities]))
 
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
