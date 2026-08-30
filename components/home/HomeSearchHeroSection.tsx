@@ -64,8 +64,7 @@ export default function HomeSearchHeroSection({ items }: { items: CatalogListing
             />
           </div>
           <div className="absolute bottom-[7%] left-0 rounded-2xl border border-brand/15 bg-white/95 px-4 py-3 shadow-[0_14px_34px_rgba(7,63,59,0.12)] backdrop-blur">
-            <div className="text-xs font-bold text-brand">მეორე სიცოცხლე ნივთებს</div>
-            <div className="mt-1 text-sm font-black text-text">საკუთარი სტილი შენს წესებზე</div>
+            <div className="text-sm font-black text-text">დაუბრუნე ნივთებს მეორე სიცოცხლე</div>
           </div>
         </div>
       </div>

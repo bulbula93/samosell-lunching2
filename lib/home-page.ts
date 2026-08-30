@@ -25,21 +25,6 @@ export type HomePageData = {
   activeCount: number
 }
 
-function uniqueListings(...groups: CatalogListing[][]) {
-  const seen = new Set<string>()
-  const output: CatalogListing[] = []
-
-  for (const group of groups) {
-    for (const item of group) {
-      if (!item?.id || seen.has(item.id)) continue
-      seen.add(item.id)
-      output.push(item)
-    }
-  }
-
-  return output
-}
-
 function buildPopularBrands(rows: Array<{ brand_name?: string | null }>) {
   const counts = new Map<string, number>()
   for (const row of rows) {
@@ -58,6 +43,7 @@ export async function getHomePageData(): Promise<HomePageData> {
 
   const [
     authResponse,
+    heroResponse,
     bannerResponse,
     latestResponse,
     popularResponse,
@@ -67,6 +53,16 @@ export async function getHomePageData(): Promise<HomePageData> {
     activeCountResponse,
   ] = await Promise.all([
     supabase.auth.getUser(),
+    supabase
+      .from("listings_catalog")
+      .select(baseListingSelect)
+      .eq("status", "active")
+      .not("cover_image_url", "is", null)
+      .order("is_vip", { ascending: false })
+      .order("is_featured", { ascending: false })
+      .order("is_promoted", { ascending: false })
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(3),
     supabase
       .from("listings_catalog")
       .select(baseListingSelect)
@@ -107,6 +103,7 @@ export async function getHomePageData(): Promise<HomePageData> {
   ])
 
   const criticalError =
+    heroResponse.error ||
     latestResponse.error ||
     popularResponse.error ||
     affordableResponse.error ||
@@ -123,7 +120,7 @@ export async function getHomePageData(): Promise<HomePageData> {
   const popularItems = (popularResponse.data ?? []) as CatalogListing[]
   const affordableItems = (affordableResponse.data ?? []) as CatalogListing[]
   const vintageItems = (vintageResponse.data ?? []) as CatalogListing[]
-  const heroItems = uniqueListings(popularItems, latestItems).slice(0, 3)
+  const heroItems = (heroResponse.data ?? []) as CatalogListing[]
 
   const favoritesResponse = user
     ? await supabase.from("favorites").select("listing_id").eq("user_id", user.id)

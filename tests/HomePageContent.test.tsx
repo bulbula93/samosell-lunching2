@@ -34,6 +34,22 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()
+    expect(screen.getByText("დაუბრუნე ნივთებს მეორე სიცოცხლე")).toBeInTheDocument()
+  })
+
+  it("renders the real listing photos supplied for the hero collage", () => {
+    const data = makeHomeData()
+    data.heroItems = [
+      makeListing({ id: "latest-1", title: "უახლესი კაბა", cover_image_url: "/latest-1.jpg" }),
+      makeListing({ id: "latest-2", title: "უახლესი პალტო", cover_image_url: "/latest-2.jpg" }),
+      makeListing({ id: "latest-3", title: "უახლესი ჩანთა", cover_image_url: "/latest-3.jpg" }),
+    ]
+
+    render(<HomePageContent data={data} />)
+
+    expect(screen.getByAltText("უახლესი კაბა")).toBeInTheDocument()
+    expect(screen.getByAltText("უახლესი პალტო")).toBeInTheDocument()
+    expect(screen.getByAltText("უახლესი ჩანთა")).toBeInTheDocument()
   })
 
   it("does not invent product sections when their data source is empty", () => {
