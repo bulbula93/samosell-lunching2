@@ -30,6 +30,7 @@ const DETAIL_VISIBLE_STATUSES = new Set<ListingStatus>(["active", "reserved", "s
 export default function ListingManagementCard({ item }: { item: ListingManagementItem }) {
   const promotionBadges = activePromotionBadges(item)
   const canOpenDetail = DETAIL_VISIBLE_STATUSES.has(item.status)
+  const canPromote = item.status === "active"
 
   return (
     <article className="ui-card overflow-hidden">
@@ -70,6 +71,14 @@ export default function ListingManagementCard({ item }: { item: ListingManagemen
               {canOpenDetail ? (
                 <Link href={`/listing/${item.slug}`} className="ui-btn-secondary">
                   ნახვა
+                </Link>
+              ) : null}
+              {canPromote ? (
+                <Link
+                  href={`/dashboard/listings/${item.id}/promote`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900 transition hover:border-amber-400 hover:bg-amber-100"
+                >
+                  ★ გაძლიერება / VIP
                 </Link>
               ) : null}
               <Link href={`/dashboard/listings/${item.id}/edit`} className="ui-btn-primary">
