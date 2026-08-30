@@ -112,6 +112,9 @@ export default function MarketplaceHeader({
                       </span>
                     ) : null}
                   </Link>
+                  <Link href="/dashboard/saved-searches" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    შენახული ძებნები
+                  </Link>
                   <Link href="/dashboard/profile" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     {ka.nav.profile}
                   </Link>
