@@ -142,6 +142,8 @@ export async function createBoostOrderAction(formData: FormData) {
 
     if ((existing ?? []).length > 0) redirect(withFlash(nextPath, "already_requested"))
 
+    const trustedClient = createAdminClient()
+
     if (paymentMethod === "tbc_checkout") {
       if (!isTbcCheckoutEnabled()) {
         redirect(withFlash(nextPath, encodeURIComponent("TBC Checkout კონფიგურაცია არ არის დასრულებული.")))
@@ -149,7 +151,7 @@ export async function createBoostOrderAction(formData: FormData) {
 
       const orderId = randomUUID()
       const checkoutStartedAt = new Date().toISOString()
-      const { error } = await supabase.from("listing_boost_orders").insert({
+      const { error } = await trustedClient.from("listing_boost_orders").insert({
         id: orderId,
         listing_id: listingId,
         seller_id: user.id,
@@ -180,8 +182,7 @@ export async function createBoostOrderAction(formData: FormData) {
         })
         checkoutUrl = approvalUrl
 
-        const adminClient = createAdminClient()
-        const { error: checkoutUpdateError } = await adminClient
+        const { error: checkoutUpdateError } = await trustedClient
           .from("listing_boost_orders")
           .update({
             provider_payment_id: checkout.payId ?? null,
@@ -194,7 +195,7 @@ export async function createBoostOrderAction(formData: FormData) {
 
         if (checkoutUpdateError) throw checkoutUpdateError
 
-        const { error: eventError } = await adminClient.from("listing_boost_order_events").insert({
+        const { error: eventError } = await trustedClient.from("listing_boost_order_events").insert({
           order_id: orderId,
           seller_id: user.id,
           source: "create",
@@ -209,7 +210,7 @@ export async function createBoostOrderAction(formData: FormData) {
 
       } catch (checkoutError) {
         const failureReason = checkoutError instanceof Error ? checkoutError.message : "TBC Checkout session creation failed."
-        await createAdminClient()
+        await trustedClient
           .from("listing_boost_orders")
           .update({
             status: "cancelled",
@@ -225,7 +226,7 @@ export async function createBoostOrderAction(formData: FormData) {
       redirect(checkoutUrl)
     }
 
-    const { error } = await supabase.from("listing_boost_orders").insert({
+    const { error } = await trustedClient.from("listing_boost_orders").insert({
       listing_id: listingId,
       seller_id: user.id,
       product_id: product.id,
