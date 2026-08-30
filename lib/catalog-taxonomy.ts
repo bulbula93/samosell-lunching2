@@ -20,7 +20,9 @@ export const CATALOG_SECTION_OPTIONS: CatalogSectionOption[] = [
   { value: "bags", label: "ჩანთები" },
 ]
 
-export const TOP_LEVEL_CATEGORY_SLUGS = new Set(CATALOG_SECTION_OPTIONS.map((item) => item.value))
+export const TOP_LEVEL_CATEGORY_SLUGS: ReadonlySet<string> = new Set(
+  CATALOG_SECTION_OPTIONS.map((item) => item.value),
+)
 
 const CATALOG_ITEM_OPTIONS: CatalogItemOption[] = [
   { value: "tshirts", label: "მაისურები", genders: ["women", "men", "unisex", "kids"], keywords: ["მაისური", "tee", "t-shirt"] },
