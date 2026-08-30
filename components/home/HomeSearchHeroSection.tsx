@@ -36,14 +36,6 @@ export default function HomeSearchHeroSection({
           <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
             {ka.home.description}
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/catalog" className="ui-btn-primary min-h-12 px-7 text-base">
-              {ka.home.startShopping}
-            </Link>
-            <Link href="/dashboard/listings/new" className="ui-btn-secondary min-h-12 px-7 text-base">
-              {ka.home.startSelling}
-            </Link>
-          </div>
           <p className="mt-6 text-sm font-semibold text-text-soft">
             რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
           </p>
