@@ -37,8 +37,11 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href="/dashboard/listings/new" className="ui-btn-primary">
-            {ka.nav.sell}
+          <Link href="/catalog" className="ui-btn-primary">
+            {ka.home.startShopping}
+          </Link>
+          <Link href="/dashboard/listings/new" className="ui-btn-secondary">
+            {ka.home.startSelling}
           </Link>
 
           {userState.signedIn ? (
@@ -117,9 +120,14 @@ export default function MarketplaceHeader({
           )}
         </div>
 
-        <Link href="/dashboard/listings/new" className="ui-btn-primary ml-auto hidden shrink-0 sm:inline-flex md:ml-0 lg:hidden">
-          {ka.nav.sell}
-        </Link>
+        <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
+          <Link href="/catalog" className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
+            {ka.home.startShopping}
+          </Link>
+          <Link href="/dashboard/listings/new" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
+            {ka.home.startSelling}
+          </Link>
+        </div>
       </div>
 
       <div className="border-t border-line px-4 pb-3 pt-3 md:hidden">
