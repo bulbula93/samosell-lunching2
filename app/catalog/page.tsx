@@ -4,6 +4,7 @@ import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import CatalogPagination from "@/components/listings/CatalogPagination"
 import CatalogPageHeader from "@/components/listings/CatalogPageHeader"
 import CatalogResultsGrid from "@/components/listings/CatalogResultsGrid"
+import SavedSearchControls from "@/components/listings/SavedSearchControls"
 import {
   PAGE_SIZE,
   applyCatalogFilters,
@@ -15,11 +16,23 @@ import {
 } from "@/lib/catalog-page"
 import { CATALOG_SECTION_OPTIONS } from "@/lib/catalog-taxonomy"
 import { GEORGIA_CITIES } from "@/lib/marketplace-options"
+import {
+  buildSavedSearchPath,
+  hasSavableCatalogFilters,
+} from "@/lib/saved-searches"
 import { absoluteUrl, buildCatalogDescription, buildCatalogTitle } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
 
-export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogSearchParams> }): Promise<Metadata> {
+type CatalogPageParams = CatalogSearchParams & {
+  saved_search_status?: string | string[]
+}
+
+function readStatus(value?: string | string[]) {
+  return typeof value === "string" ? value : ""
+}
+
+export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogPageParams> }): Promise<Metadata> {
   const params = (await searchParams) ?? {}
   const { filters, page, queryParams } = resolveCatalogState(params)
   const path = queryParams.toString() ? `/catalog?${queryParams.toString()}` : "/catalog"
@@ -35,10 +48,14 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
   }
 }
 
-export default async function CatalogPage({ searchParams }: { searchParams?: Promise<CatalogSearchParams> }) {
+export default async function CatalogPage({ searchParams }: { searchParams?: Promise<CatalogPageParams> }) {
   const params = (await searchParams) ?? {}
   const { filters, sort, page, queryParams, currentPath } = resolveCatalogState(params)
   const { q, category, item_type, brand, size, color, city, condition, gender, vip, min_price, max_price } = filters
+  const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }
+  const savedSearchPath = buildSavedSearchPath(filters)
+  const canSaveSearch = hasSavableCatalogFilters(filters)
+  const savedSearchStatus = readStatus(params.saved_search_status)
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -83,6 +100,14 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
 
   listingsQuery = listingsQuery.range(rangeFrom, rangeTo)
 
+  const savedSearchPromise = user && canSaveSearch
+    ? supabase
+        .from("saved_searches")
+        .select("id, is_active")
+        .eq("catalog_path", savedSearchPath)
+        .maybeSingle()
+    : Promise.resolve({ data: null as { id: string; is_active: boolean } | null, error: null })
+
   const [
     listingsResponse,
     countResponse,
@@ -90,6 +115,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     colorsResponse,
     citiesResponse,
     favoritesResponse,
+    savedSearchResponse,
   ] = await Promise.all([
     listingsQuery,
     countQuery,
@@ -99,6 +125,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
+    savedSearchPromise,
   ])
 
   const listings = (listingsResponse.data ?? []) as CatalogListing[]
@@ -113,7 +140,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     sizesResponse.error ||
     colorsResponse.error ||
     citiesResponse.error ||
-    favoritesResponse.error
+    favoritesResponse.error ||
+    savedSearchResponse.error
 
   if (queryError) {
     throw new Error(`catalog_data_failed:${queryError.message}`)
@@ -126,6 +154,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
 
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+  const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
 
   return (
     <>
@@ -139,7 +168,16 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
             sizes={sizes ?? []}
             colors={uniqueColors}
             cities={cityOptions}
-            values={{ q, category, item_type, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
+            values={filterValues}
+          />
+
+          <SavedSearchControls
+            values={filterValues}
+            signedIn={Boolean(user)}
+            canSave={canSaveSearch}
+            savedExists={Boolean(savedSearch)}
+            savedActive={Boolean(savedSearch?.is_active)}
+            status={savedSearchStatus}
           />
 
           <div className="mt-8">
