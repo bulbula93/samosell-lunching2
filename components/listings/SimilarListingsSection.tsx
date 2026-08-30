@@ -24,7 +24,7 @@ export default function SimilarListingsSection({
       <div className="ui-container py-12 sm:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="ui-eyebrow">{ka.listingDetail.category}</p>
+            <p className="ui-eyebrow">რელევანტური არჩევანი</p>
             <h2
               id="similar-listings-heading"
               className="mt-2 text-2xl font-black text-text sm:text-3xl"
