@@ -43,6 +43,11 @@ const sortOptions = [
   { value: "vip", label: "VIP და გამორჩეული" },
 ] as const
 
+const relevanceSortOption = {
+  value: "relevance",
+  label: "ყველაზე შესაბამისი",
+} as const
+
 const SPECIAL_SIZE_CATEGORIES = new Set(["footwear", "bags", "accessories"])
 
 function SelectField({
@@ -101,6 +106,9 @@ export default function CatalogFilterFields({
 
   const selectedGender = categoryGender(selectedCategory) || values.gender
   const selectedSizeCategory = sizeCategory(selectedCategory, selectedItemType)
+  const availableSortOptions = values.q
+    ? [relevanceSortOption, ...sortOptions]
+    : sortOptions
 
   const availableSizes = useMemo(
     () => getCatalogSizeLabels(
@@ -203,8 +211,12 @@ export default function CatalogFilterFields({
         <option value="">ყველა ფერი</option>
         {options.colors.map((item) => <option key={item} value={item}>{item}</option>)}
       </SelectField>
-      <SelectField label="დალაგება" name="sort" value={values.sort || "latest"}>
-        {sortOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+      <SelectField
+        label="დალაგება"
+        name="sort"
+        value={values.sort || (values.q ? "relevance" : "latest")}
+      >
+        {availableSortOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
       </SelectField>
 
       <label className="block">
