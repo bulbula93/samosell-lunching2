@@ -38,7 +38,22 @@ export type CatalogFilters = {
   max_price: string
 }
 
+export type CatalogDatabaseFilters = {
+  query: string
+  categorySlug: string
+  gender: string
+  itemKeywords: string[]
+}
+
 export const PAGE_SIZE = 24
+export const CATALOG_SORT_VALUES = [
+  "relevance",
+  "latest",
+  "popular",
+  "price_asc",
+  "price_desc",
+  "vip",
+] as const
 
 const readParam = (value?: string | string[]) => (typeof value === "string" ? value : "")
 export const safeQueryValue = (value: string) => value.replace(/,/g, " ").trim()
@@ -65,36 +80,64 @@ function addItemKeywords(searchTerms: Set<string>, value?: string) {
   for (const keyword of getCatalogItemKeywords(value)) searchTerms.add(keyword)
 }
 
-export function applyCatalogFilters<T>(query: T, filters: Record<string, string>) {
-  let next = query as T & CatalogFilterable
+function textSearchClauses(terms: string[]) {
+  return terms.flatMap((term) => [
+    `title.ilike.%${term}%`,
+    `description.ilike.%${term}%`,
+    `category_name.ilike.%${term}%`,
+    `brand_name.ilike.%${term}%`,
+  ])
+}
 
-  const searchTerms = new Set<string>()
-  if (filters.q) searchTerms.add(filters.q)
-
+export function getCatalogDatabaseFilters(
+  filters: Record<string, string>,
+): CatalogDatabaseFilters {
+  const itemKeywords = new Set<string>()
   const category = filters.category
+  let categorySlug = ""
+  let gender = filters.gender
+
   if (category) {
     if (category === "women" || category === "men" || category === "kids") {
-      next = next.eq("gender", category) as T & CatalogFilterable
+      gender = category
     } else if (category === "accessories" || category === "vintage") {
-      next = next.eq("category_slug", category) as T & CatalogFilterable
+      categorySlug = category
     } else if (category === "footwear" || category === "bags") {
-      addItemKeywords(searchTerms, category)
+      addItemKeywords(itemKeywords, category)
     } else if (!TOP_LEVEL_CATEGORY_SLUGS.has(category)) {
       // Backward compatibility for old links where the item type lived in `category`.
-      addItemKeywords(searchTerms, category)
+      addItemKeywords(itemKeywords, category)
     }
   }
 
-  addItemKeywords(searchTerms, filters.item_type)
+  addItemKeywords(itemKeywords, filters.item_type)
 
-  if (searchTerms.size > 0) {
-    const clauses = Array.from(searchTerms).flatMap((term) => [
-      `title.ilike.%${term}%`,
-      `description.ilike.%${term}%`,
-      `category_name.ilike.%${term}%`,
-      `brand_name.ilike.%${term}%`,
-    ])
-    next = next.or(Array.from(new Set(clauses)).join(",")) as T & CatalogFilterable
+  return {
+    query: filters.q || "",
+    categorySlug,
+    gender,
+    itemKeywords: Array.from(itemKeywords),
+  }
+}
+
+export function applyCatalogFilters<T>(query: T, filters: Record<string, string>) {
+  let next = query as T & CatalogFilterable
+  const databaseFilters = getCatalogDatabaseFilters(filters)
+
+  if (databaseFilters.query) {
+    next = next.or(
+      Array.from(new Set(textSearchClauses([databaseFilters.query]))).join(","),
+    ) as T & CatalogFilterable
+  }
+
+  if (databaseFilters.itemKeywords.length > 0) {
+    next = next.or(
+      Array.from(new Set(textSearchClauses(databaseFilters.itemKeywords))).join(","),
+    ) as T & CatalogFilterable
+  }
+
+  if (databaseFilters.categorySlug) {
+    next = next.eq("category_slug", databaseFilters.categorySlug) as T & CatalogFilterable
   }
 
   // Keep legacy brand URLs working, but the current catalog UI no longer exposes a brand dropdown.
@@ -103,8 +146,8 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
   if (filters.color) next = next.eq("color", filters.color) as T & CatalogFilterable
   if (filters.city) next = next.eq("city", filters.city) as T & CatalogFilterable
   if (filters.condition) next = next.eq("condition", filters.condition) as T & CatalogFilterable
-  if (filters.gender && category !== "women" && category !== "men" && category !== "kids") {
-    next = next.eq("gender", filters.gender) as T & CatalogFilterable
+  if (databaseFilters.gender) {
+    next = next.eq("gender", databaseFilters.gender) as T & CatalogFilterable
   }
   if (filters.vip === "1") next = next.eq("is_vip", true) as T & CatalogFilterable
   if (filters.min_price) {
@@ -160,14 +203,20 @@ export function resolveCatalogState(params: CatalogSearchParams = {}) {
     min_price: readParam(params.min_price),
     max_price: readParam(params.max_price),
   }
-  const sort = readParam(params.sort) || "latest"
+  const defaultSort = filters.q ? "relevance" : "latest"
+  const requestedSort = readParam(params.sort)
+  const sort =
+    (CATALOG_SORT_VALUES as readonly string[]).includes(requestedSort) &&
+    (requestedSort !== "relevance" || Boolean(filters.q))
+      ? requestedSort
+      : defaultSort
   const page = parsePage(readParam(params.page))
 
   const queryParams = new URLSearchParams()
   Object.entries(filters).forEach(([key, value]) => {
     if (value) queryParams.set(key, value)
   })
-  if (sort && sort !== "latest") queryParams.set("sort", sort)
+  if (sort && sort !== defaultSort) queryParams.set("sort", sort)
   if (page > 1) queryParams.set("page", String(page))
 
   return {
