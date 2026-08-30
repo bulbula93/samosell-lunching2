@@ -7,21 +7,55 @@ import ModerationSubmitButton from "@/components/moderation/ModerationSubmitButt
 import { formatPrice, listingStatusLabel } from "@/lib/listings"
 import {
   MODERATION_NOTE_MAX_LENGTH,
+  reportPriority,
+  reportPriorityLabel,
   reportReasonLabel,
   reportStatusLabel,
 } from "@/lib/moderation"
 import type { AdminListingReport } from "@/types/moderation"
 
-export default function AdminReviewCard({ item }: { item: AdminListingReport }) {
+type AdminReviewCardProps = {
+  item: AdminListingReport
+  relatedOpenReports?: number
+}
+
+export default function AdminReviewCard({
+  item,
+  relatedOpenReports = 1,
+}: AdminReviewCardProps) {
   const sellerLabel = item.seller_full_name || item.seller_username || "გამყიდველი"
   const reporterLabel = item.reporter_full_name || item.reporter_username || "რეპორტის ავტორი"
   const canReview = item.status === "open" || item.status === "reviewing"
+  const priority = reportPriority("listing", item.reason)
+  const isAged =
+    canReview && Date.now() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
 
   return (
     <article className="ui-card p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <div className="ui-eyebrow">რეპორტი</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="ui-eyebrow">განცხადების რეპორტი</div>
+            <span
+              className={
+                priority === "high"
+                  ? "rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-800"
+                  : "rounded-full border border-line bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft"
+              }
+            >
+              {reportPriorityLabel(priority)}
+            </span>
+            {isAged ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+                24სთ+
+              </span>
+            ) : null}
+            {relatedOpenReports > 1 ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+                ამ გამყიდველზე {relatedOpenReports} ღია სიგნალი
+              </span>
+            ) : null}
+          </div>
           <h3 className="mt-2 text-2xl font-black text-text">{item.listing_title}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-text-soft">
             <span>{formatPrice(item.price, item.currency)}</span>
