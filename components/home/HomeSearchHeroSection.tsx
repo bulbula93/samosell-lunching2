@@ -18,7 +18,7 @@ export default function HomeSearchHeroSection({ items }: { items: CatalogListing
       <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:grid-cols-[1.08fr_0.92fr] md:py-16 lg:min-h-[570px]">
         <div className="max-w-2xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">{ka.home.eyebrow}</p>
-          <h1 className="mt-5 text-[clamp(2.45rem,6vw,5rem)] font-black leading-[1.02] tracking-[-0.045em] text-text">
+          <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.35rem,5.5vw,4.7rem)] font-normal leading-[1.09] tracking-[-0.025em] text-text">
             {ka.home.title}
           </h1>
           <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
