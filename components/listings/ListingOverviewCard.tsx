@@ -312,7 +312,7 @@ export default function ListingOverviewCard({
             უსაფრთხოება
           </h2>
           <p className="mt-2 text-sm leading-6 text-text-soft">
-            საეჭვო განცხადება ან ქცევა შეგიძლია კონფიდენციალურად გამოგვიგზავნო.
+            საეჭვო განცხადება ან ქცევა შეგიძლია კონფიდენციალურად გამოგვიგზავნო
           </p>
 
           {isAuthenticated ? (
