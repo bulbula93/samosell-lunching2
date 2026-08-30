@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { getCatalogItemOptionsForSection } from "@/lib/catalog-taxonomy"
 import { getCatalogSizeLabels } from "@/lib/marketplace-options"
 
 export type CatalogFilterValues = {
   q: string
   category: string
+  item_type: string
   brand: string
   size: string
   color: string
@@ -20,7 +22,6 @@ export type CatalogFilterValues = {
 
 export type CatalogFilterOptions = {
   categories: Array<{ slug: string; name: string }>
-  brands: string[]
   sizes: Array<{ label?: string | null; group_name?: string | null }>
   colors: string[]
   cities: string[]
@@ -41,6 +42,8 @@ const sortOptions = [
   { value: "price_desc", label: "ფასი: მაღლიდან დაბლა" },
   { value: "vip", label: "VIP და გამორჩეული" },
 ] as const
+
+const SPECIAL_SIZE_CATEGORIES = new Set(["footwear", "bags", "accessories"])
 
 function SelectField({
   label,
@@ -63,6 +66,15 @@ function SelectField({
   )
 }
 
+function categoryGender(category: string) {
+  return category === "women" || category === "men" || category === "kids" ? category : ""
+}
+
+function sizeCategory(category: string, itemType: string) {
+  if (itemType) return itemType
+  return SPECIAL_SIZE_CATEGORIES.has(category) ? category : ""
+}
+
 export default function CatalogFilterFields({
   options,
   values,
@@ -73,26 +85,69 @@ export default function CatalogFilterFields({
   mobile?: boolean
 }) {
   const [selectedCategory, setSelectedCategory] = useState(values.category)
+  const [selectedItemType, setSelectedItemType] = useState(values.item_type)
   const [selectedSize, setSelectedSize] = useState(values.size)
 
   useEffect(() => {
     setSelectedCategory(values.category)
+    setSelectedItemType(values.item_type)
     setSelectedSize(values.size)
-  }, [values.category, values.size])
+  }, [values.category, values.item_type, values.size])
+
+  const availableItemTypes = useMemo(
+    () => getCatalogItemOptionsForSection(selectedCategory),
+    [selectedCategory],
+  )
+
+  const selectedGender = categoryGender(selectedCategory) || values.gender
+  const selectedSizeCategory = sizeCategory(selectedCategory, selectedItemType)
 
   const availableSizes = useMemo(
     () => getCatalogSizeLabels(
       options.sizes,
-      selectedCategory,
-      values.gender,
-      selectedCategory === values.category ? values.size : "",
+      selectedSizeCategory,
+      selectedGender,
+      selectedCategory === values.category && selectedItemType === values.item_type ? values.size : "",
     ),
-    [options.sizes, selectedCategory, values.category, values.gender, values.size],
+    [
+      options.sizes,
+      selectedCategory,
+      selectedGender,
+      selectedItemType,
+      selectedSizeCategory,
+      values.category,
+      values.item_type,
+      values.size,
+    ],
   )
 
   function handleCategoryChange(nextCategory: string) {
-    const nextSizes = getCatalogSizeLabels(options.sizes, nextCategory, values.gender, "")
+    const nextItemTypes = getCatalogItemOptionsForSection(nextCategory)
+    const nextItemType = selectedItemType && nextItemTypes.some((item) => item.value === selectedItemType)
+      ? selectedItemType
+      : ""
+    const nextGender = categoryGender(nextCategory)
+    const nextSizes = getCatalogSizeLabels(
+      options.sizes,
+      sizeCategory(nextCategory, nextItemType),
+      nextGender,
+      "",
+    )
+
     setSelectedCategory(nextCategory)
+    setSelectedItemType(nextItemType)
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+  }
+
+  function handleItemTypeChange(nextItemType: string) {
+    const nextSizes = getCatalogSizeLabels(
+      options.sizes,
+      sizeCategory(selectedCategory, nextItemType),
+      categoryGender(selectedCategory),
+      "",
+    )
+
+    setSelectedItemType(nextItemType)
     if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
   }
 
@@ -111,10 +166,18 @@ export default function CatalogFilterFields({
         </select>
       </label>
 
-      <SelectField label="ბრენდი" name="brand" value={values.brand}>
-        <option value="">ყველა ბრენდი</option>
-        {options.brands.map((item) => <option key={item} value={item}>{item}</option>)}
-      </SelectField>
+      <label className="block min-w-0">
+        <span className="mb-1.5 block text-xs font-bold text-text-soft">ნივთის ტიპი</span>
+        <select
+          name="item_type"
+          value={selectedItemType}
+          onChange={(event) => handleItemTypeChange(event.target.value)}
+          className="ui-input"
+        >
+          <option value="">ყველა ტიპი</option>
+          {availableItemTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+      </label>
 
       <label className="block min-w-0">
         <span className="mb-1.5 block text-xs font-bold text-text-soft">ზომა</span>
@@ -156,8 +219,6 @@ export default function CatalogFilterFields({
         <input type="checkbox" name="vip" value="1" defaultChecked={values.vip === "1"} className="h-5 w-5 accent-brand" />
         მხოლოდ VIP
       </label>
-
-      {values.gender ? <input type="hidden" name="gender" value={values.gender} /> : null}
     </div>
   )
 }
