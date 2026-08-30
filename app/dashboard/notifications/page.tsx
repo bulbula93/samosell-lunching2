@@ -30,10 +30,21 @@ function formatNotificationTime(value: string) {
 function notificationIcon(type: string) {
   if (type === "chat_started" || type === "chat_message") return "✉"
   if (type === "saved_search_match") return "⌕"
-  if (type === "review_request") return "★"
+  if (
+    type === "review_request" ||
+    type === "review_completed" ||
+    type === "review_received" ||
+    type === "review_request_canceled"
+  ) return "★"
   if (type === "price_drop") return "₾"
   if (type === "boost_expiry") return "VIP"
   return "•"
+}
+
+function readStatusLabel(type: string) {
+  if (type === "review_completed") return "დასრულებულია"
+  if (type === "review_request_canceled") return "გაუქმებულია"
+  return "წაკითხულია"
 }
 
 export default async function DashboardNotificationsPage() {
@@ -117,7 +128,7 @@ export default async function DashboardNotificationsPage() {
                           </button>
                         </form>
                       ) : (
-                        <span className="text-xs font-bold text-text-soft">წაკითხულია</span>
+                        <span className="text-xs font-bold text-text-soft">{readStatusLabel(notification.type)}</span>
                       )}
                     </div>
                   </div>
