@@ -8,6 +8,7 @@ import SavedSearchControls from "@/components/listings/SavedSearchControls"
 import {
   PAGE_SIZE,
   applyCatalogFilters,
+  getCatalogDatabaseFilters,
   getCatalogPath,
   normalizeText,
   resolveCatalogState,
@@ -28,8 +29,22 @@ type CatalogPageParams = CatalogSearchParams & {
   saved_search_status?: string | string[]
 }
 
+type RankedSearchPayload = {
+  items?: CatalogListing[]
+  total_count?: number
+}
+
+const CATALOG_LISTING_SELECT =
+  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+
 function readStatus(value?: string | string[]) {
   return typeof value === "string" ? value : ""
+}
+
+function optionalNumber(value: string) {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogPageParams> }): Promise<Metadata> {
@@ -56,6 +71,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const savedSearchPath = buildSavedSearchPath(filters)
   const canSaveSearch = hasSavableCatalogFilters(filters)
   const savedSearchStatus = readStatus(params.saved_search_status)
+  const databaseFilters = getCatalogDatabaseFilters(filters)
+  const useRankedSearch = Boolean(q && sort === "relevance")
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -68,9 +85,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   let listingsQuery = applyCatalogFilters(
     supabase
       .from("listings_catalog")
-      .select(
-        "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
-      )
+      .select(CATALOG_LISTING_SELECT)
       .eq("status", "active"),
     filters
   )
@@ -98,7 +113,31 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
       break
   }
 
-  listingsQuery = listingsQuery.range(rangeFrom, rangeTo)
+  const rankedSearchPromise = useRankedSearch
+    ? supabase.rpc("search_catalog_ranked", {
+        p_query: databaseFilters.query,
+        p_category_slug: databaseFilters.categorySlug || null,
+        p_item_keywords: databaseFilters.itemKeywords,
+        p_brand: brand || null,
+        p_size: size || null,
+        p_color: color || null,
+        p_city: city || null,
+        p_condition: condition || null,
+        p_gender: databaseFilters.gender || null,
+        p_vip: vip === "1" ? true : null,
+        p_min_price: optionalNumber(min_price),
+        p_max_price: optionalNumber(max_price),
+        p_offset: rangeFrom,
+        p_limit: PAGE_SIZE,
+      })
+    : Promise.resolve({ data: null, error: null })
+
+  const listingsPromise = useRankedSearch
+    ? Promise.resolve({ data: [] as CatalogListing[], error: null })
+    : listingsQuery.range(rangeFrom, rangeTo)
+  const countPromise = useRankedSearch
+    ? Promise.resolve({ count: 0, error: null })
+    : countQuery
 
   const savedSearchPromise = user && canSaveSearch
     ? supabase
@@ -109,6 +148,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     : Promise.resolve({ data: null as { id: string; is_active: boolean } | null, error: null })
 
   const [
+    rankedSearchResponse,
     listingsResponse,
     countResponse,
     sizesResponse,
@@ -117,8 +157,9 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     favoritesResponse,
     savedSearchResponse,
   ] = await Promise.all([
-    listingsQuery,
-    countQuery,
+    rankedSearchPromise,
+    listingsPromise,
+    countPromise,
     supabase.from("sizes").select("label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase.from("listings_catalog").select("color").eq("status", "active"),
     supabase.from("listings_catalog").select("city").eq("status", "active"),
@@ -128,13 +169,21 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     savedSearchPromise,
   ])
 
-  const listings = (listingsResponse.data ?? []) as CatalogListing[]
-  const totalCount = countResponse.count ?? 0
+  const rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
+  const listings = useRankedSearch
+    ? Array.isArray(rankedPayload?.items)
+      ? rankedPayload.items
+      : []
+    : (listingsResponse.data ?? []) as CatalogListing[]
+  const totalCount = useRankedSearch
+    ? Math.max(0, Number(rankedPayload?.total_count ?? 0))
+    : countResponse.count ?? 0
   const sizes = sizesResponse.data
   const colorsRaw = colorsResponse.data
   const citiesRaw = citiesResponse.data
 
   const queryError =
+    rankedSearchResponse.error ||
     listingsResponse.error ||
     countResponse.error ||
     sizesResponse.error ||
