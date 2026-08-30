@@ -376,7 +376,7 @@ export default function ListingOverviewCard({
             <StartChatButton
               listingId={listing.id}
               listingSlug={listing.slug}
-              className="ui-btn-primary min-h-11 w-full"
+              className="ui-btn-primary min-h-12 w-full shadow-md sm:col-span-2"
               label={ka.listingDetail.messageSeller}
             />
           ) : null}
