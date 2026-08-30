@@ -879,7 +879,7 @@ export default function CreateListingForm({
       <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-contact-heading`}>
         <h2 id={`${formPrefix}-contact-heading`} className="text-lg font-black text-text">საკონტაქტო ტელეფონი</h2>
         <p className="mt-1 text-sm leading-6 text-text-soft">
-          ნომერი სავალდებულოა და საჯაროდ გამოჩნდება განცხადების გვერდზე, რათა მყიდველმა პირდაპირ დაგირეკოს.
+          ნომერი სავალდებულოა და საჯაროდ გამოჩნდება განცხადების გვერდზე, რათა მყიდველი პირდაპირ დაგიკავშირდეთ
         </p>
         <div className="mt-5 max-w-xl">
           <TextInput
@@ -893,7 +893,7 @@ export default function CreateListingForm({
             autoComplete="tel"
             maxLength={SELLER_PHONE_MAX_LENGTH}
             placeholder="მაგ: +995 555 12 34 56"
-            helper="დაშვებულია 7–15 ციფრი; შეგიძლია გამოიყენო +, სივრცე, ფრჩხილები და ტირე."
+            helper="დაშვებულია 7–15 ციფრი; შეგიძლია გამოიყენო +, სივრცე, ფრჩხილები და ტირე"
           />
         </div>
       </section>
