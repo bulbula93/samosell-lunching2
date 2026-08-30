@@ -42,9 +42,18 @@ export type ListingReportReason = (typeof LISTING_REPORT_REASONS)[number]
 export type UserReportReason = (typeof USER_REPORT_REASONS)[number]
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
 export type ModerationDecision = (typeof MODERATION_DECISIONS)[number]
+export type ModerationPriority = "high" | "normal"
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const HIGH_PRIORITY_LISTING_REASONS = new Set<string>(["fake", "prohibited"])
+const HIGH_PRIORITY_USER_REASONS = new Set<string>([
+  "scam",
+  "harassment",
+  "impersonation",
+  "prohibited",
+])
 
 export function isUuid(value: string) {
   return UUID_PATTERN.test(value)
@@ -58,6 +67,23 @@ export function isModerationDecision(
   value: string,
 ): value is ModerationDecision {
   return MODERATION_DECISIONS.includes(value as ModerationDecision)
+}
+
+export function reportPriority(
+  kind: ReportKind,
+  reason: string,
+): ModerationPriority {
+  const reasons =
+    kind === "listing" ? HIGH_PRIORITY_LISTING_REASONS : HIGH_PRIORITY_USER_REASONS
+  return reasons.has(reason) ? "high" : "normal"
+}
+
+export function reportPriorityLabel(priority: ModerationPriority) {
+  return priority === "high" ? "მაღალი რისკი" : "სტანდარტული"
+}
+
+export function reportPriorityScore(priority: ModerationPriority) {
+  return priority === "high" ? 2 : 1
 }
 
 export function validateReportInput(
