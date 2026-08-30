@@ -5,6 +5,7 @@ import BlockUserForm from "@/components/moderation/BlockUserForm"
 import ReportListingForm from "@/components/moderation/ReportListingForm"
 import ReportUserForm from "@/components/moderation/ReportUserForm"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
+import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import { ka } from "@/lib/i18n/ka"
@@ -19,9 +20,10 @@ import {
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
+import { getSellerPhoneHref } from "@/lib/phone"
+import { getSellerTrustSignals } from "@/lib/seller-trust"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
-import { getSellerPhoneHref } from "@/lib/phone"
 
 type ListingOverviewCardProps = {
   listing: CatalogListing
@@ -127,6 +129,12 @@ export default function ListingOverviewCard({
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
   const sellerPhoneHref = getSellerPhoneHref(sellerProfile?.store_phone)
+  const sellerTrustSignals = sellerProfile
+    ? getSellerTrustSignals({
+        profile: sellerProfile,
+        reviewSummary: sellerReviewSummary,
+      }).filter((signal) => signal.key !== "reviews")
+    : []
   const messagingUnavailable =
     isActive &&
     !isOwner &&
@@ -285,6 +293,8 @@ export default function ListingOverviewCard({
             ) : null}
           </div>
         </div>
+
+        <SellerTrustBadges signals={sellerTrustSignals} compact className="mt-3" />
 
         {sellerProfile?.bio ? (
           <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
