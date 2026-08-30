@@ -13,7 +13,7 @@ import {
   type CatalogSearchParams,
   summarizeFilters,
 } from "@/lib/catalog-page"
-import { getCatalogItemOptions } from "@/lib/catalog-taxonomy"
+import { CATALOG_SECTION_OPTIONS } from "@/lib/catalog-taxonomy"
 import { GEORGIA_CITIES } from "@/lib/marketplace-options"
 import { absoluteUrl, buildCatalogDescription, buildCatalogTitle } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
@@ -38,7 +38,7 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
 export default async function CatalogPage({ searchParams }: { searchParams?: Promise<CatalogSearchParams> }) {
   const params = (await searchParams) ?? {}
   const { filters, sort, page, queryParams, currentPath } = resolveCatalogState(params)
-  const { q, category, brand, size, color, city, condition, gender, vip, min_price, max_price } = filters
+  const { q, category, item_type, brand, size, color, city, condition, gender, vip, min_price, max_price } = filters
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -86,8 +86,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const [
     listingsResponse,
     countResponse,
-    categoriesResponse,
-    brandsResponse,
     sizesResponse,
     colorsResponse,
     citiesResponse,
@@ -95,8 +93,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   ] = await Promise.all([
     listingsQuery,
     countQuery,
-    supabase.from("categories").select("slug, name").order("name", { ascending: true }),
-    supabase.from("brands").select("name").order("name", { ascending: true }),
     supabase.from("sizes").select("label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase.from("listings_catalog").select("color").eq("status", "active"),
     supabase.from("listings_catalog").select("city").eq("status", "active"),
@@ -107,8 +103,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
 
   const listings = (listingsResponse.data ?? []) as CatalogListing[]
   const totalCount = countResponse.count ?? 0
-  const categories = categoriesResponse.data
-  const brands = brandsResponse.data
   const sizes = sizesResponse.data
   const colorsRaw = colorsResponse.data
   const citiesRaw = citiesResponse.data
@@ -116,8 +110,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const queryError =
     listingsResponse.error ||
     countResponse.error ||
-    categoriesResponse.error ||
-    brandsResponse.error ||
     sizesResponse.error ||
     colorsResponse.error ||
     citiesResponse.error ||
@@ -127,14 +119,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     throw new Error(`catalog_data_failed:${queryError.message}`)
   }
 
-  const taxonomyCategories = getCatalogItemOptions(gender).map((item) => ({ slug: item.value, name: item.label }))
-  const uniqueCategories = Array.from(
-    new Map(
-      [...(categories ?? []).filter((item) => item.slug && item.name), ...taxonomyCategories]
-        .map((item) => [item.slug, item] as const)
-    ).values()
-  )
-  const uniqueBrands = Array.from(new Set((brands ?? []).map((item: { name?: string | null }) => normalizeText(item?.name)).filter(Boolean)))
+  const categories = CATALOG_SECTION_OPTIONS.map((item) => ({ slug: item.value, name: item.label }))
   const uniqueColors = Array.from(new Set((colorsRaw ?? []).map((item: { color?: string | null }) => normalizeText(item?.color)).filter(Boolean)))
   const legacyCities = (citiesRaw ?? []).map((item: { city?: string | null }) => normalizeText(item?.city)).filter(Boolean)
   const cityOptions = Array.from(new Set([...GEORGIA_CITIES, ...legacyCities]))
@@ -150,12 +135,11 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
           <CatalogPageHeader totalCount={totalCount} />
 
           <CatalogLandingFilters
-            categories={uniqueCategories}
-            brands={uniqueBrands}
+            categories={categories}
             sizes={sizes ?? []}
             colors={uniqueColors}
             cities={cityOptions}
-            values={{ q, category, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
+            values={{ q, category, item_type, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
           />
 
           <div className="mt-8">
