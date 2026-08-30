@@ -1,3 +1,8 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { getCatalogSizeLabels } from "@/lib/marketplace-options"
+
 export type CatalogFilterValues = {
   q: string
   category: string
@@ -16,7 +21,7 @@ export type CatalogFilterValues = {
 export type CatalogFilterOptions = {
   categories: Array<{ slug: string; name: string }>
   brands: string[]
-  sizes: string[]
+  sizes: Array<{ label?: string | null; group_name?: string | null }>
   colors: string[]
   cities: string[]
 }
@@ -67,20 +72,63 @@ export default function CatalogFilterFields({
   values: CatalogFilterValues
   mobile?: boolean
 }) {
+  const [selectedCategory, setSelectedCategory] = useState(values.category)
+  const [selectedSize, setSelectedSize] = useState(values.size)
+
+  useEffect(() => {
+    setSelectedCategory(values.category)
+    setSelectedSize(values.size)
+  }, [values.category, values.size])
+
+  const availableSizes = useMemo(
+    () => getCatalogSizeLabels(
+      options.sizes,
+      selectedCategory,
+      values.gender,
+      selectedCategory === values.category ? values.size : "",
+    ),
+    [options.sizes, selectedCategory, values.category, values.gender, values.size],
+  )
+
+  function handleCategoryChange(nextCategory: string) {
+    const nextSizes = getCatalogSizeLabels(options.sizes, nextCategory, values.gender, "")
+    setSelectedCategory(nextCategory)
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+  }
+
   return (
     <div className={mobile ? "space-y-4" : "grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7"}>
-      <SelectField label="კატეგორია" name="category" value={values.category}>
-        <option value="">ყველა კატეგორია</option>
-        {options.categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
-      </SelectField>
+      <label className="block min-w-0">
+        <span className="mb-1.5 block text-xs font-bold text-text-soft">კატეგორია</span>
+        <select
+          name="category"
+          value={selectedCategory}
+          onChange={(event) => handleCategoryChange(event.target.value)}
+          className="ui-input"
+        >
+          <option value="">ყველა კატეგორია</option>
+          {options.categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+        </select>
+      </label>
+
       <SelectField label="ბრენდი" name="brand" value={values.brand}>
         <option value="">ყველა ბრენდი</option>
         {options.brands.map((item) => <option key={item} value={item}>{item}</option>)}
       </SelectField>
-      <SelectField label="ზომა" name="size" value={values.size}>
-        <option value="">ყველა ზომა</option>
-        {options.sizes.map((item) => <option key={item} value={item}>{item}</option>)}
-      </SelectField>
+
+      <label className="block min-w-0">
+        <span className="mb-1.5 block text-xs font-bold text-text-soft">ზომა</span>
+        <select
+          name="size"
+          value={selectedSize}
+          onChange={(event) => setSelectedSize(event.target.value)}
+          className="ui-input"
+        >
+          <option value="">ყველა ზომა</option>
+          {availableSizes.map((item) => <option key={item} value={item}>{item}</option>)}
+        </select>
+      </label>
+
       <SelectField label="მდგომარეობა" name="condition" value={values.condition}>
         {conditionOptions.map((item) => <option key={item.value || "all"} value={item.value}>{item.label}</option>)}
       </SelectField>
