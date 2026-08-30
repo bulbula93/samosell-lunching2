@@ -6,7 +6,7 @@ export type CatalogItemOption = {
 }
 
 export type CatalogSectionOption = {
-  value: "women" | "men" | "accessories" | "vintage" | "kids" | "footwear" | "bags"
+  value: "women" | "men" | "accessories" | "kids"
   label: string
 }
 
@@ -14,10 +14,7 @@ export const CATALOG_SECTION_OPTIONS: CatalogSectionOption[] = [
   { value: "women", label: "ქალებისთვის" },
   { value: "men", label: "მამაკაცებისთვის" },
   { value: "accessories", label: "აქსესუარები" },
-  { value: "vintage", label: "ვინტაჟი" },
   { value: "kids", label: "ბავშვებისთვის" },
-  { value: "footwear", label: "ფეხსაცმელი" },
-  { value: "bags", label: "ჩანთები" },
 ]
 
 export const TOP_LEVEL_CATEGORY_SLUGS: ReadonlySet<string> = new Set(
@@ -63,13 +60,8 @@ export function getCatalogItemOptionsForSection(section?: string) {
   if (section === "women" || section === "men" || section === "kids") {
     return getCatalogItemOptions(section)
   }
-  if (section === "footwear" || section === "bags" || section === "accessories") {
-    return CATALOG_ITEM_OPTIONS.filter((item) => item.value === section)
-  }
-  if (section === "vintage") {
-    return CATALOG_ITEM_OPTIONS.filter(
-      (item) => item.value !== "vintage" && item.genders.some((gender) => gender === "women" || gender === "men" || gender === "unisex"),
-    )
+  if (section === "accessories") {
+    return CATALOG_ITEM_OPTIONS.filter((item) => item.value === "accessories")
   }
   return CATALOG_ITEM_OPTIONS
 }
