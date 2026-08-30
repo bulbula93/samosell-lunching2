@@ -3,7 +3,12 @@ import AdminReviewCard from "@/components/moderation/AdminReviewCard"
 import AdminUserReviewCard from "@/components/moderation/AdminUserReviewCard"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
-import { isReportStatus } from "@/lib/moderation"
+import {
+  isReportStatus,
+  reportPriority,
+  reportPriorityScore,
+  type ModerationPriority,
+} from "@/lib/moderation"
 import type {
   AdminListingReport,
   AdminUserReport,
@@ -11,6 +16,18 @@ import type {
 } from "@/types/moderation"
 
 const PAGE_SIZE = 30
+const TRIAGE_SCAN_LIMIT = 500
+
+const LISTING_REPORT_SELECT =
+  "id, listing_id, reporter_id, seller_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, listing_slug, listing_title, listing_status, price, currency, cover_image_url, reporter_username, reporter_full_name, seller_username, seller_full_name, seller_is_suspended"
+const USER_REPORT_SELECT =
+  "id, reporter_id, reported_user_id, context_listing_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, reporter_username, reporter_full_name, reported_username, reported_full_name, reported_avatar_url, reported_is_suspended, context_listing_slug, context_listing_title, context_listing_status"
+
+type QueueKind = "all" | "listing" | "user"
+type PriorityFilter = "all" | "high"
+type QueueEntry =
+  | { kind: "listing"; item: AdminListingReport; priority: ModerationPriority }
+  | { kind: "user"; item: AdminUserReport; priority: ModerationPriority }
 
 function flashLabel(value?: string) {
   switch (value) {
@@ -50,6 +67,25 @@ function auditActionLabel(value: string) {
   }
 }
 
+function reportsHref({
+  kind,
+  status,
+  priority,
+}: {
+  kind: QueueKind
+  status: string
+  priority: PriorityFilter
+}) {
+  const params = new URLSearchParams({ kind, status })
+  if (priority === "high") params.set("priority", "high")
+  return `/admin/reports?${params.toString()}`
+}
+
+function incrementCount(map: Map<string, number>, key?: string | null) {
+  if (!key) return
+  map.set(key, (map.get(key) ?? 0) + 1)
+}
+
 const statusTabs = [
   { key: "open", label: "ახალი" },
   { key: "reviewing", label: "მიმდინარე" },
@@ -58,12 +94,19 @@ const statusTabs = [
   { key: "all", label: "ყველა" },
 ] as const
 
+const kindTabs: Array<{ key: QueueKind; label: string }> = [
+  { key: "all", label: "ყველა სიგნალი" },
+  { key: "listing", label: "განცხადებები" },
+  { key: "user", label: "მომხმარებლები" },
+]
+
 export default async function AdminReportsPage({
   searchParams,
 }: {
   searchParams?: Promise<{
     status?: string | string[]
     kind?: string | string[]
+    priority?: string | string[]
     flash?: string | string[]
   }>
 }) {
@@ -74,31 +117,32 @@ export default async function AdminReportsPage({
     requestedStatus === "all" || isReportStatus(requestedStatus)
       ? requestedStatus
       : "open"
-  const kind = params.kind === "user" ? "user" : "listing"
+  const requestedKind = typeof params.kind === "string" ? params.kind : "all"
+  const kind: QueueKind =
+    requestedKind === "listing" || requestedKind === "user" ? requestedKind : "all"
+  const priority: PriorityFilter = params.priority === "high" ? "high" : "all"
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
 
-  let reportsQuery =
-    kind === "listing"
-      ? supabase
-          .from("admin_listing_reports")
-          .select(
-            "id, listing_id, reporter_id, seller_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, listing_slug, listing_title, listing_status, price, currency, cover_image_url, reporter_username, reporter_full_name, seller_username, seller_full_name, seller_is_suspended",
-          )
-      : supabase
-          .from("admin_user_reports")
-          .select(
-            "id, reporter_id, reported_user_id, context_listing_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, reporter_username, reporter_full_name, reported_username, reported_full_name, reported_avatar_url, reported_is_suspended, context_listing_slug, context_listing_title, context_listing_status",
-          )
-
-  reportsQuery = reportsQuery
+  let listingReportsQuery = supabase
+    .from("admin_listing_reports")
+    .select(LISTING_REPORT_SELECT)
     .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE)
+    .limit(PAGE_SIZE * 2)
+  let userReportsQuery = supabase
+    .from("admin_user_reports")
+    .select(USER_REPORT_SELECT)
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE * 2)
 
-  if (status !== "all") reportsQuery = reportsQuery.eq("status", status)
+  if (status !== "all") {
+    listingReportsQuery = listingReportsQuery.eq("status", status)
+    userReportsQuery = userReportsQuery.eq("status", status)
+  }
 
   const [
-    reportsResponse,
+    listingReportsResponse,
+    userReportsResponse,
     listingOpen,
     listingReviewing,
     listingResolved,
@@ -107,41 +151,30 @@ export default async function AdminReportsPage({
     userReviewing,
     userResolved,
     userDismissed,
+    listingActiveSignals,
+    userActiveSignals,
     auditResponse,
   ] = await Promise.all([
-    reportsQuery,
+    listingReportsQuery,
+    userReportsQuery,
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "resolved"),
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "resolved"),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
     supabase
-      .from("listing_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "open"),
+      .from("admin_listing_reports")
+      .select("seller_id, reason, status")
+      .in("status", ["open", "reviewing"])
+      .limit(TRIAGE_SCAN_LIMIT),
     supabase
-      .from("listing_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "reviewing"),
-    supabase
-      .from("listing_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "resolved"),
-    supabase
-      .from("listing_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "dismissed"),
-    supabase
-      .from("user_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "open"),
-    supabase
-      .from("user_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "reviewing"),
-    supabase
-      .from("user_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "resolved"),
-    supabase
-      .from("user_reports")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "dismissed"),
+      .from("admin_user_reports")
+      .select("reported_user_id, reason, status")
+      .in("status", ["open", "reviewing"])
+      .limit(TRIAGE_SCAN_LIMIT),
     supabase
       .from("moderation_audit_log")
       .select(
@@ -152,7 +185,8 @@ export default async function AdminReportsPage({
   ])
 
   const queueError =
-    reportsResponse.error ||
+    listingReportsResponse.error ||
+    userReportsResponse.error ||
     listingOpen.error ||
     listingReviewing.error ||
     listingResolved.error ||
@@ -160,9 +194,53 @@ export default async function AdminReportsPage({
     userOpen.error ||
     userReviewing.error ||
     userResolved.error ||
-    userDismissed.error
+    userDismissed.error ||
+    listingActiveSignals.error ||
+    userActiveSignals.error
 
-  const reports = reportsResponse.data ?? []
+  const listingReports = (listingReportsResponse.data ?? []) as AdminListingReport[]
+  const userReports = (userReportsResponse.data ?? []) as AdminUserReport[]
+  const listingTargetCounts = new Map<string, number>()
+  const userTargetCounts = new Map<string, number>()
+
+  for (const row of listingActiveSignals.data ?? []) incrementCount(listingTargetCounts, row.seller_id)
+  for (const row of userActiveSignals.data ?? []) incrementCount(userTargetCounts, row.reported_user_id)
+
+  const highPriorityActiveCount =
+    (listingActiveSignals.data ?? []).filter(
+      (row) => reportPriority("listing", row.reason) === "high",
+    ).length +
+    (userActiveSignals.data ?? []).filter(
+      (row) => reportPriority("user", row.reason) === "high",
+    ).length
+
+  let queue: QueueEntry[] = [
+    ...listingReports.map((item) => ({
+      kind: "listing" as const,
+      item,
+      priority: reportPriority("listing", item.reason),
+    })),
+    ...userReports.map((item) => ({
+      kind: "user" as const,
+      item,
+      priority: reportPriority("user", item.reason),
+    })),
+  ]
+
+  if (kind !== "all") queue = queue.filter((entry) => entry.kind === kind)
+  if (priority === "high") queue = queue.filter((entry) => entry.priority === "high")
+
+  queue.sort((left, right) => {
+    const priorityDelta =
+      reportPriorityScore(right.priority) - reportPriorityScore(left.priority)
+    if (priorityDelta !== 0) return priorityDelta
+    return (
+      new Date(right.item.created_at).getTime() -
+      new Date(left.item.created_at).getTime()
+    )
+  })
+  queue = queue.slice(0, PAGE_SIZE)
+
   const auditEntries = (auditResponse.data ?? []) as ModerationAuditEntry[]
 
   return (
@@ -175,9 +253,7 @@ export default async function AdminReportsPage({
               უსაფრთხოების სიგნალები
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              განცხადებისა და მომხმარებლის რეპორტები ერთ დაცულ რიგშია.
-              გადაწყვეტილების სამიზნე ყოველთვის თვითონ რეპორტიდან განისაზღვრება
-              და ყველა მოქმედება audit log-ში ინახება.
+              განცხადებისა და მომხმარებლის რეპორტები ახლა ერთ queue-ში იკრიბება. მაღალი რისკის მიზეზები ზემოთ გადადის, ხოლო ერთსა და იმავე ანგარიშზე განმეორებითი აქტიური სიგნალები ცალკე მონიშვნით ჩანს. ყველა მოდერაციის მოქმედება audit log-ში ინახება.
             </p>
           </div>
 
@@ -206,12 +282,11 @@ export default async function AdminReportsPage({
           role="alert"
           className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
         >
-          მოდერაციის რიგის ჩატვირთვა ვერ მოხერხდა. განაახლე გვერდი და სცადე
-          ხელახლა.
+          მოდერაციის რიგის ჩატვირთვა ვერ მოხერხდა. განაახლე გვერდი და სცადე ხელახლა.
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="ახალი რეპორტები"
           value={(listingOpen.count ?? 0) + (userOpen.count ?? 0)}
@@ -220,6 +295,7 @@ export default async function AdminReportsPage({
           label="მიმდინარე დამუშავება"
           value={(listingReviewing.count ?? 0) + (userReviewing.count ?? 0)}
         />
+        <StatCard label="მაღალი რისკის აქტიური" value={highPriorityActiveCount} />
         <StatCard
           label="მოგვარებული"
           value={(listingResolved.count ?? 0) + (userResolved.count ?? 0)}
@@ -230,49 +306,69 @@ export default async function AdminReportsPage({
         />
       </section>
 
-      <nav aria-label="რეპორტის ტიპი" className="mt-6 flex flex-wrap gap-3">
-        <Link
-          href={`/admin/reports?kind=listing&status=${status}`}
-          aria-current={kind === "listing" ? "page" : undefined}
-          className={kind === "listing" ? "ui-pill-soft" : "ui-pill"}
-        >
-          განცხადებები
-        </Link>
-        <Link
-          href={`/admin/reports?kind=user&status=${status}`}
-          aria-current={kind === "user" ? "page" : undefined}
-          className={kind === "user" ? "ui-pill-soft" : "ui-pill"}
-        >
-          მომხმარებლები
-        </Link>
-      </nav>
+      <section className="mt-6 rounded-2xl border border-line bg-white p-4 sm:p-5">
+        <div className="text-sm font-black text-text">Queue ფილტრები</div>
 
-      <nav aria-label="რეპორტის სტატუსი" className="mt-4 flex flex-wrap gap-3">
-        {statusTabs.map((tab) => (
+        <nav aria-label="რეპორტის ტიპი" className="mt-3 flex flex-wrap gap-3">
+          {kindTabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={reportsHref({ kind: tab.key, status, priority })}
+              aria-current={kind === tab.key ? "page" : undefined}
+              className={kind === tab.key ? "ui-pill-soft" : "ui-pill"}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+
+        <nav aria-label="რეპორტის სტატუსი" className="mt-3 flex flex-wrap gap-3">
+          {statusTabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={reportsHref({ kind, status: tab.key, priority })}
+              aria-current={status === tab.key ? "page" : undefined}
+              className={status === tab.key ? "ui-pill-soft" : "ui-pill"}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+
+        <nav aria-label="რისკის პრიორიტეტი" className="mt-3 flex flex-wrap gap-3">
           <Link
-            key={tab.key}
-            href={`/admin/reports?kind=${kind}&status=${tab.key}`}
-            aria-current={status === tab.key ? "page" : undefined}
-            className={status === tab.key ? "ui-pill-soft" : "ui-pill"}
+            href={reportsHref({ kind, status, priority: "all" })}
+            aria-current={priority === "all" ? "page" : undefined}
+            className={priority === "all" ? "ui-pill-soft" : "ui-pill"}
           >
-            {tab.label}
+            ყველა პრიორიტეტი
           </Link>
-        ))}
-      </nav>
+          <Link
+            href={reportsHref({ kind, status, priority: "high" })}
+            aria-current={priority === "high" ? "page" : undefined}
+            className={priority === "high" ? "ui-pill-soft" : "ui-pill"}
+          >
+            მხოლოდ მაღალი რისკი
+          </Link>
+        </nav>
+      </section>
 
-      <section
-        aria-label={kind === "listing" ? "განცხადების რეპორტები" : "მომხმარებლის რეპორტები"}
-        className="mt-6 space-y-5"
-      >
-        {!queueError && reports.length > 0 ? (
-          kind === "listing" ? (
-            (reports as AdminListingReport[]).map((item) => (
-              <AdminReviewCard key={item.id} item={item} />
-            ))
-          ) : (
-            (reports as AdminUserReport[]).map((item) => (
-              <AdminUserReviewCard key={item.id} item={item} />
-            ))
+      <section aria-label="მოდერაციის ერთიანი რიგი" className="mt-6 space-y-5">
+        {!queueError && queue.length > 0 ? (
+          queue.map((entry) =>
+            entry.kind === "listing" ? (
+              <AdminReviewCard
+                key={`listing-${entry.item.id}`}
+                item={entry.item}
+                relatedOpenReports={listingTargetCounts.get(entry.item.seller_id) ?? 1}
+              />
+            ) : (
+              <AdminUserReviewCard
+                key={`user-${entry.item.id}`}
+                item={entry.item}
+                relatedOpenReports={userTargetCounts.get(entry.item.reported_user_id) ?? 1}
+              />
+            ),
           )
         ) : !queueError ? (
           <div className="ui-card border-dashed px-6 py-12 text-center text-sm text-text-soft">
