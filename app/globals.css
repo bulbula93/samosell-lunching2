@@ -218,3 +218,9 @@ header.ui-card.overflow-hidden > div.border-b.border-line button[aria-pressed="f
 [id$="-price-helper"] {
   display: none;
 }
+
+/* Listing form hero title should match the brand palette without heavy display weight. */
+header.ui-card.overflow-hidden > div.border-b.border-line h1 {
+  color: var(--brand-900);
+  font-weight: 400;
+}
