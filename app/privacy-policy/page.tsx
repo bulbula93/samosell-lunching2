@@ -57,9 +57,6 @@ export default function PrivacyPolicyPage() {
                 შეგიძლია მოითხოვო პროფილის ინფორმაციის შესწორება, ანგარიშის დახურვა ან მხარდაჭერასთან დაკავშირება მონაცემების დამუშავების შესახებ კითხვებით.
               </p>
             </section>
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-              საბოლოო გამოშვებამდე ეს ტექსტი იურისტმა უნდა გადაამოწმოს კონკრეტული იურისდიქციის მოთხოვნებთან.
-            </p>
           </div>
         </div>
       </section>
