@@ -1,4 +1,4 @@
-import CreateListingForm from "@/components/dashboard/CreateListingForm"
+import CreateListingWizard from "@/components/dashboard/CreateListingWizard"
 import ProfilePhoneRequiredCard from "@/components/dashboard/ProfilePhoneRequiredCard"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import { isValidSellerPhone } from "@/lib/phone"
@@ -23,15 +23,12 @@ export default async function DashboardNewListingPage() {
       {!isValidSellerPhone(sellerPhone) ? (
         <ProfilePhoneRequiredCard />
       ) : (
-        <>
-          <style>{`section[aria-labelledby$="-contact-heading"] { display: none; }`}</style>
-          <CreateListingForm
-            categories={categoriesResult.data ?? []}
-            brands={brandsResult.data ?? []}
-            sizes={sizesResult.data ?? []}
-            initialSellerPhone={sellerPhone}
-          />
-        </>
+        <CreateListingWizard
+          categories={categoriesResult.data ?? []}
+          brands={brandsResult.data ?? []}
+          sizes={sizesResult.data ?? []}
+          initialSellerPhone={sellerPhone}
+        />
       )}
     </main>
   )
