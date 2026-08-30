@@ -83,6 +83,9 @@ export default function CatalogLandingFilters({
             } else {
               nextValues[chip.key] = chip.key === "sort" ? "latest" : ""
             }
+            if (chip.key === "q" && nextValues.sort === "relevance") {
+              nextValues.sort = "latest"
+            }
             return (
               <Link
                 key={`${chip.key}-${chip.label}`}
