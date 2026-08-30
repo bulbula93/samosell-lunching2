@@ -52,7 +52,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     supabase
       .from("listings_catalog")
       .select(
-        "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+        "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
       )
       .eq("status", "active"),
     filters
@@ -71,13 +71,13 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
       listingsQuery = listingsQuery.order("price", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false })
       break
     case "vip":
-      listingsQuery = listingsQuery.order("is_featured", { ascending: false }).order("is_promoted", { ascending: false }).order("is_vip", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false })
+      listingsQuery = listingsQuery.order("promotion_tier", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false })
       break
     case "popular":
       listingsQuery = listingsQuery.order("favorites_count", { ascending: false, nullsFirst: false }).order("views_count", { ascending: false, nullsFirst: false }).order("published_at", { ascending: false, nullsFirst: false })
       break
     default:
-      listingsQuery = listingsQuery.order("is_featured", { ascending: false }).order("featured_slot", { ascending: true, nullsFirst: false }).order("is_promoted", { ascending: false }).order("is_vip", { ascending: false }).order("published_at", { ascending: false, nullsFirst: false })
+      listingsQuery = listingsQuery.order("promotion_tier", { ascending: false }).order("featured_slot", { ascending: true, nullsFirst: false }).order("published_at", { ascending: false, nullsFirst: false })
       break
   }
 

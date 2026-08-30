@@ -59,14 +59,19 @@ export default function MarketplaceProductCard({
                 {badge}
               </span>
             ) : null}
-            {!badge && item.is_vip ? (
-              <span className="rounded-lg bg-[#F1C75B] px-2.5 py-1 text-[11px] font-black text-[#3D3108]">
-                {ka.product.vip}
+            {!badge && item.is_featured ? (
+              <span className="rounded-lg bg-[#073f3b] px-2.5 py-1 text-[11px] font-black text-[#f6d98e]">
+                VIP MAX
               </span>
             ) : null}
-            {!badge && !item.is_vip && (item.is_featured || item.is_promoted) ? (
+            {!badge && !item.is_featured && item.is_promoted ? (
               <span className="rounded-lg bg-brand px-2.5 py-1 text-[11px] font-bold text-white">
-                {ka.product.promoted}
+                TOP
+              </span>
+            ) : null}
+            {!badge && !item.is_featured && !item.is_promoted && item.is_vip ? (
+              <span className="rounded-lg bg-[#F1C75B] px-2.5 py-1 text-[11px] font-black text-[#3D3108]">
+                {ka.product.vip}
               </span>
             ) : null}
           </div>

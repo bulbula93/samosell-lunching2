@@ -13,13 +13,13 @@ export function placementLabel(value?: string | null) {
     case "vip":
       return "VIP"
     case "promoted":
-      return "Promoted"
+      return "TOP"
     case "featured_home":
-      return "Featured"
+      return "მთავარი გვერდის გამორჩეული პოზიცია"
     case "banner_home":
       return "მთავარი გვერდის ბანერი"
     case "combo":
-      return "VIP + Featured"
+      return "VIP MAX"
     default:
       return value || "VIP"
   }
@@ -57,24 +57,29 @@ export function promotionStateFromListing(listing: PromotionState) {
   const vipDate = safeDateValue(listing.vip_until)
   const promotedDate = safeDateValue(listing.promoted_until)
   const featuredDate = safeDateValue(listing.featured_until)
+  const bannerDate = safeDateValue(listing.home_banner_until)
 
   return {
     isVip: Boolean(listing.is_vip && (!vipDate || vipDate.getTime() > Date.now())),
     isPromoted: Boolean((listing.is_promoted ?? false) || (promotedDate && promotedDate.getTime() > Date.now())),
     isFeatured: Boolean((listing.is_featured ?? false) || (featuredDate && featuredDate.getTime() > Date.now())),
+    isHomeBanner: Boolean((listing.is_home_banner ?? false) || (bannerDate && bannerDate.getTime() > Date.now())),
     vipUntil: vipDate,
     promotedUntil: promotedDate,
     featuredUntil: featuredDate,
     featuredSlot: listing.featured_slot ?? null,
+    homeBannerUntil: bannerDate,
+    homeBannerSlot: listing.home_banner_slot ?? null,
   }
 }
 
 export function activePromotionBadges(listing: PromotionState) {
   const state = promotionStateFromListing(listing)
   return [
-    state.isFeatured ? `Featured${state.featuredSlot ? ` #${state.featuredSlot}` : ""}` : null,
-    state.isPromoted ? "Promoted" : null,
+    state.isFeatured ? `VIP MAX${state.featuredSlot ? ` #${state.featuredSlot}` : ""}` : null,
+    state.isPromoted ? "TOP" : null,
     state.isVip ? "VIP" : null,
+    state.isHomeBanner ? "მთავარი გვერდის ბანერი" : null,
   ].filter(Boolean) as string[]
 }
 
@@ -126,6 +131,54 @@ export function productPriceLabel(product: Pick<BoostProduct, "price" | "currenc
   return `${product.price} ${product.currency === "GEL" ? "₾" : product.currency} · ${product.duration_days} დღე`
 }
 
+export function boostProductName(value?: string | null, placement?: string | null) {
+  if (placement) return placementLabel(placement)
+  return value || "გაძლიერების პაკეტი"
+}
+
+export function boostProductBenefits(placement?: string | null) {
+  switch (placement) {
+    case "vip":
+      return ["VIP ბეჯი", "მთავარი გვერდის VIP სივრცე", "VIP ფილტრი"]
+    case "promoted":
+      return ["უფრო მაღალი ადგილი კატალოგში", "მეტი ხილვადობა ძებნაში", "TOP მონიშვნა"]
+    case "combo":
+      return ["VIP-ის ყველა უპირატესობა", "TOP პოზიცია", "მთავარი გვერდის გამორჩეული ბლოკი"]
+    case "banner_home":
+      return ["დიდი სარეკლამო ბანერი", "მთავარი გვერდის გამორჩეული სივრცე", "7-დღიანი განთავსება"]
+    case "featured_home":
+      return ["მთავარი გვერდის გამორჩეული პოზიცია"]
+    default:
+      return []
+  }
+}
+
+export function boostProductCta(placement?: string | null) {
+  switch (placement) {
+    case "vip": return "გააქტიურე VIP"
+    case "promoted": return "აიყვანე TOP-ში"
+    case "combo": return "გააქტიურე VIP MAX"
+    case "banner_home": return "განათავსე ბანერზე"
+    default: return "გააძლიერე განცხადება"
+  }
+}
+
+export function activePromotionEndsAt(listing: PromotionState, placement?: string | null) {
+  const state = promotionStateFromListing(listing)
+  switch (placement) {
+    case "vip": return state.isVip ? state.vipUntil : null
+    case "promoted": return state.isPromoted ? state.promotedUntil : null
+    case "featured_home": return state.isFeatured ? state.featuredUntil : null
+    case "banner_home": return state.isHomeBanner ? state.homeBannerUntil : null
+    case "combo": {
+      if (!state.isVip || !state.isPromoted || !state.isFeatured) return null
+      const values = [state.vipUntil, state.promotedUntil, state.featuredUntil].filter(Boolean) as Date[]
+      return values.sort((left, right) => left.getTime() - right.getTime())[0] ?? null
+    }
+    default: return null
+  }
+}
+
 
 export function buildSuggestedBoostReference(listingId: string, productId: string) {
   const listingPart = listingId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase() || "LIST"
@@ -137,7 +190,7 @@ export function buildSuggestedBoostReference(listingId: string, productId: strin
 export function promotionBadgeClass(label?: string | null) {
   const value = String(label || "").toLowerCase()
   if (value.includes("vip")) return "ui-pill-vip"
-  if (value.includes("featured")) return "ui-pill-featured"
-  if (value.includes("promoted")) return "ui-pill-promoted"
+  if (value.includes("max") || value.includes("გამორჩეული")) return "ui-pill-featured"
+  if (value.includes("top")) return "ui-pill-promoted"
   return "ui-pill-soft"
 }

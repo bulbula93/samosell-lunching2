@@ -3,6 +3,7 @@ import Avatar from "@/components/shared/Avatar"
 import StatCard from "@/components/shared/StatCard"
 import { getSellerVisualAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/server"
+import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 
 const dashboardStats = [
   { label: "სულ განცხადებები", iconName: "listings", getHref: () => "/dashboard/listings" },
@@ -21,6 +22,8 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
   const userId = user!.id
+  await reconcileExpiredBoostOrders()
+  const nowIso = new Date().toISOString()
   const chatFilter = `buyer_id.eq.${userId},seller_id.eq.${userId}`
 
   const [
@@ -41,7 +44,7 @@ export default async function DashboardPage() {
     supabase.from("marketplace_orders").select("id", { count: "exact", head: true }).or(`buyer_id.eq.${userId},seller_id.eq.${userId}`),
     supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("reporter_id", userId),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", userId),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", userId).eq("status", "active"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", userId).eq("status", "active").gt("ends_at", nowIso),
     supabase.from("profiles").select("username, full_name, city, bio, is_admin, avatar_url, seller_type, store_logo_url, store_phone, store_instagram, store_hours, store_address").eq("id", userId).maybeSingle(),
   ])
 

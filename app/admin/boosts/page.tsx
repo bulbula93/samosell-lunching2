@@ -5,7 +5,8 @@ import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import StatCard from "@/components/shared/StatCard"
 import { adminReviewBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
-import { boostStatusLabel, formatDateOnly, paymentMethodLabel, placementLabel } from "@/lib/boosts"
+import { boostProductName, boostStatusLabel, formatDateOnly, paymentMethodLabel } from "@/lib/boosts"
+import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { requireAdminUser } from "@/lib/auth"
 import type { BoostOrder } from "@/types/boost"
 
@@ -26,17 +27,19 @@ const tabs = [
   { key: "all", label: "ყველა" },
   { key: "pending", label: "მოლოდინში" },
   { key: "active", label: "აქტიური" },
+  { key: "completed", label: "დასრულებული" },
   { key: "rejected", label: "უარყოფილი" },
 ] as const
 
 function flashLabel(value?: string) {
   switch (value) {
-    case "activated": return "VIP განთავსება წარმატებით გააქტიურდა."
+    case "activated": return "გაძლიერების პაკეტი წარმატებით გააქტიურდა."
     case "rejected": return "მოთხოვნა უარყოფილია."
     case "reviewing": return "მოთხოვნა გადატანილია შემოწმების რეჟიმში."
     case "not_found": return "ჩანაწერი ვერ მოიძებნა."
     case "missing": return "აუცილებელი ველები აკლია."
     case "bad_product": return "არასწორი პროდუქტის კონფიგურაცია."
+    case "invalid_status": return "ამ სტატუსის მქონე შეკვეთაზე მოქმედება აღარ შეიძლება."
     case "tbc_sync_active": return "TBC სტატუსი განახლდა და boost უკვე აქტიურია."
     case "tbc_sync_pending": return "TBC სტატუსი განახლდა, მაგრამ გადახდა ჯერ ისევ პროცესშია."
     case "tbc_sync_failed": return "TBC სტატუსი განახლდა: გადახდა ვერ დასრულდა ან გაუქმდა."
@@ -50,6 +53,7 @@ function mapStatusFilter(status: string) {
   switch (status) {
     case "pending": return ["pending_payment", "under_review", "approved"]
     case "active": return ["active"]
+    case "completed": return ["expired"]
     case "rejected": return ["rejected", "cancelled"]
     default: return null
   }
@@ -61,6 +65,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
   const flash = typeof params.flash === "string" ? flashLabel(params.flash) : ""
 
   const { supabase } = await requireAdminUser("/dashboard")
+  await reconcileExpiredBoostOrders()
 
   let query = supabase.from("listing_boost_orders").select(`
       id,
@@ -95,11 +100,13 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
   const statusFilter = mapStatusFilter(activeTab)
   if (statusFilter) query = query.in("status", statusFilter)
 
-  const [{ data: orders }, { count: totalCount }, { count: pendingCount }, { count: activeCount }, { count: rejectedCount }] = await Promise.all([
+  const nowIso = new Date().toISOString()
+  const [{ data: orders }, { count: totalCount }, { count: pendingCount }, { count: activeCount }, { count: completedCount }, { count: rejectedCount }] = await Promise.all([
     query,
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "expired"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["rejected", "cancelled"]),
   ])
 
@@ -110,7 +117,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
     : { data: [] as SellerProfileLite[] }
 
   const sellerMap = new Map<string, SellerProfileLite>((sellers ?? []).map((item) => [item.id, item]))
-  const counts: Record<string, number> = { all: totalCount ?? 0, pending: pendingCount ?? 0, active: activeCount ?? 0, rejected: rejectedCount ?? 0 }
+  const counts: Record<string, number> = { all: totalCount ?? 0, pending: pendingCount ?? 0, active: activeCount ?? 0, completed: completedCount ?? 0, rejected: rejectedCount ?? 0 }
   const typedOrders = orderRows.map((item) => ({
     ...item,
     listing_title: item.listings?.title ?? null,
@@ -129,9 +136,9 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-3xl">
             <div className="ui-eyebrow">ადმინისტრირება</div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">VIP განთავსების მართვა</h1>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გაძლიერებების მართვა</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აქედან ამოწმებ გადახდებს, ააქტიურებ VIP განთავსებას და აკონტროლებ ყველა მოთხოვნას, რომელსაც ხელით დამუშავება სჭირდება.
+              აქედან ამოწმებ VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის გადახდებს, ააქტიურებ ხელით მოთხოვნებს და სინქრონიზებ TBC სტატუსს.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -174,10 +181,10 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-lg font-bold text-text">{order.product_name || order.product_id}</div>
+                  <div className="text-lg font-bold text-text">{boostProductName(order.product_name, order.placement)}</div>
                   <span className="ui-pill !px-3 !py-1 text-xs">{boostStatusLabel(order.status, order.ends_at)}</span>
                 </div>
-                <div className="mt-1 text-sm text-text-soft">{placementLabel(order.placement)} · {order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
+                <div className="mt-1 text-sm text-text-soft">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">განცხადება:</span> {order.listing_title || "—"}</div>
@@ -185,7 +192,9 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">შეიქმნა:</span> {formatDateOnly(order.created_at)}</div>
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">გადახდა:</span> {paymentMethodLabel(order.payment_method)}</div>
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">რეფერენსი:</span> {order.payment_reference || "—"}</div>
-                  <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">აქტიურია სანამ:</span> {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
+                  <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">აქტივაციის სტატუსი:</span> {boostStatusLabel(order.status, order.ends_at)}</div>
+                  <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">დაწყება:</span> {order.starts_at ? formatDateOnly(order.starts_at) : "—"}</div>
+                  <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">დასრულება:</span> {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
                   {order.payment_provider ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">არხი:</span> {order.payment_provider}</div> : null}
                   {order.provider_status ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">TBC სტატუსი:</span> {order.provider_status}</div> : null}
                   {order.checkout_session_started_at ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">Checkout დაიწყო:</span> {formatDateOnly(order.checkout_session_started_at)}</div> : null}

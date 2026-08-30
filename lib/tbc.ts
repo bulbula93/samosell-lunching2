@@ -194,8 +194,9 @@ export async function getTbcPaymentDetails(payId: string) {
 export function mapTbcStatusToBoostOrderStatus(status?: string | null) {
   switch (status) {
     case "Succeeded":
-    case "WaitingConfirm":
       return "approved"
+    case "WaitingConfirm":
+      return "under_review"
     case "Failed":
     case "Expired":
     case "Returned":
@@ -212,5 +213,5 @@ export function mapTbcStatusToBoostOrderStatus(status?: string | null) {
 }
 
 export function isTbcFinalStatus(status?: string | null) {
-  return ["Succeeded", "Failed", "Expired", "WaitingConfirm", "Returned", "PartialReturned"].includes(String(status ?? ""))
+  return ["Succeeded", "Failed", "Expired", "WaitingConfirm", "Returned", "PartialReturned", "CancelPaymentProcessing"].includes(String(status ?? ""))
 }

@@ -36,6 +36,7 @@ export type CatalogListing = {
   featured_slot?: number | null
   home_banner_until?: string | null
   home_banner_slot?: number | null
+  promotion_tier?: number
   brand_name: string | null
   size_label: string | null
   category_name: string

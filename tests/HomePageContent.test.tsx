@@ -11,6 +11,7 @@ function makeHomeData(): HomePageData {
   return {
     user: null,
     heroItems: [listing],
+    featuredItems: [],
     bannerItems: [],
     latestItems: [listing],
     popularItems: [],

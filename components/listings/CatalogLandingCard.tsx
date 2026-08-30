@@ -17,11 +17,6 @@ function formatPrice(item: CatalogListing) {
   return item.currency === "GEL" ? `${formatted} ₾` : `${formatted} ${item.currency}`
 }
 
-function formatPreviousPrice(price: number, currency: string) {
-  const formatted = new Intl.NumberFormat("ka-GE", { maximumFractionDigits: 0 }).format(Math.round(price * 1.28))
-  return currency === "GEL" ? `${formatted} ₾` : `${formatted} ${currency}`
-}
-
 function sellerLabel(item: CatalogListing) {
   return item.seller_username ? `@${item.seller_username}` : item.seller_full_name ?? "Nickname"
 }
@@ -94,13 +89,12 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-[20px] font-semibold leading-8 text-[#212832]">{formatPrice(item)}</span>
-              {hasPromotion ? <span className="text-[16px] font-normal leading-8 text-[rgba(30,30,30,0.6)] line-through">{formatPreviousPrice(item.price, item.currency)}</span> : null}
             </div>
           </div>
 
           {hasPromotion ? (
-            <span className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-full bg-[rgba(253,155,27,0.8)] px-3 text-[13px] font-medium leading-5 text-white">
-              -10%
+            <span className="inline-flex h-[30px] shrink-0 items-center justify-center rounded-full bg-[#073f3b] px-3 text-[12px] font-bold leading-5 text-white">
+              {item.is_featured ? "VIP MAX" : item.is_promoted ? "TOP" : "VIP"}
             </span>
           ) : (
             <span className="text-[12px] text-[#616161]">{item.color || item.city || publishedLabel || ""}</span>

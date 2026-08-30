@@ -2,7 +2,8 @@ import { requireAuthenticatedUser } from "@/lib/auth"
 import { refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
-import { boostStatusLabel, formatDateOnly, paymentMethodLabel, placementLabel } from "@/lib/boosts"
+import { boostProductName, boostStatusLabel, formatDateOnly, paymentMethodLabel } from "@/lib/boosts"
+import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { getBoostPaymentConfig } from "@/lib/site"
 import type { BoostOrder } from "@/types/boost"
 
@@ -17,6 +18,7 @@ const tabs = [
   { key: "all", label: "ყველა" },
   { key: "pending", label: "მოლოდინში" },
   { key: "active", label: "აქტიური" },
+  { key: "completed", label: "დასრულებული" },
   { key: "rejected", label: "უარყოფილი" },
 ] as const
 
@@ -55,6 +57,7 @@ function mapStatusFilter(status: string) {
   switch (status) {
     case "pending": return ["pending_payment", "under_review", "approved"]
     case "active": return ["active"]
+    case "completed": return ["expired"]
     case "rejected": return ["rejected", "cancelled"]
     default: return null
   }
@@ -67,6 +70,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
   const payment = getBoostPaymentConfig()
 
   const { supabase, user } = await requireAuthenticatedUser("/dashboard/billing")
+  await reconcileExpiredBoostOrders()
 
   let ordersQuery = supabase.from("listing_boost_orders").select(`
       id,
@@ -103,15 +107,17 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
   const filter = mapStatusFilter(activeTab)
   if (filter) ordersQuery = ordersQuery.in("status", filter)
 
-  const [{ data: orders }, { count: totalCount }, { count: pendingCount }, { count: activeCount }, { count: rejectedCount }] = await Promise.all([
+  const nowIso = new Date().toISOString()
+  const [{ data: orders }, { count: totalCount }, { count: pendingCount }, { count: activeCount }, { count: completedCount }, { count: rejectedCount }] = await Promise.all([
     ordersQuery,
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).in("status", ["pending_payment", "under_review", "approved"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "active"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "active").gt("ends_at", nowIso),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).eq("status", "expired"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("seller_id", user.id).in("status", ["rejected", "cancelled"]),
   ])
 
-  const counts: Record<string, number> = { all: totalCount ?? 0, pending: pendingCount ?? 0, active: activeCount ?? 0, rejected: rejectedCount ?? 0 }
+  const counts: Record<string, number> = { all: totalCount ?? 0, pending: pendingCount ?? 0, active: activeCount ?? 0, completed: completedCount ?? 0, rejected: rejectedCount ?? 0 }
   const orderRows = (orders ?? []) as BillingBoostOrderRow[]
   const typedOrders = orderRows.map((item) => ({
     ...item,
@@ -130,8 +136,8 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">გადახდები</div>
-          <h1 className="mt-3 text-4xl font-black">VIP განთავსების შეკვეთები</h1>
-          <p className="mt-3 max-w-2xl text-neutral-600">აქ ჩანს ყველა VIP განთავსების შეკვეთა — VIP, დამატებითი ხილვადობა და მთავარ ბლოკში გამოტანა, როგორც ხელით დასადასტურებელი, ისე TBC Checkout-ით გადახდილი.</p>
+          <h1 className="mt-3 text-4xl font-black">გაძლიერებები და გადახდები</h1>
+          <p className="mt-3 max-w-2xl text-neutral-600">აქ ჩანს VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის ყველა შეკვეთა — თანხა, გადახდა, აქტივაცია და მოქმედების ვადა.</p>
         </div>
         <Link href="/dashboard/listings" className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">განცხადებების მართვა</Link>
       </div>
@@ -187,16 +193,17 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
           <div key={order.id} className="grid gap-4 rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-sm lg:grid-cols-[120px_1fr_auto] lg:items-center">
             <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-neutral-100"><SmartImage src={order.cover_image_url} alt={order.listing_title || "განცხადება"} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" /></div>
             <div>
-              <div className="text-lg font-bold text-neutral-900">{order.product_name || order.product_id}</div>
-              <div className="mt-1 text-sm text-neutral-500">{placementLabel(order.placement)} · {order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
+              <div className="text-lg font-bold text-neutral-900">{boostProductName(order.product_name, order.placement)}</div>
+              <div className="mt-1 text-sm text-neutral-500">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
               <div className="mt-1 text-sm text-neutral-500">განცხადება: {order.listing_title || "—"}</div>
               <div className="mt-3 grid gap-2 text-sm text-neutral-600 md:grid-cols-2">
-                <div>შეიქმნა: {formatDateOnly(order.created_at)}</div>
-                <div>მეთოდი: {paymentMethodLabel(order.payment_method)}</div>
+                <div>თანხა: <span className="font-medium text-neutral-900">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</span></div>
+                <div>გადახდის მეთოდი: {paymentMethodLabel(order.payment_method)}</div>
                 <div>რეფერენსი: <span className="font-medium text-neutral-900">{order.payment_reference || "—"}</span></div>
+                <div>აქტივაციის სტატუსი: <span className="font-medium text-neutral-900">{boostStatusLabel(order.status, order.ends_at)}</span></div>
+                <div>დაწყება: {order.starts_at ? formatDateOnly(order.starts_at) : "—"}</div>
                 <div>დასრულება: {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
-                {order.payment_provider ? <div>გადახდის არხი: <span className="font-medium text-neutral-900">{order.payment_provider}</span></div> : null}
-                {order.provider_status ? <div>TBC სტატუსი: <span className="font-medium text-neutral-900">{order.provider_status}</span></div> : null}
+                {order.provider_status ? <div>გადახდის სტატუსი (TBC): <span className="font-medium text-neutral-900">{order.provider_status}</span></div> : <div>გადახდის სტატუსი: <span className="font-medium text-neutral-900">{order.approved_at ? "დადასტურებული" : "მოლოდინში"}</span></div>}
                 {order.checkout_session_started_at ? <div>Checkout დაიწყო: {formatDateOnly(order.checkout_session_started_at)}</div> : null}
                 {order.last_payment_sync_at ? <div>ბოლო სინქი: {formatDateOnly(order.last_payment_sync_at)}</div> : null}
                 {order.paid_at ? <div>გადახდილია: {formatDateOnly(order.paid_at)}</div> : null}

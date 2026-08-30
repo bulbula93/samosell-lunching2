@@ -1,4 +1,4 @@
-import { buildBoostDurationEndsAt } from "@/lib/boosts"
+import { activateBoostOrder, reconcileListingBoosts } from "@/lib/boost-reconciliation"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getTbcPaymentDetails, isTbcFinalStatus, mapTbcStatusToBoostOrderStatus, type TbcPaymentDetails } from "@/lib/tbc"
 
@@ -10,6 +10,8 @@ type TbcOrderSyncRow = {
   seller_id: string
   product_id: string
   status: string
+  amount: number
+  currency: string
   starts_at?: string | null
   ends_at?: string | null
   approved_at?: string | null
@@ -21,26 +23,20 @@ type TbcOrderSyncRow = {
   cancelled_at?: string | null
   failure_reason?: string | null
   last_payment_sync_at?: string | null
-  listings?: {
-    id: string
-    is_vip?: boolean | null
-    vip_until?: string | null
-    promoted_until?: string | null
-    featured_until?: string | null
-    featured_slot?: number | null
-    home_banner_until?: string | null
-    home_banner_slot?: number | null
-  } | null
-  listing_boost_products?: {
-    id: string
-    placement?: string | null
-    duration_days?: number | null
-  } | null
 }
 
+type BoostEventType =
+  | "checkout_created"
+  | "callback_received"
+  | "status_synced"
+  | "payment_succeeded"
+  | "payment_pending"
+  | "payment_failed"
+  | "boost_cancelled"
+  | "note"
+
 async function getOrderForSyncByPayId(payId: string) {
-  const supabase = createAdminClient()
-  const { data, error } = await supabase
+  const { data, error } = await createAdminClient()
     .from("listing_boost_orders")
     .select(`
       id,
@@ -48,6 +44,8 @@ async function getOrderForSyncByPayId(payId: string) {
       seller_id,
       product_id,
       status,
+      amount,
+      currency,
       starts_at,
       ends_at,
       approved_at,
@@ -58,9 +56,7 @@ async function getOrderForSyncByPayId(payId: string) {
       paid_at,
       cancelled_at,
       failure_reason,
-      last_payment_sync_at,
-      listings!inner(id, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot),
-      listing_boost_products!inner(id, placement, duration_days)
+      last_payment_sync_at
     `)
     .eq("provider_payment_id", payId)
     .eq("payment_provider", "tbc_checkout")
@@ -74,212 +70,178 @@ async function recordBoostOrderEvent(
   order: Pick<TbcOrderSyncRow, "id" | "seller_id">,
   params: {
     source: BoostPaymentSyncSource | "create" | "admin"
-    eventType: "checkout_created" | "callback_received" | "status_synced" | "payment_succeeded" | "payment_pending" | "payment_failed" | "boost_activated" | "boost_cancelled" | "note"
+    eventType: BoostEventType
     payment?: TbcPaymentDetails | null
     message?: string | null
     payload?: unknown
   }
 ) {
-  const supabase = createAdminClient()
+  const { error } = await createAdminClient().from("listing_boost_order_events").insert({
+    order_id: order.id,
+    seller_id: order.seller_id,
+    source: params.source,
+    event_type: params.eventType,
+    provider_status: params.payment?.status ?? null,
+    provider_result_code: params.payment?.resultCode ?? null,
+    message: params.message ?? null,
+    payload: params.payload ?? null,
+  })
 
-  try {
-    await supabase.from("listing_boost_order_events").insert({
-      order_id: order.id,
-      seller_id: order.seller_id,
-      source: params.source,
-      event_type: params.eventType,
-      provider_status: params.payment?.status ?? null,
-      provider_result_code: params.payment?.resultCode ?? null,
-      message: params.message ?? null,
-      payload: params.payload ?? null,
-    })
-  } catch {
-    // Optional audit trail table may not exist yet in environments where migration 18 is not applied.
-  }
+  if (error) throw error
 }
 
 function buildFailureReason(payment: TbcPaymentDetails) {
-  const candidates = [payment.userMessage, payment.developerMessage, payment.status]
-  for (const candidate of candidates) {
+  for (const candidate of [payment.userMessage, payment.developerMessage, payment.status]) {
     const safe = String(candidate ?? "").trim()
     if (safe) return safe
   }
   return null
 }
 
-async function activateOrderAfterSuccessfulTbc(
+function paymentMatchesOrder(order: TbcOrderSyncRow, payment: TbcPaymentDetails) {
+  const expectedAmount = Math.round(Number(order.amount) * 100)
+  const confirmedAmount = Math.round(Number(payment.amount) * 100)
+  const expectedCurrency = String(order.currency || "").trim().toUpperCase()
+  const confirmedCurrency = String(payment.currency || "").trim().toUpperCase()
+
+  return Number.isFinite(confirmedAmount)
+    && confirmedAmount === expectedAmount
+    && Boolean(confirmedCurrency)
+    && confirmedCurrency === expectedCurrency
+}
+
+async function activateSucceededOrder(
   order: TbcOrderSyncRow,
   payment: TbcPaymentDetails,
-  source: BoostPaymentSyncSource
+  source: BoostPaymentSyncSource,
 ) {
   const supabase = createAdminClient()
-  const listing = order.listings
-  const product = order.listing_boost_products
-  if (!listing || !product) return order
-
-  const providerStatus = payment.status ?? null
-  const providerResultCode = payment.resultCode ?? null
   const nowIso = new Date().toISOString()
-  const resolvedPaidAt = order.paid_at ?? order.approved_at ?? nowIso
+  const providerStatus = String(payment.status ?? "") || null
+  const providerResultCode = payment.resultCode ?? null
 
-  if (order.status === "active" && order.ends_at) {
-    await supabase
+  if (!paymentMatchesOrder(order, payment)) {
+    const failureReason = "TBC payment amount or currency does not match the boost order. Manual review required."
+    const { error } = await supabase
       .from("listing_boost_orders")
       .update({
+        status: order.status === "active" ? "active" : "under_review",
         provider_status: providerStatus,
         provider_result_code: providerResultCode,
-        approved_at: order.approved_at ?? resolvedPaidAt,
-        paid_at: resolvedPaidAt,
         last_payment_sync_at: nowIso,
-        cancelled_at: null,
-        failure_reason: null,
+        failure_reason: failureReason,
+        admin_note: failureReason,
       })
       .eq("id", order.id)
 
-    await recordBoostOrderEvent(order, {
-      source,
-      eventType: "payment_succeeded",
-      payment,
-      message: "TBC payment was confirmed again for an already-active boost order.",
-      payload: { orderStatus: order.status },
-    })
-
-    return getOrderForSyncByPayId(String(order.provider_payment_id ?? ""))
-  }
-
-  const { data: claimedOrder, error: claimError } = await supabase
-    .from("listing_boost_orders")
-    .update({
-      status: "approved",
-      provider_status: providerStatus,
-      provider_result_code: providerResultCode,
-      approved_at: order.approved_at ?? resolvedPaidAt,
-      starts_at: order.starts_at ?? nowIso,
-      paid_at: resolvedPaidAt,
-      last_payment_sync_at: nowIso,
-      cancelled_at: null,
-      failure_reason: null,
-      admin_note: "TBC Checkout payment confirmed and auto-activation started.",
-    })
-    .eq("id", order.id)
-    .in("status", ["pending_payment", "under_review", "approved"])
-    .is("ends_at", null)
-    .select("id")
-    .maybeSingle()
-
-  if (claimError) throw claimError
-
-  await recordBoostOrderEvent(order, {
-    source,
-    eventType: "payment_succeeded",
-    payment,
-    message: "TBC payment confirmed. Boost activation flow started.",
-  })
-
-  if (!claimedOrder) {
-    return getOrderForSyncByPayId(String(order.provider_payment_id ?? ""))
-  }
-
-  const durationDays = Number(product.duration_days ?? 0)
-  if (!durationDays) {
-    await supabase
-      .from("listing_boost_orders")
-      .update({
-        status: "approved",
-        provider_status: providerStatus,
-        provider_result_code: providerResultCode,
-        paid_at: resolvedPaidAt,
-        last_payment_sync_at: nowIso,
-        cancelled_at: null,
-        failure_reason: "Boost product duration is invalid. Manual review required.",
-        admin_note: "TBC payment confirmed, but boost product duration is invalid. Manual review required.",
-      })
-      .eq("id", order.id)
+    if (error) throw error
 
     await recordBoostOrderEvent(order, {
       source,
       eventType: "note",
       payment,
-      message: "Payment confirmed, but boost duration is invalid. Manual intervention required.",
+      message: failureReason,
+      payload: {
+        expectedAmount: Number(order.amount),
+        expectedCurrency: order.currency,
+        confirmedAmount: payment.amount ?? null,
+        confirmedCurrency: payment.currency ?? null,
+      },
     })
-
     return getOrderForSyncByPayId(String(order.provider_payment_id ?? ""))
   }
 
-  const placement = String(product.placement ?? "")
-  const nextListingUpdate: Record<string, unknown> = {}
-  const nextEndsAtByPlacement = {
-    vip: buildBoostDurationEndsAt(listing.vip_until, durationDays),
-    promoted: buildBoostDurationEndsAt(listing.promoted_until, durationDays),
-    featured: buildBoostDurationEndsAt(listing.featured_until, durationDays),
-    banner: buildBoostDurationEndsAt(listing.home_banner_until, durationDays),
-  }
-
-  if (placement === "vip" || placement === "combo") {
-    nextListingUpdate.is_vip = true
-    nextListingUpdate.vip_until = nextEndsAtByPlacement.vip
-  }
-
-  if (placement === "promoted" || placement === "combo") {
-    nextListingUpdate.promoted_until = nextEndsAtByPlacement.promoted
-  }
-
-  if (placement === "featured_home" || placement === "combo") {
-    nextListingUpdate.featured_until = nextEndsAtByPlacement.featured
-    nextListingUpdate.featured_slot = listing.featured_slot ?? 1
-  }
-
-  if (placement === "banner_home") {
-    nextListingUpdate.home_banner_until = nextEndsAtByPlacement.banner
-    nextListingUpdate.home_banner_slot = listing.home_banner_slot ?? 1
-  }
-
-  const resolvedEndsAt =
-    placement === "vip"
-      ? nextEndsAtByPlacement.vip
-      : placement === "promoted"
-        ? nextEndsAtByPlacement.promoted
-        : placement === "featured_home"
-          ? nextEndsAtByPlacement.featured
-          : placement === "banner_home"
-            ? nextEndsAtByPlacement.banner
-          : [nextEndsAtByPlacement.vip, nextEndsAtByPlacement.promoted, nextEndsAtByPlacement.featured]
-              .filter(Boolean)
-              .sort()
-              .at(-1) ?? nowIso
-
-  const { error: listingError } = await supabase
-    .from("listings")
-    .update(nextListingUpdate)
-    .eq("id", listing.id)
-
-  if (listingError) throw listingError
-
-  const { error: activateError } = await supabase
-    .from("listing_boost_orders")
-    .update({
-      status: "active",
-      provider_status: providerStatus,
-      provider_result_code: providerResultCode,
-      approved_at: order.approved_at ?? resolvedPaidAt,
-      starts_at: order.starts_at ?? nowIso,
-      ends_at: resolvedEndsAt,
-      paid_at: resolvedPaidAt,
-      last_payment_sync_at: nowIso,
-      cancelled_at: null,
-      failure_reason: null,
-      admin_note: "TBC Checkout payment confirmed and boost auto-activated.",
+  if (!["pending_payment", "under_review", "approved", "active"].includes(order.status)) {
+    await recordBoostOrderEvent(order, {
+      source,
+      eventType: "note",
+      payment,
+      message: `Succeeded payment was not activated because local order status is ${order.status}.`,
     })
+    return order
+  }
+
+  const paidAt = order.paid_at ?? order.approved_at ?? nowIso
+  const updatePayload: Record<string, unknown> = {
+    provider_status: providerStatus,
+    provider_result_code: providerResultCode,
+    approved_at: order.approved_at ?? paidAt,
+    paid_at: paidAt,
+    last_payment_sync_at: nowIso,
+    cancelled_at: null,
+    failure_reason: null,
+    admin_note: "TBC Checkout payment independently verified as Succeeded.",
+  }
+  if (order.status !== "active") updatePayload.status = "approved"
+
+  const { error } = await supabase
+    .from("listing_boost_orders")
+    .update(updatePayload)
     .eq("id", order.id)
 
-  if (activateError) throw activateError
+  if (error) throw error
 
   await recordBoostOrderEvent(order, {
     source,
-    eventType: "boost_activated",
+    eventType: "payment_succeeded",
     payment,
-    message: "Boost was auto-activated after successful TBC payment.",
-    payload: { placement, endsAt: resolvedEndsAt },
+    message: "TBC payment status, amount, and currency were independently verified.",
+  })
+
+  await activateBoostOrder({ orderId: order.id, activationSource: "tbc" })
+  return getOrderForSyncByPayId(String(order.provider_payment_id ?? ""))
+}
+
+async function syncNonSucceededOrder(
+  order: TbcOrderSyncRow,
+  payment: TbcPaymentDetails,
+  source: BoostPaymentSyncSource,
+) {
+  const providerStatus = String(payment.status ?? "") || null
+  const nextStatus = mapTbcStatusToBoostOrderStatus(providerStatus)
+  const isCancelled = nextStatus === "cancelled"
+  const nowIso = new Date().toISOString()
+  const failureReason = isCancelled
+    ? buildFailureReason(payment)
+    : providerStatus === "WaitingConfirm"
+      ? "WaitingConfirm is valid only for preauthorization; this checkout uses preAuth=false and requires manual review."
+      : null
+
+  const updatePayload: Record<string, unknown> = {
+    provider_status: providerStatus,
+    provider_result_code: payment.resultCode ?? null,
+    status: isCancelled ? "cancelled" : nextStatus,
+    last_payment_sync_at: nowIso,
+    failure_reason: failureReason,
+  }
+
+  if (isCancelled) {
+    updatePayload.cancelled_at = order.cancelled_at ?? nowIso
+    updatePayload.admin_note = "TBC Checkout payment did not remain successful."
+  }
+
+  const { error } = await createAdminClient()
+    .from("listing_boost_orders")
+    .update(updatePayload)
+    .eq("id", order.id)
+
+  if (error) throw error
+
+  if (isCancelled && order.status === "active") {
+    await reconcileListingBoosts(order.listing_id)
+    await recordBoostOrderEvent(order, {
+      source,
+      eventType: "boost_cancelled",
+      payment,
+      message: "Active boost removed after TBC reported a failed, expired, returned, or partially returned payment.",
+    })
+  }
+
+  await recordBoostOrderEvent(order, {
+    source,
+    eventType: isCancelled ? "payment_failed" : "payment_pending",
+    payment,
+    message: failureReason ?? "TBC payment is still pending or being processed.",
   })
 
   return getOrderForSyncByPayId(String(order.provider_payment_id ?? ""))
@@ -288,68 +250,22 @@ async function activateOrderAfterSuccessfulTbc(
 export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostPaymentSyncSource = "system") {
   const payment = await getTbcPaymentDetails(payId)
   const providerStatus = String(payment.status ?? "") || null
-  const nextStatus = mapTbcStatusToBoostOrderStatus(providerStatus)
-  const isApproved = providerStatus === "Succeeded" || providerStatus === "WaitingConfirm"
-  const providerResultCode = payment.resultCode ?? null
-  const supabase = createAdminClient()
-  const nowIso = new Date().toISOString()
-
   const order = await getOrderForSyncByPayId(payId)
-  if (!order) {
-    return {
-      order: null,
-      payment,
-      isFinal: isTbcFinalStatus(providerStatus),
-    }
-  }
+
+  if (!order) return { order: null, payment, isFinal: isTbcFinalStatus(providerStatus) }
 
   if (source === "callback") {
     await recordBoostOrderEvent(order, {
       source,
       eventType: "callback_received",
       payment,
-      message: "Callback received from TBC and payment status sync started.",
+      message: "TBC callback received; server-side payment verification started.",
     })
   }
 
-  let syncedOrder: TbcOrderSyncRow | null = order
-
-  if (isApproved) {
-    syncedOrder = await activateOrderAfterSuccessfulTbc(order, payment, source)
-  } else {
-    const failureReason = nextStatus === "cancelled" ? buildFailureReason(payment) : null
-    const updatePayload: Record<string, unknown> = {
-      provider_status: providerStatus,
-      provider_result_code: providerResultCode,
-      status: nextStatus,
-      last_payment_sync_at: nowIso,
-      failure_reason: failureReason,
-    }
-
-    if (nextStatus === "cancelled") {
-      updatePayload.cancelled_at = order.cancelled_at ?? nowIso
-      updatePayload.admin_note = "TBC Checkout payment did not complete."
-    }
-
-    const { error } = await supabase
-      .from("listing_boost_orders")
-      .update(updatePayload)
-      .eq("id", order.id)
-
-    if (error) throw error
-
-    await recordBoostOrderEvent(order, {
-      source,
-      eventType: nextStatus === "cancelled" ? "payment_failed" : "payment_pending",
-      payment,
-      message:
-        nextStatus === "cancelled"
-          ? failureReason ?? "TBC payment ended with a non-success final status."
-          : "TBC payment is still pending or being processed.",
-    })
-
-    syncedOrder = await getOrderForSyncByPayId(payId)
-  }
+  const syncedOrder = providerStatus === "Succeeded"
+    ? await activateSucceededOrder(order, payment, source)
+    : await syncNonSucceededOrder(order, payment, source)
 
   if (syncedOrder) {
     await recordBoostOrderEvent(syncedOrder, {
@@ -357,20 +273,15 @@ export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostP
       eventType: "status_synced",
       payment,
       message: `Order synced from TBC. Local status: ${syncedOrder.status}.`,
-      payload: { localStatus: syncedOrder.status, isFinal: isTbcFinalStatus(providerStatus), syncedAt: nowIso },
+      payload: { localStatus: syncedOrder.status, isFinal: isTbcFinalStatus(providerStatus) },
     })
   }
 
-  return {
-    order: syncedOrder,
-    payment,
-    isFinal: isTbcFinalStatus(providerStatus),
-  }
+  return { order: syncedOrder, payment, isFinal: isTbcFinalStatus(providerStatus) }
 }
 
 export async function syncBoostOrderFromTbcByOrderId(orderId: string, source: BoostPaymentSyncSource = "system") {
-  const supabase = createAdminClient()
-  const { data: order, error } = await supabase
+  const { data: order, error } = await createAdminClient()
     .from("listing_boost_orders")
     .select("id, provider_payment_id, payment_provider, status, starts_at, ends_at")
     .eq("id", orderId)
@@ -378,7 +289,9 @@ export async function syncBoostOrderFromTbcByOrderId(orderId: string, source: Bo
 
   if (error) throw error
   if (!order) return null
-  if (order.payment_provider !== "tbc_checkout" || !order.provider_payment_id) return { order, payment: null, isFinal: false }
+  if (order.payment_provider !== "tbc_checkout" || !order.provider_payment_id) {
+    return { order, payment: null, isFinal: false }
+  }
 
   return syncBoostOrderFromTbcByPayId(String(order.provider_payment_id), source)
 }

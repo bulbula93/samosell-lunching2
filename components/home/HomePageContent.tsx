@@ -19,6 +19,15 @@ export default function HomePageContent({ data }: { data: HomePageData }) {
         items={data.latestItems}
         favoriteIds={data.favoriteIds}
       />
+      {data.featuredItems.length > 0 ? (
+        <HomeProductsSection
+          title="VIP MAX"
+          description="მთავარი გვერდის გამორჩეული განცხადებები"
+          href="/catalog?sort=vip"
+          items={data.featuredItems}
+          favoriteIds={data.favoriteIds}
+        />
+      ) : null}
       <HomeProductsSection
         title={ka.home.popular}
         description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით"

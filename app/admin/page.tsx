@@ -1,12 +1,15 @@
 import { requireAdminUser } from "@/lib/auth"
 import Link from "next/link"
 import StatCard from "@/components/shared/StatCard"
+import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 
 export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ flash?: string | string[] }> }) {
   const params = (await searchParams) ?? {}
   const flash = typeof params.flash === "string" ? params.flash : ""
 
   const { supabase } = await requireAdminUser("/dashboard")
+  await reconcileExpiredBoostOrders()
+  const nowIso = new Date().toISOString()
 
   const [
     { count: openListingReports },
@@ -25,7 +28,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_suspended", true),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
   ])
 
   return (

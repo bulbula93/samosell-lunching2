@@ -3,14 +3,18 @@ import SmartImage from "@/components/shared/SmartImage"
 import { notFound, redirect } from "next/navigation"
 import { createBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
 import {
+  activePromotionEndsAt,
+  boostProductBenefits,
+  boostProductCta,
+  boostProductName,
   boostStatusLabel,
   buildSuggestedBoostReference,
   formatDateOnly,
   paymentMethodLabel,
   placementLabel,
-  productPriceLabel,
   promotionStateFromListing,
 } from "@/lib/boosts"
+import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { getBoostPaymentConfig } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import { listingStatusLabel } from "@/lib/listings"
@@ -23,9 +27,9 @@ type PromoteBoostOrderRow = Omit<BoostOrder, "product_name" | "placement" | "dur
 function flashLabel(value?: string) {
   switch (value) {
     case "requested":
-      return "VIP განთავსების მოთხოვნა შეიქმნა. ახლა გადადი გადახდების გვერდზე, შეასრულე გადახდა და დაელოდე დადასტურებას."
+      return "გაძლიერების მოთხოვნა შეიქმნა. გადახდისა და აქტივაციის სტატუსს გადახდების გვერდზე ნახავ."
     case "already_requested":
-      return "ამ განცხადებაზე იგივე პაკეტი უკვე გაქვს მოთხოვნილი ან აქტიურია."
+      return "ამ პაკეტზე უკვე გაქვს დაუსრულებელი გადახდის მოთხოვნა. აქტიური პაკეტის ხელახლა შეძენა დაშვებულია და მის ვადას გააგრძელებს."
     case "missing":
       return "შეავსე აუცილებელი ველები."
     case "not_found":
@@ -67,10 +71,12 @@ export default async function DashboardListingPromotePage({
 
   if (!user) redirect(`/login?next=${encodeURIComponent(`/dashboard/listings/${id}/promote`)}`)
 
+  await reconcileExpiredBoostOrders()
+
   const [{ data: listing }, { data: products }, { data: orders }] = await Promise.all([
     supabase
       .from("listings")
-      .select("id, seller_id, slug, title, status, cover_image_url, price, currency, is_vip, vip_until, promoted_until, featured_until, featured_slot")
+      .select("id, seller_id, slug, title, status, cover_image_url, price, currency, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot")
       .eq("id", id)
       .eq("seller_id", user.id)
       .maybeSingle(),
@@ -133,10 +139,10 @@ export default async function DashboardListingPromotePage({
       <section className="ui-card p-6 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-3xl">
-            <div className="ui-eyebrow">VIP განთავსება</div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">განცხადების VIP განთავსება</h1>
+            <div className="ui-eyebrow">მეტი ხილვადობა</div>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გააძლიერე განცხადება</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აქედან ირჩევ პაკეტს, ამზადებ შეკვეთას და წყვეტ გადახდის მეთოდს. წარმატებული TBC Checkout გადახდა ავტომატურად ააქტიურებს VIP განთავსებას, ხოლო ხელით მეთოდები დასტურდება დამატებითი შემოწმების შემდეგ.
+              აირჩიე ოთხი მარტივი პაკეტიდან. TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს; ხელით გადახდას ადმინი დაადასტურებს.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -161,8 +167,9 @@ export default async function DashboardListingPromotePage({
               <div className="mt-2 text-sm font-semibold text-text">{listing.price} {listing.currency === "GEL" ? "₾" : listing.currency}</div>
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
                 <span className={state.isVip ? "ui-pill-vip-soft" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>VIP {state.vipUntil ? `· ${formatDateOnly(state.vipUntil.toISOString())}` : ""}</span>
-                <span className={state.isPromoted ? "ui-pill-promoted" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>დამატებითი ხილვადობა {state.promotedUntil ? `· ${formatDateOnly(state.promotedUntil.toISOString())}` : ""}</span>
-                <span className={state.isFeatured ? "ui-pill-featured" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>მთავარ ბლოკში გამოჩენა{state.featuredSlot ? ` #${state.featuredSlot}` : ""} {state.featuredUntil ? `· ${formatDateOnly(state.featuredUntil.toISOString())}` : ""}</span>
+                <span className={state.isPromoted ? "ui-pill-promoted" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>TOP {state.promotedUntil ? `· ${formatDateOnly(state.promotedUntil.toISOString())}` : ""}</span>
+                <span className={state.isFeatured ? "ui-pill-featured" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>VIP MAX {state.featuredUntil ? `· ${formatDateOnly(state.featuredUntil.toISOString())}` : ""}</span>
+                <span className={state.isHomeBanner ? "ui-pill-soft" : "ui-pill !bg-surface-alt !px-3 !py-1 text-text-soft"}>ბანერი {state.homeBannerUntil ? `· ${formatDateOnly(state.homeBannerUntil.toISOString())}` : ""}</span>
               </div>
             </div>
           </div>
@@ -212,31 +219,41 @@ export default async function DashboardListingPromotePage({
       </section>
 
       <section className="mt-8 ui-card p-6">
-        <div className="ui-eyebrow">პაკეტები</div>
-        <h2 className="mt-3 text-2xl font-black text-text">აირჩიე VIP პაკეტი</h2>
+        <div className="ui-eyebrow">4 პაკეტი · 7 დღე</div>
+        <h2 className="mt-3 text-2xl font-black text-text">აირჩიე როგორ გინდა გამოჩნდე</h2>
+        <p className="mt-2 text-sm leading-7 text-text-soft">თუ იგივე პაკეტი უკვე აქტიურია, ახალი 7 დღე მიმდინარე დასრულების თარიღიდან დაემატება.</p>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {typedProducts.map((product) => {
             const suggestedReference = buildSuggestedBoostReference(listing.id, product.id)
+            const activeUntil = activePromotionEndsAt(listing, product.placement)
+            const benefits = boostProductBenefits(product.placement)
+            const packageName = boostProductName(product.name, product.placement)
             return (
-              <form key={product.id} action={createBoostOrderAction} className="rounded-[1.35rem] border border-line bg-surface-alt p-5">
+              <form key={product.id} action={createBoostOrderAction} className={`flex h-full flex-col rounded-[1.5rem] border p-5 shadow-sm ${product.placement === "combo" ? "border-[#d9b95f] bg-[linear-gradient(145deg,#fffdf5,#f7efd4)]" : "border-line bg-surface-alt"}`}>
                 <input type="hidden" name="listingId" value={listing.id} suppressHydrationWarning />
                 <input type="hidden" name="productId" value={product.id} suppressHydrationWarning />
                 <input type="hidden" name="nextPath" value={`/dashboard/listings/${listing.id}/promote`} suppressHydrationWarning />
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="ui-eyebrow">{placementLabel(product.placement)}</div>
-                    <div className="mt-2 text-xl font-black text-text">{product.name}</div>
+                    <div className="ui-eyebrow">{product.placement === "combo" ? "ყველაზე სრული" : "7 დღე"}</div>
+                    <div className="mt-2 text-2xl font-black text-text">{packageName}</div>
                     <div className="mt-2 text-sm leading-7 text-text-soft">{product.description || "—"}</div>
                   </div>
-                  <div className="rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">{productPriceLabel(product)}</div>
+                  <div className="shrink-0 rounded-2xl bg-brand px-4 py-3 text-center text-white"><div className="text-lg font-black">{product.price} ₾</div><div className="text-[11px] font-semibold text-white/75">7 დღე</div></div>
                 </div>
+
+                <ul className="mt-5 space-y-2 text-sm text-text">
+                  {benefits.map((benefit) => <li key={benefit} className="flex gap-2"><span className="font-black text-brand">✓</span><span>{benefit}</span></li>)}
+                </ul>
+
+                {activeUntil ? <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><span className="font-bold">აქტიურია:</span> {formatDateOnly(activeUntil.toISOString())}-მდე. ხელახლა შეძენა ვადას 7 დღით გააგრძელებს.</div> : null}
 
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-text">გადახდის მეთოდი</label>
                     <select name="paymentMethod" defaultValue={tbcEnabled ? "tbc_checkout" : "bank_transfer"} className="ui-input" suppressHydrationWarning>
-                      {tbcEnabled ? <option value="tbc_checkout">TBC Checkout</option> : null}
+                      {tbcEnabled ? <option value="tbc_checkout">TBC Checkout — რეკომენდებული</option> : null}
                       <option value="bank_transfer">საბანკო გადარიცხვა</option>
                       <option value="manual_cash">ქეში / ოფლაინ</option>
                       {payment.hasExternalPaymentUrl ? <option value="card_external">გარე ბარათის ლინკი</option> : null}
@@ -254,9 +271,9 @@ export default async function DashboardListingPromotePage({
                   <textarea name="notes" className="min-h-24 w-full rounded-[1rem] border border-line bg-white px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft/70" placeholder="სურვილის შემთხვევაში მიუთითე დამატებითი დეტალი: გადახდის დრო, გამოყენებული არხი ან საკონტაქტო ინფორმაცია" suppressHydrationWarning />
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-xs leading-5 text-text-soft">გაგზავნის შემდეგ შეკვეთა გამოჩნდება შენს გადახდების გვერდზე და დამუშავებისთვის შიდა პანელშიც.</div>
-                  <button className="ui-btn-primary" suppressHydrationWarning>შეკვეთის შექმნა</button>
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
+                  <div className="text-xs leading-5 text-text-soft">TBC Checkout მთავარ მეთოდადაა არჩეული; ხელით გადახდა დამატებით შემოწმებას საჭიროებს.</div>
+                  <button className="ui-btn-primary" suppressHydrationWarning>{boostProductCta(product.placement)}</button>
                 </div>
               </form>
             )

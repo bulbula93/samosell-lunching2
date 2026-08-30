@@ -52,8 +52,11 @@ export type PromotionState = {
   is_vip: boolean
   is_promoted?: boolean
   is_featured?: boolean
+  is_home_banner?: boolean
   vip_until?: string | null
   promoted_until?: string | null
   featured_until?: string | null
   featured_slot?: number | null
+  home_banner_until?: string | null
+  home_banner_slot?: number | null
 }

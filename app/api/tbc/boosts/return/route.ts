@@ -15,7 +15,8 @@ export async function GET(request: Request) {
 
     let flash = "tbc_pending"
     if (result?.order?.status === "active") flash = "tbc_activated"
-    else if (providerStatus === "Succeeded" || providerStatus === "WaitingConfirm") flash = "tbc_success"
+    else if (providerStatus === "Succeeded") flash = "tbc_success"
+    else if (providerStatus === "WaitingConfirm") flash = "tbc_pending"
     else if (providerStatus === "Failed" || providerStatus === "Returned" || providerStatus === "PartialReturned") flash = "tbc_failed"
     else if (providerStatus === "Expired") flash = "tbc_expired"
 

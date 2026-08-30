@@ -2,8 +2,9 @@
 
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
-import { buildBoostDurationEndsAt, buildSuggestedBoostReference } from "@/lib/boosts"
+import { redirect, unstable_rethrow } from "next/navigation"
+import { buildSuggestedBoostReference } from "@/lib/boosts"
+import { activateBoostOrder, reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { humanizeSupabaseError } from "@/lib/listings"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -107,7 +108,9 @@ export async function createBoostOrderAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
   const productId = String(formData.get("productId") || "")
   const requestedPaymentMethod = String(formData.get("paymentMethod") || "bank_transfer")
-  const paymentMethod = requestedPaymentMethod === "tbc_checkout" ? "tbc_checkout" : requestedPaymentMethod
+  const paymentMethod = ["tbc_checkout", "bank_transfer", "manual_cash", "card_external"].includes(requestedPaymentMethod)
+    ? requestedPaymentMethod
+    : "bank_transfer"
   const rawPaymentReference = String(formData.get("paymentReference") || "").trim()
   const paymentReference = rawPaymentReference || buildSuggestedBoostReference(listingId, productId)
   const notes = String(formData.get("notes") || "").trim()
@@ -119,6 +122,8 @@ export async function createBoostOrderAction(formData: FormData) {
   if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`)
 
   try {
+    await reconcileExpiredBoostOrders()
+
     const [listing, product] = await Promise.all([
       getOwnedListing(supabase, listingId, user.id),
       getBoostProduct(supabase, productId),
@@ -132,7 +137,7 @@ export async function createBoostOrderAction(formData: FormData) {
       .eq("listing_id", listingId)
       .eq("seller_id", user.id)
       .eq("product_id", productId)
-      .in("status", ["pending_payment", "under_review", "approved", "active"])
+      .in("status", ["pending_payment", "under_review", "approved"])
       .limit(1)
 
     if ((existing ?? []).length > 0) redirect(withFlash(nextPath, "already_requested"))
@@ -143,15 +148,6 @@ export async function createBoostOrderAction(formData: FormData) {
       }
 
       const orderId = randomUUID()
-      const { data: checkout, approvalUrl } = await createTbcPayment({
-        orderId,
-        amount: Number(product.price),
-        currency: product.currency,
-        description: `SamoSell Boost ${orderId.slice(0, 8)}`,
-        extra: paymentReference,
-        language: "KA",
-      })
-
       const checkoutStartedAt = new Date().toISOString()
       const { error } = await supabase.from("listing_boost_orders").insert({
         id: orderId,
@@ -165,18 +161,40 @@ export async function createBoostOrderAction(formData: FormData) {
         currency: product.currency,
         notes: notes || null,
         payment_provider: "tbc_checkout",
-        provider_payment_id: checkout.payId ?? null,
-        provider_checkout_url: approvalUrl,
-        provider_status: checkout.status ?? "Created",
-        provider_result_code: checkout.resultCode ?? null,
+        provider_status: "Created",
         checkout_session_started_at: checkoutStartedAt,
         last_payment_sync_at: checkoutStartedAt,
       })
 
       if (error) throw error
 
+      let checkoutUrl = ""
       try {
-        await createAdminClient().from("listing_boost_order_events").insert({
+        const { data: checkout, approvalUrl } = await createTbcPayment({
+          orderId,
+          amount: Number(product.price),
+          currency: product.currency,
+          description: `SamoSell ${orderId.slice(0, 8)}`,
+          extra: paymentReference,
+          language: "KA",
+        })
+        checkoutUrl = approvalUrl
+
+        const adminClient = createAdminClient()
+        const { error: checkoutUpdateError } = await adminClient
+          .from("listing_boost_orders")
+          .update({
+            provider_payment_id: checkout.payId ?? null,
+            provider_checkout_url: approvalUrl,
+            provider_status: checkout.status ?? "Created",
+            provider_result_code: checkout.resultCode ?? null,
+            last_payment_sync_at: new Date().toISOString(),
+          })
+          .eq("id", orderId)
+
+        if (checkoutUpdateError) throw checkoutUpdateError
+
+        const { error: eventError } = await adminClient.from("listing_boost_order_events").insert({
           order_id: orderId,
           seller_id: user.id,
           source: "create",
@@ -186,12 +204,25 @@ export async function createBoostOrderAction(formData: FormData) {
           message: "TBC Checkout session created successfully.",
           payload: { approvalUrl, providerPaymentId: checkout.payId ?? null, paymentReference },
         })
-      } catch {
-        // Optional audit table may not exist yet.
+
+        if (eventError) throw eventError
+
+      } catch (checkoutError) {
+        const failureReason = checkoutError instanceof Error ? checkoutError.message : "TBC Checkout session creation failed."
+        await createAdminClient()
+          .from("listing_boost_orders")
+          .update({
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+            failure_reason: failureReason,
+            admin_note: "TBC Checkout session could not be created.",
+          })
+          .eq("id", orderId)
+        throw checkoutError
       }
 
       revalidatePath("/dashboard/billing")
-      redirect(approvalUrl)
+      redirect(checkoutUrl)
     }
 
     const { error } = await supabase.from("listing_boost_orders").insert({
@@ -208,6 +239,7 @@ export async function createBoostOrderAction(formData: FormData) {
 
     if (error) throw error
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? humanizeSupabaseError(error.message) : "ოპერაცია ვერ შესრულდა."
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
@@ -261,8 +293,10 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
     if (!order) redirect(withFlash(nextPath, "not_found"))
 
     const orderRow = order as unknown as AdminOrderRow
+    const reviewableStatuses = ["pending_payment", "under_review", "approved"]
 
     if (decision === "review") {
+      if (!reviewableStatuses.includes(orderRow.status)) redirect(withFlash(nextPath, "invalid_status"))
       const { error: reviewError } = await supabase
         .from("listing_boost_orders")
         .update({ status: "under_review", admin_note: adminNote || null, reviewed_by: user.id })
@@ -270,6 +304,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
 
       if (reviewError) throw reviewError
     } else if (decision === "reject") {
+      if (!reviewableStatuses.includes(orderRow.status)) redirect(withFlash(nextPath, "invalid_status"))
       const { error: rejectError } = await supabase
         .from("listing_boost_orders")
         .update({ status: "rejected", admin_note: adminNote || null, reviewed_by: user.id, approved_at: null })
@@ -280,73 +315,25 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
       const product = Array.isArray(orderRow.listing_boost_products) ? orderRow.listing_boost_products[0] : orderRow.listing_boost_products
       const listing = Array.isArray(orderRow.listings) ? orderRow.listings[0] : orderRow.listings
       if (!product || !listing) redirect(withFlash(nextPath, "not_found"))
-      const durationDays = Number(product.duration_days ?? 0)
-      if (!durationDays) redirect(withFlash(nextPath, "bad_product"))
+      await activateBoostOrder({
+        orderId,
+        activationSource: "admin",
+        reviewedBy: user.id,
+        featuredSlot: Number.isFinite(featuredSlot as number) ? featuredSlot : null,
+      })
 
-      const placement = String(product.placement)
-      const nextListingUpdate: Record<string, unknown> = {}
-      const nextEndsAtByPlacement = {
-        vip: buildBoostDurationEndsAt(listing.vip_until, durationDays),
-        promoted: buildBoostDurationEndsAt(listing.promoted_until, durationDays),
-        featured: buildBoostDurationEndsAt(listing.featured_until, durationDays),
-        banner: buildBoostDurationEndsAt(listing.home_banner_until, durationDays),
+      if (adminNote) {
+        const { error: noteError } = await createAdminClient()
+          .from("listing_boost_orders")
+          .update({ admin_note: adminNote })
+          .eq("id", orderId)
+        if (noteError) throw noteError
       }
-
-      if (placement === "vip" || placement === "combo") {
-        nextListingUpdate.is_vip = true
-        nextListingUpdate.vip_until = nextEndsAtByPlacement.vip
-      }
-
-      if (placement === "promoted" || placement === "combo") {
-        nextListingUpdate.promoted_until = nextEndsAtByPlacement.promoted
-      }
-
-      if (placement === "featured_home" || placement === "combo") {
-        nextListingUpdate.featured_until = nextEndsAtByPlacement.featured
-        nextListingUpdate.featured_slot = Number.isFinite(featuredSlot as number) ? featuredSlot : listing.featured_slot ?? null
-      }
-
-      if (placement === "banner_home") {
-        nextListingUpdate.home_banner_until = nextEndsAtByPlacement.banner
-        nextListingUpdate.home_banner_slot = Number.isFinite(featuredSlot as number) ? featuredSlot : listing.home_banner_slot ?? 1
-      }
-
-      const resolvedEndsAt =
-        placement === "vip"
-          ? nextEndsAtByPlacement.vip
-          : placement === "promoted"
-            ? nextEndsAtByPlacement.promoted
-            : placement === "featured_home"
-              ? nextEndsAtByPlacement.featured
-              : placement === "banner_home"
-                ? nextEndsAtByPlacement.banner
-              : [nextEndsAtByPlacement.vip, nextEndsAtByPlacement.promoted, nextEndsAtByPlacement.featured]
-                  .filter(Boolean)
-                  .sort()
-                  .at(-1) ?? new Date().toISOString()
-
-      const nowIso = new Date().toISOString()
-
-      const { error: listingError } = await supabase.from("listings").update(nextListingUpdate).eq("id", listing.id)
-      if (listingError) throw listingError
-
-      const { error: orderUpdateError } = await supabase
-        .from("listing_boost_orders")
-        .update({
-          status: "active",
-          admin_note: adminNote || null,
-          reviewed_by: user.id,
-          approved_at: nowIso,
-          starts_at: nowIso,
-          ends_at: resolvedEndsAt,
-        })
-        .eq("id", orderId)
-
-      if (orderUpdateError) throw orderUpdateError
     } else {
       redirect(withFlash(nextPath, "missing"))
     }
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? humanizeSupabaseError(error.message) : "ოპერაცია ვერ შესრულდა."
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
@@ -414,6 +401,7 @@ export async function refreshBoostOrderStatusAction(formData: FormData) {
 
     redirect(withFlash(nextPath, "tbc_sync_pending"))
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? humanizeSupabaseError(error.message) : "სტატუსის გადამოწმება ვერ შესრულდა."
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
