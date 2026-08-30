@@ -55,17 +55,17 @@ describe("catalog states", () => {
     errorSpy.mockRestore()
   })
 
-  it("renders real search and category values as removable Georgian filter chips", () => {
+  it("renders top-level category and item type values as removable Georgian filter chips", () => {
     render(
       <CatalogLandingFilters
-        categories={[{ slug: "women", name: "ქალის ტანსაცმელი" }]}
-        brands={[]}
+        categories={[{ slug: "women", name: "ქალებისთვის" }]}
         sizes={[]}
         colors={[]}
         cities={[]}
         values={{
           q: "კაბა",
           category: "women",
+          item_type: "dresses",
           brand: "",
           size: "",
           color: "",
@@ -81,6 +81,9 @@ describe("catalog states", () => {
     )
 
     expect(screen.getByRole("link", { name: "ძებნა: კაბა ფილტრის მოხსნა" })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "ქალის ტანსაცმელი ფილტრის მოხსნა" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "ქალებისთვის ფილტრის მოხსნა" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "კაბები ფილტრის მოხსნა" })).toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "კატეგორია" })).toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "ნივთის ტიპი" })).toBeInTheDocument()
   })
 })
