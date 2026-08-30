@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 
 describe("safe authentication return paths", () => {
+  it("uses the homepage for a normal sign-in without a requested destination", () => {
+    expect(getSafeAuthRedirectPath(undefined)).toBe("/")
+    expect(getSafeAuthRedirectPath("")).toBe("/")
+  })
+
   it("keeps internal create and edit destinations", () => {
     expect(getSafeAuthRedirectPath("/dashboard/listings/new")).toBe("/dashboard/listings/new")
     expect(

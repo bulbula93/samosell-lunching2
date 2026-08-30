@@ -16,7 +16,7 @@ export default async function RegisterPage({
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    redirect("/dashboard")
+    redirect(next)
   }
 
   return (

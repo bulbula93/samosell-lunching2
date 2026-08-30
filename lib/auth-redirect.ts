@@ -1,4 +1,4 @@
-export function getSafeAuthRedirectPath(input: string | null | undefined, fallback = "/dashboard") {
+export function getSafeAuthRedirectPath(input: string | null | undefined, fallback = "/") {
   const safe = String(input ?? "").trim()
 
   if (!safe) return fallback
