@@ -160,6 +160,9 @@ export default function MobileNavigation({
                       </span>
                     ) : null}
                   </Link>
+                  <Link href="/dashboard/saved-searches" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
+                    შენახული ძებნები
+                  </Link>
                   <Link href="/dashboard/chats" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     {ka.nav.messages}
                   </Link>
