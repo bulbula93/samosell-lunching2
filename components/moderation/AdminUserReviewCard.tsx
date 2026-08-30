@@ -6,27 +6,57 @@ import {
 import ModerationSubmitButton from "@/components/moderation/ModerationSubmitButton"
 import {
   MODERATION_NOTE_MAX_LENGTH,
+  reportPriority,
+  reportPriorityLabel,
   reportReasonLabel,
   reportStatusLabel,
 } from "@/lib/moderation"
 import type { AdminUserReport } from "@/types/moderation"
 
+type AdminUserReviewCardProps = {
+  item: AdminUserReport
+  relatedOpenReports?: number
+}
+
 export default function AdminUserReviewCard({
   item,
-}: {
-  item: AdminUserReport
-}) {
+  relatedOpenReports = 1,
+}: AdminUserReviewCardProps) {
   const reportedLabel =
     item.reported_full_name || item.reported_username || "მომხმარებელი"
   const reporterLabel =
     item.reporter_full_name || item.reporter_username || "რეპორტის ავტორი"
   const canReview = item.status === "open" || item.status === "reviewing"
+  const priority = reportPriority("user", item.reason)
+  const isAged =
+    canReview && Date.now() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
 
   return (
     <article className="ui-card p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-3xl">
-          <div className="ui-eyebrow">მომხმარებლის რეპორტი</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="ui-eyebrow">მომხმარებლის რეპორტი</div>
+            <span
+              className={
+                priority === "high"
+                  ? "rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-800"
+                  : "rounded-full border border-line bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft"
+              }
+            >
+              {reportPriorityLabel(priority)}
+            </span>
+            {isAged ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+                24სთ+
+              </span>
+            ) : null}
+            {relatedOpenReports > 1 ? (
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
+                ამ ანგარიშზე {relatedOpenReports} ღია სიგნალი
+              </span>
+            ) : null}
+          </div>
           <h3 className="mt-2 break-words text-2xl font-black text-text">
             {reportedLabel}
           </h3>
