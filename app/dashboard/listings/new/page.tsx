@@ -4,9 +4,9 @@ import { requireAuthenticatedUser } from "@/lib/auth"
 export default async function DashboardNewListingPage() {
   const { supabase, user } = await requireAuthenticatedUser("/dashboard/listings/new")
   const [categoriesResult, brandsResult, sizesResult, profileResult] = await Promise.all([
-    supabase.from("categories").select("id, name").order("id", { ascending: true }),
+    supabase.from("categories").select("id, name, slug").order("id", { ascending: true }),
     supabase.from("brands").select("id, name").eq("is_active", true).order("name", { ascending: true }),
-    supabase.from("sizes").select("id, label").order("sort_order", { ascending: true }),
+    supabase.from("sizes").select("id, label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase.from("profiles").select("store_phone").eq("id", user.id).maybeSingle(),
   ])
 
