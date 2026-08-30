@@ -10,6 +10,7 @@ import {
   validateChatMessageBody,
 } from "@/lib/chats"
 import { isValidListingSlug } from "@/lib/listing-page"
+import { notifyChatMessage } from "@/lib/notifications"
 import { createClient } from "@/lib/supabase/server"
 import type { ChatMessage, ChatMessageCursor } from "@/types/chat"
 
@@ -81,6 +82,17 @@ function buildMessage(
   }
 }
 
+async function createChatNotificationSafely(input: Parameters<typeof notifyChatMessage>[0]) {
+  try {
+    await notifyChatMessage(input)
+  } catch (error) {
+    console.error(
+      "[notifications] chat notification failed",
+      error instanceof Error ? error.message : "unknown error",
+    )
+  }
+}
+
 export async function startChatAction(
   _previousState: StartChatState,
   formData: FormData,
@@ -95,7 +107,7 @@ export async function startChatAction(
       : ""
   const returnPath = listingSlug ? `/listing/${listingSlug}` : "/catalog"
 
-  const { supabase } = await requireAuthenticatedUser(returnPath)
+  const { supabase, user } = await requireAuthenticatedUser(returnPath)
 
   if (!isChatUuid(listingId) || !isChatUuid(clientRequestId)) {
     return {
@@ -120,7 +132,16 @@ export async function startChatAction(
     return { ok: false, message: chatErrorMessage(error?.message) }
   }
 
+  await createChatNotificationSafely({
+    chatId: row.chat_id,
+    messageId: row.message_id,
+    senderId: user.id,
+    body: row.message_body,
+    firstMessage: true,
+  })
+
   revalidatePath("/dashboard/chats")
+  revalidatePath("/dashboard/notifications")
   revalidatePath(`/dashboard/chats/${row.chat_id}`)
   redirect(`/dashboard/chats/${row.chat_id}`)
 }
@@ -168,7 +189,16 @@ export async function sendChatMessageAction(
       return { ok: false, code, message }
     }
 
+    await createChatNotificationSafely({
+      chatId: input.chatId,
+      messageId: row.message_id,
+      senderId: context.user.id,
+      body: row.message_body,
+      firstMessage: false,
+    })
+
     revalidatePath("/dashboard/chats")
+    revalidatePath("/dashboard/notifications")
     revalidatePath(`/dashboard/chats/${input.chatId}`)
 
     return {
@@ -252,7 +282,17 @@ export async function markChatReadAction(chatId: string) {
   })
 
   if (error || data !== true) return { ok: false as const }
+
+  const { error: notificationError } = await context.supabase.rpc(
+    "mark_chat_notifications_read",
+    { p_chat_id: chatId },
+  )
+  if (notificationError) {
+    console.error("[notifications] mark chat notifications read failed", notificationError.message)
+  }
+
   revalidatePath("/dashboard/chats")
+  revalidatePath("/dashboard/notifications")
   return { ok: true as const }
 }
 

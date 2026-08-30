@@ -8,6 +8,27 @@ import MobileNavigation, {
 } from "@/components/layout/MobileNavigation"
 import { ka } from "@/lib/i18n/ka"
 
+function NotificationBell({ count }: { count: number }) {
+  return (
+    <Link
+      href="/dashboard/notifications"
+      aria-label={count > 0 ? `შეტყობინებები — ${count} წაუკითხავი` : "შეტყობინებები"}
+      title="შეტყობინებები"
+      className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-text transition hover:border-brand/40 hover:bg-brand-soft"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 21h4" />
+      </svg>
+      {count > 0 ? (
+        <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
+          {count > 99 ? "99+" : count}
+        </span>
+      ) : null}
+    </Link>
+  )
+}
+
 export default function MarketplaceHeader({
   items,
   userState,
@@ -46,6 +67,7 @@ export default function MarketplaceHeader({
 
           {userState.signedIn ? (
             <>
+              <NotificationBell count={userState.unreadNotifications} />
               <Link
                 href="/dashboard/chats"
                 aria-label={ka.nav.messages}
@@ -81,6 +103,14 @@ export default function MarketplaceHeader({
                 <nav className="absolute right-0 top-[calc(100%+10px)] w-52 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.14)]">
                   <Link href="/dashboard" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     კაბინეტი
+                  </Link>
+                  <Link href="/dashboard/notifications" className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    <span>შეტყობინებები</span>
+                    {userState.unreadNotifications > 0 ? (
+                      <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-black text-white">
+                        {userState.unreadNotifications > 99 ? "99+" : userState.unreadNotifications}
+                      </span>
+                    ) : null}
                   </Link>
                   <Link href="/dashboard/profile" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     {ka.nav.profile}

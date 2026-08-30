@@ -21,15 +21,33 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
     supabase.from("categories").select("slug, name").order("id", { ascending: true }),
   ])
 
-  const profileResponse = user
-    ? await supabase
+  let profile: {
+    is_admin: boolean
+    avatar_url: string | null
+    full_name: string | null
+    username: string | null
+    store_logo_url: string | null
+    seller_type: string
+  } | null = null
+  let unreadNotifications = 0
+
+  if (user) {
+    const [profileResponse, unreadResponse] = await Promise.all([
+      supabase
         .from("profiles")
         .select("is_admin, avatar_url, full_name, username, store_logo_url, seller_type")
         .eq("id", user.id)
-        .maybeSingle()
-    : { data: null }
+        .maybeSingle(),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .is("read_at", null),
+    ])
 
-  const profile = profileResponse.data
+    profile = profileResponse.data
+    if (!unreadResponse.error) unreadNotifications = unreadResponse.count ?? 0
+  }
+
   const profileLabel = profile?.full_name || profile?.username || "პროფილი"
   const databaseItems = (categoriesResponse.data ?? [])
     .filter((item) => item.slug && item.name)
@@ -59,6 +77,7 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
         profileLabel,
         profileImage: getUserAvatar(profile),
         isAdmin: Boolean(profile?.is_admin),
+        unreadNotifications,
       }}
     />
   )

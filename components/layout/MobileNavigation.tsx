@@ -16,6 +16,7 @@ export type MarketplaceUserState = {
   profileLabel: string
   profileImage: string | null
   isAdmin: boolean
+  unreadNotifications: number
 }
 
 export default function MobileNavigation({
@@ -80,9 +81,14 @@ export default function MobileNavigation({
         aria-expanded={open}
         aria-controls="mobile-marketplace-menu"
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-xl font-bold text-text transition hover:border-brand/40 hover:bg-brand-soft/40"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-xl font-bold text-text transition hover:border-brand/40 hover:bg-brand-soft/40"
       >
         ☰
+        {userState.signedIn && userState.unreadNotifications > 0 ? (
+          <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black leading-none text-white">
+            {userState.unreadNotifications > 99 ? "99+" : userState.unreadNotifications}
+          </span>
+        ) : null}
       </button>
 
       {open ? (
@@ -146,6 +152,14 @@ export default function MobileNavigation({
               </Link>
               {userState.signedIn ? (
                 <div className="grid grid-cols-2 gap-3">
+                  <Link href="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2 justify-between">
+                    <span>შეტყობინებები</span>
+                    {userState.unreadNotifications > 0 ? (
+                      <span className="rounded-full bg-brand px-2 py-1 text-xs font-black text-white">
+                        {userState.unreadNotifications > 99 ? "99+" : userState.unreadNotifications}
+                      </span>
+                    ) : null}
+                  </Link>
                   <Link href="/dashboard/chats" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     {ka.nav.messages}
                   </Link>
