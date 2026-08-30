@@ -17,7 +17,7 @@ const optionalProfilePhoneMigration = readFileSync(
     process.cwd(),
     "supabase",
     "migrations",
-    "20260830162000_allow_profile_phone_removal.sql",
+    "20260830161500_allow_profile_phone_removal.sql",
   ),
   "utf8",
 )
