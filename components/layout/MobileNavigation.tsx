@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import SignOutButton from "@/components/dashboard/SignOutButton"
 import MarketplaceSearch from "@/components/layout/MarketplaceSearch"
 import { ka } from "@/lib/i18n/ka"
 
@@ -157,11 +158,18 @@ export default function MobileNavigation({
                   <Link href="/dashboard/profile" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                     {userState.profileLabel}
                   </Link>
+                  <Link href="/dashboard/billing" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                    VIP განთავსება
+                  </Link>
+                  <Link href="/dashboard/reports" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                    რეპორტები
+                  </Link>
                   {userState.isAdmin ? (
                     <Link href="/admin" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                       ადმინისტრირება
                     </Link>
                   ) : null}
+                  <SignOutButton className="ui-btn-secondary col-span-2 w-full" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">

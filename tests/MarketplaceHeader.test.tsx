@@ -1,8 +1,12 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
 import { ka } from "@/lib/i18n/ka"
+
+vi.mock("@/components/dashboard/SignOutButton", () => ({
+  default: () => <button type="button">გასვლა</button>,
+}))
 
 const items = [
   { label: "ქალებისთვის", href: "/catalog?category=women" },
@@ -39,6 +43,9 @@ describe("MarketplaceHeader", () => {
 
     expect(screen.getByRole("link", { name: ka.nav.messages })).toHaveAttribute("href", "/dashboard/chats")
     expect(screen.getByRole("link", { name: ka.nav.favorites })).toHaveAttribute("href", "/dashboard/favorites")
+    expect(screen.getByRole("link", { name: "კაბინეტი" })).toHaveAttribute("href", "/dashboard")
+    expect(screen.getByRole("link", { name: "VIP განთავსება" })).toHaveAttribute("href", "/dashboard/billing")
+    expect(screen.getByRole("button", { name: "გასვლა" })).toBeInTheDocument()
     expect(screen.getByText("ნინო")).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: ka.nav.login })).not.toBeInTheDocument()
   })

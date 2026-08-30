@@ -1,4 +1,5 @@
 import Link from "next/link"
+import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
 import MarketplaceSearch from "@/components/layout/MarketplaceSearch"
 import MobileNavigation, {
@@ -75,6 +76,9 @@ export default function MarketplaceHeader({
                   <span aria-hidden="true" className="text-xs text-text-soft transition group-open:rotate-180">⌄</span>
                 </summary>
                 <nav className="absolute right-0 top-[calc(100%+10px)] w-52 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.14)]">
+                  <Link href="/dashboard" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    კაბინეტი
+                  </Link>
                   <Link href="/dashboard/profile" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     {ka.nav.profile}
                   </Link>
@@ -84,11 +88,20 @@ export default function MarketplaceHeader({
                   <Link href="/dashboard/orders" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     შეკვეთები
                   </Link>
+                  <Link href="/dashboard/billing" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    VIP განთავსება
+                  </Link>
+                  <Link href="/dashboard/reports" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    რეპორტები
+                  </Link>
                   {userState.isAdmin ? (
                     <Link href="/admin" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                       ადმინისტრირება
                     </Link>
                   ) : null}
+                  <div className="mt-1 border-t border-line pt-1">
+                    <SignOutButton className="block w-full rounded-xl px-4 py-3 text-left text-sm font-semibold text-text transition hover:bg-brand-soft" />
+                  </div>
                 </nav>
               </details>
             </>

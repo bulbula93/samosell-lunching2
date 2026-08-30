@@ -1,3 +1,4 @@
+import type { User } from "@supabase/supabase-js"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
 import type { MarketplaceNavItem } from "@/components/layout/MobileNavigation"
 import { getCatalogItemLabel } from "@/lib/catalog-taxonomy"
@@ -11,14 +12,15 @@ const categoryLabelOverrides: Record<string, string> = {
   vintage: "ვინტაჟი",
 }
 
-export default async function SiteHeader() {
+export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: User | null } = {}) {
   const supabase = await createClient()
-  const [authResponse, categoriesResponse] = await Promise.all([
-    supabase.auth.getUser(),
+  const [user, categoriesResponse] = await Promise.all([
+    authenticatedUser === undefined
+      ? supabase.auth.getUser().then((response) => response.data.user)
+      : Promise.resolve(authenticatedUser),
     supabase.from("categories").select("slug, name").order("id", { ascending: true }),
   ])
 
-  const user = authResponse.data.user
   const profileResponse = user
     ? await supabase
         .from("profiles")
