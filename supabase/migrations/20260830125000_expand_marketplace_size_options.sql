@@ -1,0 +1,80 @@
+-- Add normalized size groups used by listing forms and catalog filters.
+-- Existing men/women/shoes/universal rows remain untouched for backward compatibility.
+
+insert into public.sizes (id, group_name, label, sort_order)
+select gen_random_uuid(), values_row.group_name, values_row.label, values_row.sort_order
+from (
+  values
+    ('clothing', 'XXS', 10),
+    ('clothing', 'XS', 20),
+    ('clothing', 'S', 30),
+    ('clothing', 'M', 40),
+    ('clothing', 'L', 50),
+    ('clothing', 'XL', 60),
+    ('clothing', 'XXL', 70),
+    ('clothing', '3XL', 80),
+
+    ('bottoms', 'W24', 10),
+    ('bottoms', 'W25', 20),
+    ('bottoms', 'W26', 30),
+    ('bottoms', 'W27', 40),
+    ('bottoms', 'W28', 50),
+    ('bottoms', 'W29', 60),
+    ('bottoms', 'W30', 70),
+    ('bottoms', 'W31', 80),
+    ('bottoms', 'W32', 90),
+    ('bottoms', 'W33', 100),
+    ('bottoms', 'W34', 110),
+    ('bottoms', 'W35', 120),
+    ('bottoms', 'W36', 130),
+    ('bottoms', 'W38', 140),
+    ('bottoms', 'W40', 150),
+    ('bottoms', 'W42', 160),
+    ('bottoms', 'W44', 170),
+
+    ('shoes', '34', 0),
+    ('shoes', '35', 5),
+    ('shoes', '44', 90),
+    ('shoes', '45', 100),
+    ('shoes', '46', 110),
+    ('shoes', '47', 120),
+
+    ('kids', '56', 10),
+    ('kids', '62', 20),
+    ('kids', '68', 30),
+    ('kids', '74', 40),
+    ('kids', '80', 50),
+    ('kids', '86', 60),
+    ('kids', '92', 70),
+    ('kids', '98', 80),
+    ('kids', '104', 90),
+    ('kids', '110', 100),
+    ('kids', '116', 110),
+    ('kids', '122', 120),
+    ('kids', '128', 130),
+    ('kids', '134', 140),
+    ('kids', '140', 150),
+    ('kids', '146', 160),
+    ('kids', '152', 170),
+    ('kids', '158', 180),
+    ('kids', '164', 190),
+
+    ('kids_shoes', '20', 10),
+    ('kids_shoes', '21', 20),
+    ('kids_shoes', '22', 30),
+    ('kids_shoes', '23', 40),
+    ('kids_shoes', '24', 50),
+    ('kids_shoes', '25', 60),
+    ('kids_shoes', '26', 70),
+    ('kids_shoes', '27', 80),
+    ('kids_shoes', '28', 90),
+    ('kids_shoes', '29', 100),
+    ('kids_shoes', '30', 110),
+    ('kids_shoes', '31', 120),
+    ('kids_shoes', '32', 130),
+    ('kids_shoes', '33', 140),
+    ('kids_shoes', '34', 150),
+    ('kids_shoes', '35', 160)
+) as values_row(group_name, label, sort_order)
+on conflict (group_name, label)
+do update set sort_order = excluded.sort_order;
