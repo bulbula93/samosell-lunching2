@@ -37,11 +37,11 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href="/catalog" className="ui-btn-primary">
-            {ka.home.startShopping}
+          <Link href="/dashboard/listings/new" className="ui-btn-primary">
+            გაყიდე
           </Link>
-          <Link href="/dashboard/listings/new" className="ui-btn-secondary">
-            {ka.home.startSelling}
+          <Link href="/catalog" className="ui-btn-secondary">
+            იყიდე
           </Link>
 
           {userState.signedIn ? (
@@ -121,11 +121,11 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
-          <Link href="/catalog" className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
-            {ka.home.startShopping}
+          <Link href="/dashboard/listings/new" className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
+            გაყიდე
           </Link>
-          <Link href="/dashboard/listings/new" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
-            {ka.home.startSelling}
+          <Link href="/catalog" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
+            იყიდე
           </Link>
         </div>
       </div>
