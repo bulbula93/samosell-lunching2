@@ -5,7 +5,22 @@ export type CatalogItemOption = {
   keywords: string[]
 }
 
-export const TOP_LEVEL_CATEGORY_SLUGS = new Set(["women", "men", "accessories", "vintage"])
+export type CatalogSectionOption = {
+  value: "women" | "men" | "accessories" | "vintage" | "kids" | "footwear" | "bags"
+  label: string
+}
+
+export const CATALOG_SECTION_OPTIONS: CatalogSectionOption[] = [
+  { value: "women", label: "ქალებისთვის" },
+  { value: "men", label: "მამაკაცებისთვის" },
+  { value: "accessories", label: "აქსესუარები" },
+  { value: "vintage", label: "ვინტაჟი" },
+  { value: "kids", label: "ბავშვებისთვის" },
+  { value: "footwear", label: "ფეხსაცმელი" },
+  { value: "bags", label: "ჩანთები" },
+]
+
+export const TOP_LEVEL_CATEGORY_SLUGS = new Set(CATALOG_SECTION_OPTIONS.map((item) => item.value))
 
 const CATALOG_ITEM_OPTIONS: CatalogItemOption[] = [
   { value: "tshirts", label: "მაისურები", genders: ["women", "men", "unisex", "kids"], keywords: ["მაისური", "tee", "t-shirt"] },
@@ -40,6 +55,26 @@ export function getCatalogItemOptions(gender?: string) {
   const normalized = gender === "women" || gender === "men" || gender === "unisex" || gender === "kids" ? gender : ""
   if (!normalized) return CATALOG_ITEM_OPTIONS
   return CATALOG_ITEM_OPTIONS.filter((item) => item.genders.includes(normalized))
+}
+
+export function getCatalogItemOptionsForSection(section?: string) {
+  if (section === "women" || section === "men" || section === "kids") {
+    return getCatalogItemOptions(section)
+  }
+  if (section === "footwear" || section === "bags" || section === "accessories") {
+    return CATALOG_ITEM_OPTIONS.filter((item) => item.value === section)
+  }
+  if (section === "vintage") {
+    return CATALOG_ITEM_OPTIONS.filter(
+      (item) => item.value !== "vintage" && item.genders.some((gender) => gender === "women" || gender === "men" || gender === "unisex"),
+    )
+  }
+  return CATALOG_ITEM_OPTIONS
+}
+
+export function getCatalogSectionLabel(value?: string | null) {
+  if (!value) return ""
+  return CATALOG_SECTION_OPTIONS.find((item) => item.value === value)?.label ?? getCatalogItemLabel(value)
 }
 
 export function getCatalogItemLabel(value?: string | null) {
