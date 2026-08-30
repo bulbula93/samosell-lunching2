@@ -14,7 +14,7 @@ import {
   summarizeFilters,
 } from "@/lib/catalog-page"
 import { getCatalogItemOptions } from "@/lib/catalog-taxonomy"
-import { GEORGIA_CITIES, getCatalogSizeLabels } from "@/lib/marketplace-options"
+import { GEORGIA_CITIES } from "@/lib/marketplace-options"
 import { absoluteUrl, buildCatalogDescription, buildCatalogTitle } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
@@ -135,7 +135,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     ).values()
   )
   const uniqueBrands = Array.from(new Set((brands ?? []).map((item: { name?: string | null }) => normalizeText(item?.name)).filter(Boolean)))
-  const uniqueSizes = getCatalogSizeLabels(sizes ?? [], category, gender, size)
   const uniqueColors = Array.from(new Set((colorsRaw ?? []).map((item: { color?: string | null }) => normalizeText(item?.color)).filter(Boolean)))
   const legacyCities = (citiesRaw ?? []).map((item: { city?: string | null }) => normalizeText(item?.city)).filter(Boolean)
   const cityOptions = Array.from(new Set([...GEORGIA_CITIES, ...legacyCities]))
@@ -153,7 +152,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
           <CatalogLandingFilters
             categories={uniqueCategories}
             brands={uniqueBrands}
-            sizes={uniqueSizes}
+            sizes={sizes ?? []}
             colors={uniqueColors}
             cities={cityOptions}
             values={{ q, category, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }}
