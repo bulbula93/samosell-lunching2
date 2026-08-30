@@ -60,7 +60,7 @@ export async function getHomePageData(): Promise<HomePageData> {
       .eq("is_vip", true)
       .not("cover_image_url", "is", null)
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(3),
+      .limit(8),
     supabase
       .from("listings_catalog")
       .select(baseListingSelect)

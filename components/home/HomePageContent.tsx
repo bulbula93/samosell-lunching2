@@ -10,7 +10,7 @@ import type { HomePageData } from "@/lib/home-page"
 export default function HomePageContent({ data }: { data: HomePageData }) {
   return (
     <>
-      <HomeSearchHeroSection items={data.heroItems} />
+      <HomeSearchHeroSection vipItems={data.heroItems} popularItems={data.popularItems} />
       {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
       <HomeProductsSection
         title={ka.home.latest}
