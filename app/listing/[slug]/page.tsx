@@ -16,7 +16,13 @@ import {
   type ListingPageQueryParams,
 } from "@/lib/listing-page"
 import { getUserAvatar } from "@/lib/profiles"
+import { normalizeSearchId, recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { absoluteUrl } from "@/lib/seo"
+import { createClient } from "@/lib/supabase/server"
+
+type ListingDetailsSearchParams = ListingPageQueryParams & {
+  search_id?: string | string[]
+}
 
 export async function generateMetadata({
   params,
@@ -32,7 +38,7 @@ export default async function ListingDetailsPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams?: Promise<ListingPageQueryParams>
+  searchParams?: Promise<ListingDetailsSearchParams>
 }) {
   const { slug } = await params
   const query = (await searchParams) ?? {}
@@ -56,6 +62,19 @@ export default async function ListingDetailsPage({
     viewerId,
     reviewData,
   } = pageData
+
+  const searchId = normalizeSearchId(
+    typeof query.search_id === "string" ? query.search_id : "",
+  )
+
+  if (searchId && listing.status === "active") {
+    const analyticsClient = await createClient()
+    await recordSearchInteractionSafely(analyticsClient, {
+      searchId,
+      listingId: listing.id,
+      eventType: "click",
+    })
+  }
 
   const chatError = typeof query.chatError === "string" ? query.chatError : ""
   const favoriteError =
@@ -125,6 +144,7 @@ export default async function ListingDetailsPage({
               sellerSuspended={Boolean(sellerProfile?.is_suspended)}
               sellerReviewSummary={reviewData.summary}
               shareUrl={absoluteUrl(`/listing/${listing.slug}`)}
+              searchId={searchId}
             />
           </div>
         </section>
