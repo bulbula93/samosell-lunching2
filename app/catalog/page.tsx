@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
@@ -204,6 +205,38 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
+  const searchId = q ? randomUUID() : null
+
+  if (searchId) {
+    const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
+      p_search_id: searchId,
+      p_query: q,
+      p_filters: {
+        category,
+        item_type,
+        brand,
+        size,
+        color,
+        city,
+        condition,
+        gender,
+        vip,
+        min_price,
+        max_price,
+      },
+      p_sort: sort,
+      p_page: page,
+      p_result_count: totalCount,
+      p_listing_ids: listings.map((item) => item.id),
+    })
+
+    if (analyticsError || recorded !== true) {
+      console.error(
+        "[search-analytics] impression failed",
+        analyticsError?.message || "record_search_impression returned false",
+      )
+    }
+  }
 
   return (
     <>
@@ -230,7 +263,12 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
           />
 
           <div className="mt-8">
-            <CatalogResultsGrid listings={listings} currentPath={currentPath} favoriteIds={favoriteIds} />
+            <CatalogResultsGrid
+              listings={listings}
+              currentPath={currentPath}
+              favoriteIds={favoriteIds}
+              searchId={searchId}
+            />
           </div>
 
           <div className="mt-10">
