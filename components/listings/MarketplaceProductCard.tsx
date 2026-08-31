@@ -4,6 +4,7 @@ import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
 import { ka } from "@/lib/i18n/ka"
 import { conditionLabel, formatPrice } from "@/lib/listings"
+import { searchListingHref } from "@/lib/search-analytics"
 import type { CatalogListing } from "@/types/marketplace"
 
 type MarketplaceProductCardProps = {
@@ -11,6 +12,7 @@ type MarketplaceProductCardProps = {
   currentPath?: string
   isFavorited?: boolean
   showFavorite?: boolean
+  searchId?: string | null
 }
 
 function statusLabel(status?: string | null) {
@@ -24,6 +26,7 @@ export default function MarketplaceProductCard({
   currentPath = "/catalog",
   isFavorited = false,
   showFavorite = true,
+  searchId = null,
 }: MarketplaceProductCardProps) {
   const unavailable = item.status === "reserved" || item.status === "sold"
   const badge = statusLabel(item.status)
@@ -31,11 +34,12 @@ export default function MarketplaceProductCard({
   const sellerAvatar = item.seller_type === "store"
     ? item.seller_store_logo_url || item.seller_avatar_url
     : item.seller_avatar_url
+  const listingHref = searchListingHref(item.slug, searchId)
 
   return (
     <article className="group relative flex h-full min-w-0 flex-col">
       <Link
-        href={`/listing/${item.slug}`}
+        href={listingHref}
         aria-label={`${item.title} — ${formatPrice(item.price, item.currency)}`}
         className="absolute inset-0 z-10 rounded-2xl"
       >
@@ -84,6 +88,7 @@ export default function MarketplaceProductCard({
               listingSlug={item.slug}
               nextPath={currentPath}
               isFavorited={isFavorited}
+              searchId={searchId}
               compact
               className="shadow-[0_6px_18px_rgba(7,63,59,0.16)]"
             />
