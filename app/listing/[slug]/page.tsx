@@ -144,7 +144,6 @@ export default async function ListingDetailsPage({
               sellerSuspended={Boolean(sellerProfile?.is_suspended)}
               sellerReviewSummary={reviewData.summary}
               shareUrl={absoluteUrl(`/listing/${listing.slug}`)}
-              searchId={searchId}
             />
           </div>
         </section>
