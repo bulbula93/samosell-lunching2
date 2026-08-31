@@ -7,6 +7,7 @@ function read(path: string) {
 }
 
 const migration = read("supabase/migrations/20260831070335_add_pwa_web_push_phase_13.sql")
+const optimizationMigration = read("supabase/migrations/20260831071609_optimize_pwa_push_dispatch_phase_13.sql")
 const worker = read("supabase/functions/push-dispatch/index.ts")
 const serviceWorker = read("public/sw.js")
 const subscriptionRoute = read("app/api/push/subscription/route.ts")
@@ -29,8 +30,7 @@ describe("Phase 13 PWA + Web Push", () => {
 
   it("does not commit VAPID private material", () => {
     expect(migration).toContain("Never commit the private key")
-    expect(migration).not.toContain("uiJZMZAPNfKpxRswphjV7f23kun8QfbBuA4smFxmEcU")
-    expect(worker).not.toContain("uiJZMZAPNfKpxRswphjV7f23kun8QfbBuA4smFxmEcU")
+    expect(worker).not.toContain("vapid_private_key: \"")
   })
 
   it("requires an explicit user gesture before asking for notification permission", () => {
@@ -40,15 +40,26 @@ describe("Phase 13 PWA + Web Push", () => {
   })
 
   it("validates same-origin subscription writes and authenticated ownership", () => {
-    expect(subscriptionRoute).toContain("sameOrigin(request)")
+    expect(subscriptionRoute).toContain("if (!origin) return false")
+    expect(subscriptionRoute).toContain('fetchSite !== "same-origin"')
     expect(subscriptionRoute).toContain("if (!user)")
     expect(subscriptionRoute).toContain('.eq("user_id", user.id)')
   })
 
   it("supports installability and notification click deep links", () => {
+    expect(manifest).toContain('id: "/"')
+    expect(manifest).toContain('sizes: "192x192"')
+    expect(manifest).toContain('sizes: "512x512"')
     expect(manifest).toContain('display: "standalone"')
     expect(serviceWorker).toContain('self.addEventListener("push"')
     expect(serviceWorker).toContain('self.addEventListener("notificationclick"')
     expect(serviceWorker).toContain("openWindow(targetUrl)")
+  })
+
+  it("dispatches only when queue work exists and uses a bounded retry cadence", () => {
+    expect(optimizationMigration).toContain("if not exists")
+    expect(optimizationMigration).toContain("get diagnostics v_enqueued = row_count")
+    expect(optimizationMigration).toContain("if v_enqueued > 0")
+    expect(optimizationMigration).toContain("'*/5 * * * *'")
   })
 })

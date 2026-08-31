@@ -3,6 +3,7 @@ import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/",
     name: SITE_NAME,
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION_KA,
@@ -15,8 +16,14 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["shopping", "social"],
     icons: [
       {
-        src: "/icon.svg",
-        sizes: "any",
+        src: "/pwa-icon-192.svg",
+        sizes: "192x192",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
+      {
+        src: "/pwa-icon-512.svg",
+        sizes: "512x512",
         type: "image/svg+xml",
         purpose: "any",
       },

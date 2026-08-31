@@ -1,5 +1,5 @@
 const CACHE_NAME = "samosell-pwa-v1"
-const STATIC_ASSETS = ["/icon.svg", "/apple-icon.png"]
+const STATIC_ASSETS = ["/icon.svg", "/pwa-icon-192.svg", "/pwa-icon-512.svg", "/apple-icon.png"]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)))
@@ -27,23 +27,13 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(
     caches.match(request).then(async (cached) => {
-      if (cached) {
-        event.waitUntil(
-          fetch(request)
-            .then((response) => {
-              if (!response.ok) return
-              return caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
-            })
-            .catch(() => undefined),
-        )
-        return cached
-      }
+      if (cached) return cached
 
       try {
         const response = await fetch(request)
         if (response.ok) {
-          const copy = response.clone()
-          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)))
+          const cache = await caches.open(CACHE_NAME)
+          await cache.put(request, response.clone())
         }
         return response
       } catch {
