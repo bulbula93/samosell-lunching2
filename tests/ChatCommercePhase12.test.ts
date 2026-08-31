@@ -8,6 +8,7 @@ function read(path: string) {
 
 const migration = read("supabase/migrations/20260831061706_add_chat_conversion_phase_12.sql")
 const hardening = read("supabase/migrations/20260831062332_resolve_stale_chat_offers_phase_12.sql")
+const authorization = read("supabase/migrations/20260831062649_harden_chat_commerce_authorization_phase_12.sql")
 const actions = read("app/dashboard/chats/commerce-actions.ts")
 const page = read("app/dashboard/chats/[chatId]/page.tsx")
 const panel = read("components/chat/ChatCommercePanel.tsx")
@@ -50,6 +51,14 @@ describe("Phase 12 chat conversion", () => {
     expect(hardening).toContain("status = case when o.buyer_id = v_chat.buyer_id then 'completed' else 'rejected' end")
     expect(hardening).toContain("reserved_for_another_buyer")
     expect(hardening).toContain("listing_sold")
+  })
+
+  it("uses the same block and suspension guard as chat messaging", () => {
+    expect(authorization).toContain("private.assert_chat_commerce_allowed")
+    expect(authorization).toContain("account_suspended")
+    expect(authorization).toContain("public.user_blocks")
+    expect(authorization).toContain("conversation_blocked")
+    expect(actions).toContain("conversation_blocked")
   })
 
   it("adds abuse controls", () => {
