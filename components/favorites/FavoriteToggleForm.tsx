@@ -1,5 +1,6 @@
 import { toggleFavoriteAction } from "@/app/favorites/actions"
 import FavoriteSubmitButton from "@/components/favorites/FavoriteSubmitButton"
+import SearchAttributionInput from "@/components/search/SearchAttributionInput"
 
 type FavoriteToggleFormProps = {
   listingId: string
@@ -25,7 +26,7 @@ export default function FavoriteToggleForm({
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="listingSlug" value={listingSlug} />
       <input type="hidden" name="nextPath" value={nextPath} />
-      {searchId ? <input type="hidden" name="searchId" value={searchId} /> : null}
+      <SearchAttributionInput explicitSearchId={searchId} />
       <FavoriteSubmitButton isFavorited={isFavorited} compact={compact} className={className} />
     </form>
   )
