@@ -26,6 +26,11 @@ const ACTION_RULES = {
     maxHits: 20,
     label: "ახალი ჩატის დაწყება",
   },
+  chat_commerce: {
+    windowSeconds: 10 * 60,
+    maxHits: 20,
+    label: "ჩათის სავაჭრო მოქმედებები",
+  },
   listing_report: {
     windowSeconds: 60 * 60,
     maxHits: 10,
