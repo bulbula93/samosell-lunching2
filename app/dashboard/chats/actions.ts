@@ -11,6 +11,7 @@ import {
 } from "@/lib/chats"
 import { isValidListingSlug } from "@/lib/listing-page"
 import { notifyChatMessage } from "@/lib/notifications"
+import { recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { createClient } from "@/lib/supabase/server"
 import type { ChatMessage, ChatMessageCursor } from "@/types/chat"
 
@@ -100,6 +101,7 @@ export async function startChatAction(
   const listingId = formData.get("listingId")
   const listingSlugValue = formData.get("listingSlug")
   const clientRequestId = formData.get("clientRequestId")
+  const searchId = formData.get("searchId")
   const messageValidation = validateChatMessageBody(formData.get("body"))
   const listingSlug =
     typeof listingSlugValue === "string" && isValidListingSlug(listingSlugValue)
@@ -131,6 +133,12 @@ export async function startChatAction(
   if (error || !row?.chat_id) {
     return { ok: false, message: chatErrorMessage(error?.message) }
   }
+
+  await recordSearchInteractionSafely(supabase, {
+    searchId: typeof searchId === "string" ? searchId : "",
+    listingId,
+    eventType: "chat_start",
+  })
 
   await createChatNotificationSafely({
     chatId: row.chat_id,
