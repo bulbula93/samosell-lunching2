@@ -26,17 +26,33 @@ self.addEventListener("fetch", (event) => {
   if (!isStatic) return
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone()
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
-          }
-          return response
+    caches.match(request).then(async (cached) => {
+      if (cached) {
+        event.waitUntil(
+          fetch(request)
+            .then((response) => {
+              if (!response.ok) return
+              return caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
+            })
+            .catch(() => undefined),
+        )
+        return cached
+      }
+
+      try {
+        const response = await fetch(request)
+        if (response.ok) {
+          const copy = response.clone()
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)))
+        }
+        return response
+      } catch {
+        return new Response("Offline", {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: { "content-type": "text/plain; charset=utf-8" },
         })
-        .catch(() => cached)
-      return cached || network
+      }
     }),
   )
 })
