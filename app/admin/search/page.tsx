@@ -1,6 +1,7 @@
 import Link from "next/link"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
+import { deleteSearchAliasAction, upsertSearchAliasAction } from "./actions"
 
 type QueryMetric = {
   query: string
@@ -43,6 +44,28 @@ type SearchAnalyticsSummary = {
   position_metrics?: PositionMetric[]
 }
 
+type SearchAlias = {
+  id: number
+  canonical_term: string
+  alias: string
+  kind: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+type SearchExperiment = {
+  id: string
+  name: string
+  control_version: string
+  treatment_version: string
+  treatment_percent: number
+  status: string
+  starts_at?: string | null
+  ends_at?: string | null
+  created_at: string
+}
+
 function number(value: unknown) {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -65,6 +88,27 @@ function positionRows(value: unknown): PositionMetric[] {
   return Array.isArray(value) ? (value as PositionMetric[]) : []
 }
 
+function aliasRows(value: unknown): SearchAlias[] {
+  return Array.isArray(value) ? (value as SearchAlias[]) : []
+}
+
+function experimentRows(value: unknown): SearchExperiment[] {
+  return Array.isArray(value) ? (value as SearchExperiment[]) : []
+}
+
+function aliasKindLabel(kind: string) {
+  switch (kind) {
+    case "transliteration":
+      return "ტრანსლიტერაცია"
+    case "brand":
+      return "ბრენდი"
+    case "category":
+      return "კატეგორია"
+    default:
+      return "სინონიმი"
+  }
+}
+
 export default async function AdminSearchAnalyticsPage({
   searchParams,
 }: {
@@ -73,35 +117,55 @@ export default async function AdminSearchAnalyticsPage({
   const params = (await searchParams) ?? {}
   const days = readDays(params.days)
   const { supabase } = await requireAdminUser("/dashboard")
-  const { data, error } = await supabase.rpc("get_search_analytics_summary", {
-    p_days: days,
-  })
 
-  if (error) {
-    throw new Error(`search_analytics_failed:${error.message}`)
+  const [analyticsResponse, aliasesResponse, experimentsResponse] = await Promise.all([
+    supabase.rpc("get_search_analytics_summary", { p_days: days }),
+    supabase.rpc("admin_list_search_aliases"),
+    supabase.rpc("admin_list_search_experiments"),
+  ])
+
+  if (analyticsResponse.error) {
+    throw new Error(`search_analytics_failed:${analyticsResponse.error.message}`)
+  }
+  if (aliasesResponse.error) {
+    throw new Error(`search_aliases_failed:${aliasesResponse.error.message}`)
+  }
+  if (experimentsResponse.error) {
+    throw new Error(`search_experiments_failed:${experimentsResponse.error.message}`)
   }
 
-  const summary = (data ?? {}) as SearchAnalyticsSummary
+  const summary = (analyticsResponse.data ?? {}) as SearchAnalyticsSummary
   const topQueries = queryRows(summary.top_queries)
   const zeroQueries = queryRows(summary.zero_result_queries)
   const highIntentQueries = queryRows(summary.high_intent_queries)
   const positions = positionRows(summary.position_metrics)
+  const aliases = aliasRows(aliasesResponse.data)
+  const experiments = experimentRows(experimentsResponse.data)
+  const runningExperiment = experiments.find((item) => item.status === "running") ?? null
 
   return (
     <main className="ui-container ui-section">
       <section className="ui-card p-6 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-3xl">
-            <div className="ui-eyebrow">Discovery · Phase 10</div>
+            <div className="ui-eyebrow">Discovery · Phase 11A</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">
-              Search Analytics
+              Search Quality Lab
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აქ ჩანს რას ეძებენ, სად ვერ პოულობენ შედეგს და რომელი ძებნა გადადის click, favorite ან chat intent-ში. Ranking-ის წონები ავტომატურად არ იცვლება — ცვლილება ხდება მხოლოდ კონტროლირებადი config version-ით.
+              Phase 10-ის analytics აქ რჩება, ხოლო Phase 11A ამატებს zero-result rescue-ს, სინონიმებს, Latin→Georgian transliteration-ს და A/B ranking-ის უსაფრთხო scaffold-ს. Ranking weight-ები თვითონ არ იცვლება.
             </p>
-            <p className="mt-3 text-xs font-bold text-brand">
-              Ranking version: {summary.ranking_version || "phase10-v1"}
-            </p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+              <span className="rounded-full bg-brand-soft px-3 py-1.5 text-brand">
+                Ranking: {summary.ranking_version || "phase10-v1"}
+              </span>
+              <span className="rounded-full bg-surface-alt px-3 py-1.5 text-text-soft">
+                Alias rules: {aliases.length}
+              </span>
+              <span className="rounded-full bg-surface-alt px-3 py-1.5 text-text-soft">
+                A/B: {runningExperiment ? runningExperiment.name : "გამორთულია"}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -128,6 +192,126 @@ export default async function AdminSearchAnalyticsPage({
         <StatCard label="Favorite / search" value={percent(summary.favorite_rate)} />
         <StatCard label="Chats from search" value={number(summary.chat_starts)} />
         <StatCard label="Chat / search" value={percent(summary.chat_start_rate)} />
+      </section>
+
+      <section className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="ui-card p-5 sm:p-6">
+          <div className="ui-eyebrow">Query dictionary</div>
+          <h2 className="mt-2 text-xl font-black text-text">სინონიმის / alias-ის დამატება</h2>
+          <p className="mt-2 text-sm leading-6 text-text-soft">
+            Rescue მხოლოდ მაშინ იყენებს ამ წესებს, როცა ძირითადი relevance search-ს შედეგი არ აქვს. ერთი alias ერთ canonical მნიშვნელობაზეა მიბმული.
+          </p>
+
+          <form action={upsertSearchAliasAction} className="mt-5 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold text-text">
+              Canonical მნიშვნელობა
+              <input
+                name="canonicalTerm"
+                required
+                maxLength={120}
+                placeholder="მაგ. ჰუდი"
+                className="ui-input"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-text">
+              Alias / სხვა ჩანაწერი
+              <input
+                name="alias"
+                required
+                maxLength={120}
+                placeholder="მაგ. hoodie"
+                className="ui-input"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-text">
+              ტიპი
+              <select name="kind" defaultValue="synonym" className="ui-input">
+                <option value="synonym">სინონიმი</option>
+                <option value="transliteration">ტრანსლიტერაცია</option>
+                <option value="brand">ბრენდი</option>
+                <option value="category">კატეგორია</option>
+              </select>
+            </label>
+            <button type="submit" className="ui-btn-primary justify-center">წესის შენახვა</button>
+          </form>
+        </div>
+
+        <div className="ui-card overflow-hidden">
+          <div className="border-b border-line px-5 py-4 sm:px-6">
+            <div className="ui-eyebrow">Active dictionary</div>
+            <h2 className="mt-2 text-xl font-black text-text">Search aliases</h2>
+          </div>
+          {aliases.length ? (
+            <div className="max-h-[520px] divide-y divide-line overflow-y-auto">
+              {aliases.map((item) => (
+                <div key={item.id} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6">
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="truncate font-black text-text">{item.alias}</span>
+                      <span className="text-text-soft">→</span>
+                      <span className="truncate font-bold text-brand">{item.canonical_term}</span>
+                    </div>
+                    <span className="mt-1 inline-flex rounded-full bg-surface-alt px-2 py-1 text-[11px] font-bold text-text-soft">
+                      {aliasKindLabel(item.kind)}
+                    </span>
+                  </div>
+                  <form action={deleteSearchAliasAction}>
+                    <input type="hidden" name="aliasId" value={item.id} />
+                    <button type="submit" className="ui-btn-ghost text-xs">წაშლა</button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="px-6 py-10 text-sm text-text-soft">Alias dictionary ცარიელია.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6 ui-card p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="max-w-3xl">
+            <div className="ui-eyebrow">A/B scaffold</div>
+            <h2 className="mt-2 text-xl font-black text-text">Ranking experiments</h2>
+            <p className="mt-2 text-sm leading-6 text-text-soft">
+              Assignment infrastructure მზადაა, მაგრამ experiment შეგნებულად არ ირთვება treatment ranking version-ის შექმნამდე. Signed-in მომხმარებელზე variant სტაბილურად ნაწილდება account-ის მიხედვით; anonymous search-ზე — search impression-ის მიხედვით, fingerprint-ის გარეშე.
+            </p>
+          </div>
+          <span className={`rounded-full px-3 py-1.5 text-xs font-black ${runningExperiment ? "bg-amber-100 text-amber-900" : "bg-emerald-50 text-emerald-900"}`}>
+            {runningExperiment ? `RUNNING · ${runningExperiment.name}` : "NO ACTIVE EXPERIMENT"}
+          </span>
+        </div>
+
+        {experiments.length ? (
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="bg-surface-alt text-xs text-text-soft">
+                <tr>
+                  <th className="px-4 py-3">Experiment</th>
+                  <th className="px-4 py-3">Control</th>
+                  <th className="px-4 py-3">Treatment</th>
+                  <th className="px-4 py-3">Split</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {experiments.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 font-bold text-text">{item.name}</td>
+                    <td className="px-4 py-3">{item.control_version}</td>
+                    <td className="px-4 py-3">{item.treatment_version}</td>
+                    <td className="px-4 py-3">{100 - number(item.treatment_percent)} / {number(item.treatment_percent)}</td>
+                    <td className="px-4 py-3 font-bold uppercase">{item.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-5 rounded-xl border border-dashed border-line bg-surface-alt px-5 py-4 text-sm text-text-soft">
+            Experiment ჯერ არ შექმნილა. Phase 11B-ში treatment ranking version-ს რეალურ Phase 10 მონაცემებზე ავაწყობთ და მხოლოდ შემდეგ ჩავრთავთ split-test-ს.
+          </p>
+        )}
       </section>
 
       <section className="mt-6 grid gap-6 xl:grid-cols-2">
