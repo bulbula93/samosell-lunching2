@@ -33,6 +33,15 @@ type CatalogPageParams = CatalogSearchParams & {
 type RankedSearchPayload = {
   items?: CatalogListing[]
   total_count?: number
+  ranking_version?: string | null
+  rescue_mode?: string | null
+  resolved_query?: string | null
+}
+
+type SearchExperimentAssignment = {
+  experiment_id?: string | null
+  variant?: string | null
+  ranking_version?: string | null
 }
 
 const CATALOG_LISTING_SELECT =
@@ -46,6 +55,19 @@ function optionalNumber(value: string) {
   if (!value) return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function rescueLabel(mode: string, resolvedQuery: string, originalQuery: string) {
+  if (mode === "transliteration" && resolvedQuery) {
+    return `ლათინური ჩანაწერი ამოვიცანით როგორც „${resolvedQuery}“ და შესაბამის შედეგებს გაჩვენებთ.`
+  }
+  if (mode === "alias" && resolvedQuery) {
+    return `ზუსტი შედეგი ვერ მოიძებნა. მსგავსი მნიშვნელობით „${resolvedQuery}“ შედეგებს გაჩვენებთ.`
+  }
+  if (mode === "fuzzy") {
+    return `„${originalQuery}“-ზე ზუსტი შედეგი ვერ მოიძებნა, ამიტომ ახლო ტექსტურ დამთხვევებს გაჩვენებთ.`
+  }
+  return ""
 }
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogPageParams> }): Promise<Metadata> {
@@ -74,6 +96,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const savedSearchStatus = readStatus(params.saved_search_status)
   const databaseFilters = getCatalogDatabaseFilters(filters)
   const useRankedSearch = Boolean(q && sort === "relevance")
+  const searchId = q ? randomUUID() : null
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -82,6 +105,26 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  let rankingVersion: string | null = null
+  let experimentId: string | null = null
+  let experimentVariant: string | null = null
+
+  if (useRankedSearch && searchId) {
+    const { data: assignmentData, error: assignmentError } = await supabase.rpc(
+      "get_search_experiment_assignment",
+      { p_search_id: searchId },
+    )
+
+    if (assignmentError) {
+      console.error("[search-experiment] assignment failed", assignmentError.message)
+    } else {
+      const assignment = (assignmentData ?? {}) as SearchExperimentAssignment
+      rankingVersion = typeof assignment.ranking_version === "string" ? assignment.ranking_version : null
+      experimentId = typeof assignment.experiment_id === "string" ? assignment.experiment_id : null
+      experimentVariant = experimentId && typeof assignment.variant === "string" ? assignment.variant : null
+    }
+  }
 
   let listingsQuery = applyCatalogFilters(
     supabase
@@ -114,23 +157,26 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
       break
   }
 
+  const rankedArgs = {
+    p_query: databaseFilters.query,
+    p_category_slug: databaseFilters.categorySlug || null,
+    p_item_keywords: databaseFilters.itemKeywords,
+    p_brand: brand || null,
+    p_size: size || null,
+    p_color: color || null,
+    p_city: city || null,
+    p_condition: condition || null,
+    p_gender: databaseFilters.gender || null,
+    p_vip: vip === "1" ? true : null,
+    p_min_price: optionalNumber(min_price),
+    p_max_price: optionalNumber(max_price),
+    p_offset: rangeFrom,
+    p_limit: PAGE_SIZE,
+    p_ranking_version: rankingVersion,
+  }
+
   const rankedSearchPromise = useRankedSearch
-    ? supabase.rpc("search_catalog_ranked", {
-        p_query: databaseFilters.query,
-        p_category_slug: databaseFilters.categorySlug || null,
-        p_item_keywords: databaseFilters.itemKeywords,
-        p_brand: brand || null,
-        p_size: size || null,
-        p_color: color || null,
-        p_city: city || null,
-        p_condition: condition || null,
-        p_gender: databaseFilters.gender || null,
-        p_vip: vip === "1" ? true : null,
-        p_min_price: optionalNumber(min_price),
-        p_max_price: optionalNumber(max_price),
-        p_offset: rangeFrom,
-        p_limit: PAGE_SIZE,
-      })
+    ? supabase.rpc("search_catalog_ranked", rankedArgs)
     : Promise.resolve({ data: null, error: null })
 
   const listingsPromise = useRankedSearch
@@ -170,7 +216,28 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     savedSearchPromise,
   ])
 
-  const rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
+  let rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
+
+  if (
+    useRankedSearch &&
+    !rankedSearchResponse.error &&
+    Math.max(0, Number(rankedPayload?.total_count ?? 0)) === 0
+  ) {
+    const { data: rescueData, error: rescueError } = await supabase.rpc(
+      "search_catalog_rescue",
+      rankedArgs,
+    )
+
+    if (rescueError) {
+      console.error("[search-quality] rescue failed", rescueError.message)
+    } else {
+      const rescuePayload = (rescueData ?? null) as RankedSearchPayload | null
+      if (Math.max(0, Number(rescuePayload?.total_count ?? 0)) > 0) {
+        rankedPayload = rescuePayload
+      }
+    }
+  }
+
   const listings = useRankedSearch
     ? Array.isArray(rankedPayload?.items)
       ? rankedPayload.items
@@ -179,6 +246,13 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const totalCount = useRankedSearch
     ? Math.max(0, Number(rankedPayload?.total_count ?? 0))
     : countResponse.count ?? 0
+  const rescueMode = useRankedSearch && typeof rankedPayload?.rescue_mode === "string"
+    ? rankedPayload.rescue_mode
+    : "none"
+  const resolvedQuery = useRankedSearch && typeof rankedPayload?.resolved_query === "string"
+    ? rankedPayload.resolved_query
+    : ""
+  const rescueMessage = rescueMode !== "none" ? rescueLabel(rescueMode, resolvedQuery, q) : ""
   const sizes = sizesResponse.data
   const colorsRaw = colorsResponse.data
   const citiesRaw = citiesResponse.data
@@ -205,7 +279,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
-  const searchId = q ? randomUUID() : null
 
   if (searchId) {
     const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
@@ -223,6 +296,9 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
         vip,
         min_price,
         max_price,
+        rescue_mode: rescueMode,
+        resolved_query: resolvedQuery || null,
+        experiment_variant: experimentVariant,
       },
       p_sort: sort,
       p_page: page,
@@ -261,6 +337,13 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
             savedActive={Boolean(savedSearch?.is_active)}
             status={savedSearchStatus}
           />
+
+          {rescueMessage ? (
+            <div className="mt-5 rounded-2xl border border-brand/20 bg-brand-soft/55 px-4 py-3 text-sm leading-6 text-text sm:px-5">
+              <span className="font-black text-brand">ძებნა გავაფართოვეთ.</span>{" "}
+              {rescueMessage}
+            </div>
+          ) : null}
 
           <div className="mt-8">
             <CatalogResultsGrid
