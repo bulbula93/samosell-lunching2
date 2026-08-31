@@ -31,6 +31,13 @@ function notificationIcon(type: string) {
   if (type === "chat_started" || type === "chat_message") return "✉"
   if (type === "saved_search_match") return "⌕"
   if (
+    type === "offer_created" ||
+    type === "offer_accepted" ||
+    type === "offer_rejected" ||
+    type === "reservation_created" ||
+    type === "reservation_released"
+  ) return "₾"
+  if (
     type === "review_request" ||
     type === "review_completed" ||
     type === "review_received" ||
@@ -68,7 +75,7 @@ export default async function DashboardNotificationsPage() {
             <p className="ui-eyebrow">განახლებები</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-text">შეტყობინებები</h1>
             <p className="mt-2 text-sm leading-6 text-text-soft">
-              აქ გამოჩნდება ჩათის, შენახული ძებნების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები.
+              აქ გამოჩნდება ჩათის, შენახული ძებნების, შეთავაზებების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები.
             </p>
           </div>
           {unreadCount > 0 ? (
@@ -85,7 +92,7 @@ export default async function DashboardNotificationsPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-xl text-brand">✓</div>
             <h2 className="mt-4 text-xl font-black text-text">ჯერ შეტყობინებები არ გაქვს</h2>
             <p className="mt-2 text-sm leading-6 text-text-soft">
-              ახალი ჩათი, შენახული ძებნის შესაბამისობა ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება.
+              ახალი ჩათი, ფასის შეთავაზება, შენახული ძებნის შესაბამისობა ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება.
             </p>
           </section>
         ) : (
