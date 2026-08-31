@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { requireAdminUser } from "@/lib/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 
 const ALIAS_KINDS = new Set(["synonym", "transliteration", "brand", "category"])
 
@@ -19,8 +20,10 @@ export async function upsertSearchAliasAction(formData: FormData) {
     return
   }
 
-  const { supabase } = await requireAdminUser("/dashboard")
-  const { error } = await supabase.rpc("admin_upsert_search_alias", {
+  const { user } = await requireAdminUser("/dashboard")
+  const admin = createAdminClient()
+  const { error } = await admin.rpc("admin_upsert_search_alias_service", {
+    p_actor_id: user.id,
     p_canonical_term: canonicalTerm,
     p_alias: alias,
     p_kind: kind,
@@ -40,8 +43,10 @@ export async function deleteSearchAliasAction(formData: FormData) {
   const aliasId = Number(rawId)
   if (!Number.isSafeInteger(aliasId) || aliasId < 1) return
 
-  const { supabase } = await requireAdminUser("/dashboard")
-  const { error } = await supabase.rpc("admin_delete_search_alias", {
+  const { user } = await requireAdminUser("/dashboard")
+  const admin = createAdminClient()
+  const { error } = await admin.rpc("admin_delete_search_alias_service", {
+    p_actor_id: user.id,
     p_id: aliasId,
   })
 
