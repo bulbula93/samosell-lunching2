@@ -7,6 +7,7 @@ function read(path: string) {
 }
 
 const migration = read("supabase/migrations/20260831061706_add_chat_conversion_phase_12.sql")
+const hardening = read("supabase/migrations/20260831062332_resolve_stale_chat_offers_phase_12.sql")
 const actions = read("app/dashboard/chats/commerce-actions.ts")
 const page = read("app/dashboard/chats/[chatId]/page.tsx")
 const panel = read("components/chat/ChatCommercePanel.tsx")
@@ -42,6 +43,13 @@ describe("Phase 12 chat conversion", () => {
     expect(migration).toContain("offer_rejected")
     expect(panel).toContain("შესთავაზე ფასი")
     expect(panel).toContain("მიღება და დაჯავშნა")
+  })
+
+  it("resolves stale pending offers when a listing is reserved or sold", () => {
+    expect(hardening).toContain("status = case when o.buyer_id = v_chat.buyer_id then 'accepted' else 'rejected' end")
+    expect(hardening).toContain("status = case when o.buyer_id = v_chat.buyer_id then 'completed' else 'rejected' end")
+    expect(hardening).toContain("reserved_for_another_buyer")
+    expect(hardening).toContain("listing_sold")
   })
 
   it("adds abuse controls", () => {
