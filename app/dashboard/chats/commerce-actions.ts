@@ -13,6 +13,7 @@ function commerceErrorMessage(value?: string | null) {
   const message = String(value ?? "").toLowerCase()
   if (message.includes("not_authenticated")) return "სესია დასრულდა. თავიდან შედი ანგარიშში."
   if (message.includes("account_suspended")) return "ამ ანგარიშზე სავაჭრო მოქმედებები დროებით შეზღუდულია."
+  if (message.includes("conversation_blocked")) return "ამ მომხმარებელთან სავაჭრო მოქმედებები დაბლოკილია."
   if (message.includes("invalid_offer_amount")) return "შეთავაზებული ფასი უნდა იყოს 0-ზე მეტი და არ უნდა აღემატებოდეს განცხადების ფასს."
   if (message.includes("offer_rate_limited")) return "ახალი შეთავაზების გაგზავნამდე ცოტა ხანი დაელოდე."
   if (message.includes("buyer_message_required")) return "ფასის შეთავაზებამდე ჯერ მისწერე გამყიდველს ჩათში."
