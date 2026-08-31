@@ -39,7 +39,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <div className="ui-eyebrow">ადმინისტრირება</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">ადმინისტრირების პანელი</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აქედან აკონტროლებ რეპორტებს, პრობლემურ განცხადებებს, მომხმარებელთა შეზღუდვებს და VIP განთავსების მიმდინარე მოთხოვნებს.
+              აქედან აკონტროლებ რეპორტებს, პრობლემურ განცხადებებს, მომხმარებელთა შეზღუდვებს, VIP განთავსებას და search relevance-ის რეალურ ქცევით სიგნალებს.
             </p>
           </div>
 
@@ -49,6 +49,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             </Link>
             <Link href="/admin/boosts" className="ui-btn-secondary">
               VIP განთავსების მართვა
+            </Link>
+            <Link href="/admin/search" className="ui-btn-secondary">
+              Search Analytics
             </Link>
           </div>
         </div>
@@ -69,7 +72,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         <StatCard label="აქტიური VIP" value={activeBoosts ?? 0} />
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+      <section className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="ui-card p-6">
           <div className="ui-eyebrow">მოდერაცია</div>
           <h2 className="mt-3 text-2xl font-black text-text">რაზე გაქვს ყველაზე მეტი კონტროლი</h2>
@@ -88,6 +91,17 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <p>• მოთხოვნის გააქტიურება, უარყოფა ან reviewing რეჟიმში გადატანა.</p>
             <p>• მთავარ ბლოკში featured პოზიციის მინიჭება კონკრეტულ განცხადებაზე.</p>
           </div>
+        </div>
+
+        <div className="ui-card p-6">
+          <div className="ui-eyebrow">Search relevance</div>
+          <h2 className="mt-3 text-2xl font-black text-text">Ranking feedback loop</h2>
+          <div className="mt-4 space-y-3 text-sm leading-7 text-text-soft">
+            <p>• Zero-result query-ების აღმოჩენა და taxonomy gap-ების დანახვა.</p>
+            <p>• Result position CTR, favorite და chat conversion-ის შედარება.</p>
+            <p>• Ranking weights-ის ცვლილება მხოლოდ versioned და admin-controlled config-ით.</p>
+          </div>
+          <Link href="/admin/search" className="ui-btn-secondary mt-5">ანალიტიკის გახსნა</Link>
         </div>
       </section>
     </main>
