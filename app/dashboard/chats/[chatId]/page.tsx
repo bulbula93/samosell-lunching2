@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
+import ChatCommercePanel, { type ChatOfferSummary } from "@/components/chat/ChatCommercePanel"
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
 import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
@@ -32,6 +33,8 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
   if (threadError) throw new Error("CHAT_THREAD_QUERY_FAILED", { cause: threadError })
   if (!thread) notFound()
 
+  const typedThread = thread as ChatThread
+
   const { error: readError } = await supabase.rpc("mark_chat_read", {
     p_chat_id: chatId,
   })
@@ -39,24 +42,47 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
     console.error("Chat read state update failed.", { chatId })
   }
 
-  const { data: messages, error: messagesError } = await supabase
-    .from("messages")
-    .select("id, chat_id, sender_id, body, created_at")
-    .eq("chat_id", chatId)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(CHAT_MESSAGE_PAGE_SIZE + 1)
+  const [messagesResult, listingStateResult, offersResult] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("id, chat_id, sender_id, body, created_at")
+      .eq("chat_id", chatId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(CHAT_MESSAGE_PAGE_SIZE + 1),
+    supabase
+      .from("listings")
+      .select("status, reserved_for_user_id, sold_to_user_id")
+      .eq("id", typedThread.listing_id)
+      .maybeSingle(),
+    supabase
+      .from("chat_offers")
+      .select("id, amount, currency, status, created_at, responded_at")
+      .eq("chat_id", chatId)
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ])
 
-  if (messagesError) throw new Error("CHAT_MESSAGES_QUERY_FAILED", { cause: messagesError })
-  const typedThread = thread as ChatThread
-  const messageRows = (messages ?? []) as ChatMessage[]
+  if (messagesResult.error) throw new Error("CHAT_MESSAGES_QUERY_FAILED", { cause: messagesResult.error })
+  if (listingStateResult.error) throw new Error("CHAT_LISTING_STATE_QUERY_FAILED", { cause: listingStateResult.error })
+  if (offersResult.error) throw new Error("CHAT_OFFERS_QUERY_FAILED", { cause: offersResult.error })
+
+  const messageRows = (messagesResult.data ?? []) as ChatMessage[]
   const hasOlderMessages = messageRows.length > CHAT_MESSAGE_PAGE_SIZE
-  const typedMessages = messageRows
-    .slice(0, CHAT_MESSAGE_PAGE_SIZE)
-    .reverse()
+  const typedMessages = messageRows.slice(0, CHAT_MESSAGE_PAGE_SIZE).reverse()
   const otherPartyLabel = chatCounterpartyName(typedThread)
-  const canSend = canSendChatMessageForStatus(typedThread.listing_status)
-  const listingIsPublic = typedThread.listing_status === "active"
+  const listingStatus = listingStateResult.data?.status ?? typedThread.listing_status
+  const canSend = canSendChatMessageForStatus(listingStatus)
+  const listingIsPublic = listingStatus === "active"
+  const role = typedThread.buyer_id === user.id ? "buyer" : "seller"
+  const offers: ChatOfferSummary[] = (offersResult.data ?? []).map((offer) => ({
+    id: offer.id,
+    amount: Number(offer.amount),
+    currency: offer.currency,
+    status: offer.status as ChatOfferSummary["status"],
+    created_at: offer.created_at,
+    responded_at: offer.responded_at,
+  }))
 
   return (
     <main className="ui-container py-8 sm:py-10">
@@ -77,7 +103,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
               </>
             ) : null}
             <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-bold">
-              {typedThread.listing_status}
+              {listingStatus}
             </span>
             {typedThread.is_archived ? (
               <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-bold">
@@ -131,7 +157,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
                   {otherPartyLabel}
                 </h2>
                 <p className="mt-1 text-sm text-text-soft">
-                  {typedThread.buyer_id === user.id ? "გამყიდველი" : "მყიდველი"}
+                  {role === "buyer" ? "გამყიდველი" : "მყიდველი"}
                 </p>
               </div>
             </div>
@@ -140,7 +166,25 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
                 მდებარეობა: {typedThread.counterparty_city}
               </p>
             ) : null}
+            {typedThread.counterparty_username ? (
+              <Link href={`/seller/${encodeURIComponent(typedThread.counterparty_username)}`} className="ui-btn-secondary mt-4 w-full">
+                პროფილის ნახვა
+              </Link>
+            ) : null}
           </section>
+
+          <ChatCommercePanel
+            chatId={typedThread.id}
+            role={role}
+            buyerId={typedThread.buyer_id}
+            currentUserId={user.id}
+            listingStatus={listingStatus}
+            listingPrice={Number(typedThread.price)}
+            currency={typedThread.currency}
+            reservedForUserId={listingStateResult.data?.reserved_for_user_id ?? null}
+            soldToUserId={listingStateResult.data?.sold_to_user_id ?? null}
+            initialOffers={offers}
+          />
 
           <section aria-labelledby="chat-listing-title" className="ui-card p-6">
             <div className="ui-eyebrow">განცხადების კონტექსტი</div>
