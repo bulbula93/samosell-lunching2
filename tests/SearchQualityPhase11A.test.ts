@@ -12,6 +12,15 @@ const migration = read(
 const hardening = read(
   "supabase/migrations/20260831003555_harden_search_experiment_attribution.sql",
 )
+const dictionary = read(
+  "supabase/migrations/20260831055614_expand_search_quality_dictionary_phase_11a1.sql",
+)
+const thresholdHardening = read(
+  "supabase/migrations/20260831055832_tighten_search_rescue_fuzzy_threshold_phase_11a1.sql",
+)
+const compoundRescue = read(
+  "supabase/migrations/20260831060050_improve_compound_search_rescue_phase_11a1.sql",
+)
 const catalogPage = read("app/catalog/page.tsx")
 const adminPage = read("app/admin/search/page.tsx")
 const adminActions = read("app/admin/search/actions.ts")
@@ -29,8 +38,34 @@ describe("phase 11A search quality infrastructure", () => {
     expect(migration).toContain("public.search_query_aliases")
     expect(migration).toContain("public.search_latin_to_georgian")
     expect(migration).toContain("public.get_search_query_expansions")
-    expect(migration).toContain("'jinsebi'")
+    expect(dictionary).toContain("('ჯინსები', 'jinsebi', 'transliteration')")
     expect(migration).toContain("'hoodie'")
+  })
+
+  it("covers high-confidence fashion vocabulary without broad ambiguous rewrites", () => {
+    expect(dictionary).toContain("('მაისური', 't-shirt', 'synonym')")
+    expect(dictionary).toContain("('ქვედაბოლო', 'skirt', 'synonym')")
+    expect(dictionary).toContain("('შარვალი', 'pants', 'synonym')")
+    expect(dictionary).toContain("('ჩექმა', 'boots', 'synonym')")
+    expect(dictionary).toContain("('მაღალქუსლიანი', 'high heels', 'synonym')")
+    expect(dictionary).toContain("('Balenciaga', 'ბალენსიაგა', 'brand')")
+    expect(dictionary).not.toContain("'body'")
+    expect(dictionary).not.toContain("'sweatshirt'")
+  })
+
+  it("keeps typo rescue conservative enough to avoid obvious false positives", () => {
+    expect(thresholdHardening).toContain("greatest(0.38")
+    expect(thresholdHardening).toContain("fuzzy_threshold")
+    expect(thresholdHardening).not.toContain("greatest(0.28")
+  })
+
+  it("normalizes compound queries token by token and requires all meaningful tokens", () => {
+    expect(compoundRescue).toContain("public.search_normalize_query_tokens")
+    expect(compoundRescue).toContain("'normalized'::text as source")
+    expect(compoundRescue).toContain("regexp_split_to_table(btrim(t.term), '\\s+')")
+    expect(compoundRescue).toContain("when position(' ' in btrim(t.term)) > 0 then not exists")
+    expect(compoundRescue).toContain("('ჩანთა', 'chanta', 'transliteration')")
+    expect(compoundRescue).toContain("('სათვალე', 'satvale', 'transliteration')")
   })
 
   it("does not expose alias management tables directly to marketplace clients", () => {
@@ -38,6 +73,7 @@ describe("phase 11A search quality infrastructure", () => {
     expect(migration).toContain("public.admin_upsert_search_alias")
     expect(migration).toContain("public.admin_delete_search_alias")
     expect(migration).toContain("admin_required")
+    expect(compoundRescue).toContain("revoke all on function public.search_normalize_query_tokens(text) from public")
   })
 
   it("shows users when a zero-result query was rescued", () => {
