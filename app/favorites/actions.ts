@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { createClient } from "@/lib/supabase/server"
 
 function safeNextPath(value: string) {
@@ -25,6 +26,7 @@ function favoriteErrorPath(nextPath: string) {
 
 export async function toggleFavoriteAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
+  const searchId = String(formData.get("searchId") || "")
   const nextPath = safeNextPath(String(formData.get("nextPath") || "/catalog"))
 
   if (!listingId) {
@@ -82,6 +84,12 @@ export async function toggleFavoriteAction(formData: FormData) {
     if (insertError && insertError.code !== "23505") {
       redirect(favoriteErrorPath(nextPath))
     }
+
+    await recordSearchInteractionSafely(supabase, {
+      searchId,
+      listingId,
+      eventType: "favorite",
+    })
   }
 
   revalidatePath("/")
