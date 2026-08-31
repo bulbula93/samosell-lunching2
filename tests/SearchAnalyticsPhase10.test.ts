@@ -13,6 +13,7 @@ const migration = read(
 const catalogPage = read("app/catalog/page.tsx")
 const listingPage = read("app/listing/[slug]/page.tsx")
 const listingOverview = read("components/listings/ListingOverviewCard.tsx")
+const searchAttributionInput = read("components/search/SearchAttributionInput.tsx")
 const productCard = read("components/listings/MarketplaceProductCard.tsx")
 const favoriteAction = read("app/favorites/actions.ts")
 const chatAction = read("app/dashboard/chats/actions.ts")
@@ -51,6 +52,12 @@ describe("phase 10 search analytics feedback loop", () => {
     expect(listingOverview).toContain("nextPath={listingReturnPath}")
     expect(listingOverview).toContain("encodeURIComponent(listingReturnPath)")
     expect(listingOverview).toContain("searchId={searchId}")
+  })
+
+  it("inherits URL attribution only when a form explicitly requests fallback behavior", () => {
+    expect(searchAttributionInput).toContain("explicitSearchId === undefined")
+    expect(searchAttributionInput).toContain('searchParams.get("search_id")')
+    expect(searchAttributionInput).toContain(": explicitSearchId")
   })
 
   it("records only positive downstream favorite and chat signals", () => {
