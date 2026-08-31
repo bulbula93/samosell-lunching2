@@ -5,6 +5,7 @@ import {
   startChatAction,
   type StartChatState,
 } from "@/app/dashboard/chats/actions"
+import SearchAttributionInput from "@/components/search/SearchAttributionInput"
 import { CHAT_MESSAGE_MAX_LENGTH } from "@/lib/chats"
 
 const INITIAL_STATE: StartChatState = { ok: false, message: "" }
@@ -57,6 +58,7 @@ export default function StartChatButton({
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="listingSlug" value={listingSlug} />
       <input type="hidden" name="clientRequestId" value={clientRequestId} />
+      <SearchAttributionInput />
 
       <div className="flex items-start justify-between gap-3">
         <div>
