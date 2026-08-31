@@ -44,6 +44,7 @@ type ListingOverviewCardProps = {
   sellerSuspended: boolean
   sellerReviewSummary?: SellerReviewSummary
   shareUrl: string
+  searchId?: string | null
 }
 
 type DetailItem = {
@@ -115,6 +116,7 @@ export default function ListingOverviewCard({
   sellerSuspended,
   sellerReviewSummary,
   shareUrl,
+  searchId = null,
 }: ListingOverviewCardProps) {
   const isActive = listing.status === "active"
   const statusMessage = getStatusMessage(listing.status)
@@ -127,6 +129,9 @@ export default function ListingOverviewCard({
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
   const sellerPhoneHref = getSellerPhoneHref(sellerProfile?.store_phone)
+  const listingReturnPath = searchId
+    ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}`
+    : `/listing/${listing.slug}`
   const sellerTrustSignals = sellerProfile
     ? getSellerTrustSignals({
         profile: sellerProfile,
@@ -328,12 +333,12 @@ export default function ListingOverviewCard({
               listingId={listing.id}
               listingSlug={listing.slug}
               sellerId={listing.seller_id}
-              nextPath={`/listing/${listing.slug}`}
+              nextPath={listingReturnPath}
               isBlocked={isBlocked}
             />
           ) : (
             <Link
-              href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`}
+              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
               className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4"
             >
               უსაფრთხოების მოქმედებებისთვის გაიარე ავტორიზაცია
@@ -357,8 +362,9 @@ export default function ListingOverviewCard({
             <FavoriteToggleForm
               listingId={listing.id}
               listingSlug={listing.slug}
-              nextPath={`/listing/${listing.slug}`}
+              nextPath={listingReturnPath}
               isFavorited={isFavorited}
+              searchId={searchId}
               className="min-h-11 w-full rounded-xl"
             />
           ) : null}
@@ -381,7 +387,7 @@ export default function ListingOverviewCard({
 
           {isActive && !isOwner && !isAuthenticated ? (
             <Link
-              href={`/login?next=${encodeURIComponent(`/listing/${listing.slug}`)}`}
+              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
               className="ui-btn-primary w-full text-center sm:col-span-2"
             >
               {ka.listingDetail.loginToMessage}
