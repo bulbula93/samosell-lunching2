@@ -1,6 +1,7 @@
 import Link from "next/link"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { deleteSearchAliasAction, upsertSearchAliasAction } from "./actions"
 
 type QueryMetric = {
@@ -116,12 +117,13 @@ export default async function AdminSearchAnalyticsPage({
 }) {
   const params = (await searchParams) ?? {}
   const days = readDays(params.days)
-  const { supabase } = await requireAdminUser("/dashboard")
+  const { user } = await requireAdminUser("/dashboard")
+  const admin = createAdminClient()
 
   const [analyticsResponse, aliasesResponse, experimentsResponse] = await Promise.all([
-    supabase.rpc("get_search_analytics_summary", { p_days: days }),
-    supabase.rpc("admin_list_search_aliases"),
-    supabase.rpc("admin_list_search_experiments"),
+    admin.rpc("get_search_analytics_summary_service", { p_actor_id: user.id, p_days: days }),
+    admin.rpc("admin_list_search_aliases_service", { p_actor_id: user.id }),
+    admin.rpc("admin_list_search_experiments_service", { p_actor_id: user.id }),
   ])
 
   if (analyticsResponse.error) {
