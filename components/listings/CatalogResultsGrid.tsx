@@ -7,10 +7,12 @@ export default function CatalogResultsGrid({
   listings,
   currentPath,
   favoriteIds,
+  searchId = null,
 }: {
   listings: CatalogListing[]
   currentPath: string
   favoriteIds: string[]
+  searchId?: string | null
 }) {
   if (listings.length === 0) {
     return (
@@ -31,6 +33,7 @@ export default function CatalogResultsGrid({
           item={item}
           currentPath={currentPath}
           isFavorited={favoriteIds.includes(item.id)}
+          searchId={searchId}
         />
       ))}
     </div>
