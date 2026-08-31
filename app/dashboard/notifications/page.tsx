@@ -3,6 +3,7 @@ import {
   markNotificationReadAction,
   openNotificationAction,
 } from "@/app/dashboard/notifications/actions"
+import PushPwaSettings from "@/components/pwa/PushPwaSettings"
 import { requireAuthenticatedUser } from "@/lib/auth"
 
 type NotificationRow = {
@@ -86,6 +87,8 @@ export default async function DashboardNotificationsPage() {
             </form>
           ) : null}
         </header>
+
+        <PushPwaSettings />
 
         {notifications.length === 0 ? (
           <section className="ui-card p-8 text-center sm:p-12">
