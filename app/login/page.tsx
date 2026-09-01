@@ -1,8 +1,14 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import AuthCard from "@/components/auth/AuthCard"
 import LoginForm from "@/components/auth/LoginForm"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { createClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "შესვლა",
+  robots: { index: false, follow: false },
+}
 
 export default async function LoginPage({
   searchParams,

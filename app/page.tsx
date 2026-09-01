@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import HomePageContent from "@/components/home/HomePageContent"
 import SiteHeader from "@/components/layout/SiteHeader"
 import { getHomePageData } from "@/lib/home-page"
-import { absoluteUrl } from "@/lib/seo"
+import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -26,9 +26,14 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const data = await getHomePageData()
+  const structuredData = buildHomeStructuredData()
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+      />
       <SiteHeader />
       <main className="min-h-screen bg-bg text-text">
         <HomePageContent data={data} />

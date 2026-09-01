@@ -1,8 +1,14 @@
+import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import AuthCard from "@/components/auth/AuthCard"
 import RegisterForm from "@/components/auth/RegisterForm"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { createClient } from "@/lib/supabase/server"
+
+export const metadata: Metadata = {
+  title: "რეგისტრაცია",
+  robots: { index: false, follow: false },
+}
 
 export default async function RegisterPage({
   searchParams,

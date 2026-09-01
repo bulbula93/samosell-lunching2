@@ -22,7 +22,12 @@ import {
   buildSavedSearchPath,
   hasSavableCatalogFilters,
 } from "@/lib/saved-searches"
-import { absoluteUrl, buildCatalogDescription, buildCatalogTitle } from "@/lib/seo"
+import {
+  absoluteUrl,
+  buildCatalogCanonicalPath,
+  buildCatalogDescription,
+  buildCatalogTitle,
+} from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -73,9 +78,14 @@ function rescueLabel(mode: string, resolvedQuery: string, originalQuery: string)
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogPageParams> }): Promise<Metadata> {
   const params = (await searchParams) ?? {}
   const { filters, page, queryParams } = resolveCatalogState(params)
-  const path = queryParams.toString() ? `/catalog?${queryParams.toString()}` : "/catalog"
+  const filterSummary = summarizeFilters(filters)
+  const path = buildCatalogCanonicalPath({
+    page,
+    hasFilters: filterSummary.length > 0,
+    hasCustomSort: queryParams.has("sort"),
+  })
   const title = buildCatalogTitle(page)
-  const description = buildCatalogDescription(summarizeFilters(filters))
+  const description = buildCatalogDescription(filterSummary)
 
   return {
     title,

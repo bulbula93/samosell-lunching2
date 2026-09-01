@@ -17,7 +17,11 @@ import {
 } from "@/lib/listing-page"
 import { getUserAvatar } from "@/lib/profiles"
 import { normalizeSearchId, recordSearchInteractionSafely } from "@/lib/search-analytics"
-import { absoluteUrl } from "@/lib/seo"
+import {
+  absoluteUrl,
+  buildListingStructuredData,
+  serializeJsonLd,
+} from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 
 type ListingDetailsSearchParams = ListingPageQueryParams & {
@@ -104,9 +108,21 @@ export default async function ListingDetailsPage({
         listing.seller_avatar_url ||
         null
       : getUserAvatar(sellerProfile) || listing.seller_avatar_url || null
+  const structuredData = listing.status === "active"
+    ? buildListingStructuredData(
+        listing,
+        images.map((image) => image.image_url),
+      )
+    : null
 
   return (
     <>
+      {structuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
+        />
+      ) : null}
       <SiteHeader />
       <main className="min-h-screen bg-bg text-text">
         {listing.status === "active" ? (
