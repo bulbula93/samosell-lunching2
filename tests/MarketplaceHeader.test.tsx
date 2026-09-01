@@ -18,7 +18,7 @@ describe("MarketplaceHeader", () => {
     render(
       <MarketplaceHeader
         items={items}
-        userState={{ signedIn: false, profileLabel: "", profileImage: null, isAdmin: false }}
+        userState={{ signedIn: false, profileLabel: "", profileImage: null, isAdmin: false, unreadNotifications: 0 }}
       />,
     )
 
@@ -37,11 +37,13 @@ describe("MarketplaceHeader", () => {
           profileLabel: "ნინო",
           profileImage: null,
           isAdmin: false,
+          unreadNotifications: 0,
         }}
       />,
     )
 
-    expect(screen.getByRole("link", { name: ka.nav.messages })).toHaveAttribute("href", "/dashboard/chats")
+    expect(screen.getByRole("link", { name: "ჩათები" })).toHaveAttribute("href", "/dashboard/chats")
+    expect(screen.getByRole("link", { name: "ნოტიფიკაციები" })).toHaveAttribute("href", "/dashboard/notifications")
     expect(screen.getByRole("link", { name: ka.nav.favorites })).toHaveAttribute("href", "/dashboard/favorites")
     expect(screen.getByRole("link", { name: "კაბინეტი" })).toHaveAttribute("href", "/dashboard")
     expect(screen.getByRole("link", { name: "VIP განთავსება" })).toHaveAttribute("href", "/dashboard/billing")
@@ -55,7 +57,7 @@ describe("MarketplaceHeader", () => {
     render(
       <MarketplaceHeader
         items={items}
-        userState={{ signedIn: false, profileLabel: "", profileImage: null, isAdmin: false }}
+        userState={{ signedIn: false, profileLabel: "", profileImage: null, isAdmin: false, unreadNotifications: 0 }}
       />,
     )
 

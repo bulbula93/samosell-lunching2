@@ -12,8 +12,8 @@ function NotificationBell({ count }: { count: number }) {
   return (
     <Link
       href="/dashboard/notifications"
-      aria-label={count > 0 ? `შეტყობინებები — ${count} წაუკითხავი` : "შეტყობინებები"}
-      title="შეტყობინებები"
+      aria-label={count > 0 ? `ნოტიფიკაციები — ${count} წაუკითხავი` : "ნოტიფიკაციები"}
+      title="ნოტიფიკაციები"
       className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-text transition hover:border-brand/40 hover:bg-brand-soft"
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -70,8 +70,8 @@ export default function MarketplaceHeader({
               <NotificationBell count={userState.unreadNotifications} />
               <Link
                 href="/dashboard/chats"
-                aria-label={ka.nav.messages}
-                title={ka.nav.messages}
+                aria-label="ჩათები"
+                title="ჩათები"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft"
               >
                 ✉
