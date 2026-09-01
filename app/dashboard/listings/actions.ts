@@ -417,6 +417,12 @@ export async function deleteListingAction(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
+  try {
+    await enforceRateLimit(supabase, "listing_delete")
+  } catch {
+    redirect(buildRedirect(filter, "rate_limited"))
+  }
+
   const { data: listing, error: listingError } = await supabase
     .from("listings")
     .select("id, slug, cover_image_url")
@@ -443,13 +449,15 @@ export async function deleteListingAction(formData: FormData) {
     )
   )
 
-  if (storagePaths.length > 0) {
-    const { error: storageError } = await supabase.storage.from("listing-images").remove(storagePaths)
-    if (storageError) redirect(buildRedirect(filter, humanizeSupabaseError(storageError.message)))
-  }
-
   const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId).eq("seller_id", user.id)
   if (deleteError) redirect(buildRedirect(filter, humanizeSupabaseError(deleteError.message)))
+
+  if (storagePaths.length > 0) {
+    const { error: storageError } = await supabase.storage.from("listing-images").remove(storagePaths)
+    if (storageError) {
+      console.error("listing_storage_cleanup_failed", storageError.message)
+    }
+  }
 
   revalidatePath("/dashboard/listings")
   revalidatePath("/catalog")
