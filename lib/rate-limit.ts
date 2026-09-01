@@ -36,6 +36,11 @@ const ACTION_RULES = {
     maxHits: 10,
     label: "რეპორტების გაგზავნა",
   },
+  push_subscription: {
+    windowSeconds: 10 * 60,
+    maxHits: 30,
+    label: "push subscription-ის განახლება",
+  },
 } as const
 
 type RateLimitAction = keyof typeof ACTION_RULES

@@ -1,4 +1,6 @@
+import { isIP } from "node:net"
 import { NextRequest, NextResponse } from "next/server"
+import { enforceRateLimit } from "@/lib/rate-limit"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
@@ -26,7 +28,7 @@ function sameOrigin(request: NextRequest) {
 async function currentUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  return user
+  return { supabase, user }
 }
 
 function validEndpoint(value: unknown) {
@@ -34,14 +36,23 @@ function validEndpoint(value: unknown) {
   if (endpoint.length < 20 || endpoint.length > 2048) return null
   try {
     const parsed = new URL(endpoint)
-    return parsed.protocol === "https:" ? endpoint : null
+    const hostname = parsed.hostname.toLowerCase()
+    const isLocalHost = hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local")
+    const isIpLiteral = isIP(hostname.replace(/^\[|\]$/g, "")) !== 0
+    return parsed.protocol === "https:"
+      && !parsed.username
+      && !parsed.password
+      && !isLocalHost
+      && !isIpLiteral
+      ? endpoint
+      : null
   } catch {
     return null
   }
 }
 
 export async function GET() {
-  const user = await currentUser()
+  const { user } = await currentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
   const admin = createAdminClient()
@@ -62,8 +73,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: "invalid_origin" }, { status: 403 })
-  const user = await currentUser()
+  const { supabase, user } = await currentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  try {
+    await enforceRateLimit(supabase, "push_subscription")
+  } catch {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 })
+  }
 
   const payload = (await request.json().catch(() => null)) as SubscriptionPayload | null
   const endpoint = validEndpoint(payload?.endpoint)
@@ -108,8 +125,14 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   if (!sameOrigin(request)) return NextResponse.json({ error: "invalid_origin" }, { status: 403 })
-  const user = await currentUser()
+  const { supabase, user } = await currentUser()
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+
+  try {
+    await enforceRateLimit(supabase, "push_subscription")
+  } catch {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 })
+  }
 
   const payload = (await request.json().catch(() => null)) as { endpoint?: unknown } | null
   const endpoint = validEndpoint(payload?.endpoint)
