@@ -83,7 +83,7 @@ describe("secure messaging migration", () => {
   it("keeps validated input separate from empty idempotency lookup results", () => {
     expect(rpcFixMigration).toContain("v_validated_body")
     expect(rpcFixMigration).toContain("v_result_body")
-    expect(rpcFixMigration).toContain(
+    expect(rpcFixMigration.replace(/\r\n/g, "\n")).toContain(
       "values (\n    v_chat_id,\n    v_buyer_id,\n    v_validated_body,",
     )
   })

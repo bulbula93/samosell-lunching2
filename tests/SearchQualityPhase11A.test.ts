@@ -85,8 +85,9 @@ describe("phase 11A search quality infrastructure", () => {
   it("provides admin-managed alias controls", () => {
     expect(adminPage).toContain("Search aliases")
     expect(adminPage).toContain("upsertSearchAliasAction")
-    expect(adminActions).toContain('supabase.rpc("admin_upsert_search_alias"')
-    expect(adminActions).toContain('supabase.rpc("admin_delete_search_alias"')
+    expect(adminActions).toContain('admin.rpc("admin_upsert_search_alias_service"')
+    expect(adminActions).toContain('admin.rpc("admin_delete_search_alias_service"')
+    expect(adminActions).toContain("p_actor_id: user.id")
   })
 
   it("prepares A/B assignment without activating an experiment automatically", () => {

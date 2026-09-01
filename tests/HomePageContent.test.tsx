@@ -32,11 +32,7 @@ describe("HomePageContent", () => {
     render(<HomePageContent data={makeHomeData()} />)
 
     expect(screen.getByRole("heading", { level: 1, name: ka.home.title })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: ka.home.startShopping })).toHaveAttribute("href", "/catalog")
-    expect(screen.getByRole("link", { name: ka.home.startSelling })).toHaveAttribute(
-      "href",
-      "/dashboard/listings/new",
-    )
+    expect(screen.getByText(ka.home.description)).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()

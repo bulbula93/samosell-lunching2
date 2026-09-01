@@ -70,7 +70,7 @@ describe("my listings status action", () => {
 
     const result = await updateListingStatusAction({
       listingId,
-      nextStatus: "sold",
+      nextStatus: "reserved",
       expectedUpdatedAt: updatedAt,
     })
 
@@ -88,7 +88,7 @@ describe("my listings status action", () => {
 
     const result = await updateListingStatusAction({
       listingId,
-      nextStatus: "sold",
+      nextStatus: "reserved",
       expectedUpdatedAt: updatedAt,
     })
 
@@ -122,7 +122,7 @@ describe("my listings status action", () => {
     })
     const stale = await updateListingStatusAction({
       listingId,
-      nextStatus: "sold",
+      nextStatus: "reserved",
       expectedUpdatedAt: "2026-08-04T07:00:00.000Z",
     })
 
@@ -142,7 +142,7 @@ describe("my listings status action", () => {
     })
     const nextUpdatedAt = "2026-08-04T08:05:00.000Z"
     const update = updateBuilder({
-      status: "sold",
+      status: "reserved",
       updated_at: nextUpdatedAt,
     })
     const from = vi.fn().mockReturnValueOnce(lookup).mockReturnValueOnce(update)
@@ -150,19 +150,20 @@ describe("my listings status action", () => {
 
     const result = await updateListingStatusAction({
       listingId,
-      nextStatus: "sold",
+      nextStatus: "reserved",
       expectedUpdatedAt: updatedAt,
     })
 
     expect(result).toEqual({
       ok: true,
-      status: "sold",
+      status: "reserved",
       updatedAt: nextUpdatedAt,
-      message: "განცხადება გაყიდულად მოინიშნა.",
+      message: "განცხადება დაჯავშნილად მოინიშნა.",
     })
     expect(update.getPayload()).toEqual({
-      status: "sold",
+      status: "reserved",
       published_at: "2026-08-03T08:00:00.000Z",
+      sold_to_user_id: null,
     })
     expect(update.getPayload()).not.toHaveProperty("seller_id")
     expect(update.eq).toHaveBeenCalledWith("id", listingId)
@@ -199,7 +200,7 @@ describe("my listings status action", () => {
     })
 
     expect(result).toMatchObject({ ok: true, status: "draft" })
-    expect(update.getPayload()).toEqual({ status: "draft", published_at: null })
+    expect(update.getPayload()).toEqual({ status: "draft", published_at: null, sold_to_user_id: null })
   })
 
   it("blocks publication when the authenticated seller has no contact phone", async () => {

@@ -13,11 +13,13 @@ import {
 
 const mocks = vi.hoisted(() => ({
   updateStatus: vi.fn(),
+  getBuyerCandidates: vi.fn(),
   refresh: vi.fn(),
 }))
 
 vi.mock("@/app/dashboard/listings/actions", () => ({
   updateListingStatusAction: mocks.updateStatus,
+  getListingBuyerCandidatesAction: mocks.getBuyerCandidates,
 }))
 
 vi.mock("next/navigation", () => ({
@@ -80,9 +82,13 @@ describe("my listings helpers and management UI", () => {
     expect(screen.getByRole("option", { name: "დრაფტში დაბრუნება" })).toBeInTheDocument()
   })
 
-  it("confirms a sold transition, waits for the server, then refreshes", async () => {
+  it("requires an eligible buyer for a sold transition, then refreshes", async () => {
     const user = userEvent.setup()
-    vi.spyOn(window, "confirm").mockReturnValue(true)
+    const buyerId = "377f3329-6c04-4c40-8f33-873ab3ee4f76"
+    mocks.getBuyerCandidates.mockResolvedValue({
+      ok: true,
+      candidates: [{ id: buyerId, label: "ნინო", username: "nino", fullName: "ნინო" }],
+    })
     mocks.updateStatus.mockResolvedValue({
       ok: true,
       status: "sold",
@@ -104,12 +110,14 @@ describe("my listings helpers and management UI", () => {
       "sold"
     )
     await user.click(screen.getByRole("button", { name: "შენახვა" }))
+    await user.click(await screen.findByRole("button", { name: "გაყიდულად მონიშვნა" }))
 
-    expect(window.confirm).toHaveBeenCalledOnce()
+    expect(mocks.getBuyerCandidates).toHaveBeenCalledWith(baseItem.id)
     expect(mocks.updateStatus).toHaveBeenCalledWith({
       listingId: baseItem.id,
       nextStatus: "sold",
       expectedUpdatedAt: baseItem.updated_at,
+      soldToUserId: buyerId,
     })
     expect(await screen.findByRole("status")).toHaveTextContent(
       "განცხადება გაყიდულად მოინიშნა."

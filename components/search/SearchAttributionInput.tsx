@@ -6,7 +6,7 @@ import { normalizeSearchId } from "@/lib/search-analytics"
 export default function SearchAttributionInput({ explicitSearchId }: { explicitSearchId?: string | null }) {
   const searchParams = useSearchParams()
   const candidate = explicitSearchId === undefined
-    ? searchParams.get("search_id")
+    ? searchParams?.get("search_id")
     : explicitSearchId
   const searchId = normalizeSearchId(candidate)
 
