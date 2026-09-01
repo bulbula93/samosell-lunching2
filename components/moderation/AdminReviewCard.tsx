@@ -17,18 +17,20 @@ import type { AdminListingReport } from "@/types/moderation"
 type AdminReviewCardProps = {
   item: AdminListingReport
   relatedOpenReports?: number
+  referenceTime: string
 }
 
 export default function AdminReviewCard({
   item,
   relatedOpenReports = 1,
+  referenceTime,
 }: AdminReviewCardProps) {
   const sellerLabel = item.seller_full_name || item.seller_username || "გამყიდველი"
   const reporterLabel = item.reporter_full_name || item.reporter_username || "რეპორტის ავტორი"
   const canReview = item.status === "open" || item.status === "reviewing"
   const priority = reportPriority("listing", item.reason)
   const isAged =
-    canReview && Date.now() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
+    canReview && new Date(referenceTime).getTime() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
 
   return (
     <article className="ui-card p-5 sm:p-6">

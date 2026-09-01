@@ -16,11 +16,13 @@ import type { AdminUserReport } from "@/types/moderation"
 type AdminUserReviewCardProps = {
   item: AdminUserReport
   relatedOpenReports?: number
+  referenceTime: string
 }
 
 export default function AdminUserReviewCard({
   item,
   relatedOpenReports = 1,
+  referenceTime,
 }: AdminUserReviewCardProps) {
   const reportedLabel =
     item.reported_full_name || item.reported_username || "მომხმარებელი"
@@ -29,7 +31,7 @@ export default function AdminUserReviewCard({
   const canReview = item.status === "open" || item.status === "reviewing"
   const priority = reportPriority("user", item.reason)
   const isAged =
-    canReview && Date.now() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
+    canReview && new Date(referenceTime).getTime() - new Date(item.created_at).getTime() >= 24 * 60 * 60 * 1000
 
   return (
     <article className="ui-card p-5 sm:p-6">

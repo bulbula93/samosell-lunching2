@@ -123,6 +123,7 @@ export default async function AdminReportsPage({
   const priority: PriorityFilter = params.priority === "high" ? "high" : "all"
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
+  const referenceTime = new Date().toISOString()
 
   let listingReportsQuery = supabase
     .from("admin_listing_reports")
@@ -361,12 +362,14 @@ export default async function AdminReportsPage({
                 key={`listing-${entry.item.id}`}
                 item={entry.item}
                 relatedOpenReports={listingTargetCounts.get(entry.item.seller_id) ?? 1}
+                referenceTime={referenceTime}
               />
             ) : (
               <AdminUserReviewCard
                 key={`user-${entry.item.id}`}
                 item={entry.item}
                 relatedOpenReports={userTargetCounts.get(entry.item.reported_user_id) ?? 1}
+                referenceTime={referenceTime}
               />
             ),
           )

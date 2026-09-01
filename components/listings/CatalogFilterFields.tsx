@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { getCatalogItemOptionsForSection } from "@/lib/catalog-taxonomy"
 import { getCatalogSizeLabels } from "@/lib/marketplace-options"
 
@@ -92,12 +92,6 @@ export default function CatalogFilterFields({
   const [selectedCategory, setSelectedCategory] = useState(values.category)
   const [selectedItemType, setSelectedItemType] = useState(values.item_type)
   const [selectedSize, setSelectedSize] = useState(values.size)
-
-  useEffect(() => {
-    setSelectedCategory(values.category)
-    setSelectedItemType(values.item_type)
-    setSelectedSize(values.size)
-  }, [values.category, values.item_type, values.size])
 
   const availableItemTypes = useMemo(
     () => getCatalogItemOptionsForSection(selectedCategory),

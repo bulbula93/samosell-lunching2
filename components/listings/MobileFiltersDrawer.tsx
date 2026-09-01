@@ -98,7 +98,12 @@ export default function MobileFiltersDrawer({
             </div>
             <form action="/catalog" className="p-5">
               {values.q ? <input type="hidden" name="q" value={values.q} /> : null}
-              <CatalogFilterFields options={options} values={values} mobile />
+              <CatalogFilterFields
+                key={`${values.category}:${values.item_type}:${values.size}`}
+                options={options}
+                values={values}
+                mobile
+              />
               <div className="sticky bottom-0 -mx-5 mt-7 grid grid-cols-2 gap-3 border-t border-line bg-bg p-5">
                 <Link href={values.q ? `/catalog?q=${encodeURIComponent(values.q)}` : "/catalog"} className="ui-btn-secondary">
                   {ka.catalog.clear}

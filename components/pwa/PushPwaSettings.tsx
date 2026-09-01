@@ -37,13 +37,15 @@ export default function PushPwaSettings() {
 
   useEffect(() => {
     const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window
-    setSupported(pushSupported)
-    setPermission("Notification" in window ? Notification.permission : "default")
-    setIos(isIosDevice())
-    setInstalled(
-      window.matchMedia("(display-mode: standalone)").matches ||
-        Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
-    )
+    queueMicrotask(() => {
+      setSupported(pushSupported)
+      setPermission("Notification" in window ? Notification.permission : "default")
+      setIos(isIosDevice())
+      setInstalled(
+        window.matchMedia("(display-mode: standalone)").matches ||
+          Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
+      )
+    })
 
     const beforeInstall = (rawEvent: Event) => {
       const event = rawEvent as BeforeInstallPromptEvent

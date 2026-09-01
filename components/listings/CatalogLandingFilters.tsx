@@ -70,7 +70,11 @@ export default function CatalogLandingFilters({
           <button type="submit" className="ui-btn-primary shrink-0">{ka.catalog.apply}</button>
           <Link href="/catalog" className="ui-btn-secondary shrink-0">{ka.catalog.clear}</Link>
         </div>
-        <CatalogFilterFields options={options} values={values} />
+        <CatalogFilterFields
+          key={`${values.category}:${values.item_type}:${values.size}`}
+          options={options}
+          values={values}
+        />
       </form>
 
       {chips.length > 0 ? (
