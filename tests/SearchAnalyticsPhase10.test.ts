@@ -56,7 +56,7 @@ describe("phase 10 search analytics feedback loop", () => {
 
   it("inherits URL attribution only when a form explicitly requests fallback behavior", () => {
     expect(searchAttributionInput).toContain("explicitSearchId === undefined")
-    expect(searchAttributionInput).toContain('searchParams.get("search_id")')
+    expect(searchAttributionInput).toContain('searchParams?.get("search_id")')
     expect(searchAttributionInput).toContain(": explicitSearchId")
   })
 
