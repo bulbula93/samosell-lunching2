@@ -105,8 +105,11 @@ describe("Google discovery metadata", () => {
     expect(read("app/listing/[slug]/page.tsx")).toContain(
       "if (!metadata) notFound()",
     )
-    expect(read("app/listing/[slug]/layout.tsx")).toContain(
-      "if (!metadata) notFound()",
+    const proxy = read("lib/supabase/proxy.ts")
+    expect(proxy).toContain('select("id, status")')
+    expect(proxy).toContain('NextResponse.rewrite(notFoundUrl, { status: 404 })')
+    expect(read("app/listing-not-found/page.tsx")).toContain(
+      "robots: { index: false, follow: true }",
     )
   })
 })
