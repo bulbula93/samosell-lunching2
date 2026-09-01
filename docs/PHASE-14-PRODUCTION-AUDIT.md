@@ -19,7 +19,8 @@ This report separates observed production defects from expected authorization fa
 - Mutations/API surface: 19 server-action/API files.
 - Database history at the final audit revision: 47 local Supabase migrations; production reports 49 applied entries because two earlier production entries use generated apply timestamps.
 - Edge Functions: one `push-dispatch` function. `supabase/functions` is excluded from the Next.js TypeScript project.
-- Production deployment: Vercel deployment `dpl_6M2vsH2okGqBRTQey9qKSPFMfdXj` is `READY` at commit `bc12569155e0b13054a1449517b24a55734df535`.
+- Baseline production deployment: Vercel deployment `dpl_6M2vsH2okGqBRTQey9qKSPFMfdXj` was `READY` at commit `bc12569155e0b13054a1449517b24a55734df535`.
+- Phase 14 production deployment: `dpl_9mFHcKysSmdh3P8DQWBkc8UabYMM` is `READY`, aliases `samosell.ge`, and was built from exact commit `a5266690fb3252fbf3235d4a3cb9ec5b32218630`.
 
 ### Commands and exact results
 
@@ -37,7 +38,7 @@ This report separates observed production defects from expected authorization fa
 | ID | Severity | Component | Evidence | Initial classification | Status |
 | --- | --- | --- | --- | --- | --- |
 | P14-001 | P1 High | Quality gate | TypeScript, lint, and tests fail on the exact production commit. | Confirmed launch-quality blocker; determine test-only versus runtime causes before changes. | Closed |
-| P14-002 | P3 Low | Local/CI parity | Audit host runs Node 24.14.1 while `package.json` requires Node 22.x. | Operational warning; the Vercel Node 22 production build is the authoritative parity gate. | Open until deployment |
+| P14-002 | P3 Low | Local/CI parity | Audit host runs Node 24.14.1 while `package.json` requires Node 22.x. | Vercel used Node 22.x and completed the production build. | Closed |
 | P14-003 | P2 Medium | Repository workflow | Existing local `main` was ahead by 1 and behind `origin/main` by 129 commits, with unrelated uncommitted files. Audit therefore uses an isolated worktree at the exact production commit. | Operational risk; user work remains untouched. | Mitigated |
 | P14-004 | P3 Low | Environment setup | An env-less local production build fails during static page collection. | Expected local environment constraint; production build uses Vercel-managed env. | Mitigated |
 | P14-005 | P2 Medium | Listings runtime | Vercel 7-day history contains 11 `listings.is_promoted does not exist` failures on older deployments; none appeared in the latest 24 hours. | Historical production defect; current schema and deployment include the field. | Closed |
@@ -87,7 +88,7 @@ Commerce review: offers/orders use participant-scoped SECURITY DEFINER RPCs, row
 | P14-006 | P2 Medium | Homepage database latency | One statement timeout occurred in the 7-day window; no repeat in the latest 24 hours. Existing listing filter/order index was confirmed. | Monitor after deployment; capture `EXPLAIN (ANALYZE, BUFFERS)` only if it repeats. Avoid speculative index churn. | Open |
 | P14-017 | P2 Medium | Supabase Auth | Leaked-password protection is disabled in the security advisor. | Enable it in Supabase Auth settings after confirming UX/support implications. | Open |
 | P14-018 | P3 Low | Supabase performance advisors | 83 notices: 14 unindexed foreign keys, 25 auth RLS init-plan notices, 35 unused indexes and 9 multiple-permissive-policy notices. None is direct proof of a current production failure. | Address from measured slow queries, starting with frequently written foreign keys and duplicate profile SELECT policy; do not delete indexes blindly. | Open |
-| P14-002 | P3 Low | Local runtime parity | Local host is Node 24.14.1; repository/Vercel require Node 22.x. | Treat the Vercel Node 22 build as the authoritative parity gate. | Open until deployment |
+| P14-002 | P3 Low | Local runtime parity | Local host is Node 24.14.1; repository/Vercel require Node 22.x. | Vercel build logs confirm Node 22.x was selected from `package.json`; production parity gate passed. | Closed |
 | P14-004 | P3 Low | Local environment | A bare isolated worktree has no production env and cannot collect pages. | Expected. Local build was rerun with process-only placeholder public values; production verification must use Vercel-managed env. | Mitigated |
 
 Production logs classification before fixes:
@@ -130,6 +131,17 @@ Production logs classification before fixes:
 - `push_subscription` limiter: authenticated execute=true, anon=false.
 - `increment_listing_views`: anon=false, authenticated=false, service-role=true.
 - Post-change Supabase advisors still report the documented intentional service tables, public search functions and performance notices; no new missing-RLS/table-grant regression was introduced.
+- Final advisor counts: security 45 (9 INFO, 36 WARN) and performance 83 (49 INFO, 34 WARN). The security set consists of 9 intentional deny-by-default RLS tables, 6 reviewed anonymous functions, 29 reviewed authenticated functions, and the one open leaked-password warning. No new critical advisor appeared.
+
+### Production deployment and runtime
+
+- Git push advanced `origin/main` from `bc12569` to `a526669`; the remote had not moved during the audit, so no concurrent commit was overwritten.
+- Vercel cloned exact commit `a526669`, used Node 22.x, ran `pnpm install --frozen-lockfile`, compiled Next.js 16.2.3, completed TypeScript, and finished the deployment successfully.
+- Deployment `dpl_9mFHcKysSmdh3P8DQWBkc8UabYMM` reached `READY` with `samosell.ge` attached and no alias error.
+- The first 30-minute deployment window had no grouped runtime errors and no warning/error logs; the observed requests were HTTP 200.
+- Vercel server-side live fetch returned HTTP 200 for home, catalog, manifest, service worker, robots, sitemap, protected-route responses, and missing-listing output. Protected/admin output contains login/private-safe handling; admin and missing-listing output carry `noindex`.
+- Current Supabase API samples returned 200, Auth samples showed normal completed requests, and the latest `push-dispatch` Edge execution was POST 200.
+- A direct post-deploy desktop-browser replay could not be completed because this audit host began returning `ERR_CONNECTION_RESET` for `samosell.ge`; Vercel's independent live fetch and runtime telemetry remained healthy. This environment failure is not presented as a passed browser test.
 
 ### PWA/SEO/static review
 
@@ -154,3 +166,16 @@ Created: this report; five migrations (`20260901081619`, `20260901082327`, `2026
 - Real push enable/disable after the new rate-limit route is deployed; Phase 13 end-to-end delivery was previously confirmed and was not destructively repeated.
 - Non-admin `/admin` browser attempt with a dedicated account; server-side code/RPC denial and forged private-resource 404 were verified.
 - Mobile device install/navigation smoke on iOS and Android after deployment.
+- Repeat post-deploy visual checks at 360, 390, 768, 1280 and 1440 px and re-check the browser console once the audit host's direct network path stops resetting connections. Pre-deployment desktop checks were clean, but the production revision was not visually re-certified after deploy.
+- Send malformed and over-16-KiB callback requests to the production TBC callback from an approved QA network to confirm live 400/413 bodies. Automated boundary tests passed; the audit host's direct TLS path reset before these safe live probes completed.
+
+## Final launch gate
+
+- Production build: PASS.
+- Automated tests: PASS (53 files, 274 tests).
+- Security blockers remaining: 0.
+- P0 remaining: 0.
+- P1 remaining: 0.
+- P2 remaining: 3 (`P14-006`, `P14-013`, `P14-017`).
+- P3 remaining: 2 (`P14-014`, `P14-018`).
+- Recommendation: **GO WITH KNOWN ISSUES**. There is no confirmed critical/high blocker, but anonymous analytics abuse controls, leaked-password protection and the one-off homepage timeout should be addressed or actively monitored.
