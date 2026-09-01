@@ -187,6 +187,7 @@ describe("listing form server actions", () => {
     expect(insertedPayload).not.toHaveProperty("is_vip")
     expect(profileQuery.update).toHaveBeenCalledWith({ store_phone: "+995 555 12 34 56" })
     expect(mocks.rateLimit).toHaveBeenCalledWith(expect.anything(), "listing_create")
+    expect(mocks.slug).toHaveBeenCalledWith(expect.anything(), validForm.title, listingId)
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/catalog")
   })
 
@@ -265,9 +266,11 @@ describe("listing form server actions", () => {
     expect(result).toMatchObject({ ok: true, status: "sold" })
     expect(updatedPayload).toMatchObject({
       title: "განახლებული სათაური",
+      slug: ownedListing.slug,
       status: "sold",
       published_at: ownedListing.published_at,
     })
+    expect(mocks.slug).not.toHaveBeenCalled()
     expect(updatedPayload).not.toHaveProperty("seller_id")
   })
 

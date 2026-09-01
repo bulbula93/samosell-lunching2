@@ -34,7 +34,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  return generateListingMetadata(slug)
+  const metadata = await generateListingMetadata(slug)
+  if (!metadata) notFound()
+  return metadata
 }
 
 export default async function ListingDetailsPage({

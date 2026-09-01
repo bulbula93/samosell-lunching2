@@ -5,8 +5,17 @@ export const MAX_LISTING_IMAGES = 8
 export const MAX_IMAGE_FILE_SIZE_MB = 7
 export const MAX_IMAGE_FILE_SIZE_BYTES = MAX_IMAGE_FILE_SIZE_MB * 1024 * 1024
 
+const GEORGIAN_TRANSLITERATION: Record<string, string> = {
+  ა: "a", ბ: "b", გ: "g", დ: "d", ე: "e", ვ: "v", ზ: "z", თ: "t",
+  ი: "i", კ: "k", ლ: "l", მ: "m", ნ: "n", ო: "o", პ: "p", ჟ: "zh",
+  რ: "r", ს: "s", ტ: "t", უ: "u", ფ: "p", ქ: "k", ღ: "gh", ყ: "q",
+  შ: "sh", ჩ: "ch", ც: "ts", ძ: "dz", წ: "ts", ჭ: "ch", ხ: "kh",
+  ჯ: "j", ჰ: "h",
+}
+
 export function slugify(value: string) {
   return value
+    .replace(/[ა-ჰ]/g, (character) => GEORGIAN_TRANSLITERATION[character] ?? "")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -20,21 +29,23 @@ export function slugify(value: string) {
 export async function generateUniqueListingSlug(
   supabase: SupabaseClient,
   title: string,
-  excludeListingId?: string
+  stableListingId: string,
 ) {
-  const baseSlug = slugify(title) || `listing-${Date.now()}`
-  let candidate = baseSlug
-  let suffix = 2
+  const compactId = stableListingId.replace(/-/g, "").toLowerCase()
+  if (!/^[a-f0-9]{32}$/.test(compactId)) {
+    throw new Error("A valid stable listing ID is required for slug generation.")
+  }
 
-  while (true) {
-    let query = supabase.from("listings").select("id").eq("slug", candidate).limit(1)
-    if (excludeListingId) query = query.neq("id", excludeListingId)
+  const baseSlug = slugify(title).slice(0, 120).replace(/-+$/g, "") || "listing"
+  for (const suffixLength of [8, 12, 16, 32]) {
+    const candidate = `${baseSlug}-${compactId.slice(0, suffixLength)}`
+    const query = supabase.from("listings").select("id").eq("slug", candidate).limit(1)
     const { data, error } = await query
     if (error) throw error
     if (!data || data.length === 0) return candidate
-    candidate = `${baseSlug}-${suffix}`
-    suffix += 1
   }
+
+  throw new Error("Unable to generate a unique listing slug.")
 }
 
 export function validateImageFile(file: File) {

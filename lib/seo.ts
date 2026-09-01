@@ -4,6 +4,16 @@ import type { CatalogListing } from "@/types/marketplace"
 
 export const GOOGLE_SITE_VERIFICATION = "uQuez09mPR--nX75FjQfxC1lHoSPZ4Kp19VP2rdNhf0"
 
+export const INDEXABLE_CATALOG_CATEGORIES = [
+  { value: "women", label: "ქალებისთვის" },
+  { value: "men", label: "მამაკაცებისთვის" },
+  { value: "accessories", label: "აქსესუარები" },
+  { value: "kids", label: "ბავშვებისთვის" },
+  { value: "vintage", label: "ვინტაჟი" },
+  { value: "footwear", label: "ფეხსაცმელი" },
+  { value: "bags", label: "ჩანთები" },
+] as const
+
 export function getSiteUrl() {
   return getSiteUrlEnv().replace(/\/$/, "")
 }
@@ -24,8 +34,9 @@ export function truncateDescription(value?: string | null, maxLength = 160) {
   return `${safe.slice(0, maxLength - 1).trim()}…`
 }
 
-export function buildCatalogTitle(page = 1) {
-  return page > 1 ? `${SITE_NAME} კატალოგი – გვერდი ${page}` : `${SITE_NAME} კატალოგი`
+export function buildCatalogTitle(page = 1, categoryLabel = "") {
+  const base = categoryLabel ? `${categoryLabel} — კატალოგი` : "კატალოგი"
+  return page > 1 ? `${base} — გვერდი ${page}` : base
 }
 
 export function buildCatalogDescription(filters: string[] = []) {
@@ -36,15 +47,37 @@ export function buildCatalogDescription(filters: string[] = []) {
 
 export function buildCatalogCanonicalPath({
   page,
-  hasFilters,
-  hasCustomSort,
+  category,
+  hasOtherFilters,
+  hasSortParameter,
+  hasTransientState,
 }: {
   page: number
-  hasFilters: boolean
-  hasCustomSort: boolean
+  category?: string
+  hasOtherFilters: boolean
+  hasSortParameter: boolean
+  hasTransientState: boolean
 }) {
-  if (hasFilters || hasCustomSort || page <= 1) return "/catalog"
-  return `/catalog?page=${page}`
+  const canonicalCategory = INDEXABLE_CATALOG_CATEGORIES.find(
+    (item) => item.value === category,
+  )
+  const indexable =
+    (!category || Boolean(canonicalCategory)) &&
+    !hasOtherFilters &&
+    !hasSortParameter &&
+    !hasTransientState
+  const canonicalRoot = canonicalCategory
+    ? `/catalog?category=${canonicalCategory.value}`
+    : "/catalog"
+
+  return {
+    canonicalPath:
+      indexable && page > 1
+        ? `${canonicalRoot}${canonicalCategory ? "&" : "?"}page=${page}`
+        : canonicalRoot,
+    indexable,
+    categoryLabel: canonicalCategory?.label ?? "",
+  }
 }
 
 export function serializeJsonLd(value: unknown) {

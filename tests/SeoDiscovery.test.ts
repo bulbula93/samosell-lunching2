@@ -6,6 +6,7 @@ import {
   buildHomeStructuredData,
   buildListingStructuredData,
   GOOGLE_SITE_VERIFICATION,
+  INDEXABLE_CATALOG_CATEGORIES,
   serializeJsonLd,
 } from "@/lib/seo"
 import { makeListing } from "@/tests/fixtures"
@@ -22,19 +23,23 @@ describe("Google discovery metadata", () => {
     expect(read("app/layout.tsx")).toContain("google: GOOGLE_SITE_VERIFICATION")
   })
 
-  it("consolidates faceted and custom-sorted catalog URLs", () => {
+  it("indexes clean catalog/category pages and consolidates faceted URLs", () => {
     expect(
-      buildCatalogCanonicalPath({ page: 1, hasFilters: false, hasCustomSort: false }),
-    ).toBe("/catalog")
+      buildCatalogCanonicalPath({ page: 1, hasOtherFilters: false, hasSortParameter: false, hasTransientState: false }),
+    ).toEqual({ canonicalPath: "/catalog", indexable: true, categoryLabel: "" })
     expect(
-      buildCatalogCanonicalPath({ page: 3, hasFilters: false, hasCustomSort: false }),
-    ).toBe("/catalog?page=3")
+      buildCatalogCanonicalPath({ page: 3, category: "women", hasOtherFilters: false, hasSortParameter: false, hasTransientState: false }),
+    ).toEqual({ canonicalPath: "/catalog?category=women&page=3", indexable: true, categoryLabel: "ქალებისთვის" })
     expect(
-      buildCatalogCanonicalPath({ page: 3, hasFilters: true, hasCustomSort: false }),
-    ).toBe("/catalog")
+      buildCatalogCanonicalPath({ page: 3, category: "women", hasOtherFilters: true, hasSortParameter: false, hasTransientState: false }),
+    ).toEqual({ canonicalPath: "/catalog?category=women", indexable: false, categoryLabel: "ქალებისთვის" })
     expect(
-      buildCatalogCanonicalPath({ page: 1, hasFilters: false, hasCustomSort: true }),
-    ).toBe("/catalog")
+      buildCatalogCanonicalPath({ page: 1, hasOtherFilters: false, hasSortParameter: true, hasTransientState: false }),
+    ).toEqual({ canonicalPath: "/catalog", indexable: false, categoryLabel: "" })
+    expect(
+      buildCatalogCanonicalPath({ page: 1, category: "not-real", hasOtherFilters: false, hasSortParameter: false, hasTransientState: false }),
+    ).toEqual({ canonicalPath: "/catalog", indexable: false, categoryLabel: "" })
+    expect(INDEXABLE_CATALOG_CATEGORIES.map((item) => item.value)).toContain("vintage")
   })
 
   it("builds honest server-rendered website and product data", () => {
@@ -95,5 +100,10 @@ describe("Google discovery metadata", () => {
     const sitemap = read("app/sitemap.ts")
     expect(sitemap).toContain('seller_username')
     expect(sitemap).toContain('/seller/${encodeURIComponent(username)}')
+    expect(sitemap).toContain("INDEXABLE_CATALOG_CATEGORIES")
+    expect(sitemap).toContain('select("slug, updated_at")')
+    expect(read("app/listing/[slug]/page.tsx")).toContain(
+      "if (!metadata) notFound()",
+    )
   })
 })

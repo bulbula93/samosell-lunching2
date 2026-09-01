@@ -445,11 +445,9 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       throw phoneUpdateError ?? new Error("Seller profile is missing.")
     }
 
-    const slug = await generateUniqueListingSlug(
-      supabase,
-      data.title,
-      input.mode === "edit" ? input.listingId : undefined
-    )
+    const slug = input.mode === "edit"
+      ? ownedListing!.slug
+      : await generateUniqueListingSlug(supabase, data.title, input.listingId)
     const requestedStatus = data.publishNow ? "active" : "draft"
     const status =
       ownedListing && !EDITABLE_LISTING_STATUSES.includes(ownedListing.status as "draft" | "active")

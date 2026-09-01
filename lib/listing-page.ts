@@ -148,7 +148,7 @@ function getMetadataImage(value?: string | null) {
   return safe.startsWith("/") ? absoluteUrl(safe) : safe
 }
 
-const fetchActiveListing = cache(async (slug: string) => {
+const fetchMetadataListing = cache(async (slug: string) => {
   if (!isValidListingSlug(slug)) return null
 
   const supabase = await createClient()
@@ -156,22 +156,18 @@ const fetchActiveListing = cache(async (slug: string) => {
     .from("listings_catalog")
     .select(listingSelect)
     .eq("slug", slug)
-    .eq("status", "active")
     .maybeSingle()
 
-  if (error || !data) return null
+  if (error) {
+    throw new Error("LISTING_METADATA_QUERY_FAILED", { cause: error })
+  }
+  if (!data) return null
   return data as CatalogListing
 })
 
-export async function generateListingMetadata(slug: string): Promise<Metadata> {
-  const listing = await fetchActiveListing(slug)
-  if (!listing) {
-    return {
-      title: ka.listingDetail.notFoundTitle,
-      description: ka.listingDetail.notFoundDescription,
-      robots: { index: false, follow: false },
-    }
-  }
+export async function generateListingMetadata(slug: string): Promise<Metadata | null> {
+  const listing = await fetchMetadataListing(slug)
+  if (!listing || !OWNER_VISIBLE_STATUSES.has(String(listing.status ?? ""))) return null
 
   const title = `${listing.title} — ${formatPrice(listing.price, listing.currency)}`
   const description = truncateDescription(
@@ -186,6 +182,9 @@ export async function generateListingMetadata(slug: string): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: canonicalUrl },
+    ...(listing.status === "active"
+      ? {}
+      : { robots: { index: false, follow: false } }),
     openGraph: {
       title,
       description,

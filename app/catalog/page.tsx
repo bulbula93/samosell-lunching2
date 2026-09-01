@@ -77,20 +77,44 @@ function rescueLabel(mode: string, resolvedQuery: string, originalQuery: string)
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<CatalogPageParams> }): Promise<Metadata> {
   const params = (await searchParams) ?? {}
-  const { filters, page, queryParams } = resolveCatalogState(params)
+  const { filters, page } = resolveCatalogState(params)
   const filterSummary = summarizeFilters(filters)
-  const path = buildCatalogCanonicalPath({
+  const legacyCategory =
+    !filters.category && ["women", "men", "kids"].includes(filters.gender)
+      ? filters.gender
+      : ""
+  const canonicalCategory = filters.category || legacyCategory
+  const canonicalFilterKey = legacyCategory ? "gender" : "category"
+  const catalogFilterKeys: Array<keyof CatalogPageParams> = [
+    "q", "category", "item_type", "brand", "size", "color", "city",
+    "condition", "new_only", "gender", "vip", "min_price", "max_price",
+  ]
+  const hasOtherFilters = catalogFilterKeys.some(
+    (key) => key !== canonicalFilterKey && params[key] !== undefined,
+  )
+  const rawPage = typeof params.page === "string" ? params.page : ""
+  const hasInvalidPageParameter =
+    params.page !== undefined && (page <= 1 || rawPage !== String(page))
+  const catalogSeo = buildCatalogCanonicalPath({
     page,
-    hasFilters: filterSummary.length > 0,
-    hasCustomSort: queryParams.has("sort"),
+    category: canonicalCategory,
+    hasOtherFilters,
+    hasSortParameter: params.sort !== undefined,
+    hasTransientState:
+      params.saved_search_status !== undefined ||
+      Boolean(legacyCategory) ||
+      hasInvalidPageParameter ||
+      Array.isArray(params[canonicalFilterKey]),
   })
-  const title = buildCatalogTitle(page)
+  const path = catalogSeo.canonicalPath
+  const title = buildCatalogTitle(page, catalogSeo.categoryLabel)
   const description = buildCatalogDescription(filterSummary)
 
   return {
     title,
     description,
     alternates: { canonical: path },
+    robots: { index: catalogSeo.indexable, follow: true },
     openGraph: { title, description, url: absoluteUrl(path), type: "website", images: [{ url: absoluteUrl("/opengraph-image") }] },
     twitter: { card: "summary_large_image", title, description, images: [absoluteUrl("/opengraph-image")] },
   }

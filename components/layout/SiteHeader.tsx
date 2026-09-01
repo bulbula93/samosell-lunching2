@@ -57,7 +57,7 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
     }))
 
   const supportingItems: MarketplaceNavItem[] = [
-    { label: "ბავშვებისთვის", href: "/catalog?gender=kids" },
+    { label: "ბავშვებისთვის", href: "/catalog?category=kids" },
     { label: getCatalogItemLabel("footwear"), href: "/catalog?category=footwear" },
     { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
   ]
