@@ -105,5 +105,8 @@ describe("Google discovery metadata", () => {
     expect(read("app/listing/[slug]/page.tsx")).toContain(
       "if (!metadata) notFound()",
     )
+    expect(read("app/listing/[slug]/layout.tsx")).toContain(
+      "if (!metadata) notFound()",
+    )
   })
 })
