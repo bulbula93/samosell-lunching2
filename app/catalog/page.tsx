@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
+import { after } from "next/server"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import CatalogPagination from "@/components/listings/CatalogPagination"
@@ -50,7 +51,7 @@ type SearchExperimentAssignment = {
 }
 
 const CATALOG_LISTING_SELECT =
-  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, slug, title, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
 function readStatus(value?: string | string[]) {
   return typeof value === "string" ? value : ""
@@ -315,42 +316,44 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
 
   if (searchId) {
-    const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
-      p_search_id: searchId,
-      p_query: q,
-      p_filters: {
-        category,
-        item_type,
-        brand,
-        size,
-        color,
-        city,
-        condition,
-        gender,
-        vip,
-        min_price,
-        max_price,
-        rescue_mode: rescueMode,
-        resolved_query: resolvedQuery || null,
-        experiment_variant: experimentVariant,
-      },
-      p_sort: sort,
-      p_page: page,
-      p_result_count: totalCount,
-      p_listing_ids: listings.map((item) => item.id),
-    })
+    after(async () => {
+      const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
+        p_search_id: searchId,
+        p_query: q,
+        p_filters: {
+          category,
+          item_type,
+          brand,
+          size,
+          color,
+          city,
+          condition,
+          gender,
+          vip,
+          min_price,
+          max_price,
+          rescue_mode: rescueMode,
+          resolved_query: resolvedQuery || null,
+          experiment_variant: experimentVariant,
+        },
+        p_sort: sort,
+        p_page: page,
+        p_result_count: totalCount,
+        p_listing_ids: listings.map((item) => item.id),
+      })
 
-    if (analyticsError || recorded !== true) {
-      console.error(
-        "[search-analytics] impression failed",
-        analyticsError?.message || "record_search_impression returned false",
-      )
-    }
+      if (analyticsError || recorded !== true) {
+        console.error(
+          "[search-analytics] impression failed",
+          analyticsError?.message || "record_search_impression returned false",
+        )
+      }
+    })
   }
 
   return (
     <>
-      <SiteHeader />
+      <SiteHeader authenticatedUser={user} />
       <main className="min-h-screen bg-bg text-text">
         <section className="ui-container py-7 sm:py-10">
           <CatalogPageHeader totalCount={totalCount} />

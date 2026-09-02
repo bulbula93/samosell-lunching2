@@ -12,7 +12,7 @@ const categoryLabelOverrides: Record<string, string> = {
   vintage: "ვინტაჟი",
 }
 
-export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: User | null } = {}) {
+export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: Pick<User, "id"> | null } = {}) {
   const supabase = await createClient()
   const [user, categoriesResponse] = await Promise.all([
     authenticatedUser === undefined

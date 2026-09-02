@@ -1,6 +1,6 @@
 import { toggleFavoriteAction } from "@/app/favorites/actions"
 import FavoriteSubmitButton from "@/components/favorites/FavoriteSubmitButton"
-import SearchAttributionInput from "@/components/search/SearchAttributionInput"
+import { normalizeSearchId } from "@/lib/search-analytics"
 
 type FavoriteToggleFormProps = {
   listingId: string
@@ -21,12 +21,16 @@ export default function FavoriteToggleForm({
   compact = false,
   className,
 }: FavoriteToggleFormProps) {
+  const normalizedSearchId = normalizeSearchId(searchId)
+
   return (
     <form action={toggleFavoriteAction}>
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="listingSlug" value={listingSlug} />
       <input type="hidden" name="nextPath" value={nextPath} />
-      <SearchAttributionInput explicitSearchId={searchId} />
+      {normalizedSearchId ? (
+        <input type="hidden" name="searchId" value={normalizedSearchId} />
+      ) : null}
       <FavoriteSubmitButton isFavorited={isFavorited} compact={compact} className={className} />
     </form>
   )

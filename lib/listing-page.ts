@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import type { User } from "@supabase/supabase-js"
 import { cache } from "react"
 import { rankSimilarListings } from "@/lib/discovery"
 import { ka } from "@/lib/i18n/ka"
@@ -16,6 +17,9 @@ const OWNER_VISIBLE_STATUSES = new Set(["active", "reserved", "sold"])
 
 export const listingSelect =
   "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+
+const relatedListingSelect =
+  "id, seller_id, slug, title, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
   "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone"
@@ -68,6 +72,7 @@ export type ListingPageData = {
   isBuyerParticipant: boolean
   canReview: boolean
   viewerId: string | null
+  authenticatedUser: Pick<User, "id"> | null
   reviewData: SellerReviewData
 }
 
@@ -280,7 +285,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const similarCategoryQuery = isActive && listing.category_slug
     ? supabase
         .from("listings_catalog")
-        .select(listingSelect)
+        .select(relatedListingSelect)
         .eq("status", "active")
         .eq("category_slug", listing.category_slug)
         .neq("id", listing.id)
@@ -291,7 +296,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const similarGenderQuery = isActive && listing.gender
     ? supabase
         .from("listings_catalog")
-        .select(listingSelect)
+        .select(relatedListingSelect)
         .eq("status", "active")
         .eq("gender", listing.gender)
         .neq("id", listing.id)
@@ -302,7 +307,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const similarBrandQuery = isActive && listing.brand_name
     ? supabase
         .from("listings_catalog")
-        .select(listingSelect)
+        .select(relatedListingSelect)
         .eq("status", "active")
         .eq("brand_name", listing.brand_name)
         .neq("id", listing.id)
@@ -440,6 +445,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     isBuyerParticipant,
     canReview,
     viewerId: user?.id ?? null,
+    authenticatedUser: user ? { id: user.id } : null,
     reviewData,
   }
 }

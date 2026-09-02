@@ -34,7 +34,7 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
-      <SiteHeader />
+      <SiteHeader authenticatedUser={data.user} />
       <main className="min-h-screen bg-bg text-text">
         <HomePageContent data={data} />
       </main>

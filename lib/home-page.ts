@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing } from "@/types/marketplace"
 
 export const baseListingSelect =
-  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, is_home_banner, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, slug, title, description, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
 export type PopularBrand = {
   name: string

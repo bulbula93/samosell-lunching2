@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { after } from "next/server"
 import SiteHeader from "@/components/layout/SiteHeader"
 import ListingBreadcrumbs from "@/components/listings/ListingBreadcrumbs"
 import ListingGallery from "@/components/listings/ListingGallery"
@@ -66,6 +67,7 @@ export default async function ListingDetailsPage({
     isBlockedBySeller,
     canReview,
     viewerId,
+    authenticatedUser,
     reviewData,
   } = pageData
 
@@ -75,10 +77,12 @@ export default async function ListingDetailsPage({
 
   if (searchId && listing.status === "active") {
     const analyticsClient = await createClient()
-    await recordSearchInteractionSafely(analyticsClient, {
-      searchId,
-      listingId: listing.id,
-      eventType: "click",
+    after(() => {
+      return recordSearchInteractionSafely(analyticsClient, {
+        searchId,
+        listingId: listing.id,
+        eventType: "click",
+      })
     })
   }
 
@@ -125,7 +129,7 @@ export default async function ListingDetailsPage({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
         />
       ) : null}
-      <SiteHeader />
+      <SiteHeader authenticatedUser={authenticatedUser} />
       <main className="min-h-screen bg-bg text-text">
         {listing.status === "active" ? (
           <RecentlyViewedTracker listingId={listing.id} />
