@@ -26,7 +26,11 @@ describe("ListingGallery", () => {
     const tabs = screen.getAllByRole("tab")
     expect(tabs).toHaveLength(2)
     expect(tabs[0]).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByRole("img", { name: /ატლასის კაბა.*1/ })).toBeInTheDocument()
+    const firstVisibleImage = screen.getByRole("img", { name: /ატლასის კაბა.*1/ })
+    expect(firstVisibleImage).toBeInTheDocument()
+    expect(firstVisibleImage).toHaveAttribute("loading", "eager")
+    expect(firstVisibleImage).toHaveAttribute("fetchpriority", "high")
+    expect(firstVisibleImage).not.toHaveClass("opacity-0")
 
     fireEvent.keyDown(tabs[0], { key: "ArrowRight" })
 

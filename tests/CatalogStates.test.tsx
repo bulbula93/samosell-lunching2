@@ -41,6 +41,26 @@ describe("catalog states", () => {
     )
   })
 
+  it("eager-loads only the first catalog image for the mobile LCP candidate", () => {
+    render(
+      <CatalogResultsGrid
+        listings={[
+          makeListing({ id: "first", cover_image_url: "/first.jpg" }),
+          makeListing({ id: "second", cover_image_url: "/second.jpg" }),
+        ]}
+        currentPath="/catalog"
+        favoriteIds={[]}
+      />,
+    )
+
+    const images = screen.getAllByRole("img")
+    expect(images[0]).toHaveAttribute("loading", "eager")
+    expect(images[0]).toHaveAttribute("fetchpriority", "high")
+    expect(images[0]).not.toHaveClass("opacity-0")
+    expect(images[1]).toHaveAttribute("loading", "lazy")
+    expect(images[1]).toHaveAttribute("fetchpriority", "auto")
+  })
+
   it("renders the error state and retries", async () => {
     const user = userEvent.setup()
     const reset = vi.fn()

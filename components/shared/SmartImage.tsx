@@ -26,6 +26,7 @@ export default function SmartImage({
 }: SmartImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const revealImmediately = loading === "eager"
 
   const safeSrc = useMemo(() => {
     return getSafeImageSource(src) ?? ""
@@ -43,17 +44,18 @@ export default function SmartImage({
     <div className={`relative overflow-hidden bg-neutral-200 ${wrapperClassName}`}>
       <div
         aria-hidden="true"
-        className={`absolute inset-0 bg-[linear-gradient(110deg,rgba(229,229,229,0.9),rgba(245,245,245,0.95),rgba(229,229,229,0.9))] bg-[length:200%_100%] transition-opacity duration-300 ${loaded ? "pointer-events-none opacity-0" : "animate-pulse opacity-100"}`}
+        className={`absolute inset-0 bg-[linear-gradient(110deg,rgba(229,229,229,0.9),rgba(245,245,245,0.95),rgba(229,229,229,0.9))] bg-[length:200%_100%] transition-opacity duration-300 ${loaded || revealImmediately ? "pointer-events-none opacity-0" : "animate-pulse opacity-100"}`}
       />
       <Image
         src={safeSrc}
         alt={alt}
         fill
         sizes={sizes}
-        priority={loading === "eager"}
+        loading={loading}
+        fetchPriority={revealImmediately ? "high" : "auto"}
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
-        className={`h-full w-full object-cover transition duration-300 ${loaded ? "scale-100 opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-sm"} ${className}`}
+        className={`h-full w-full object-cover transition duration-300 ${loaded || revealImmediately ? "scale-100 opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-sm"} ${className}`}
       />
     </div>
   )

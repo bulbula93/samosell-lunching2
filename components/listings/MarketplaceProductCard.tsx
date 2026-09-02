@@ -13,6 +13,7 @@ type MarketplaceProductCardProps = {
   isFavorited?: boolean
   showFavorite?: boolean
   searchId?: string | null
+  imageLoading?: "eager" | "lazy"
 }
 
 function statusLabel(status?: string | null) {
@@ -27,6 +28,7 @@ export default function MarketplaceProductCard({
   isFavorited = false,
   showFavorite = true,
   searchId = null,
+  imageLoading = "lazy",
 }: MarketplaceProductCardProps) {
   const unavailable = item.status === "reserved" || item.status === "sold"
   const badge = statusLabel(item.status)
@@ -37,7 +39,7 @@ export default function MarketplaceProductCard({
   const listingHref = searchListingHref(item.slug, searchId)
 
   return (
-    <article className="group relative flex h-full min-w-0 flex-col">
+    <article className="group relative flex h-full min-w-0 flex-col [contain-intrinsic-size:auto_360px] [content-visibility:auto]">
       <Link
         href={listingHref}
         aria-label={`${item.title} — ${formatPrice(item.price, item.currency)}`}
@@ -53,6 +55,7 @@ export default function MarketplaceProductCard({
           wrapperClassName="h-full w-full"
           className={`h-full w-full object-cover transition duration-300 group-hover:scale-[1.025] ${unavailable ? "grayscale-[30%]" : ""}`}
           fallbackLabel={ka.product.imageUnavailable}
+          loading={imageLoading}
           sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 20vw"
         />
 
