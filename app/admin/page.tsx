@@ -44,7 +44,10 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href="/admin/reports" className="ui-btn-primary">
+            <Link href="/admin/agent" className="ui-btn-primary">
+              Admin Agent
+            </Link>
+            <Link href="/admin/reports" className="ui-btn-secondary">
               რეპორტების ნახვა
             </Link>
             <Link href="/admin/boosts" className="ui-btn-secondary">
