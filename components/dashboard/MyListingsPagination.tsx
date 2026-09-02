@@ -6,6 +6,7 @@ type MyListingsPaginationProps = {
   page: number
   totalPages: number
   totalItems: number
+  publicId?: string
 }
 
 export default function MyListingsPagination({
@@ -13,6 +14,7 @@ export default function MyListingsPagination({
   page,
   totalPages,
   totalItems,
+  publicId = "",
 }: MyListingsPaginationProps) {
   if (totalPages <= 1) return null
 
@@ -26,7 +28,7 @@ export default function MyListingsPagination({
       </p>
       <div className="flex gap-2">
         {page > 1 ? (
-          <Link href={getMyListingsPath(filter, page - 1)} className="ui-btn-secondary">
+          <Link href={getMyListingsPath(filter, page - 1, publicId)} className="ui-btn-secondary">
             წინა
           </Link>
         ) : (
@@ -35,7 +37,7 @@ export default function MyListingsPagination({
           </span>
         )}
         {page < totalPages ? (
-          <Link href={getMyListingsPath(filter, page + 1)} className="ui-btn-secondary">
+          <Link href={getMyListingsPath(filter, page + 1, publicId)} className="ui-btn-secondary">
             შემდეგი
           </Link>
         ) : (

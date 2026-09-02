@@ -28,6 +28,7 @@ vi.mock("next/navigation", () => ({
 
 const baseItem = {
   id: "277f3329-6c04-4c40-8f33-873ab3ee4f76",
+  public_id: "SS-277F3329",
   title: "ძალიან გრძელი სატესტო სათაური, რომელიც ბარათის განლაგებას არ უნდა არღვევდეს",
   slug: "satesto-gancxadeba",
   price: "120.50",
@@ -50,6 +51,9 @@ describe("my listings helpers and management UI", () => {
     expect(getMyListingsPath("reserved", 2)).toBe(
       "/dashboard/listings?status=reserved&page=2"
     )
+    expect(getMyListingsPath("active", 3, "SS-A83F2C00")).toBe(
+      "/dashboard/listings?status=active&q=SS-A83F2C00&page=3"
+    )
     expect(canTransitionListingStatus("active", "sold")).toBe(true)
     expect(canTransitionListingStatus("active", "pending_review")).toBe(false)
     expect(canTransitionListingStatus("archived", "draft")).toBe(true)
@@ -61,6 +65,7 @@ describe("my listings helpers and management UI", () => {
 
     expect(screen.getByRole("heading", { name: baseItem.title })).toBeInTheDocument()
     expect(screen.getByText("120,50 ₾")).toBeInTheDocument()
+    expect(screen.getByText("SS-277F3329")).toBeInTheDocument()
     expect(screen.getByText("სურათი არ არის")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "ნახვა" })).toHaveAttribute(
       "href",

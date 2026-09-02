@@ -4,6 +4,7 @@ import { isListingImageMimeType } from "@/lib/listing-form"
 export const MAX_LISTING_IMAGES = 8
 export const MAX_IMAGE_FILE_SIZE_MB = 7
 export const MAX_IMAGE_FILE_SIZE_BYTES = MAX_IMAGE_FILE_SIZE_MB * 1024 * 1024
+export const LISTING_PUBLIC_ID_PATTERN = /^SS-[0-9A-F]{8}$/
 
 const GEORGIAN_TRANSLITERATION: Record<string, string> = {
   ა: "a", ბ: "b", გ: "g", დ: "d", ე: "e", ვ: "v", ზ: "z", თ: "t",
@@ -46,6 +47,17 @@ export async function generateUniqueListingSlug(
   }
 
   throw new Error("Unable to generate a unique listing slug.")
+}
+
+export function normalizeListingPublicId(value: unknown) {
+  const compact = String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "")
+
+  if (/^[0-9A-F]{8}$/.test(compact)) return `SS-${compact}`
+  if (/^SS[0-9A-F]{8}$/.test(compact)) return `SS-${compact.slice(2)}`
+  return ""
 }
 
 export function validateImageFile(file: File) {

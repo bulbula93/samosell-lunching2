@@ -2,7 +2,7 @@ export const ka = {
   brand: "SAMOSELL",
   nav: {
     catalog: "კატალოგი",
-    searchPlaceholder: "მოძებნე ნივთი, ბრენდი ან კატეგორია",
+    searchPlaceholder: "მოძებნე ნივთი, ბრენდი, კატეგორია ან ID",
     search: "ძებნა",
     login: "შესვლა",
     register: "რეგისტრაცია",

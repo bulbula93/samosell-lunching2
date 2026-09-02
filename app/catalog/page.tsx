@@ -51,7 +51,7 @@ type SearchExperimentAssignment = {
 }
 
 const CATALOG_LISTING_SELECT =
-  "id, slug, title, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
+  "id, public_id, slug, title, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
 function readStatus(value?: string | string[]) {
   return typeof value === "string" ? value : ""
@@ -130,7 +130,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const canSaveSearch = hasSavableCatalogFilters(filters)
   const savedSearchStatus = readStatus(params.saved_search_status)
   const databaseFilters = getCatalogDatabaseFilters(filters)
-  const useRankedSearch = Boolean(q && sort === "relevance")
+  const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance")
   const searchId = q ? randomUUID() : null
 
   const rangeFrom = (page - 1) * PAGE_SIZE

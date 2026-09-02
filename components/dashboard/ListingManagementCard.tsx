@@ -8,6 +8,7 @@ import type { ListingStatus } from "@/lib/my-listings"
 
 export type ListingManagementItem = {
   id: string
+  public_id: string
   title: string
   slug: string
   price: number | string
@@ -61,6 +62,9 @@ export default function ListingManagementCard({ item }: { item: ListingManagemen
               </h2>
               <p className="mt-1 text-lg font-black text-brand">
                 {formatPrice(item.price, item.currency)}
+              </p>
+              <p className="mt-1 text-xs font-bold tracking-wide text-text-soft">
+                ნივთის ID: <span className="text-text">{item.public_id}</span>
               </p>
               <p className="mt-2 text-xs leading-5 text-text-soft">
                 განახლდა: {formatDateOnly(item.updated_at)} · შეიქმნა: {formatDateOnly(item.created_at)}

@@ -26,6 +26,7 @@ const ownerId = "177f3329-6c04-4c40-8f33-873ab3ee4f76"
 type BuilderState = {
   head: boolean
   filter: string
+  publicId: string
   eqCalls: Array<[string, unknown]>
 }
 
@@ -38,7 +39,7 @@ function createSupabase(options: {
   const counts = options.counts ?? {}
 
   const from = vi.fn(() => {
-    const state: BuilderState = { head: false, filter: "all", eqCalls: [] }
+    const state: BuilderState = { head: false, filter: "all", publicId: "", eqCalls: [] }
     builders.push(state)
 
     const builder = {
@@ -49,6 +50,7 @@ function createSupabase(options: {
       eq: vi.fn((column: string, value: unknown) => {
         state.eqCalls.push([column, value])
         if (column === "status") state.filter = String(value)
+        if (column === "public_id") state.publicId = String(value)
         return builder
       }),
       order: vi.fn().mockReturnThis(),
@@ -68,10 +70,13 @@ function createSupabase(options: {
           return
         }
 
-        const filtered =
+        const statusFiltered =
           state.filter === "all"
             ? listings
             : listings.filter((item) => item.status === state.filter)
+        const filtered = state.publicId
+          ? statusFiltered.filter((item) => item.public_id === state.publicId)
+          : statusFiltered
         resolve({
           data: filtered,
           count: counts[state.filter] ?? filtered.length,
@@ -88,6 +93,7 @@ function createSupabase(options: {
 
 const listing = {
   id: "277f3329-6c04-4c40-8f33-873ab3ee4f76",
+  public_id: "SS-277F3329",
   title: "ჩემი ქურთუკი",
   slug: "chemi-kurtuki",
   price: "120.00",
@@ -176,5 +182,38 @@ describe("my listings protected page", () => {
       "href",
       "/dashboard/listings"
     )
+  })
+
+  it("searches only the signed-in seller rows by normalized public ID", async () => {
+    const { supabase, builders } = createSupabase({
+      listings: [listing],
+      counts: { all: 1, active: 1 },
+    })
+    mocks.requireAuthenticatedUser.mockResolvedValue({
+      supabase,
+      user: { id: ownerId },
+    })
+
+    render(
+      await DashboardListingsPage({
+        searchParams: Promise.resolve({ q: "ss-277f3329" }),
+      }),
+    )
+
+    expect(screen.getByTestId(`listing-${listing.id}`)).toBeInTheDocument()
+    expect(
+      builders.some((builder) =>
+        builder.eqCalls.some(
+          ([column, value]) => column === "public_id" && value === "SS-277F3329",
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      builders.every((builder) =>
+        builder.eqCalls.some(
+          ([column, value]) => column === "seller_id" && value === ownerId,
+        ),
+      ),
+    ).toBe(true)
   })
 })

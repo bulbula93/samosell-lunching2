@@ -3,6 +3,7 @@ import type { CatalogListing } from "@/types/marketplace"
 export function makeListing(overrides: Partial<CatalogListing> = {}): CatalogListing {
   return {
     id: "listing-1",
+    public_id: "SS-A83F2C00",
     slug: "linen-jacket",
     title: "თეთრეულის ვინტაჟური ქურთუკი",
     price: 120,

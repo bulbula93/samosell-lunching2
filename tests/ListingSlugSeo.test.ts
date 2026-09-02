@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { generateUniqueListingSlug, slugify } from "@/lib/listings"
+import {
+  generateUniqueListingSlug,
+  normalizeListingPublicId,
+  slugify,
+} from "@/lib/listings"
 
 function slugClient(existing: string[] = []) {
   return {
@@ -17,6 +21,12 @@ function slugClient(existing: string[] = []) {
 }
 
 describe("listing SEO slugs", () => {
+  it("normalizes a human-entered public listing ID without accepting arbitrary input", () => {
+    expect(normalizeListingPublicId("ss-a83f2c00")).toBe("SS-A83F2C00")
+    expect(normalizeListingPublicId("A83F2C00")).toBe("SS-A83F2C00")
+    expect(normalizeListingPublicId("SS-not-an-id")).toBe("")
+  })
+
   it("transliterates Georgian titles", () => {
     expect(slugify("ზარას ტყავის ქურთუკი")).toBe("zaras-tqavis-kurtuki")
   })

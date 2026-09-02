@@ -128,6 +128,7 @@ export default function MarketplaceProductCard({
         <div className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-soft">
           {item.size_label ? <span>ზომა {item.size_label}</span> : null}
           <span>{conditionLabel(item.condition)}</span>
+          {item.public_id ? <span className="font-semibold">ID {item.public_id}</span> : null}
         </div>
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-3">

@@ -86,6 +86,13 @@ describe("phase 9 discovery ranking", () => {
     expect(filters.itemKeywords).toContain("jeans")
   })
 
+  it("recognizes an exact public listing ID without sending it through fuzzy ranking", () => {
+    const filters = getCatalogDatabaseFilters({ q: "ss-a83f2c00" })
+
+    expect(filters.publicId).toBe("SS-A83F2C00")
+    expect(filters.query).toBe("")
+  })
+
   it("scores product identity above freshness or promotion alone", () => {
     const seed = listing("seed", {
       title: "Prada შავი პიჯაკი",

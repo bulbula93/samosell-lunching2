@@ -5,6 +5,7 @@ import ListingManagementCard, {
 } from "@/components/dashboard/ListingManagementCard"
 import MyListingsPagination from "@/components/dashboard/MyListingsPagination"
 import { requireAuthenticatedUser } from "@/lib/auth"
+import { normalizeListingPublicId } from "@/lib/listings"
 import {
   MY_LISTINGS_FILTERS,
   MY_LISTINGS_PAGE_SIZE,
@@ -21,10 +22,11 @@ type MyListingsSearchParams = {
   status?: string | string[]
   flash?: string | string[]
   page?: string | string[]
+  q?: string | string[]
 }
 
 const LISTING_SELECT =
-  "id, title, slug, price, currency, status, created_at, updated_at, cover_image_url, is_vip, vip_until, promoted_until, featured_until, featured_slot"
+  "id, public_id, title, slug, price, currency, status, created_at, updated_at, cover_image_url, is_vip, vip_until, promoted_until, featured_until, featured_slot"
 
 function readParam(value?: string | string[]) {
   return typeof value === "string" ? value : ""
@@ -67,12 +69,15 @@ export default async function DashboardListingsPage({
   const params = (await searchParams) ?? {}
   const activeFilter = parseMyListingsFilter(readParam(params.status))
   const page = parseMyListingsPage(readParam(params.page))
+  const rawPublicId = readParam(params.q).trim().slice(0, 32)
+  const publicId = normalizeListingPublicId(rawPublicId)
+  const hasPublicIdSearch = rawPublicId.length > 0
   const rangeFrom = (page - 1) * MY_LISTINGS_PAGE_SIZE
   const rangeTo = rangeFrom + MY_LISTINGS_PAGE_SIZE - 1
   const flashMessage = getFlashMessage(params)
 
   const { supabase, user } = await requireAuthenticatedUser(
-    getMyListingsPath(activeFilter, page)
+    getMyListingsPath(activeFilter, page, publicId)
   )
 
   let listingsQuery = supabase
@@ -82,6 +87,9 @@ export default async function DashboardListingsPage({
 
   if (activeFilter !== "all") {
     listingsQuery = listingsQuery.eq("status", activeFilter)
+  }
+  if (hasPublicIdSearch) {
+    listingsQuery = listingsQuery.eq("public_id", publicId || "__INVALID_PUBLIC_ID__")
   }
 
   listingsQuery = listingsQuery
@@ -115,7 +123,7 @@ export default async function DashboardListingsPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / MY_LISTINGS_PAGE_SIZE))
 
   if (totalCount > 0 && page > totalPages) {
-    redirect(getMyListingsPath(activeFilter, totalPages))
+    redirect(getMyListingsPath(activeFilter, totalPages, publicId))
   }
 
   const counts = Object.fromEntries(
@@ -154,6 +162,30 @@ export default async function DashboardListingsPage({
           </p>
         ) : null}
 
+        <form action="/dashboard/listings" role="search" className="ui-card mt-7 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+          {activeFilter !== "all" ? <input type="hidden" name="status" value={activeFilter} /> : null}
+          <label className="min-w-0 flex-1 text-sm font-bold text-text" htmlFor="my-listings-public-id">
+            მოძებნე ნივთის ID-ით
+            <input
+              id="my-listings-public-id"
+              type="search"
+              name="q"
+              defaultValue={rawPublicId}
+              maxLength={32}
+              placeholder="მაგ. SS-A83F2C00"
+              className="mt-2 h-12 w-full rounded-xl border border-line bg-white px-4 text-sm uppercase text-text outline-none transition placeholder:normal-case placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button type="submit" className="ui-btn-primary flex-1 sm:flex-none">მოძებნა</button>
+            {hasPublicIdSearch ? (
+              <Link href={getMyListingsPath(activeFilter)} className="ui-btn-secondary flex-1 sm:flex-none">
+                გასუფთავება
+              </Link>
+            ) : null}
+          </div>
+        </form>
+
         <nav aria-label="განცხადებების სტატუსით გაფილტვრა" className="mt-7">
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:px-0">
             {MY_LISTINGS_FILTERS.map((filter) => {
@@ -161,7 +193,7 @@ export default async function DashboardListingsPage({
               return (
                 <Link
                   key={filter.value}
-                  href={getMyListingsPath(filter.value)}
+                  href={getMyListingsPath(filter.value, 1, publicId)}
                   aria-current={isActive ? "page" : undefined}
                   className={`inline-flex min-h-11 shrink-0 items-center rounded-xl border px-4 py-2 text-sm font-bold transition ${
                     isActive
@@ -195,6 +227,7 @@ export default async function DashboardListingsPage({
               page={page}
               totalPages={totalPages}
               totalItems={totalCount}
+              publicId={publicId}
             />
           </>
         ) : (
@@ -211,16 +244,24 @@ export default async function DashboardListingsPage({
             <h2 className="mt-5 text-2xl font-black">
               {accountIsEmpty
                 ? "პირველი განცხადება დაამატე"
+                : hasPublicIdSearch
+                  ? "ამ ID-ით განცხადება ვერ მოიძებნა"
                 : "ამ სტატუსით განცხადება არ არის"}
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-text-soft">
               {accountIsEmpty
                 ? "ატვირთე ნივთის ფოტოები, მიუთითე ფასი და რამდენიმე წუთში გამოაქვეყნე."
+                : hasPublicIdSearch
+                  ? "გადაამოწმე ნივთის ID და სცადე თავიდან. ძიება მხოლოდ შენს განცხადებებში სრულდება."
                 : "აირჩიე სხვა სტატუსი ან დაბრუნდი ყველა განცხადების სიაში."}
             </p>
             {accountIsEmpty ? (
               <Link href="/dashboard/listings/new" className="ui-btn-primary mt-7">
                 განცხადების დამატება
+              </Link>
+            ) : hasPublicIdSearch ? (
+              <Link href={getMyListingsPath(activeFilter)} className="ui-btn-secondary mt-7">
+                ძიების გასუფთავება
               </Link>
             ) : (
               <Link href="/dashboard/listings" className="ui-btn-secondary mt-7">

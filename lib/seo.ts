@@ -140,7 +140,7 @@ export function buildListingStructuredData(
     description:
       truncateDescription(listing.description, 500) ||
       [listing.category_name, listing.brand_name].filter(Boolean).join(" · "),
-    sku: listing.id,
+    sku: listing.public_id || listing.id,
     url: listingUrl,
     category: listing.category_name,
     itemCondition: condition,

@@ -57,9 +57,10 @@ export function canTransitionListingStatus(current: ListingStatus, next: Listing
   return STATUS_TRANSITIONS[current].includes(next)
 }
 
-export function getMyListingsPath(filter: MyListingsFilter, page = 1) {
+export function getMyListingsPath(filter: MyListingsFilter, page = 1, publicId = "") {
   const search = new URLSearchParams()
   if (filter !== "all") search.set("status", filter)
+  if (publicId) search.set("q", publicId)
   if (page > 1) search.set("page", String(page))
   const query = search.toString()
   return query ? `/dashboard/listings?${query}` : "/dashboard/listings"

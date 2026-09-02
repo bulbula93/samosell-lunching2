@@ -61,6 +61,7 @@ describe("ListingOverviewCard", () => {
       makeListing().title,
     )
     expect(screen.getByText("45,50 ₾")).toBeInTheDocument()
+    expect(screen.getByText("SS-A83F2C00")).toBeInTheDocument()
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
     expect(screen.getByText("ნინო")).toBeInTheDocument()

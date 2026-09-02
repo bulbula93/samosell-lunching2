@@ -4,6 +4,7 @@ import {
   getCatalogSectionLabel,
   TOP_LEVEL_CATEGORY_SLUGS,
 } from "@/lib/catalog-taxonomy"
+import { normalizeListingPublicId } from "@/lib/listings"
 
 export type CatalogSearchParams = {
   q?: string | string[]
@@ -40,6 +41,7 @@ export type CatalogFilters = {
 
 export type CatalogDatabaseFilters = {
   query: string
+  publicId: string
   categorySlug: string
   gender: string
   itemKeywords: string[]
@@ -112,8 +114,11 @@ export function getCatalogDatabaseFilters(
 
   addItemKeywords(itemKeywords, filters.item_type)
 
+  const publicId = normalizeListingPublicId(filters.q)
+
   return {
-    query: filters.q || "",
+    query: publicId ? "" : filters.q || "",
+    publicId,
     categorySlug,
     gender,
     itemKeywords: Array.from(itemKeywords),
@@ -123,6 +128,10 @@ export function getCatalogDatabaseFilters(
 export function applyCatalogFilters<T>(query: T, filters: Record<string, string>) {
   let next = query as T & CatalogFilterable
   const databaseFilters = getCatalogDatabaseFilters(filters)
+
+  if (databaseFilters.publicId) {
+    next = next.eq("public_id", databaseFilters.publicId) as T & CatalogFilterable
+  }
 
   if (databaseFilters.query) {
     next = next.or(

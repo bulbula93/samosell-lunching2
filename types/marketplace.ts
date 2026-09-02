@@ -15,6 +15,7 @@ export type MarketplaceCounts = {
 
 export type CatalogListing = {
   id: string
+  public_id?: string | null
   seller_id?: string
   slug: string
   title: string

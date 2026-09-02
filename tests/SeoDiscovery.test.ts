@@ -66,6 +66,7 @@ describe("Google discovery metadata", () => {
     expect(product).toMatchObject({
       "@type": "Product",
       name: listing.title,
+      sku: "SS-A83F2C00",
       image: [listing.cover_image_url],
       itemCondition: "https://schema.org/UsedCondition",
       offers: {

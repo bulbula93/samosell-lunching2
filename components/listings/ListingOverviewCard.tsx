@@ -217,6 +217,11 @@ export default function ListingOverviewCard({
       ) : null}
 
       <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-soft">
+        {listing.public_id ? (
+          <span>
+            ნივთის ID: <strong className="font-black text-text">{listing.public_id}</strong>
+          </span>
+        ) : null}
         {listing.published_at ? (
           <span>
             {ka.listingDetail.published}: {formatPublishedDate(listing.published_at)}
