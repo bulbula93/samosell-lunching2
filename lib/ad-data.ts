@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import {
   selectActiveAds,
@@ -27,7 +28,8 @@ export async function getActiveAdsForPlacements(placementKeys: readonly AdPlacem
     }
 
     return selectActiveAds((data ?? []) as AdRecord[], placementKeys)
-  } catch {
+  } catch (error) {
+    unstable_rethrow(error)
     console.error("[ads] active placement lookup failed")
     return {}
   }

@@ -93,5 +93,6 @@ describe("global ad system", () => {
     const source = readFileSync(join(process.cwd(), "lib", "ad-data.ts"), "utf8")
     expect(source).toContain('.in("placement_key", [...placementKeys])')
     expect(source).toContain('.eq("is_active", true)')
+    expect(source).toContain("unstable_rethrow(error)")
   })
 })
