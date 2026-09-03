@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
 import { after } from "next/server"
+import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import CatalogPagination from "@/components/listings/CatalogPagination"
@@ -381,6 +382,13 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
               {rescueMessage}
             </div>
           ) : null}
+
+          <AdSlotRow
+            placementKeys={["catalog_top_left", "catalog_top_right"]}
+            pagePath={currentPath}
+            className="mt-7"
+            contained={false}
+          />
 
           <div className="mt-8">
             <CatalogResultsGrid

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { after } from "next/server"
+import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import ListingBreadcrumbs from "@/components/listings/ListingBreadcrumbs"
 import ListingGallery from "@/components/listings/ListingGallery"
@@ -170,6 +171,12 @@ export default async function ListingDetailsPage({
             />
           </div>
         </section>
+
+        <AdSlotRow
+          placementKeys={["listing_after_details_left", "listing_after_details_right"]}
+          pagePath={`/listing/${listing.slug}`}
+          className="border-y border-line bg-white py-8 sm:py-10"
+        />
 
         <ListingReviewsSection
           listingId={listing.id}

@@ -1,3 +1,4 @@
+import AdSlotRow from "@/components/ads/AdSlotRow"
 import CreateListingWizard from "@/components/dashboard/CreateListingWizard"
 import ProfileCompletionIndicator from "@/components/dashboard/ProfileCompletionIndicator"
 import ProfilePhoneRequiredCard from "@/components/dashboard/ProfilePhoneRequiredCard"
@@ -47,6 +48,13 @@ export default async function DashboardNewListingPage() {
             initialSellerPhone={sellerPhone}
           />
         )}
+
+        <AdSlotRow
+          placementKeys={["sell_bottom_left", "sell_bottom_right"]}
+          pagePath="/dashboard/listings/new"
+          className="pt-4"
+          contained={false}
+        />
       </div>
     </main>
   )

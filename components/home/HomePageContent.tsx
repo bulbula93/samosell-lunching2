@@ -1,3 +1,4 @@
+import AdSlotRow from "@/components/ads/AdSlotRow"
 import HomeCollectionsSection from "@/components/home/HomeCollectionsSection"
 import HomeHowItWorks from "@/components/home/HomeHowItWorks"
 import HomeMarketplaceEmptyState from "@/components/home/HomeMarketplaceEmptyState"
@@ -6,11 +7,24 @@ import HomePromoBanner from "@/components/home/HomePromoBanner"
 import HomeSearchHeroSection from "@/components/home/HomeSearchHeroSection"
 import { ka } from "@/lib/i18n/ka"
 import type { HomePageData } from "@/lib/home-page"
+import type { AdsByPlacement } from "@/lib/ads"
 
-export default function HomePageContent({ data }: { data: HomePageData }) {
+export default function HomePageContent({
+  data,
+  heroAds = {},
+}: {
+  data: HomePageData
+  heroAds?: AdsByPlacement
+}) {
   return (
     <>
       <HomeSearchHeroSection vipItems={data.heroItems} popularItems={data.popularItems} />
+      <AdSlotRow
+        placementKeys={["home_hero_left", "home_hero_right"]}
+        pagePath="/"
+        className="border-b border-line bg-white py-8 sm:py-10"
+        ads={heroAds}
+      />
       {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
       <HomeProductsSection
         title={ka.home.latest}

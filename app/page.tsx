@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import HomePageContent from "@/components/home/HomePageContent"
 import SiteHeader from "@/components/layout/SiteHeader"
+import { getActiveAdsForPlacements } from "@/lib/ad-data"
 import { getHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
@@ -25,7 +26,10 @@ export const metadata: Metadata = {
 }
 
 export default async function Home() {
-  const data = await getHomePageData()
+  const [data, heroAds] = await Promise.all([
+    getHomePageData(),
+    getActiveAdsForPlacements(["home_hero_left", "home_hero_right"]),
+  ])
   const structuredData = buildHomeStructuredData()
 
   return (
@@ -36,7 +40,7 @@ export default async function Home() {
       />
       <SiteHeader authenticatedUser={data.user} />
       <main className="min-h-screen bg-bg text-text">
-        <HomePageContent data={data} />
+        <HomePageContent data={data} heroAds={heroAds} />
       </main>
     </>
   )

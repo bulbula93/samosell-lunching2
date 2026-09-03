@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
 import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
@@ -208,6 +209,12 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
           </div>
         </div>
       </section>
+
+      <AdSlotRow
+        placementKeys={["profile_inline_left", "profile_inline_right"]}
+        pagePath={`/seller/${username}`}
+        className="pb-10 sm:pb-12"
+      />
 
       <SellerReviewsSection data={sellerReviewData} />
 
