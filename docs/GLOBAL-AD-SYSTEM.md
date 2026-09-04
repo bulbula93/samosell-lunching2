@@ -24,16 +24,15 @@ Ad images must use a local path or the existing public SamoSell Supabase Storage
 
 Impressions and clicks are written to `public.ad_events` by server-only routes. Browser roles have no direct access to that table. A SHA-256 dedupe key limits repeated events from the same request fingerprint, placement, page and ad to one write per ten-minute bucket; raw IP addresses and user-agent strings are not stored.
 
-## Future admin UI
+## Admin workflow
 
-A future server-authorized admin screen needs controls for:
+The protected `/admin/ads` screen provides the production management flow:
 
-- advertiser name;
-- placement key;
-- title and description;
-- image URL and destination URL;
-- active/inactive state;
-- start and end timestamps;
-- numeric priority.
+- create an inactive draft with advertiser, copy, placement, destination and priority;
+- upload a JPEG, PNG or WEBP asset (maximum 850 KB in the admin form) to `ad-images`;
+- edit a saved ad without changing its current activation state;
+- launch or relaunch the ad for exactly seven days from the action time;
+- stop an active ad immediately;
+- let the existing active-window query and RLS policy hide it automatically after expiry.
 
-Admin mutations must remain server-side and must not add direct `anon` or `authenticated` write grants to either ad table.
+Every mutation re-checks the authenticated admin profile on the server. The public presentation bucket has no client write policy; image mutations use the server-only service-role client after authorization.

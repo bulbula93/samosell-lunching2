@@ -44,6 +44,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link href="/admin/ads" className="ui-btn-primary">
+              რეკლამების მართვა
+            </Link>
             <Link href="/admin/agent" className="ui-btn-primary">
               Admin Agent
             </Link>
@@ -76,6 +79,17 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-3">
+        <div className="ui-card p-6">
+          <div className="ui-eyebrow">რეკლამები</div>
+          <h2 className="mt-3 text-2xl font-black text-text">7-დღიანი სარეკლამო განთავსება</h2>
+          <div className="mt-4 space-y-3 text-sm leading-7 text-text-soft">
+            <p>• რეკლამის მონაცემებისა და სურათის მონახაზად შენახვა.</p>
+            <p>• ერთი დაჭერით გაშვება ზუსტად 7 დღით.</p>
+            <p>• ავტომატური ვადის დასრულება და ხელით შეჩერება.</p>
+          </div>
+          <Link href="/admin/ads" className="ui-btn-secondary mt-5">რეკლამების გახსნა</Link>
+        </div>
+
         <div className="ui-card p-6">
           <div className="ui-eyebrow">მოდერაცია</div>
           <h2 className="mt-3 text-2xl font-black text-text">რაზე გაქვს ყველაზე მეტი კონტროლი</h2>
