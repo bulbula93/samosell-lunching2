@@ -207,8 +207,8 @@ begin
 
   -- Terminal provider states cannot regress; PartialReturned may become Returned.
   if (v_order.provider_status = 'Returned' and p_provider_status is distinct from 'Returned')
-    or (v_order.provider_status = 'PartialReturned' and p_provider_status not in ('PartialReturned','Returned'))
-    or (v_order.paid_at is not null and p_provider_status not in ('Succeeded','Returned','PartialReturned'))
+    or (v_order.provider_status = 'PartialReturned' and coalesce(p_provider_status,'') not in ('PartialReturned','Returned'))
+    or (v_order.paid_at is not null and coalesce(p_provider_status,'') not in ('Succeeded','Returned','PartialReturned'))
     or (v_order.status in ('cancelled','rejected') and p_provider_status = 'Succeeded') then
     update public.listing_boost_orders set last_payment_sync_at = v_now where id = v_order.id;
     return jsonb_build_object('outcome','ignored','order',jsonb_build_object('id',v_order.id,'status',v_order.status));
@@ -304,7 +304,11 @@ begin
   end if;
   insert into public.listing_boost_order_events
     (order_id,seller_id,source,event_type,message,payload,event_key)
-  values (new.order_id,new.seller_id,case when tg_op = 'INSERT' then 'refund' else 'admin' end,
+  values (new.order_id,new.seller_id,case
+      when tg_op = 'INSERT' then 'refund'
+      when new.status in ('refunded','partially_refunded') then 'system'
+      else 'admin'
+    end,
     v_event,'Refund workflow state: ' || new.status,
     jsonb_build_object('refundRequestId',new.id,'status',new.status),
     new.order_id::text || ':refund:' || new.id::text || ':' || new.status)
@@ -456,6 +460,9 @@ as $$
     or (p_status = 'succeeded' and (o.provider_status = 'Succeeded' or o.status = 'active'))
     or (p_status = 'failed' and (o.provider_status = 'Failed' or o.status = 'rejected'))
     or (p_status = 'expired' and (o.provider_status = 'Expired' or o.status = 'expired'))
+    or (p_status = 'stale' and o.payment_provider = 'tbc_checkout'
+      and o.status in ('pending_payment','under_review','approved')
+      and o.created_at < current_timestamp - interval '30 minutes')
     or (p_status = 'returned' and o.provider_status = 'Returned')
     or (p_status = 'partially_returned' and o.provider_status = 'PartialReturned')
     or (p_status = 'refund' and exists (select 1 from public.listing_boost_refund_requests r

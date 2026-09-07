@@ -66,9 +66,10 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
   const orders = (rawOrders ?? []) as unknown as PaymentRow[]
   const refunds = (rawRefunds ?? []) as RefundRow[]
   const sellerIds = [...new Set(orders.map((order) => order.seller_id))]
-  const { data: sellers } = sellerIds.length
+  const { data: sellers, error: sellerError } = sellerIds.length
     ? await supabase.from("profiles").select("id, username, full_name").in("id", sellerIds)
-    : { data: [] as SellerRow[] }
+    : { data: [] as SellerRow[], error: null }
+  if (sellerError) throw sellerError
   const sellerMap = new Map((sellers ?? []).map((seller) => [seller.id, seller as SellerRow]))
   const refundMap = new Map<string, RefundRow>()
   for (const refund of refunds) if (!refundMap.has(refund.order_id)) refundMap.set(refund.order_id, refund)
@@ -80,7 +81,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("provider_status", "Failed"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("provider_status", ["Returned","PartialReturned"]),
     supabase.from("listing_boost_refund_requests").select("id", { count: "exact", head: true }).in("status", ["requested","under_review","approved","provider_processing"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("payment_provider","tbc_checkout").in("status",["pending_payment","under_review","approved"]).lt("created_at",new Date(Date.now()-30*60*1000).toISOString()),
+    supabase.rpc("search_admin_payment_orders", { p_query: "", p_status: "stale" }, { count: "exact", head: true }),
     supabase.from("listing_boost_orders").select("last_payment_sync_at").not("last_payment_sync_at","is",null).order("last_payment_sync_at",{ascending:false}).limit(1),
   ])
   for (const result of [pendingResult,succeededResult,failedResult,returnedResult,refundResult,staleResult,lastSyncResult]) if (result.error) throw result.error

@@ -90,7 +90,7 @@ describe("refund preparation", () => {
 })
 
 describe("database and route hardening contracts", () => {
-  const migration = readFileSync("supabase/migrations/20260904123127_prepare_tbc_launch_readiness.sql", "utf8")
+  const migration = readFileSync("supabase/migrations/20260907215244_prepare_tbc_launch_readiness.sql", "utf8")
   const callback = readFileSync("app/api/tbc/checkout/callback/route.ts", "utf8")
   const returnRoute = readFileSync("app/api/tbc/boosts/return/route.ts", "utf8")
   const sync = readFileSync("lib/tbc-sync.ts", "utf8")

@@ -46,7 +46,8 @@ await db.exec(`
 await db.exec(read("supabase/18_boost_payment_automation.sql"))
 await db.exec(extractFunction("supabase/migrations/20260830140238_harden_listing_boosts.sql", "private.reconcile_listing_boost_state"))
 await db.exec(extractFunction("supabase/migrations/20260830151727_finalize_listing_boost_security.sql", "public.activate_listing_boost_order"))
-await db.exec(read("supabase/migrations/20260904123127_prepare_tbc_launch_readiness.sql"))
+await db.exec(read("supabase/migrations/20260907215244_prepare_tbc_launch_readiness.sql"))
+await db.exec(read("supabase/migrations/20260907215544_index_tbc_refund_reviewer.sql"))
 check(true, "Migration and existing activation/reconciliation functions compile in PostgreSQL")
 const seller = randomUUID(), other = randomUUID(), admin = randomUUID()
 await db.query("insert into profiles(id,is_admin) values ($1,false),($2,false),($3,true)",[seller,other,admin])
@@ -115,6 +116,8 @@ await assert.rejects(db.query("insert into listing_boost_orders(listing_id,selle
 check(await countEvents(duplicate.id,"order_created")===1,"Duplicate checkout order prevented by unique constraint")
 check((await db.query("select id from search_admin_payment_orders($1,'all')",[duplicate.id])).rows[0].id===duplicate.id,"Admin search finds exact order across all records")
 check((await db.query("select id from search_admin_payment_orders('','returned')")).rows.length===1,"Admin returned filter uses provider state")
+await db.query("update listing_boost_orders set created_at=current_timestamp-interval '31 minutes' where id=$1",[duplicate.id])
+check((await db.query("select id from search_admin_payment_orders('','stale') where id=$1",[duplicate.id])).rows.length===1,"Admin stale metric uses database time")
 for (const role of ["anon","authenticated"]) {
   const privileges=await db.query(`select has_function_privilege($1,'public.apply_verified_tbc_payment(uuid,timestamptz,text,text,text,numeric,text,text)','EXECUTE') as can_apply,
     has_table_privilege($1,'public.listing_boost_refund_requests','UPDATE') as can_review,

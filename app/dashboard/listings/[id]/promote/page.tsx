@@ -15,7 +15,7 @@ import {
   promotionStateFromListing,
 } from "@/lib/boosts"
 import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
-import { getBoostPaymentConfig } from "@/lib/site"
+import { getBoostPaymentConfig } from "@/lib/boost-payment-config"
 import { createClient } from "@/lib/supabase/server"
 import { listingStatusLabel } from "@/lib/listings"
 import { tbcProviderStatusLabel } from "@/lib/tbc"

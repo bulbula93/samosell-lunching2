@@ -14,13 +14,9 @@
 - admin payment dashboard: `/admin/payments`
 - readiness page: `/admin/payments/readiness`
 
-## 1) Supabase SQL
+## 1) Supabase migration
 
-გაუშვი ყველა migration ფაილი სწორ क्रमში, განსაკუთრებით:
-
-- `10_vip_boosts_phase.sql`
-- `12_tbc_checkout_integration.sql`
-- `18_boost_payment_automation.sql`
+გამოიყენე repository-ში არსებული versioned migration history და გაუშვი მხოლოდ ჯერ არ გამოყენებული migration-ები სწორი თანმიმდევრობით. ძველი standalone SQL ფაილები ხელახლა არ გაუშვა.
 
 ## 2) .env.local
 
@@ -38,7 +34,7 @@ TBC_CLIENT_ID=...
 TBC_CLIENT_SECRET=...
 ```
 
-Checkout ხელმისაწვდომია მხოლოდ მაშინ, როცა `TBC_CHECKOUT_ENABLED=true` და სამივე TBC credential არსებობს. Credential-ების არსებობა მარტო checkout-ს არ რთავს. ყველა ცვლადი server-only არის და არცერთი არ უნდა იწყებოდეს `NEXT_PUBLIC_`-ით.
+Checkout ხელმისაწვდომია მხოლოდ მაშინ, როცა `TBC_CHECKOUT_ENABLED=true` და სამივე TBC credential არსებობს. Credential-ების არსებობა მარტო checkout-ს არ რთავს. TBC credential-ები server-only არის და არცერთი არ უნდა იწყებოდეს `NEXT_PUBLIC_`-ით.
 
 ## 3) TBC merchant dashboard
 
@@ -52,14 +48,14 @@ return URL პროექტი თვითონ აგენერირე�
 
 ## 4) Network / allowlist
 
-TBC docs-ის მიხედვით callback endpoint-ზე POST უნდა მიიღებოდეს TBC-ს callback IP-ებიდან. merchant ინფრასტრუქტურაში გადაამოწმე firewall / reverse proxy / WAF წესები.
+TBC-სთან merchant approval-ისას წერილობით დაადასტურე callback-ის IP allowlist, signature ან დამატებითი header მოთხოვნები. კოდი არ იგონებს დაუდასტურებელ signature ალგორითმს ან header-ს.
 
 ## 5) პირველი ტესტი
 
 1. შექმენი listing
 2. შედი `Dashboard -> Promote`
 3. აირჩიე `TBC Checkout`
-4. მხოლოდ ბანკის approval-ის შემდეგ დაასრულე კონტროლირებული checkout merchant გარემოდან
+4. მხოლოდ ბანკის approval-ის შემდეგ დაასრულე კონტროლირებული checkout იზოლირებულ, წვდომით დაცულ preview/staging გარემოში
 5. დაბრუნდი `Dashboard -> Billing`
 6. თუ callback ცოტა გვიან მოვიდა, დააჭირე `სტატუსის გადამოწმება`
 
@@ -91,7 +87,7 @@ Seller და admin ხელით ამოწმებენ provider სტ�
 
 `GET /api/internal/tbc/reconcile`
 
-ის მოითხოვს `Authorization: Bearer <CRON_SECRET>`-ს, ამუშავებს მაქსიმუმ 20 ბოლო 14 დღის non-final შეკვეთას და 2 წუთზე ახალ შეკვეთებს არ ეხება. `vercel.json`-ში Cron შეგნებულად არ დამატებულა, რათა plan/billing ქცევა ავტომატურად არ შეიცვალოს.
+ის მოითხოვს `Authorization: Bearer <CRON_SECRET>`-ს, ერთ გაშვებაზე ამუშავებს მაქსიმუმ 5 ბოლო 14 დღის non-final შეკვეთას, 2 წუთზე ახალ შეკვეთებს არ ეხება და თითო payment-ზე განმეორებით sync-ს მინიმუმ 60 წამით ზღუდავს. `vercel.json`-ში Cron შეგნებულად არ დამატებულა, რათა plan/billing ქცევა ავტომატურად არ შეიცვალოს.
 
 ## 9) refund
 
@@ -99,10 +95,4 @@ Admin-ის `approved` ნიშნავს მხოლოდ შიდა �
 
 ## 10) რა არის შემდეგი ეტაპი
 
-როცა ეს flow დადასტურდება, შემდეგ შეგიძლია დაამატო:
-
-- featured slots-ის ფასიანი კალენდარი
-- seller subscription plans
-- ბანკთან callback IP/signature მოთხოვნების ზუსტი დადასტურება
-- finance reconciliation export
-- split payout / marketplace settlement
+Approval-მდე დარჩენილია მხოლოდ ბანკზე დამოკიდებული ნაბიჯები: production credential-ები, merchant callback-ის რეგისტრაციის დადასტურება, შესაძლო IP/signature მოთხოვნები, კონტროლირებული live payment და—თუ ხელმისაწვდომია—provider refund/return-ის რეალური შემოწმება.

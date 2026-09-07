@@ -12,10 +12,28 @@ async function readPaymentId(request: Request) {
   }
 
   const contentType = request.headers.get("content-type") || ""
-  const raw = await request.text()
-  if (new TextEncoder().encode(raw).byteLength > MAX_CALLBACK_BYTES) {
-    throw new Error("callback_payload_too_large")
+  const reader = request.body?.getReader()
+  const chunks: Uint8Array[] = []
+  let receivedBytes = 0
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      receivedBytes += value.byteLength
+      if (receivedBytes > MAX_CALLBACK_BYTES) {
+        await reader.cancel()
+        throw new Error("callback_payload_too_large")
+      }
+      chunks.push(value)
+    }
   }
+  const body = new Uint8Array(receivedBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  const raw = new TextDecoder().decode(body)
   if (!raw) return ""
 
   if (contentType.includes("application/json")) {
