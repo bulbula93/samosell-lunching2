@@ -18,6 +18,8 @@ import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { getBoostPaymentConfig } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import { listingStatusLabel } from "@/lib/listings"
+import { tbcProviderStatusLabel } from "@/lib/tbc"
+import ModerationSubmitButton from "@/components/moderation/ModerationSubmitButton"
 import type { BoostOrder, BoostProduct } from "@/types/boost"
 
 type PromoteBoostOrderRow = Omit<BoostOrder, "product_name" | "placement" | "duration_days"> & {
@@ -46,8 +48,10 @@ function flashLabel(value?: string) {
       return "TBC შეკვეთა ვერ მოიძებნა."
     case "tbc_sync_unavailable":
       return "ამ მოთხოვნაზე TBC სტატუსის გადამოწმება ხელმისაწვდომი არ არის."
+    case "tbc_disabled":
+      return "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"
     default:
-      return value ? decodeURIComponent(value) : ""
+      return value || ""
   }
 }
 
@@ -142,7 +146,7 @@ export default async function DashboardListingPromotePage({
             <div className="ui-eyebrow">მეტი ხილვადობა</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გააძლიერე განცხადება</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აირჩიე ოთხი მარტივი პაკეტიდან. TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს; ხელით გადახდას ადმინი დაადასტურებს.
+              აირჩიე ოთხი მარტივი პაკეტიდან. {tbcEnabled ? "TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს" : "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"}; ხელით გადახდას ადმინი დაადასტურებს.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -180,7 +184,7 @@ export default async function DashboardListingPromotePage({
           <h2 className="mt-3 text-2xl font-black text-text">გადახდის ინსტრუქცია</h2>
           <div className="mt-4 space-y-3 text-sm leading-7 text-text-soft">
             <p>1. აირჩიე სასურველი პაკეტი და შექმენი შეკვეთა.</p>
-            <p>2. თუ აირჩევ TBC Checkout-ს, პირდაპირ ბანკის დაცულ გვერდზე გადახვალ.</p>
+            <p>2. {tbcEnabled ? "თუ აირჩევ TBC Checkout-ს, პირდაპირ ბანკის დაცულ გვერდზე გადახვალ" : "TBC Checkout ბანკის დამტკიცების შემდეგ ჩაირთვება"}.</p>
             <p>3. ხელით გადახდისას გამოიყენე წინასწარ შევსებული რეფერენსი გადარიცხვის დანიშნულებაში.</p>
             <p>4. ხელით დამუშავებადი შეკვეთები ჩვეულებრივ სრულდება დაახლოებით {payment.approvalTime}-ში.</p>
           </div>
@@ -200,7 +204,7 @@ export default async function DashboardListingPromotePage({
                 <div className="font-semibold text-text">TBC Checkout</div>
                 <div>ეს მეთოდი გახსნის ბანკის გადახდის გვერდს და დასრულების შემდეგ ისევ შეკვეთების გვერდზე დაგაბრუნებს.</div>
               </div>
-            ) : null}
+            ) : <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 font-semibold text-amber-900">TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი</div>}
 
             {payment.hasExternalPaymentUrl ? (
               <div className="space-y-2">
@@ -272,8 +276,8 @@ export default async function DashboardListingPromotePage({
                 </div>
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
-                  <div className="text-xs leading-5 text-text-soft">TBC Checkout მთავარ მეთოდადაა არჩეული; ხელით გადახდა დამატებით შემოწმებას საჭიროებს.</div>
-                  <button className="ui-btn-primary" suppressHydrationWarning>{boostProductCta(product.placement)}</button>
+                  <div className="text-xs leading-5 text-text-soft">{tbcEnabled ? "TBC Checkout მთავარ მეთოდადაა არჩეული" : "ამ ეტაპზე გამოიყენე ხელით გადახდის მეთოდი"}; ხელით გადახდა დამატებით შემოწმებას საჭიროებს.</div>
+                  <ModerationSubmitButton className="ui-btn-primary" idleLabel={boostProductCta(product.placement)} pendingLabel="შეკვეთა მზადდება…" />
                 </div>
               </form>
             )
@@ -300,13 +304,13 @@ export default async function DashboardListingPromotePage({
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">რეფერენსი:</span> {order.payment_reference || "—"}</div>
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">შეიქმნა:</span> {formatDateOnly(order.created_at)}</div>
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">ვადა:</span> {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
-                {order.provider_status ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">TBC სტატუსი:</span> {order.provider_status}</div> : null}
+                {order.provider_status ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">TBC სტატუსი:</span> {tbcProviderStatusLabel(order.provider_status)}</div> : null}
                 {order.last_payment_sync_at ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">ბოლო სინქი:</span> {formatDateOnly(order.last_payment_sync_at)}</div> : null}
               </div>
               {order.failure_reason ? <div className="mt-3 rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">TBC მიზეზი: {order.failure_reason}</div> : null}
               {order.notes ? <div className="mt-3 rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft">შენი შენიშვნა: {order.notes}</div> : null}
               {order.admin_note ? <div className="mt-3 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">ადმინის შენიშვნა: {order.admin_note}</div> : null}
-              {order.payment_provider === "tbc_checkout" ? (
+              {tbcEnabled && order.payment_provider === "tbc_checkout" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {order.provider_checkout_url && order.status === "pending_payment" ? (
                     <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">TBC-ით გადახდის გაგრძელება</a>
@@ -314,7 +318,7 @@ export default async function DashboardListingPromotePage({
                   <form action={refreshBoostOrderStatusAction}>
                     <input type="hidden" name="orderId" value={order.id} suppressHydrationWarning />
                     <input type="hidden" name="nextPath" value={`/dashboard/listings/${listing.id}/promote`} suppressHydrationWarning />
-                    <button className="ui-btn-secondary" suppressHydrationWarning>სტატუსის გადამოწმება</button>
+                    <ModerationSubmitButton className="ui-btn-secondary" idleLabel="სტატუსის გადამოწმება" pendingLabel="სტატუსი მოწმდება…" />
                   </form>
                 </div>
               ) : null}

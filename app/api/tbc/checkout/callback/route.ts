@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { syncBoostOrderFromTbcByPayId } from "@/lib/tbc-sync"
+import { isTbcCheckoutEnabled } from "@/lib/tbc"
 
 const MAX_CALLBACK_BYTES = 16_384
 const PAYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/
@@ -39,6 +40,7 @@ async function readPaymentId(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isTbcCheckoutEnabled()) return NextResponse.json({ ok: false, error: "Checkout disabled" }, { status: 503 })
   try {
     const paymentId = await readPaymentId(request)
 
@@ -47,8 +49,12 @@ export async function POST(request: Request) {
     }
 
     const result = await syncBoostOrderFromTbcByPayId(paymentId, "callback")
-    return NextResponse.json({ ok: true, status: result.order?.status ?? null, providerStatus: result.payment?.status ?? null })
+    if (result.outcome === "busy" || result.outcome === "stale") {
+      return NextResponse.json({ ok: false, error: "Retry later" }, { status: 503, headers: { "Retry-After": "60" } })
+    }
+    return NextResponse.json({ ok: true })
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ ok: false, error: "Invalid callback payload" }, { status: 400 })
     if (error instanceof Error && error.message === "callback_payload_too_large") {
       return NextResponse.json({ ok: false, error: "Callback payload too large" }, { status: 413 })
     }

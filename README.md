@@ -67,6 +67,7 @@ Optional, but required if you want direct TBC card checkout for boosts:
 TBC_API_KEY=your_tbc_developers_api_key
 TBC_CLIENT_ID=your_tbc_client_id
 TBC_CLIENT_SECRET=your_tbc_client_secret
+TBC_CHECKOUT_ENABLED=false
 ```
 
 ## Local development

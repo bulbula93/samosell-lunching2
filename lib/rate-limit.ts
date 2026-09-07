@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 
 const ACTION_RULES = {
+  payment_create: { windowSeconds: 3600, maxHits: 10, label: "გადახდის შეკვეთის შექმნა" },
+  payment_refund: { windowSeconds: 3600, maxHits: 5, label: "თანხის დაბრუნების მოთხოვნა" },
   listing_create: {
     windowSeconds: 60 * 60,
     maxHits: 12,

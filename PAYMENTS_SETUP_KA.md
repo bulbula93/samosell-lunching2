@@ -1,6 +1,6 @@
 # SamoSell — ავტომატიზებული გადახდების დაყენება (Boost / TBC Checkout)
 
-ეს ვერსია ამზადებს **პირველ ავტომატიზებულ payment flow-ს** `listing boost`-ებისთვის.
+ეს ვერსია ამზადებს `listing boost`-ების TBC Checkout flow-ს ბანკის production approval-ისთვის. Live checkout ცალკე feature flag-ის გარეშე არასოდეს გამოჩნდება.
 
 ## რა მუშაობს
 
@@ -10,6 +10,9 @@
 - წარმატებული გადახდა boost order-ს **ავტომატურად ააქტიურებს**
 - billing/admin გვერდებზე შეგიძლია ხელითაც გააკეთო `სტატუსის გადამოწმება`
 - ინახება payment sync timestamps და event log
+- seller-ს შეუძლია შიდა refund მოთხოვნის გაგზავნა; ეს მოთხოვნა ბანკში თანხას ავტომატურად არ აბრუნებს
+- admin payment dashboard: `/admin/payments`
+- readiness page: `/admin/payments/readiness`
 
 ## 1) Supabase SQL
 
@@ -29,10 +32,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
 SITE_URL=https://your-domain.com
 SUPABASE_SERVICE_ROLE_KEY=...
+TBC_CHECKOUT_ENABLED=false
 TBC_API_KEY=...
 TBC_CLIENT_ID=...
 TBC_CLIENT_SECRET=...
 ```
+
+Checkout ხელმისაწვდომია მხოლოდ მაშინ, როცა `TBC_CHECKOUT_ENABLED=true` და სამივე TBC credential არსებობს. Credential-ების არსებობა მარტო checkout-ს არ რთავს. ყველა ცვლადი server-only არის და არცერთი არ უნდა იწყებოდეს `NEXT_PUBLIC_`-ით.
 
 ## 3) TBC merchant dashboard
 
@@ -53,7 +59,7 @@ TBC docs-ის მიხედვით callback endpoint-ზე POST უნდ
 1. შექმენი listing
 2. შედი `Dashboard -> Promote`
 3. აირჩიე `TBC Checkout`
-4. დაასრულე ტესტური/რეალური checkout merchant გარემოდან
+4. მხოლოდ ბანკის approval-ის შემდეგ დაასრულე კონტროლირებული checkout merchant გარემოდან
 5. დაბრუნდი `Dashboard -> Billing`
 6. თუ callback ცოტა გვიან მოვიდა, დააჭირე `სტატუსის გადამოწმება`
 
@@ -62,6 +68,8 @@ TBC docs-ის მიხედვით callback endpoint-ზე POST უნდ
 - seller: `/dashboard/billing`
 - seller per listing: `/dashboard/listings/[id]/promote`
 - admin: `/admin/boosts`
+- payment operations: `/admin/payments`
+- readiness: `/admin/payments/readiness`
 
 ## 7) რას ნიშნავს ახალი ველები
 
@@ -77,12 +85,24 @@ TBC docs-ის მიხედვით callback endpoint-ზე POST უნდ
 
 ინახავს payment flow-ის audit trail-ს: checkout შექმნა, callback, status sync, success/failure, boost activation.
 
-## 8) რა არის შემდეგი ეტაპი
+## 8) reconciliation
+
+Seller და admin ხელით ამოწმებენ provider სტატუსს ავტორიზებული server action-ით. ასევე მომზადებულია დაცული endpoint:
+
+`GET /api/internal/tbc/reconcile`
+
+ის მოითხოვს `Authorization: Bearer <CRON_SECRET>`-ს, ამუშავებს მაქსიმუმ 20 ბოლო 14 დღის non-final შეკვეთას და 2 წუთზე ახალ შეკვეთებს არ ეხება. `vercel.json`-ში Cron შეგნებულად არ დამატებულა, რათა plan/billing ქცევა ავტომატურად არ შეიცვალოს.
+
+## 9) refund
+
+Admin-ის `approved` ნიშნავს მხოლოდ შიდა მოთხოვნის დამტკიცებას. რეალური `refunded` ან `partially_refunded` ინახება მხოლოდ მაშინ, როცა TBC-ის ავტორიტეტული სტატუსი არის `Returned` ან `PartialReturned`. `lib/tbc-refunds.ts` ქსელურ მოთხოვნას არ აკეთებს, სანამ ბანკის ზუსტი refund API contract არ დადასტურდება.
+
+## 10) რა არის შემდეგი ეტაპი
 
 როცა ეს flow დადასტურდება, შემდეგ შეგიძლია დაამატო:
 
 - featured slots-ის ფასიანი კალენდარი
 - seller subscription plans
-- webhook signature / IP hardening
+- ბანკთან callback IP/signature მოთხოვნების ზუსტი დადასტურება
 - finance reconciliation export
 - split payout / marketplace settlement

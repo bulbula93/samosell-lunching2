@@ -18,6 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/sell-fast`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${siteUrl}/privacy-policy`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${siteUrl}/terms`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${siteUrl}/payment-terms`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${siteUrl}/refund-policy`, changeFrequency: "yearly", priority: 0.3 },
   ]
   try {
     const supabase = await createClient()

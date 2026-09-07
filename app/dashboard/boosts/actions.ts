@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createTbcPayment, isTbcCheckoutEnabled } from "@/lib/tbc"
 import { syncBoostOrderFromTbcByOrderId } from "@/lib/tbc-sync"
+import { enforceRateLimit } from "@/lib/rate-limit"
 
 type ProductRow = {
   id: string
@@ -46,6 +47,7 @@ type AdminOrderRow = {
   starts_at?: string | null
   ends_at?: string | null
   payment_method?: string | null
+  payment_provider?: string | null
   payment_reference?: string | null
   notes?: string | null
   listing_boost_products?: ProductRow | ProductRow[] | null
@@ -53,7 +55,7 @@ type AdminOrderRow = {
 }
 
 function safeRedirect(value: string, fallback: string) {
-  return value && value.startsWith("/") ? value : fallback
+  return value.startsWith("/") && !value.startsWith("//") && !value.includes("\\") ? value : fallback
 }
 
 function withFlash(path: string, flash: string) {
@@ -86,6 +88,7 @@ async function getOwnedListing(supabase: Awaited<ReturnType<typeof createClient>
     .select("id, seller_id, slug, title, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot")
     .eq("id", listingId)
     .eq("seller_id", sellerId)
+    .eq("status", "active")
     .maybeSingle()
 
   if (error) throw error
@@ -113,7 +116,7 @@ export async function createBoostOrderAction(formData: FormData) {
     : "bank_transfer"
   const rawPaymentReference = String(formData.get("paymentReference") || "").trim()
   const paymentReference = rawPaymentReference || buildSuggestedBoostReference(listingId, productId)
-  const notes = String(formData.get("notes") || "").trim()
+  const notes = String(formData.get("notes") || "").trim().slice(0, 1000)
   const nextPath = safeRedirect(String(formData.get("nextPath") || `/dashboard/listings/${listingId}/promote`), `/dashboard/listings/${listingId}/promote`)
 
   if (!listingId || !productId) redirect(withFlash(nextPath, "missing"))
@@ -122,6 +125,7 @@ export async function createBoostOrderAction(formData: FormData) {
   if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`)
 
   try {
+    await enforceRateLimit(supabase, "payment_create")
     await reconcileExpiredBoostOrders()
 
     const [listing, product] = await Promise.all([
@@ -146,7 +150,7 @@ export async function createBoostOrderAction(formData: FormData) {
 
     if (paymentMethod === "tbc_checkout") {
       if (!isTbcCheckoutEnabled()) {
-        redirect(withFlash(nextPath, encodeURIComponent("TBC Checkout კონფიგურაცია არ არის დასრულებული.")))
+        redirect(withFlash(nextPath, "tbc_disabled"))
       }
 
       const orderId = randomUUID()
@@ -203,20 +207,20 @@ export async function createBoostOrderAction(formData: FormData) {
           provider_status: checkout.status ?? "Created",
           provider_result_code: checkout.resultCode ?? null,
           message: "TBC Checkout session created successfully.",
-          payload: { approvalUrl, providerPaymentId: checkout.payId ?? null, paymentReference },
+          payload: { providerPaymentId: checkout.payId ?? null, paymentReference },
+          event_key: `${orderId}:create:checkout_created:${checkout.payId ?? "unknown"}`,
         })
 
         if (eventError) throw eventError
 
       } catch (checkoutError) {
-        const failureReason = checkoutError instanceof Error ? checkoutError.message : "TBC Checkout session creation failed."
+        const failureReason = "Checkout creation could not be confirmed. Manual reconciliation required."
         await trustedClient
           .from("listing_boost_orders")
           .update({
-            status: "cancelled",
-            cancelled_at: new Date().toISOString(),
+            status: "under_review",
             failure_reason: failureReason,
-            admin_note: "TBC Checkout session could not be created.",
+            admin_note: "Checkout creation outcome uncertain. Verify merchant payment reference before allowing a new order.",
           })
           .eq("id", orderId)
         throw checkoutError
@@ -282,6 +286,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
         starts_at,
         ends_at,
         payment_method,
+        payment_provider,
         payment_reference,
         notes,
         listing_boost_products!inner(id, name, placement, duration_days, price, currency, is_active),
@@ -298,21 +303,24 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
 
     if (decision === "review") {
       if (!reviewableStatuses.includes(orderRow.status)) redirect(withFlash(nextPath, "invalid_status"))
-      const { error: reviewError } = await supabase
+      const { error: reviewError } = await createAdminClient()
         .from("listing_boost_orders")
         .update({ status: "under_review", admin_note: adminNote || null, reviewed_by: user.id })
         .eq("id", orderId)
+        .eq("status", orderRow.status)
 
       if (reviewError) throw reviewError
     } else if (decision === "reject") {
       if (!reviewableStatuses.includes(orderRow.status)) redirect(withFlash(nextPath, "invalid_status"))
-      const { error: rejectError } = await supabase
+      const { error: rejectError } = await createAdminClient()
         .from("listing_boost_orders")
         .update({ status: "rejected", admin_note: adminNote || null, reviewed_by: user.id, approved_at: null })
         .eq("id", orderId)
+        .eq("status", orderRow.status)
 
       if (rejectError) throw rejectError
     } else if (decision === "activate") {
+      if (orderRow.payment_provider === "tbc_checkout") redirect(withFlash(nextPath, "tbc_sync_required"))
       const product = Array.isArray(orderRow.listing_boost_products) ? orderRow.listing_boost_products[0] : orderRow.listing_boost_products
       const listing = Array.isArray(orderRow.listings) ? orderRow.listings[0] : orderRow.listings
       if (!product || !listing) redirect(withFlash(nextPath, "not_found"))
@@ -378,8 +386,10 @@ export async function refreshBoostOrderStatusAction(formData: FormData) {
     redirect(withFlash(nextPath, "tbc_sync_unavailable"))
   }
 
+  if (!isTbcCheckoutEnabled()) redirect(withFlash(nextPath, "tbc_disabled"))
+
   try {
-    const result = await syncBoostOrderFromTbcByOrderId(orderId, "manual_sync")
+    const result = await syncBoostOrderFromTbcByOrderId(orderId, mode === "admin" ? "manual_admin_sync" : "manual_sync")
     const providerStatus = String(result?.payment?.status ?? ((result?.order as { provider_status?: string | null } | null)?.provider_status ?? ""))
 
     revalidatePath("/")

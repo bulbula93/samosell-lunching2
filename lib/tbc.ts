@@ -1,3 +1,5 @@
+import "server-only"
+
 import { getSiteUrlEnv } from "@/lib/env"
 
 export type TbcCreatePaymentParams = {
@@ -46,6 +48,21 @@ function readRequired(name: string) {
   return value
 }
 
+function isExplicitlyEnabled(value?: string) {
+  return String(value ?? "").trim().toLowerCase() === "true"
+}
+
+export type TbcCheckoutReadiness = {
+  featureFlagEnabled: boolean
+  apiKeyPresent: boolean
+  clientIdPresent: boolean
+  clientSecretPresent: boolean
+  siteUrl: string
+  siteUrlIsProduction: boolean
+  callbackUrl: string
+  enabled: boolean
+}
+
 function sanitizeTbcDescription(value: string) {
   return value.trim().slice(0, 30)
 }
@@ -56,14 +73,32 @@ function sanitizeTbcExtra(value?: string | null) {
 }
 
 export function isTbcCheckoutEnabled() {
-  return Boolean(
-    String(process.env.TBC_API_KEY ?? "").trim() &&
-    String(process.env.TBC_CLIENT_ID ?? "").trim() &&
-    String(process.env.TBC_CLIENT_SECRET ?? "").trim()
-  )
+  const readiness = getTbcCheckoutReadiness()
+  return readiness.enabled
+}
+
+export function getTbcCheckoutReadiness(): TbcCheckoutReadiness {
+  const featureFlagEnabled = isExplicitlyEnabled(process.env.TBC_CHECKOUT_ENABLED)
+  const apiKeyPresent = Boolean(String(process.env.TBC_API_KEY ?? "").trim())
+  const clientIdPresent = Boolean(String(process.env.TBC_CLIENT_ID ?? "").trim())
+  const clientSecretPresent = Boolean(String(process.env.TBC_CLIENT_SECRET ?? "").trim())
+  const siteUrl = getSiteUrlEnv()
+  const callbackUrl = `${siteUrl}/api/tbc/checkout/callback`
+
+  return {
+    featureFlagEnabled,
+    apiKeyPresent,
+    clientIdPresent,
+    clientSecretPresent,
+    siteUrl,
+    siteUrlIsProduction: siteUrl === "https://samosell.ge",
+    callbackUrl,
+    enabled: featureFlagEnabled && apiKeyPresent && clientIdPresent && clientSecretPresent,
+  }
 }
 
 export function getTbcCheckoutConfig() {
+  if (!isTbcCheckoutEnabled()) throw new Error("TBC checkout disabled")
   const siteUrl = getSiteUrlEnv()
   return {
     enabled: isTbcCheckoutEnabled(),
@@ -100,14 +135,15 @@ async function getAccessToken() {
     },
     body: body.toString(),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   })
 
   const text = await response.text()
   if (!response.ok) {
-    throw new Error(`TBC access-token მოთხოვნა ჩავარდა: ${response.status} ${text}`)
+    throw new Error(`TBC access-token მოთხოვნა ჩავარდა (HTTP ${response.status})`)
   }
 
-  const payload = JSON.parse(text) as TbcTokenResponse
+  const payload = parseProviderJson<TbcTokenResponse>(text)
   if (!payload.access_token) throw new Error("TBC access-token პასუხი ცარიელია")
 
   cachedToken = {
@@ -120,7 +156,16 @@ async function getAccessToken() {
 
 function getApprovalUrl(links?: TbcPaymentLink[] | null) {
   const approval = (links ?? []).find((item) => item?.rel === "approval_url" && item.uri)
-  return approval?.uri ? String(approval.uri) : null
+  if (!approval?.uri) return null
+  try {
+    const url = new URL(approval.uri)
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : null
+  } catch { return null }
+}
+
+function parseProviderJson<T>(text: string): T {
+  try { return JSON.parse(text) as T }
+  catch { throw new Error("TBC returned an invalid JSON response") }
 }
 
 export async function createTbcPayment(params: TbcCreatePaymentParams) {
@@ -153,14 +198,16 @@ export async function createTbcPayment(params: TbcCreatePaymentParams) {
     },
     body: JSON.stringify(payload),
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   })
 
   const text = await response.text()
   if (!response.ok) {
-    throw new Error(`TBC payment create ჩავარდა: ${response.status} ${text}`)
+    if (response.status === 401) cachedToken = null
+    throw new Error(`TBC payment create ჩავარდა (HTTP ${response.status})`)
   }
 
-  const data = JSON.parse(text) as TbcCreatePaymentResponse
+  const data = parseProviderJson<TbcCreatePaymentResponse>(text)
   const approvalUrl = getApprovalUrl(data.links)
   if (!data.payId || !approvalUrl) {
     throw new Error("TBC payment პასუხში payId ან approval_url ვერ მოიძებნა")
@@ -181,14 +228,16 @@ export async function getTbcPaymentDetails(payId: string) {
       Authorization: `Bearer ${accessToken}`,
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
   })
 
   const text = await response.text()
   if (!response.ok) {
-    throw new Error(`TBC payment status ჩავარდა: ${response.status} ${text}`)
+    if (response.status === 401) cachedToken = null
+    throw new Error(`TBC payment status ჩავარდა (HTTP ${response.status})`)
   }
 
-  return JSON.parse(text) as TbcPaymentDetails
+  return parseProviderJson<TbcPaymentDetails>(text)
 }
 
 export function mapTbcStatusToBoostOrderStatus(status?: string | null) {
@@ -214,4 +263,39 @@ export function mapTbcStatusToBoostOrderStatus(status?: string | null) {
 
 export function isTbcFinalStatus(status?: string | null) {
   return ["Succeeded", "Failed", "Expired", "WaitingConfirm", "Returned", "PartialReturned", "CancelPaymentProcessing"].includes(String(status ?? ""))
+}
+
+export function canActivateTbcBoost(currentStatus: string, providerStatus?: string | null) {
+  return providerStatus === "Succeeded" && ["pending_payment", "under_review", "approved", "active"].includes(currentStatus)
+}
+
+export function resolveTbcOrderStatus(currentStatus: string, providerStatus?: string | null) {
+  if (providerStatus === "Succeeded") return canActivateTbcBoost(currentStatus, providerStatus) ? (currentStatus === "active" ? "active" : "approved") : currentStatus
+  const next = mapTbcStatusToBoostOrderStatus(providerStatus)
+  if (next === "cancelled") return "cancelled"
+  if (["active", "expired", "rejected", "cancelled"].includes(currentStatus)) return currentStatus
+  return next
+}
+
+export function classifyTbcHttpFailure(status: number) {
+  if (status === 401 || status === 403) return "authentication"
+  if (status === 429) return "rate_limited"
+  if (status >= 500) return "provider_unavailable"
+  return "provider_rejected"
+}
+
+export function tbcProviderStatusLabel(status?: string | null) {
+  switch (status) {
+    case "Created": return "გადახდის სესია შექმნილია"
+    case "Processing":
+    case "PaymentCompletionProcessing": return "გადახდა მუშავდება"
+    case "Succeeded": return "გადახდა წარმატებულია"
+    case "WaitingConfirm": return "გადახდა დამატებით შემოწმებას ელოდება"
+    case "Failed": return "გადახდა ვერ შესრულდა"
+    case "Expired": return "გადახდის სესია ვადაგასულია"
+    case "CancelPaymentProcessing": return "გაუქმება მუშავდება"
+    case "Returned": return "თანხა დაბრუნებულია"
+    case "PartialReturned": return "თანხა ნაწილობრივ დაბრუნებულია"
+    default: return status ? `ბანკის სტატუსი: ${status}` : "ბანკის სტატუსი ჯერ უცნობია"
+  }
 }

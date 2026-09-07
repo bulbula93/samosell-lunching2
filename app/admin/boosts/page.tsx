@@ -142,6 +142,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link href="/admin/payments" className="ui-btn-primary">გადახდების მართვა</Link>
             <Link href="/admin" className="ui-btn-secondary">ადმინისტრირების მთავარი</Link>
             <Link href="/admin/reports" className="ui-btn-secondary">რეპორტები</Link>
           </div>
@@ -235,7 +236,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
                   <div className="mt-5 grid gap-2 sm:grid-cols-3">
                     <button name="decision" value="review" className="ui-btn-secondary">შემოწმება</button>
                     <button name="decision" value="reject" className="inline-flex items-center justify-center rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50">უარყოფა</button>
-                    <button name="decision" value="activate" className="ui-btn-primary">გააქტიურება</button>
+                    {order.payment_provider !== "tbc_checkout" ? <button name="decision" value="activate" className="ui-btn-primary">გააქტიურება</button> : <Link href={`/admin/payments/${order.id}`} className="ui-btn-secondary">გადახდის დეტალები</Link>}
                   </div>
                 </form>
               </div>

@@ -24,6 +24,8 @@ const footerGroups = [
     links: [
       { href: "/terms", label: "წესები და პირობები" },
       { href: "/privacy-policy", label: "კონფიდენციალურობა" },
+      { href: "/payment-terms", label: "გადახდის პირობები" },
+      { href: "/refund-policy", label: "დაბრუნების პოლიტიკა" },
     ],
   },
 ] as const
