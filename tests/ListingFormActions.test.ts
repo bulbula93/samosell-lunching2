@@ -33,6 +33,9 @@ vi.mock("@/lib/listings", async (importOriginal) => {
 
 const ownerId = "177f3329-6c04-4c40-8f33-873ab3ee4f76"
 const listingId = "277f3329-6c04-4c40-8f33-873ab3ee4f76"
+const imageId = "377f3329-6c04-4c40-8f33-873ab3ee4f76"
+const uploadedImagePath = `${ownerId}/${listingId}/${imageId}.jpg`
+const uploadedImages = [{ kind: "uploaded" as const, path: uploadedImagePath }]
 
 const validForm = {
   title: "ტყავის ქურთუკი",
@@ -67,7 +70,10 @@ function storageStub() {
   return {
     from: () => ({
       remove: vi.fn().mockResolvedValue({ error: null }),
-      download: vi.fn(),
+      download: vi.fn().mockResolvedValue({
+        data: new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: "image/jpeg" }),
+        error: null,
+      }),
       getPublicUrl: (path: string) => ({ data: { publicUrl: `https://storage.example/${path}` } }),
       createSignedUploadUrl: vi.fn(),
     }),
@@ -146,6 +152,9 @@ describe("listing form server actions", () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
     }
     const profileQuery = profileUpdateBuilder()
+    const listingImages = {
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    }
 
     mocks.createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
@@ -153,6 +162,7 @@ describe("listing form server actions", () => {
         if (table === "listings") return listings
         if (table === "categories") return categoryQuery
         if (table === "profiles") return profileQuery
+        if (table === "listing_images") return listingImages
         throw new Error(`Unexpected table ${table}`)
       }),
       storage: storageStub(),
@@ -171,7 +181,7 @@ describe("listing form server actions", () => {
       mode: "create",
       listingId,
       form: maliciousForm,
-      images: [],
+      images: uploadedImages,
     })
 
     expect(result).toMatchObject({ ok: true, status: "active", slug: "tyavis-kurtuki" })
@@ -181,6 +191,7 @@ describe("listing form server actions", () => {
       status: "active",
       price: "120.50",
       currency: "GEL",
+      cover_image_url: `https://storage.example/${uploadedImagePath}`,
     })
     expect(insertedPayload).not.toHaveProperty("owner_id")
     expect(insertedPayload).not.toHaveProperty("views_count")
@@ -210,7 +221,7 @@ describe("listing form server actions", () => {
       city: null,
       status: "sold",
       published_at: "2026-08-01T00:00:00.000Z",
-      cover_image_url: null,
+      cover_image_url: "https://storage.example/existing.jpg",
     }
     let updatedPayload: Record<string, unknown> | null = null
     let listingSelectCalls = 0
@@ -239,7 +250,16 @@ describe("listing form server actions", () => {
     const imagesBuilder = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      order: vi.fn().mockResolvedValue({
+        data: [{
+          id: imageId,
+          listing_id: listingId,
+          image_url: "https://storage.example/existing.jpg",
+          sort_order: 0,
+        }],
+        error: null,
+      }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
     }
     const profileQuery = profileUpdateBuilder()
 
@@ -259,7 +279,7 @@ describe("listing form server actions", () => {
       mode: "edit",
       listingId,
       form: { ...validForm, title: "განახლებული სათაური", publishNow: false },
-      images: [],
+      images: [{ kind: "existing", id: imageId }],
     })
 
     expect(listingSelectCalls).toBe(1)
@@ -299,6 +319,36 @@ describe("listing form server actions", () => {
       }),
     })
     expect(from).not.toHaveBeenCalled()
+  })
+
+  it("rejects an authenticated image-less create before database access", async () => {
+    const from = vi.fn()
+    mocks.createClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
+      from,
+      storage: storageStub(),
+    })
+
+    const result = await saveListingAction({
+      mode: "create",
+      listingId,
+      form: validForm,
+      images: [],
+    })
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "invalid",
+      fieldErrors: { images: "დაამატე მინიმუმ ერთი ფოტო." },
+    })
+    expect(from).not.toHaveBeenCalled()
+
+    const preparation = await prepareListingUploadsAction({ mode: "create", files: [] })
+    expect(preparation).toMatchObject({
+      ok: false,
+      code: "invalid",
+      message: "განცხადებისთვის მინიმუმ ერთი ფოტო სავალდებულოა.",
+    })
   })
 
   it("rejects a missing seller phone before database access", async () => {
@@ -390,7 +440,7 @@ describe("listing form server actions", () => {
       mode: "create",
       listingId,
       form: validForm,
-      images: [],
+      images: uploadedImages,
     })
 
     expect(result).toMatchObject({ ok: false, code: "server_error" })

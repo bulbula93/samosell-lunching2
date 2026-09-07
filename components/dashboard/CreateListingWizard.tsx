@@ -315,15 +315,17 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
   function validateCurrentStep(currentStep: 1 | 2) {
     const validation = validateListingInput(formInput)
-    if (validation.ok) return true
+    const imageMissing = currentStep === 1 && images.length === 0
+    if (validation.ok && !imageMissing) return true
 
     const allowedFields: Array<keyof ListingFormInput> = currentStep === 1
       ? ["title", "price", "categoryId"]
       : ["description", "brandId", "sizeId", "condition", "saleType", "gender", "color", "material", "city"]
     const nextErrors: ListingFieldErrors = {}
     for (const field of allowedFields) {
-      if (validation.fieldErrors[field]) nextErrors[field] = validation.fieldErrors[field]
+      if (!validation.ok && validation.fieldErrors[field]) nextErrors[field] = validation.fieldErrors[field]
     }
+    if (imageMissing) nextErrors.images = "დაამატე მინიმუმ ერთი ფოტო."
 
     if (Object.keys(nextErrors).length === 0) return true
     setFieldErrors((current) => ({ ...current, ...nextErrors }))
@@ -398,6 +400,14 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (step !== 3 || submittingRef.current) return
+
+    if (images.length === 0) {
+      setStep(1)
+      setFieldErrors((current) => ({ ...current, images: "დაამატე მინიმუმ ერთი ფოტო." }))
+      setFormError("განცხადების შესანახად ფოტო სავალდებულოა.")
+      requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+      return
+    }
 
     const validation = validateListingInput(formInput)
     if (!validation.ok) {
@@ -552,8 +562,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${imagesId}-heading`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">1. დაამატე ფოტოები</h2>
-                <p className="mt-1 text-sm leading-6 text-text-soft">ფოტო არჩევითია, მაგრამ კარგი მთავარი ფოტო გაყიდვის შანსს მნიშვნელოვნად ზრდის.</p>
+                <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">1. დაამატე ფოტოები <span className="text-red-700" aria-hidden="true">*</span></h2>
+                <p className="mt-1 text-sm leading-6 text-text-soft">მინიმუმ ერთი ფოტო სავალდებულოა. პირველი ფოტო გახდება მთავარი.</p>
               </div>
               <span className="shrink-0 text-sm font-bold text-text-soft">{images.length}/{MAX_LISTING_IMAGES}</span>
             </div>
@@ -564,7 +574,12 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
               type="file"
               accept={LISTING_IMAGE_ACCEPT}
               multiple
+              required={images.length === 0}
               className="sr-only"
+              aria-label="განცხადების სურათების არჩევა"
+              aria-required="true"
+              aria-invalid={Boolean(fieldErrors.images)}
+              aria-describedby={fieldErrors.images ? fieldErrorId(imagesId) : `${imagesId}-heading`}
               onChange={(event) => {
                 void handleFilesSelected(event.target.files)
                 event.currentTarget.value = ""
@@ -772,7 +787,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 <h2 id={`${formPrefix}-review-heading`} className="text-lg font-black text-text">შეამოწმე განცხადება</h2>
                 <p className="mt-1 text-sm text-text-soft">თუ რამე შესაცვლელია, შესაბამის ნაბიჯზე დაბრუნდი.</p>
               </div>
-              <span className="ui-pill-soft self-start">{images.length ? `${images.length} ფოტო` : "ფოტოს გარეშე"}</span>
+              <span className="ui-pill-soft self-start">{images.length} ფოტო</span>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-[180px_1fr]">

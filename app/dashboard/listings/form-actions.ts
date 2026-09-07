@@ -250,6 +250,10 @@ export async function prepareListingUploadsAction(
     return { ok: false, code: "invalid", message: `მაქსიმუმ ${MAX_LISTING_IMAGES} სურათის ატვირთვაა შესაძლებელი.` }
   }
 
+  if (mode === "create" && files.length === 0) {
+    return { ok: false, code: "invalid", message: "განცხადებისთვის მინიმუმ ერთი ფოტო სავალდებულოა." }
+  }
+
   for (const file of files) {
     if (
       typeof file.clientId !== "string" ||
@@ -364,6 +368,15 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     return { ok: false, code: "invalid", message: "სურათების თანმიმდევრობა არასწორია." }
   }
 
+  if (input.mode === "create" && imageOrder.length === 0) {
+    return {
+      ok: false,
+      code: "invalid",
+      message: "განცხადებისთვის მინიმუმ ერთი ფოტო სავალდებულოა.",
+      fieldErrors: { images: "დაამატე მინიმუმ ერთი ფოტო." },
+    }
+  }
+
   let ownedListing: OwnedListing | null = null
   let originalImages: ExistingImageRow[] = []
   let insertedListing = false
@@ -415,6 +428,16 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       if (existingIds.some((id) => !ownedImageIds.has(id))) {
         await removeUploadedPaths(supabase, uploadedPaths)
         return { ok: false, code: "not_found", message: "ერთ-ერთი არსებული სურათი ვერ მოიძებნა." }
+      }
+
+      if (imageOrder.length === 0) {
+        await removeUploadedPaths(supabase, uploadedPaths)
+        return {
+          ok: false,
+          code: "invalid",
+          message: "განცხადებისთვის მინიმუმ ერთი ფოტო სავალდებულოა.",
+          fieldErrors: { images: "დატოვე ან დაამატე მინიმუმ ერთი ფოტო." },
+        }
       }
     }
 

@@ -39,6 +39,10 @@ const props = {
   initialSellerPhone: "+995 555 12 34 56",
 }
 
+function listingImageFile(name = "listing.jpg") {
+  return new File([new Uint8Array([0xff, 0xd8, 0xff])], name, { type: "image/jpeg" })
+}
+
 async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/^სათაური/), "ტყავის ქურთუკი")
   await user.type(screen.getByLabelText(/^აღწერა/), "კარგ მდგომარეობაშია და დეფექტი არ აქვს.")
@@ -49,11 +53,15 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 describe("CreateListingForm", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.prepare.mockResolvedValue({
+    mocks.prepare.mockImplementation(async (input: { files: Array<{ clientId: string }> }) => ({
       ok: true,
       listingId: "377f3329-6c04-4c40-8f33-873ab3ee4f76",
-      plans: [],
-    })
+      plans: input.files.map((file, index) => ({
+        clientId: file.clientId,
+        path: `user/377f3329-6c04-4c40-8f33-873ab3ee4f76/image-${index}.jpg`,
+        token: `signed-token-${index}`,
+      })),
+    }))
     mocks.save.mockResolvedValue({
       ok: true,
       listingId: "377f3329-6c04-4c40-8f33-873ab3ee4f76",
@@ -76,6 +84,7 @@ describe("CreateListingForm", () => {
       "accept",
       "image/jpeg,image/png,image/webp"
     )
+    expect(screen.getByLabelText("განცხადების სურათების არჩევა")).toBeRequired()
   })
 
   it("shows field-level errors and focuses the error summary", async () => {
@@ -110,6 +119,10 @@ describe("CreateListingForm", () => {
     const user = userEvent.setup()
     render(<CreateListingForm {...props} />)
     await fillValidForm(user)
+    await user.upload(
+      screen.getByLabelText("განცხადების სურათების არჩევა"),
+      listingImageFile(),
+    )
 
     await user.dblClick(screen.getByRole("button", { name: "გამოქვეყნება" }))
 
@@ -126,6 +139,19 @@ describe("CreateListingForm", () => {
       })
     )
     expect(mocks.push).toHaveBeenCalledWith("/listing/tyavis-kurtuki")
+  })
+
+  it("requires at least one image before preparing or saving a listing", async () => {
+    const user = userEvent.setup()
+    render(<CreateListingForm {...props} />)
+    await fillValidForm(user)
+
+    await user.click(screen.getByRole("button", { name: "გამოქვეყნება" }))
+
+    expect(screen.getByText("დაამატე მინიმუმ ერთი ფოტო.")).toBeInTheDocument()
+    expect(screen.getByRole("alert")).toHaveFocus()
+    expect(mocks.prepare).not.toHaveBeenCalled()
+    expect(mocks.save).not.toHaveBeenCalled()
   })
 
   it("keeps form data and cleans uploaded objects when upload fails", async () => {

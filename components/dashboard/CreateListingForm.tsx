@@ -443,8 +443,11 @@ export default function CreateListingForm({
     if (submittingRef.current) return
 
     const validation = validateListingInput(formInput)
-    if (!validation.ok) {
-      setFieldErrors(validation.fieldErrors)
+    if (!validation.ok || images.length === 0) {
+      setFieldErrors({
+        ...(validation.ok ? {} : validation.fieldErrors),
+        ...(images.length === 0 ? { images: "დაამატე მინიმუმ ერთი ფოტო." } : {}),
+      })
       setFormError("შეამოწმე მონიშნული ველები და სცადე ხელახლა.")
       return
     }
@@ -588,8 +591,8 @@ export default function CreateListingForm({
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
                 {isEdit
-                  ? "განაახლე საჯარო ინფორმაცია და ფოტოები. ცვლილებას მხოლოდ შენს განცხადებაზე შეძლებ."
-                  : "შეავსე აუცილებელი ველები, სურვილის შემთხვევაში დაამატე ფოტოები და გამოაქვეყნე ან შეინახე დრაფტად."}
+                  ? "განაახლე საჯარო ინფორმაცია და ფოტოები. განცხადებას მინიმუმ ერთი ფოტო უნდა დარჩეს."
+                  : "შეავსე აუცილებელი ველები, დაამატე მინიმუმ ერთი ფოტო და გამოაქვეყნე ან შეინახე დრაფტად."}
               </p>
             </div>
 
@@ -631,9 +634,9 @@ export default function CreateListingForm({
       <section className="ui-card p-5 sm:p-8" aria-labelledby={`${imagesId}-heading`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">ფოტოები</h2>
+            <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">ფოტოები <span className="text-red-700" aria-hidden="true">*</span></h2>
             <p className="mt-1 text-sm leading-6 text-text-soft">
-              JPEG, PNG ან WEBP; თითოეული მაქსიმუმ 7 MB. პირველი ფოტო გახდება მთავარი.
+              მინიმუმ ერთი ფოტო სავალდებულოა. JPEG, PNG ან WEBP; თითოეული მაქსიმუმ 7 MB. პირველი ფოტო გახდება მთავარი.
             </p>
           </div>
           <span className="text-sm font-bold text-text-soft">{images.length}/{MAX_LISTING_IMAGES}</span>
@@ -645,8 +648,11 @@ export default function CreateListingForm({
           type="file"
           accept={LISTING_IMAGE_ACCEPT}
           multiple
+          required={images.length === 0}
           className="sr-only"
           aria-label="განცხადების სურათების არჩევა"
+          aria-required="true"
+          aria-invalid={Boolean(fieldErrors.images)}
           aria-describedby={fieldErrors.images ? fieldErrorId(imagesId) : `${imagesId}-heading`}
           onChange={(event) => {
             void handleFilesSelected(event.target.files)
