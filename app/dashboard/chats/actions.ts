@@ -256,7 +256,7 @@ export async function loadOlderMessagesAction(
     const before = beforeDate.toISOString()
     const { data, error } = await context.supabase
       .from("messages")
-      .select("id, chat_id, sender_id, body, created_at")
+      .select("id, chat_id, sender_id, body, created_at, message_type, story_id")
       .eq("chat_id", chatId)
       .or(`created_at.lt.${before},and(created_at.eq.${before},id.lt.${cursor.id})`)
       .order("created_at", { ascending: false })

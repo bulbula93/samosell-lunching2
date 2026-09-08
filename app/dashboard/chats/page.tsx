@@ -58,7 +58,7 @@ export default async function DashboardChatsPage({
   let query = supabase
     .from("chat_threads")
     .select(
-      "id, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url",
+      "id, chat_type, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url",
       { count: "exact" },
     )
     .or(participantFilter)
@@ -83,7 +83,7 @@ export default async function DashboardChatsPage({
             შეტყობინებები
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-text-soft sm:text-base">
-            ყველა მიმოწერა კონკრეტულ განცხადებაზეა მიბმული და მხოლოდ მონაწილეებისთვის ჩანს.
+            განცხადების და Story-ის პირადი მიმოწერები მხოლოდ მონაწილეებისთვის ჩანს.
           </p>
         </div>
         <Link href="/catalog" className="ui-btn-primary self-start sm:self-auto">
@@ -148,15 +148,15 @@ export default async function DashboardChatsPage({
                 >
                   <Link
                     href={`/dashboard/chats/${thread.id}`}
-                    aria-label={`${thread.listing_title} — მიმოწერის გახსნა`}
+                    aria-label={`${thread.chat_type === "direct" ? counterparty : thread.listing_title} — მიმოწერის გახსნა`}
                     className="aspect-[4/5] overflow-hidden rounded-xl bg-surface-alt"
                   >
-                    <SmartImage
+                    {thread.chat_type === "direct" ? <div className="flex h-full items-center justify-center"><Avatar src={thread.counterparty_avatar_url} alt={counterparty} fallbackText={counterparty} sizeClassName="h-16 w-16" textClassName="text-xl" /></div> : <SmartImage
                       src={thread.cover_image_url}
-                      alt={thread.listing_title}
+                      alt={thread.listing_title || "განცხადება"}
                       wrapperClassName="h-full w-full"
                       fallbackLabel="სურათი არ არის"
-                    />
+                    />}
                   </Link>
 
                   <div className="min-w-0">
@@ -165,7 +165,7 @@ export default async function DashboardChatsPage({
                         href={`/dashboard/chats/${thread.id}`}
                         className="break-words text-lg font-black text-text hover:text-brand"
                       >
-                        {thread.listing_title}
+                        {thread.chat_type === "direct" ? counterparty : thread.listing_title}
                       </Link>
                       {hasUnread ? (
                         <span className="rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">
@@ -177,9 +177,9 @@ export default async function DashboardChatsPage({
                           არქივი
                         </span>
                       ) : null}
-                      <span className="rounded-full border border-line px-3 py-1 text-xs font-bold text-text-soft">
+                      {thread.chat_type === "listing" && thread.listing_status ? <span className="rounded-full border border-line px-3 py-1 text-xs font-bold text-text-soft">
                         {listingStatusLabel(thread.listing_status)}
-                      </span>
+                      </span> : <span className="rounded-full border border-line px-3 py-1 text-xs font-bold text-text-soft">პირადი დიალოგი</span>}
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 text-sm text-text-soft">
@@ -212,9 +212,7 @@ export default async function DashboardChatsPage({
                         thread.last_message_created_at || thread.created_at,
                       )}
                     </time>
-                    <div className="text-sm font-black text-text">
-                      {formatPrice(thread.price, thread.currency)}
-                    </div>
+                    {thread.chat_type === "listing" && thread.price !== null && thread.currency ? <div className="text-sm font-black text-text">{formatPrice(thread.price, thread.currency)}</div> : null}
                     <div className="flex flex-wrap gap-2 md:justify-end">
                       <Link
                         href={`/dashboard/chats/${thread.id}`}

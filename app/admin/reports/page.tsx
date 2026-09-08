@@ -1,6 +1,8 @@
 import Link from "next/link"
+/* eslint-disable @next/next/no-img-element -- Moderation preview must inspect the direct Story asset without a new image transform. */
 import AdminReviewCard from "@/components/moderation/AdminReviewCard"
 import AdminUserReviewCard from "@/components/moderation/AdminUserReviewCard"
+import { reviewStoryReportAction } from "@/app/moderation/actions"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
 import {
@@ -155,6 +157,7 @@ export default async function AdminReportsPage({
     listingActiveSignals,
     userActiveSignals,
     auditResponse,
+    storyReportsResponse,
   ] = await Promise.all([
     listingReportsQuery,
     userReportsQuery,
@@ -183,6 +186,7 @@ export default async function AdminReportsPage({
       )
       .order("created_at", { ascending: false })
       .limit(10),
+    supabase.from("admin_story_reports").select("id, story_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at").in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status]).order("created_at", { ascending: false }).limit(20),
   ])
 
   const queueError =
@@ -355,6 +359,10 @@ export default async function AdminReportsPage({
       </section>
 
       <section aria-label="მოდერაციის ერთიანი რიგი" className="mt-6 space-y-5">
+        {(storyReportsResponse.data ?? []).map((report) => {
+          const mediaUrl = supabase.storage.from("story-media").getPublicUrl(report.media_path).data.publicUrl
+          return <article key={report.id} className="ui-card p-5"><div className="grid gap-5 sm:grid-cols-[140px_1fr]"><div className="aspect-[9/16] overflow-hidden rounded-2xl bg-neutral-900">{report.media_type === "video" ? <video src={mediaUrl} controls className="h-full w-full object-cover" /> : <img src={mediaUrl} alt="რეპორტირებული Story" className="h-full w-full object-cover" />}</div><div><div className="ui-eyebrow">Story რეპორტი · {report.status}</div><h2 className="mt-2 text-xl font-black">@{report.owner_username || "მომხმარებელი"}</h2><p className="mt-3 text-sm"><strong>მიზეზი:</strong> {report.reason}</p>{report.details ? <p className="mt-2 text-sm text-text-soft">{report.details}</p> : null}{report.caption ? <p className="mt-2 rounded-xl bg-surface-alt p-3 text-sm">{report.caption}</p> : null}<form action={reviewStoryReportAction} className="mt-4 space-y-3"><input type="hidden" name="reportId" value={report.id}/><textarea name="moderationNote" maxLength={1000} placeholder="მოდერატორის შენიშვნა" className="w-full rounded-xl border border-line p-3 text-sm"/><div className="flex flex-wrap gap-2">{[["reviewing","განხილვაში"],["resolved","მოგვარება"],["dismissed","უარყოფა"],["hide_story","Story-ის დამალვა"],["suspend_user","მომხმარებლის შეზღუდვა"]].map(([value,label]) => <button key={value} name="decision" value={value} className={value === "hide_story" || value === "suspend_user" ? "rounded-xl bg-red-700 px-3 py-2 text-sm font-bold text-white" : "ui-btn-secondary"}>{label}</button>)}</div></form></div></div></article>
+        })}
         {!queueError && queue.length > 0 ? (
           queue.map((entry) =>
             entry.kind === "listing" ? (

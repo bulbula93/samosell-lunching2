@@ -232,6 +232,7 @@ export default function ChatThreadClient({
                   <span className="sr-only">
                     {mine ? "შენ დაწერე:" : `${otherPartyLabel} წერს:`}
                   </span>
+                  {message.message_type === "story_reply" ? <div className={`mb-2 rounded-xl border px-3 py-2 text-xs ${mine ? "border-white/25 bg-white/10" : "border-line bg-white"}`}><p className="font-black">Story პასუხი</p>{message.story_context?.available ? <>{message.story_context.caption ? <p className="mt-1 line-clamp-2 opacity-80">{message.story_context.caption}</p> : null}{message.story_context.linkedListingSlug ? <a href={`/listing/${message.story_context.linkedListingSlug}`} className="mt-1 inline-block font-bold underline">ნივთის ნახვა</a> : null}</> : <p className="mt-1 opacity-75">Story აღარ არის ხელმისაწვდომი</p>}</div> : null}
                   <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-6">
                     {message.body}
                   </p>
