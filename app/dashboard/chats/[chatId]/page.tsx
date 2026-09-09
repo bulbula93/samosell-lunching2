@@ -1,3 +1,4 @@
+import { hydrateStoryContexts } from "@/lib/chat-story-context"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
@@ -68,15 +69,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
   if (offersResult.error) throw new Error("CHAT_OFFERS_QUERY_FAILED", { cause: offersResult.error })
 
   const messageRows = (messagesResult.data ?? []) as ChatMessage[]
-  const storyIds = [...new Set(messageRows.map((message) => message.story_id).filter((id): id is string => Boolean(id)))]
-  const { data: storyRows } = storyIds.length ? await supabase.from("stories").select("id, caption, linked_listing_id, listing:listings(slug,status)").in("id", storyIds) : { data: [] }
-  const storyContexts = new Map((storyRows ?? []).map((row) => {
-    const listing = Array.isArray(row.listing) ? row.listing[0] : row.listing
-    return [row.id, { available: true, caption: row.caption, linkedListingSlug: listing?.status === "active" ? listing.slug : null }]
-  }))
-  for (const message of messageRows) {
-    if (message.message_type === "story_reply") message.story_context = message.story_id ? storyContexts.get(message.story_id) ?? { available: false, caption: null, linkedListingSlug: null } : { available: false, caption: null, linkedListingSlug: null }
-  }
+  await hydrateStoryContexts(supabase, messageRows)
   const hasOlderMessages = messageRows.length > CHAT_MESSAGE_PAGE_SIZE
   const typedMessages = messageRows.slice(0, CHAT_MESSAGE_PAGE_SIZE).reverse()
   const otherPartyLabel = chatCounterpartyName(typedThread)

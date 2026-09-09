@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
-import { enforceRateLimit } from "@/lib/rate-limit"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { validateStoryMedia } from "@/lib/story-media-validation"
 import { isChatUuid, validateChatMessageBody } from "@/lib/chats"
 import { notifyChatMessage } from "@/lib/notifications"
 import {
-  detectStoryMimeType,
   isStoryMimeType,
   STORY_CAPTION_MAX_LENGTH,
   STORY_IMAGE_MAX_BYTES,
@@ -47,10 +47,13 @@ export async function prepareStoryUploadAction(input: PrepareStoryUploadInput): 
     return { ok: false, message: mediaType === "video" ? "ვიდეო მაქსიმუმ 25 MB უნდა იყოს." : "ფოტო მაქსიმუმ 12 MB უნდა იყოს." }
   }
   try {
-    await enforceRateLimit(context.supabase, "story_upload")
-    const storyId = crypto.randomUUID()
-    const path = `${context.user.id}/${storyId}/${crypto.randomUUID()}.${extension}`
-    const { data, error } = await context.supabase.storage.from(STORY_BUCKET).createSignedUploadUrl(path)
+    const { data: plans, error: planError } = await context.supabase.rpc("prepare_story_upload", { p_mime_type: mimeType, p_size: size })
+    const plan = plans?.[0]
+    if (planError || !plan) throw planError ?? new Error("story_upload_not_authorized")
+    const storyId = String(plan.story_id)
+    const path = String(plan.media_path)
+    if (!isChatUuid(storyId) || !ownedStoryPath(path, context.user.id, storyId)) throw new Error("invalid_story_media_path")
+    const { data, error } = await createAdminClient().storage.from(STORY_BUCKET).createSignedUploadUrl(path, { upsert: false })
     if (error || !data?.token) throw error ?? new Error("signed_upload_missing")
     return { ok: true, storyId, path, token: data.token }
   } catch (error) {
@@ -61,7 +64,8 @@ export async function prepareStoryUploadAction(input: PrepareStoryUploadInput): 
 export async function abortStoryUploadAction(storyId: string, path: string) {
   const context = await authenticatedContext()
   if (!context || !isChatUuid(storyId) || !ownedStoryPath(path, context.user.id, storyId)) return
-  await context.supabase.storage.from(STORY_BUCKET).remove([path])
+  const { data, error } = await context.supabase.rpc("abort_story_upload", { p_story_id: storyId })
+  if (!error && data === path) await createAdminClient().storage.from(STORY_BUCKET).remove([path])
 }
 
 export type PublishStoryInput = {
@@ -86,12 +90,20 @@ export async function publishStoryAction(input: PublishStoryInput) {
   if (input.linkedListingId && !isChatUuid(input.linkedListingId)) return { ok: false as const, message: "არჩეული განცხადება არასწორია." }
 
   try {
-    const { data: blob, error: downloadError } = await context.supabase.storage.from(STORY_BUCKET).download(input.path)
+    const admin = createAdminClient()
+    const { data: plan, error: planError } = await admin.from("story_upload_plans")
+      .select("mime_type, expected_size, uploaded_at, validated_at, published_at, revoked_at, expires_at")
+      .eq("story_id", input.storyId).eq("user_id", context.user.id).eq("media_path", input.path).maybeSingle()
+    if (planError || !plan || !plan.uploaded_at || plan.published_at || plan.revoked_at || Date.parse(plan.expires_at) <= Date.now()) throw new Error("story_upload_not_authorized")
+    const { data: blob, error: downloadError } = await admin.storage.from(STORY_BUCKET).download(input.path)
     if (downloadError || !blob) throw new Error("story_media_missing")
-    const maxBytes = input.mediaType === "video" ? STORY_VIDEO_MAX_BYTES : STORY_IMAGE_MAX_BYTES
-    if (blob.size < 1 || blob.size > maxBytes) throw new Error("invalid_story_media_size")
-    const detectedMime = detectStoryMimeType(new Uint8Array(await blob.arrayBuffer()))
-    if (storyMediaTypeForMime(detectedMime ?? "") !== input.mediaType) throw new Error("invalid_story_media_type")
+    const validation = await validateStoryMedia(blob, plan.mime_type, Number(plan.expected_size), input.mediaType)
+    // Browser roles cannot write this attestation. Storage objects are immutable
+    // after the first upload, so validation cannot race with media replacement.
+    const { error: validationError } = await admin.from("story_upload_plans")
+      .update({ validated_at: new Date().toISOString(), duration_ms: validation.durationMs })
+      .eq("story_id", input.storyId).eq("user_id", context.user.id).is("revoked_at", null).is("published_at", null)
+    if (validationError) throw validationError
 
     const { data, error } = await context.supabase.rpc("create_story", {
       p_story_id: input.storyId,
@@ -101,14 +113,14 @@ export async function publishStoryAction(input: PublishStoryInput) {
       p_linked_listing_id: input.linkedListingId || null,
       p_media_width: input.mediaWidth ?? null,
       p_media_height: input.mediaHeight ?? null,
-      p_duration_ms: input.mediaType === "video" ? input.durationMs ?? null : null,
+      p_duration_ms: validation.durationMs,
     })
     if (error || !data) throw error ?? new Error("story_create_failed")
     revalidatePath("/")
     if (context.user.user_metadata?.username) revalidatePath(`/seller/${context.user.user_metadata.username}`)
     return { ok: true as const, storyId: String(data) }
   } catch (error) {
-    await context.supabase.storage.from(STORY_BUCKET).remove([input.path])
+    await abortStoryUploadAction(input.storyId, input.path)
     return { ok: false as const, message: storyErrorMessage(error instanceof Error ? error.message : "") }
   }
 }
@@ -151,8 +163,9 @@ export async function recordStoryViewAction(storyId: string) {
 
 export async function recordStoryListingClickAction(storyId: string) {
   if (!isChatUuid(storyId)) return false
-  const supabase = await createClient()
-  const { data } = await supabase.rpc("record_story_listing_click", { p_story_id: storyId })
+  const context = await authenticatedContext()
+  if (!context || context.user.is_anonymous) return false
+  const { data } = await context.supabase.rpc("record_story_listing_click", { p_story_id: storyId })
   return Boolean(data)
 }
 

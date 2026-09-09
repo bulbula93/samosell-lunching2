@@ -60,7 +60,7 @@ export default function StoryComposer({ listings, onClose }: { listings: StoryCo
         const preparation = await prepareStoryUploadAction({ mimeType: upload.type, size: upload.size })
         if (!preparation.ok) throw new Error(preparation.message)
         const supabase = createClient()
-        const { error: uploadError } = await supabase.storage.from("story-media").uploadToSignedUrl(preparation.path, preparation.token, upload, { contentType: upload.type, cacheControl: "86400" })
+        const { error: uploadError } = await supabase.storage.from("story-media").uploadToSignedUrl(preparation.path, preparation.token, upload, { contentType: upload.type, cacheControl: "0" })
         if (uploadError) { await abortStoryUploadAction(preparation.storyId, preparation.path); throw new Error("ფაილის ატვირთვა ვერ დასრულდა") }
         const result = await publishStoryAction({ storyId: preparation.storyId, path: preparation.path, mediaType: isVideo ? "video" : "image", caption, linkedListingId: listingId || undefined, mediaWidth: width, mediaHeight: height, durationMs })
         if (!result.ok) throw new Error(result.message)

@@ -16,10 +16,6 @@ type StoryRow = {
   duration_ms: number | null
 }
 
-function storyPublicUrl(supabase: SupabaseClient, path: string) {
-  return supabase.storage.from("story-media").getPublicUrl(path).data.publicUrl
-}
-
 export async function getStoryRailData(
   supabase: SupabaseClient,
   user: User | null,
@@ -198,7 +194,7 @@ export async function getOwnerStories(
       id: row.id,
       ownerId: row.user_id,
       mediaPath: row.media_path,
-      mediaUrl: storyPublicUrl(supabase, row.media_path),
+      mediaUrl: `/api/stories/media/${row.id}`,
       mediaType: row.media_type,
       caption: row.caption,
       createdAt: row.created_at,

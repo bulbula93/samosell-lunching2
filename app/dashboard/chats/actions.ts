@@ -1,5 +1,7 @@
 "use server"
 
+import { hydrateStoryContexts } from "@/lib/chat-story-context"
+
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
@@ -271,6 +273,7 @@ export async function loadOlderMessagesAction(
       .slice(0, CHAT_MESSAGE_PAGE_SIZE)
       .reverse()
 
+    await hydrateStoryContexts(context.supabase, messages)
     return { ok: true, messages, hasMore }
   } catch {
     return {

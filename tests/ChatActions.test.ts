@@ -237,6 +237,23 @@ describe("chat server actions", () => {
     expect(messages.limit).toHaveBeenCalledWith(51)
   })
 
+  it("hydrates older Story replies in one RLS query without changing pagination", async () => {
+    const membership = membershipBuilder({ id: chatId })
+    const rows = Array.from({length:51}, (_,i) => ({id: String(i),chat_id:chatId,sender_id:buyerId,body:"older reply",created_at:createdAt,message_type:"story_reply",story_id:listingId}))
+    const messages = messagesBuilder(rows)
+    const stories = {select:vi.fn().mockReturnThis(),in:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),gt:vi.fn().mockResolvedValue({data:[{id:listingId,caption:"active context",listing:null}],error:null})}
+    const from = vi.fn((table:string) => table === "chats" ? membership : table === "messages" ? messages : stories)
+    mocks.createClient.mockResolvedValue({auth:auth({id:buyerId}),from})
+    const result = await loadOlderMessagesAction(chatId,{id:requestId,createdAt})
+    expect(result).toMatchObject({ok:true,hasMore:true})
+    if (!result.ok) throw new Error("unexpected loader failure")
+    expect(result.messages).toHaveLength(50)
+    expect(result.messages[0].id).toBe("49")
+    expect(result.messages[0].body).toBe("older reply")
+    expect(result.messages[0].story_context).toMatchObject({available:true,caption:"active context"})
+    expect(from.mock.calls.filter(([table])=>table === "stories")).toHaveLength(1)
+  })
+
   it("returns the same private-safe denial for a non-participant cursor request", async () => {
     const membership = membershipBuilder(null)
     const from = vi.fn().mockReturnValue(membership)

@@ -12,7 +12,7 @@ Homepage rail-ში თითო ავტორი ერთხელ ჩა�
 - `stories` — კონტროლირებადი Storage path, ტიპი, caption, ერთი optional listing, ზუსტად 24-საათიანი expiry და soft delete.
 - `story_views` — ავტორიზებულ viewer-ზე ერთი უნიკალური view; ავტორის self-view არ ითვლება.
 - `story_mutes` — პირადი და შექცევადი Story mute.
-- `story_listing_clicks` — მინიმალური first-party გადასვლის event; anonymous fingerprinting არ გამოიყენება.
+- `story_listing_clicks` — მინიმალური first-party გადასვლის event; მხოლოდ ავტორიზებული უნიკალური გადასვლები; anonymous fingerprinting არ გამოიყენება.
 - `story_reports` — არსებული moderation taxonomy/status/audit მიდგომასთან ინტეგრირებული რეპორტი.
 
 ახალი ცხრილები RLS-ითაა დაცული. browser role-ს პირდაპირი mutation grant არ აქვს; mutation-ები ვიწრო `SECURITY DEFINER` RPC-ებით გადის და `auth.uid()`-ს ენდობა.
@@ -43,7 +43,7 @@ Story menu-დან შესაძლებელია profile, mute, report 
 
 ## Analytics
 
-ავტორი ხედავს aggregate Views, Replies და Listing clicks რაოდენობას. viewer identities არ ჩანს. Anonymous click event ინახება user ID-ის გარეშე; უნიკალური anonymous views fingerprinting-ის გარეშე არ ითვლება.
+ავტორი ხედავს aggregate Views, Replies და Listing clicks რაოდენობას. viewer identities არ ჩანს. v1-ში Listing clicks ითვლის მხოლოდ ავტორიზებულ მომხმარებელთა უნიკალურ მოქმედებებს (ერთი მომხმარებელი თითო Story-ზე); ანონიმური clicks არ ინახება, ავტორის საკუთარი და ბლოკირებული მოქმედებები არ ითვლება; უნიკალური anonymous views fingerprinting-ის გარეშე არ ითვლება.
 
 ## v1 შეზღუდვები
 
@@ -56,3 +56,15 @@ Story menu-დან შესაძლებელია profile, mute, report 
 ## მომავალი v2 იდეები (ამ ვერსიაში არ არის)
 
 Highlights, Music, Filters, Sponsored Stories, Advanced interests, AI ranking, Follower-only Stories, Story notifications და Reposts.
+
+
+## PR #4 უსაფრთხოების გამკაცრება
+
+- `prepare_story_upload` იყენებს `auth.uid()`-ს და ატომურ 20/საათში ლიმიტს. თითო plan-ის ზუსტი path, MIME და ზომა Storage trigger-ით მოწმდება; ვადა 10 წუთია და upload ერთჯერადია. Browser INSERT/UPDATE/DELETE აკრძალულია.
+- ვიდეოს publish ამოწმებს ატვირთული MP4/WebM-ის ყველა track-ის packet timestamps-ს `mediabunny`-ით. `durationMs` კლიენტიდან ავტორიტეტული არ არის. გაურკვეველი ხანგრძლივობა უარყოფილია. მხოლოდ სერვერს შეუძლია validation attestation-ის ჩაწერა; პირდაპირი `create_story` RPC მის გარეშე ვერ აქვეყნებს.
+- Bucket private-ია. წვდომა მოწმდება RLS-ით და აქტიური Story-ის ფილტრით; უკვე გაცემული media URL მაქსიმუმ 60 წამი მუშაობს და Story-ის expiry-ს არ სცდება. უკვე ჩამოტვირთული ასლების უკან გამოთხოვა შეუძლებელია.
+- `scripts/cleanup-story-media.mjs` აშორებს 2 საათზე ძველ orphan-ებს, წაშლილ მედია ფაილებს და 7 დღეზე მეტი ხნის expired ფაილებს Storage API-ით. წარუმატებელი წაშლა ხელახლა ცდისთვის რჩება. staging-ზე ყოველ საათში სანდო scheduler-იდან გაშვებაა საჭირო; scheduler ამ PR-ით production-ში არ ირთვება.
+- საწყისი და ძველი chat შეტყობინებები ერთ RLS-aware batch hydration-ს იყენებს. reply ტექსტი შენარჩუნებულია.
+- Story რეპორტები იმავე kind/status/priority რიგში ხვდება; `nudity`, `scam`, `harassment`, `prohibited` მაღალი რისკია.
+
+Staging ტესტის ინსტრუქციები: `docs/STORIES-PR4-SECURITY.md`.

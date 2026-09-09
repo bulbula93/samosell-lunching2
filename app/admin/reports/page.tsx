@@ -25,11 +25,13 @@ const LISTING_REPORT_SELECT =
 const USER_REPORT_SELECT =
   "id, reporter_id, reported_user_id, context_listing_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, reporter_username, reporter_full_name, reported_username, reported_full_name, reported_avatar_url, reported_is_suspended, context_listing_slug, context_listing_title, context_listing_status"
 
-type QueueKind = "all" | "listing" | "user"
+type QueueKind = "all" | "listing" | "user" | "story"
+type StoryReport = { id: string; story_id: string; story_owner_id: string; reason: string; details: string; status: string; media_path: string; media_type: string; caption: string | null; owner_username: string | null; created_at: string }
 type PriorityFilter = "all" | "high"
 type QueueEntry =
   | { kind: "listing"; item: AdminListingReport; priority: ModerationPriority }
   | { kind: "user"; item: AdminUserReport; priority: ModerationPriority }
+  | { kind: "story"; item: StoryReport; priority: ModerationPriority }
 
 function flashLabel(value?: string) {
   switch (value) {
@@ -100,6 +102,7 @@ const kindTabs: Array<{ key: QueueKind; label: string }> = [
   { key: "all", label: "ყველა სიგნალი" },
   { key: "listing", label: "განცხადებები" },
   { key: "user", label: "მომხმარებლები" },
+  { key: "story", label: "Stories" },
 ]
 
 export default async function AdminReportsPage({
@@ -121,7 +124,7 @@ export default async function AdminReportsPage({
       : "open"
   const requestedKind = typeof params.kind === "string" ? params.kind : "all"
   const kind: QueueKind =
-    requestedKind === "listing" || requestedKind === "user" ? requestedKind : "all"
+    requestedKind === "listing" || requestedKind === "user" || requestedKind === "story" ? requestedKind : "all"
   const priority: PriorityFilter = params.priority === "high" ? "high" : "all"
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
@@ -158,6 +161,8 @@ export default async function AdminReportsPage({
     userActiveSignals,
     auditResponse,
     storyReportsResponse,
+    storyCountsResponse,
+    storyOpen, storyReviewing, storyResolved, storyDismissed,
   ] = await Promise.all([
     listingReportsQuery,
     userReportsQuery,
@@ -186,7 +191,13 @@ export default async function AdminReportsPage({
       )
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase.from("admin_story_reports").select("id, story_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at").in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status]).order("created_at", { ascending: false }).limit(20),
+    supabase.from("admin_story_reports").select("id, story_id, story_owner_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at").in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status]).order("created_at", { ascending: false }).limit(PAGE_SIZE * 2),
+    supabase.from("story_reports").select("status, reason, story_owner_id").in("status", ["open", "reviewing"]).limit(TRIAGE_SCAN_LIMIT),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "resolved"),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
+
   ])
 
   const queueError =
@@ -201,8 +212,12 @@ export default async function AdminReportsPage({
     userResolved.error ||
     userDismissed.error ||
     listingActiveSignals.error ||
-    userActiveSignals.error
+    userActiveSignals.error ||
+    storyReportsResponse.error ||
+    storyCountsResponse.error || storyOpen.error || storyReviewing.error || storyResolved.error || storyDismissed.error
 
+  const storyReports = (storyReportsResponse.data ?? []) as StoryReport[]
+  const storyCounts = storyCountsResponse.data ?? []
   const listingReports = (listingReportsResponse.data ?? []) as AdminListingReport[]
   const userReports = (userReportsResponse.data ?? []) as AdminUserReport[]
   const listingTargetCounts = new Map<string, number>()
@@ -217,7 +232,7 @@ export default async function AdminReportsPage({
     ).length +
     (userActiveSignals.data ?? []).filter(
       (row) => reportPriority("user", row.reason) === "high",
-    ).length
+    ).length + storyCounts.filter(row => ["open", "reviewing"].includes(row.status) && reportPriority("story", row.reason) === "high").length
 
   let queue: QueueEntry[] = [
     ...listingReports.map((item) => ({
@@ -230,6 +245,7 @@ export default async function AdminReportsPage({
       item,
       priority: reportPriority("user", item.reason),
     })),
+    ...storyReports.map(item => ({ kind: "story" as const, item, priority: reportPriority("story", item.reason) })),
   ]
 
   if (kind !== "all") queue = queue.filter((entry) => entry.kind === kind)
@@ -246,6 +262,14 @@ export default async function AdminReportsPage({
   })
   queue = queue.slice(0, PAGE_SIZE)
 
+  const storyPaths = queue.filter(entry => entry.kind === "story").map(entry => entry.item.media_path)
+  const { data: signedMedia } = storyPaths.length ? await supabase.storage.from("story-media").createSignedUrls(storyPaths, 60) : { data: [] }
+  const mediaUrls = new Map((signedMedia ?? []).map(row => [row.path, row.signedUrl]))
+  function renderStoryReport(report: StoryReport) {
+    const mediaUrl = mediaUrls.get(report.media_path) ?? undefined
+    return <article key={`story-${report.id}`} className="ui-card p-5"><div className="grid gap-5 sm:grid-cols-[140px_1fr]"><div className="aspect-[9/16] overflow-hidden rounded-2xl bg-neutral-900">{report.media_type === "video" ? <video src={mediaUrl} controls className="h-full w-full object-cover" /> : <img src={mediaUrl} alt="რეპორტირებული Story" className="h-full w-full object-cover" />}</div><div><div className="ui-eyebrow">Story რეპორტი · {report.status}</div><h2 className="mt-2 text-xl font-black">@{report.owner_username || "მომხმარებელი"}</h2><p className="mt-3 text-sm"><strong>მიზეზი:</strong> {report.reason}</p>{report.details ? <p className="mt-2 text-sm text-text-soft">{report.details}</p> : null}{report.caption ? <p className="mt-2 rounded-xl bg-surface-alt p-3 text-sm">{report.caption}</p> : null}{["open", "reviewing"].includes(report.status) ? <form action={reviewStoryReportAction} className="mt-4 space-y-3"><input type="hidden" name="reportId" value={report.id}/><textarea name="moderationNote" maxLength={1000} placeholder="მოდერატორის შენიშვნა" className="w-full rounded-xl border border-line p-3 text-sm"/><div className="flex flex-wrap gap-2">{[["reviewing","განხილვაში"],["resolved","მოგვარება"],["dismissed","უარყოფა"],["hide_story","Story-ის დამალვა"],["suspend_user","მომხმარებლის შეზღუდვა"]].map(([value,label]) => <button key={value} name="decision" value={value} className={value === "hide_story" || value === "suspend_user" ? "rounded-xl bg-red-700 px-3 py-2 text-sm font-bold text-white" : "ui-btn-secondary"}>{label}</button>)}</div></form> : null}</div></div></article>
+  }
+
   const auditEntries = (auditResponse.data ?? []) as ModerationAuditEntry[]
 
   return (
@@ -258,7 +282,7 @@ export default async function AdminReportsPage({
               უსაფრთხოების სიგნალები
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              განცხადებისა და მომხმარებლის რეპორტები ახლა ერთ queue-ში იკრიბება. მაღალი რისკის მიზეზები ზემოთ გადადის, ხოლო ერთსა და იმავე ანგარიშზე განმეორებითი აქტიური სიგნალები ცალკე მონიშვნით ჩანს. ყველა მოდერაციის მოქმედება audit log-ში ინახება.
+              განცხადების, მომხმარებლისა და Story-ის რეპორტები ერთ რიგში იკრიბება. მაღალი რისკის მიზეზები ზემოთ გადადის, ხოლო ერთსა და იმავე ანგარიშზე განმეორებითი აქტიური სიგნალები ცალკე მონიშვნით ჩანს. ყველა მოდერაციის მოქმედება audit log-ში ინახება.
             </p>
           </div>
 
@@ -294,20 +318,20 @@ export default async function AdminReportsPage({
       <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="ახალი რეპორტები"
-          value={(listingOpen.count ?? 0) + (userOpen.count ?? 0)}
+          value={(listingOpen.count ?? 0) + (userOpen.count ?? 0) + (storyOpen.count ?? 0)}
         />
         <StatCard
           label="მიმდინარე დამუშავება"
-          value={(listingReviewing.count ?? 0) + (userReviewing.count ?? 0)}
+          value={(listingReviewing.count ?? 0) + (userReviewing.count ?? 0) + (storyReviewing.count ?? 0)}
         />
         <StatCard label="მაღალი რისკის აქტიური" value={highPriorityActiveCount} />
         <StatCard
           label="მოგვარებული"
-          value={(listingResolved.count ?? 0) + (userResolved.count ?? 0)}
+          value={(listingResolved.count ?? 0) + (userResolved.count ?? 0) + (storyResolved.count ?? 0)}
         />
         <StatCard
           label="უარყოფილი"
-          value={(listingDismissed.count ?? 0) + (userDismissed.count ?? 0)}
+          value={(listingDismissed.count ?? 0) + (userDismissed.count ?? 0) + (storyDismissed.count ?? 0)}
         />
       </section>
 
@@ -359,10 +383,6 @@ export default async function AdminReportsPage({
       </section>
 
       <section aria-label="მოდერაციის ერთიანი რიგი" className="mt-6 space-y-5">
-        {(storyReportsResponse.data ?? []).map((report) => {
-          const mediaUrl = supabase.storage.from("story-media").getPublicUrl(report.media_path).data.publicUrl
-          return <article key={report.id} className="ui-card p-5"><div className="grid gap-5 sm:grid-cols-[140px_1fr]"><div className="aspect-[9/16] overflow-hidden rounded-2xl bg-neutral-900">{report.media_type === "video" ? <video src={mediaUrl} controls className="h-full w-full object-cover" /> : <img src={mediaUrl} alt="რეპორტირებული Story" className="h-full w-full object-cover" />}</div><div><div className="ui-eyebrow">Story რეპორტი · {report.status}</div><h2 className="mt-2 text-xl font-black">@{report.owner_username || "მომხმარებელი"}</h2><p className="mt-3 text-sm"><strong>მიზეზი:</strong> {report.reason}</p>{report.details ? <p className="mt-2 text-sm text-text-soft">{report.details}</p> : null}{report.caption ? <p className="mt-2 rounded-xl bg-surface-alt p-3 text-sm">{report.caption}</p> : null}<form action={reviewStoryReportAction} className="mt-4 space-y-3"><input type="hidden" name="reportId" value={report.id}/><textarea name="moderationNote" maxLength={1000} placeholder="მოდერატორის შენიშვნა" className="w-full rounded-xl border border-line p-3 text-sm"/><div className="flex flex-wrap gap-2">{[["reviewing","განხილვაში"],["resolved","მოგვარება"],["dismissed","უარყოფა"],["hide_story","Story-ის დამალვა"],["suspend_user","მომხმარებლის შეზღუდვა"]].map(([value,label]) => <button key={value} name="decision" value={value} className={value === "hide_story" || value === "suspend_user" ? "rounded-xl bg-red-700 px-3 py-2 text-sm font-bold text-white" : "ui-btn-secondary"}>{label}</button>)}</div></form></div></div></article>
-        })}
         {!queueError && queue.length > 0 ? (
           queue.map((entry) =>
             entry.kind === "listing" ? (
@@ -372,14 +392,14 @@ export default async function AdminReportsPage({
                 relatedOpenReports={listingTargetCounts.get(entry.item.seller_id) ?? 1}
                 referenceTime={referenceTime}
               />
-            ) : (
+            ) : entry.kind === "user" ? (
               <AdminUserReviewCard
                 key={`user-${entry.item.id}`}
                 item={entry.item}
                 relatedOpenReports={userTargetCounts.get(entry.item.reported_user_id) ?? 1}
                 referenceTime={referenceTime}
               />
-            ),
+            ) : renderStoryReport(entry.item),
           )
         ) : !queueError ? (
           <div className="ui-card border-dashed px-6 py-12 text-center text-sm text-text-soft">
@@ -415,7 +435,7 @@ export default async function AdminReportsPage({
                   <span className="text-text-soft">
                     {entry.report_kind === "listing"
                       ? "განცხადების რეპორტი"
-                      : "მომხმარებლის რეპორტი"}{" "}
+                      : entry.report_kind === "story" ? "Story რეპორტი" : "მომხმარებლის რეპორტი"}{" "}
                     · {new Date(entry.created_at).toLocaleString("ka-GE")}
                   </span>
                 </li>
