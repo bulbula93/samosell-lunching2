@@ -62,6 +62,7 @@ export function storyErrorMessage(value?: string | null) {
   if (message.includes("not_authenticated")) return "Stories-ის გამოსაყენებლად შედი ანგარიშში."
   if (message.includes("active_story_limit_reached")) return "ერთდროულად მაქსიმუმ 10 აქტიური Story შეიძლება გქონდეს."
   if (message.includes("story_rate_limited")) return "ძალიან ბევრი Story გამოქვეყნდა. ცოტა ხანში სცადე ხელახლა."
+  if (message.includes("story_like_rate_limited")) return "ცოტა ხანში სცადე მოწონება ხელახლა."
   if (message.includes("invalid_story_listing")) return "არჩეული განცხადება Story-ს ვეღარ უკავშირდება."
   if (message.includes("story_media_missing")) return "ატვირთული ფაილი ვერ მოიძებნა. თავიდან ატვირთე."
   if (message.includes("story_video_too_long")) return "ვიდეო მაქსიმუმ 15 წამის უნდა იყოს."

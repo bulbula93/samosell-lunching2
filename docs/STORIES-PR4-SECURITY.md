@@ -1,5 +1,9 @@
 # PR #4 security hardening
 
+This records the earlier security-review baseline. For the current seven-migration
+release, disabled production cleanup and final rollout/rollback procedure, use
+[STORIES-PRODUCTION-RELEASE.md](./STORIES-PRODUCTION-RELEASE.md).
+
 Scope: `feature/stories-following-v1`. No merge, deployment, production migration, or payment/TBC changes.
 
 ## Review fixes

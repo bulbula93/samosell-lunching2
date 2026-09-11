@@ -30,9 +30,10 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
     seller_type: string
   } | null = null
   let unreadNotifications = 0
+  let unreadChats = 0
 
   if (user) {
-    const [profileResponse, unreadResponse] = await Promise.all([
+    const [profileResponse, unreadResponse, chatUnreadResponse] = await Promise.all([
       supabase
         .from("profiles")
         .select("is_admin, avatar_url, full_name, username, store_logo_url, seller_type")
@@ -41,11 +42,14 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
-        .is("read_at", null),
+        .is("read_at", null).not("type", "in", "(chat_started,chat_message)"),
+      supabase.from("notifications").select("id", { count: "exact", head: true })
+        .is("read_at", null).in("type", ["chat_started", "chat_message"]),
     ])
 
     profile = profileResponse.data
     if (!unreadResponse.error) unreadNotifications = unreadResponse.count ?? 0
+    if (!chatUnreadResponse.error) unreadChats = chatUnreadResponse.count ?? 0
   }
 
   const profileLabel = profile?.full_name || profile?.username || "პროფილი"
@@ -71,13 +75,16 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
 
   return (
     <MarketplaceHeader
+      key={user?.id ?? "guest"}
       items={items}
       userState={{
+        userId: user?.id ?? null,
         signedIn: Boolean(user),
         profileLabel,
         profileImage: getUserAvatar(profile),
         isAdmin: Boolean(profile?.is_admin),
         unreadNotifications,
+        unreadChats,
       }}
     />
   )

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   loadOlderMessagesAction,
+  loadRealtimeMessageAction,
   markChatReadAction,
   sendChatMessageAction,
   startChatAction,
@@ -73,6 +74,21 @@ function messagesBuilder(data: unknown[], error: unknown = null) {
 }
 
 describe("chat server actions", () => {
+  it("hydrates a realtime reply from the stored message using participant RLS", async () => {
+    const message = {id:messageId,chat_id:chatId,sender_id:buyerId,body:"reply body",created_at:createdAt,message_type:"story_reply",story_id:listingId}
+    const messageQuery = membershipBuilder(message)
+    const storyQuery = {select:vi.fn().mockReturnThis(),in:vi.fn().mockReturnThis(),is:vi.fn().mockReturnThis(),gt:vi.fn().mockResolvedValue({data:[{id:listingId,caption:"active context",listing:{slug:"safe-listing",status:"active"}}],error:null})}
+    mocks.createClient.mockResolvedValue({auth:auth({id:buyerId}),from:vi.fn((table:string)=>table==="chats" ? membershipBuilder({id:chatId}) : table==="messages" ? messageQuery : storyQuery)})
+    expect(await loadRealtimeMessageAction(chatId,messageId)).toMatchObject({body:"reply body",story_context:{available:true,caption:"active context",linkedListingSlug:"safe-listing"}})
+    expect(messageQuery.eq).toHaveBeenCalledWith("chat_id",chatId)
+    expect(messageQuery.eq).toHaveBeenCalledWith("id",messageId)
+  })
+  it("does not load realtime messages for a nonparticipant", async () => {
+    const from=vi.fn(()=>membershipBuilder(null))
+    mocks.createClient.mockResolvedValue({auth:auth({id:buyerId}),from})
+    expect(await loadRealtimeMessageAction(chatId,messageId)).toBeNull()
+    expect(from).toHaveBeenCalledTimes(1)
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.redirect.mockImplementation((path: string) => {

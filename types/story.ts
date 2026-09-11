@@ -8,6 +8,7 @@ export type StoryOwner = {
   storyCount: number
   unseenCount: number
   latestStoryAt: string
+  preview?: { storyId: string; mediaType: StoryMediaType; expiresAt: string }
 }
 
 export type StoryLinkedListing = {
@@ -32,6 +33,8 @@ export type StoryItem = {
   durationMs: number | null
   linkedListing: StoryLinkedListing | null
   viewed: boolean
+  liked?: boolean
+  likeCount?: number | null
 }
 
 export type StoryComposerListing = {

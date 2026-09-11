@@ -22,7 +22,8 @@ beforeEach(() => {
     from(table: string) {
       let rows = tables[table] ?? []
       const query = {
-        select: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
+        limit(n: number) { rows=rows.slice(0,n); return query },
         eq(key: string, value: unknown) { rows=rows.filter(row=>row[key]===value); return query },
         in(key: string, values: unknown[]) { rows=rows.filter(row=>values.includes(row[key])); return query },
         then(resolve: (value: unknown)=>void) { resolve({data:rows,error:null,count:rows.length}) },
@@ -34,6 +35,14 @@ beforeEach(() => {
 })
 
 describe("one moderation queue including Story reports", () => {
+  it("finds high-priority Stories beyond sixty newer normal reports", async () => {
+    const original = tables.admin_story_reports
+    tables.admin_story_reports = [...Array.from({length:65}, (_,i)=>({...original[0],id:`normal${i}`})),original[1]]
+    try {
+      render(await AdminReportsPage({searchParams:Promise.resolve({kind:"story",status:"all",priority:"high"})}))
+      expect(screen.getByText("@high-story")).toBeInTheDocument()
+    } finally { tables.admin_story_reports=original }
+  })
   for (const kind of ["listing", "user"]) it(`excludes Stories in ${kind}-only queue`, async () => {
     render(await AdminReportsPage({searchParams:Promise.resolve({kind,status:"all"})}))
     expect(screen.queryByText(/@normal-story|@high-story/)).not.toBeInTheDocument()

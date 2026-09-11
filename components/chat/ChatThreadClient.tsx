@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   loadOlderMessagesAction,
+  loadRealtimeMessageAction,
   markChatReadAction,
   sendChatMessageAction,
 } from "@/app/dashboard/chats/actions"
@@ -84,6 +85,7 @@ export default function ChatThreadClient({
   }, [currentUserId, initialMessages, markRead, scrollToBottom])
 
   useEffect(() => {
+    let cancelled = false
     const channel = supabase
       .channel(`chat:${chatId}`)
       .on(
@@ -98,6 +100,11 @@ export default function ChatThreadClient({
           if (!isChatMessage(payload.new)) return
           const incoming = payload.new
           setMessages((current) => mergeMessages(current, [incoming]))
+          if (incoming.message_type === "story_reply") {
+            void loadRealtimeMessageAction(chatId, incoming.id).then((hydrated) => {
+              if (!cancelled && hydrated) setMessages((current) => mergeMessages(current, [hydrated]))
+            }).catch(() => { /* Keep reply body visible if context cannot be loaded. */ })
+          }
           scrollToBottom()
           if (incoming.sender_id !== currentUserId) {
             void markRead()
@@ -107,6 +114,7 @@ export default function ChatThreadClient({
       .subscribe()
 
     return () => {
+      cancelled = true
       void supabase.removeChannel(channel)
     }
   }, [chatId, currentUserId, markRead, scrollToBottom, supabase])

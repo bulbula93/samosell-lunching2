@@ -151,6 +151,7 @@ export async function toggleBlockUserAction(formData: FormData) {
     )
   }
 
+  revalidatePath("/")
   revalidateModerationPaths(nextPath)
   redirect(
     withSafeFeedback(

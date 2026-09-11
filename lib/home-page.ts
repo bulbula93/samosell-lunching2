@@ -143,7 +143,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     throw new Error(`home_favorites_failed:${favoritesResponse.error.message}`)
   }
 
-  const storyRail = await getStoryRailData(supabase, user)
+  const storyRail = process.env.STORIES_UI_DISABLED === "true" ? undefined : await getStoryRailData(supabase, user)
 
   return {
     user,

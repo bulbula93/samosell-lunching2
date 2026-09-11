@@ -11,7 +11,7 @@ if (!url || !ref || new URL(url).hostname !== `${ref}.supabase.co` || ref === "l
 }
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing server credentials")
 const client = createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
-const { data, error } = await client.rpc("list_expired_story_media_for_cleanup", { p_limit: 500 })
+const { data, error } = await client.rpc("list_expired_story_media_for_cleanup", { p_limit: 100 })
 if (error) throw new Error("Story cleanup candidate query failed")
 console.log(`${data.length} media objects eligible for cleanup`)
 if (process.argv.includes("--apply")) {
@@ -22,8 +22,7 @@ if (process.argv.includes("--apply")) {
   }
   // Token maximum lifetime is two hours; old unused plan rows need not accumulate.
   // Published plans are retained as validation evidence, bounded by Story creation.
-  const { error: planError } = await client.from("story_upload_plans").delete()
-    .is("published_at", null).lt("expires_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+  const { error: planError } = await client.rpc("prune_unpublished_story_upload_plans", { p_limit: 100 })
   if (planError) throw new Error("Story plan cleanup failed; rerun to retry")
   console.log("Story cleanup completed")
 }

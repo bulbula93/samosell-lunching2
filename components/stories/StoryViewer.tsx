@@ -12,6 +12,7 @@ import {
   replyToStoryAction,
   reportStoryAction,
   setStoryMuteAction,
+  setStoryLikedAction,
 } from "@/app/stories/actions"
 import { formatRelativeStoryTime, STORY_IMAGE_AUTO_ADVANCE_MS } from "@/lib/stories"
 import type { StoryItem, StoryOwner } from "@/types/story"
@@ -34,6 +35,7 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
   const [menuOpen, setMenuOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const [videoMuted, setVideoMuted] = useState(true)
+  const [likePending, setLikePending] = useState(false)
   const [pending, startTransition] = useTransition()
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -41,6 +43,7 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
   const story = stories[storyIndex]
 
   const move = useCallback((direction: 1 | -1) => {
+    if (pending || loading) return
     setMenuOpen(false)
     const next = storyIndex + direction
     if (next >= 0 && next < stories.length) { setStoryIndex(next); return }
@@ -48,9 +51,11 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
     if (nextOwner < 0) { setStoryIndex(0); return }
     if (nextOwner >= owners.length) { onClose(); return }
     setLoading(true)
+    setStories([])
+    setNotice("")
     setStoryIndex(direction > 0 ? 0 : -1)
     setOwnerIndex(nextOwner)
-  }, [onClose, ownerIndex, owners.length, stories.length, storyIndex])
+  }, [onClose, ownerIndex, owners.length, stories.length, storyIndex, pending, loading])
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -68,9 +73,9 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
         const nextStories = payload.stories ?? []
         setStories(nextStories)
         setStoryIndex((current) => current < 0 ? Math.max(0, nextStories.length - 1) : Math.max(0, nextStories.findIndex((item) => !item.viewed)))
+        setLoading(false)
       })
-      .catch(() => !cancelled && setNotice("Story ვერ ჩაიტვირთა"))
-      .finally(() => !cancelled && setLoading(false))
+      .catch(() => { if (!cancelled) { setStories([]); setNotice("Story ვერ ჩაიტვირთა"); setLoading(false) } })
     return () => { cancelled = true }
   }, [owner.id])
 
@@ -90,10 +95,26 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
   }, [move, onClose])
 
   useEffect(() => {
-    if (!story || story.mediaType !== "image" || paused) return
+    if (!story || story.mediaType !== "image" || paused || pending || menuOpen || loading) return
     const timer = window.setTimeout(() => move(1), STORY_IMAGE_AUTO_ADVANCE_MS)
     return () => window.clearTimeout(timer)
-  }, [move, paused, story])
+  }, [move, paused, story, pending, menuOpen, loading])
+
+  function deleteCurrentStory() {
+    if (!story || currentUserId !== owner.id || pending || loading) return
+    if (!window.confirm("წავშალოთ ეს Story?")) return
+    const storyId = story.id
+    setNotice("")
+    startTransition(async () => {
+      try {
+        const result = await deleteStoryAction(storyId)
+        if (result.ok) onClose()
+        else setNotice(result.message)
+      } catch {
+        setNotice("Story ვერ წაიშალა. სცადე ხელახლა.")
+      }
+    })
+  }
 
   function sendReply(body: string) {
     if (!story || !currentUserId || !body.trim()) return
@@ -107,6 +128,20 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
     })
   }
 
+  async function toggleLike() {
+    if (!story || !currentUserId || currentUserId === owner.id || pending || likePending) return
+    const storyId = story.id
+    const liked = !story.liked
+    setNotice("")
+    setLikePending(true)
+      try {
+        const result = await setStoryLikedAction(storyId, liked)
+        if (result.ok) setStories((items) => items.map((item) => item.id === storyId ? { ...item, liked: result.liked } : item))
+        else setNotice(result.message)
+      } catch { setNotice("მოწონება ვერ შეიცვალა. სცადე ხელახლა.") }
+      finally { setLikePending(false) }
+  }
+
   return (
     <div role="dialog" aria-modal="true" aria-label={`${owner.username}-ის Story`} className="fixed inset-0 z-[100] bg-black/95 text-white">
       <div className="mx-auto flex h-full max-w-[520px] flex-col px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]">
@@ -115,7 +150,8 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
         </div>
         <header className="mt-3 flex items-center gap-3">
           <Avatar src={owner.avatarUrl} alt={owner.username} fallbackText={owner.fullName || owner.username} sizeClassName="h-10 w-10" />
-          <div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{owner.username}</p>{story ? <p className="text-xs text-white/65">{formatRelativeStoryTime(story.createdAt)}</p> : null}</div>
+          <div className="min-w-0 flex-1"><Link href={`/seller/${encodeURIComponent(owner.username)}`} onClick={onClose} className="block w-fit max-w-full truncate rounded text-sm font-black hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">{owner.username}</Link>{story ? <p className="text-xs text-white/65">{formatRelativeStoryTime(story.createdAt)}</p> : null}</div>
+          {currentUserId === owner.id && story && !loading ? <button type="button" disabled={pending} aria-label="Story-ის წაშლა" onClick={deleteCurrentStory} className="rounded-full bg-red-500/15 px-3 py-2 text-xs font-bold text-red-200 hover:bg-red-500/30 disabled:opacity-50">{pending ? "იცადე…" : "წაშლა"}</button> : null}
           <button type="button" aria-label="Story მენიუ" onClick={() => setMenuOpen((value) => !value)} className="rounded-full px-3 py-2 text-xl">•••</button>
           <button ref={closeButtonRef} type="button" aria-label="Story-ის დახურვა" onClick={onClose} className="rounded-full px-3 py-2 text-2xl">×</button>
         </header>
@@ -125,15 +161,14 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
             {currentUserId && currentUserId !== owner.id ? <button className="block w-full rounded-xl px-3 py-2 text-left hover:bg-neutral-100" onClick={() => startTransition(async () => { await setStoryMuteAction(owner.id, true); onClose() })}>Stories-ის დადუმება</button> : null}
             {currentUserId && currentUserId !== owner.id && story ? <><button className="block w-full rounded-xl px-3 py-2 text-left text-red-700 hover:bg-red-50" onClick={() => setReportOpen((value) => !value)}>რეპორტი</button>{reportOpen ? <div className="border-t border-line pt-2">{[["spam","სპამი"],["scam","თაღლითობა"],["harassment","შეურაცხყოფა"],["nudity","შეუსაბამო სიშიშვლე"],["prohibited","აკრძალული ნივთი"],["other","სხვა"]].map(([reason,label]) => <button key={reason} className="block w-full rounded-lg px-3 py-1.5 text-left text-xs hover:bg-neutral-100" onClick={() => startTransition(async () => { const result = await reportStoryAction({ storyId: story.id, reason }); setNotice(result.ok ? "რეპორტი გაიგზავნა" : result.message); setMenuOpen(false); setReportOpen(false) })}>{label}</button>)}</div> : null}</> : null}
             {currentUserId && currentUserId !== owner.id ? <button className="block w-full rounded-xl px-3 py-2 text-left text-red-700 hover:bg-red-50" onClick={() => startTransition(async () => { const result = await blockStoryOwnerAction(owner.id); if (result.ok) onClose(); else setNotice(result.message) })}>მომხმარებლის დაბლოკვა</button> : null}
-            {currentUserId === owner.id && story ? <button className="block w-full rounded-xl px-3 py-2 text-left text-red-700 hover:bg-red-50" onClick={() => startTransition(async () => { const result = await deleteStoryAction(story.id); if (result.ok) move(1); else setNotice(result.message) })}>Story-ის წაშლა</button> : null}
           </div>
         ) : null}
         <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[28px] bg-neutral-900" onPointerDown={() => { setPaused(true); videoRef.current?.pause() }} onPointerUp={() => { setPaused(false); void videoRef.current?.play() }}>
           {loading ? <div className="flex h-full items-center justify-center text-sm text-white/70">იტვირთება…</div> : story ? (
             <>
               {story.mediaType === "image" ? <>{/* Story media intentionally bypasses Vercel image transformations. */}<img src={story.mediaUrl} alt={story.caption || `${owner.username}-ის Story`} className="h-full w-full object-cover" /></> : <><video ref={videoRef} src={story.mediaUrl} autoPlay playsInline muted={videoMuted} onEnded={() => move(1)} className="h-full w-full object-cover" aria-label={story.caption || `${owner.username}-ის ვიდეო Story`} /><button type="button" onClick={() => setVideoMuted((value) => !value)} className="absolute right-3 top-3 z-10 rounded-full bg-black/55 px-3 py-2 text-xs font-bold" aria-label={videoMuted ? "ვიდეოს ხმის ჩართვა" : "ვიდეოს ხმის გამორთვა"}>{videoMuted ? "ხმა გამორთულია" : "ხმა ჩართულია"}</button></>}
-              <button type="button" aria-label="წინა Story" onClick={() => move(-1)} className="absolute inset-y-0 left-0 w-1/3" />
-              <button type="button" aria-label="შემდეგი Story" onClick={() => move(1)} className="absolute inset-y-0 right-0 w-1/3" />
+              <button type="button" aria-label="წინა Story" disabled={pending || (ownerIndex === 0 && storyIndex === 0)} onClick={() => move(-1)} className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-3xl shadow-lg backdrop-blur-sm hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-25"><span aria-hidden="true">‹</span></button>
+              <button type="button" aria-label="შემდეგი Story" disabled={pending} onClick={() => move(1)} className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/55 text-3xl shadow-lg backdrop-blur-sm hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-25"><span aria-hidden="true">›</span></button>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-5 pt-20">
                 {story.caption ? <p className="text-sm leading-6">{story.caption}</p> : null}
                 {story.linkedListing ? story.linkedListing.status === "active" ? (
@@ -148,10 +183,11 @@ export default function StoryViewer({ owners, initialOwnerIndex, currentUserId, 
         {story && currentUserId && currentUserId !== owner.id ? (
           <div className="mt-3 flex items-center gap-2">
             <form className="flex min-w-0 flex-1" onSubmit={(event) => { event.preventDefault(); sendReply(reply) }}><input value={reply} onChange={(event) => setReply(event.target.value)} maxLength={2000} placeholder="უპასუხე Story-ს" aria-label="Story პასუხი" className="min-h-11 min-w-0 flex-1 rounded-full border border-white/25 bg-white/10 px-4 text-sm outline-none placeholder:text-white/55" /></form>
-            {["❤️", "🔥", "😍"].map((reaction) => <button key={reaction} type="button" disabled={pending} onClick={() => sendReply(reaction)} className="text-xl" aria-label={`${reaction} რეაქციის გაგზავნა`}>{reaction}</button>)}
+            <button type="button" disabled={pending || likePending} onClick={toggleLike} aria-pressed={Boolean(story.liked)} aria-label={story.liked ? "Story-ის მოწონების გაუქმება" : "Story-ის მოწონება"} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-3xl transition-colors disabled:opacity-50 ${story.liked ? "text-red-400" : "text-white"}`}><span aria-hidden="true">{story.liked ? "♥" : "♡"}</span></button>
           </div>
         ) : !currentUserId ? <Link href="/login?next=%2F" className="mt-3 text-center text-sm font-bold underline">პასუხისთვის გაიარე ავტორიზაცია</Link> : null}
         {notice ? <p role="status" className="mt-2 text-center text-xs text-white/80">{notice}</p> : null}
+        {story && currentUserId === owner.id ? <p className="mt-3 text-center text-sm text-white/85" aria-label="Story-ის მოწონებების რაოდენობა"><span className="text-red-400" aria-hidden="true">♥</span> {story.likeCount ?? 0} მოწონება</p> : null}
       </div>
     </div>
   )

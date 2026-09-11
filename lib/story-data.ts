@@ -23,7 +23,7 @@ export async function getStoryRailData(
   const now = new Date().toISOString()
   const { data: storyRows, error } = await supabase
     .from("stories")
-    .select("id, user_id, created_at")
+    .select("id, user_id, created_at, media_type, expires_at")
     .is("deleted_at", null)
     .gt("expires_at", now)
     .order("created_at", { ascending: false })
@@ -37,7 +37,7 @@ export async function getStoryRailData(
     throw new Error(`story_rail_failed:${error.message}`)
   }
 
-  const rows = (storyRows ?? []) as Array<{ id: string; user_id: string; created_at: string }>
+  const rows = (storyRows ?? []) as Array<Pick<StoryRow, "id" | "user_id" | "created_at" | "media_type" | "expires_at">>
   const ownerIds = [...new Set(rows.map((row) => row.user_id))]
   const storyIds = rows.map((row) => row.id)
   const [profilesResponse, seenResponse, followsResponse, favoriteResponse, chatsResponse, ownListingsResponse, interactionsResponse, statsResponse] = await Promise.all([
@@ -104,15 +104,15 @@ export async function getStoryRailData(
     }
   }
 
-  const grouped = new Map<string, { ids: string[]; latestAt: string }>()
+  const grouped = new Map<string, { ids: string[]; latestAt: string; preview: StoryOwner["preview"] }>()
   for (const row of rows) {
     const group = grouped.get(row.user_id)
     if (group) group.ids.push(row.id)
-    else grouped.set(row.user_id, { ids: [row.id], latestAt: row.created_at })
+    else grouped.set(row.user_id, { ids: [row.id], latestAt: row.created_at, preview: { storyId: row.id, mediaType: row.media_type, expiresAt: row.expires_at } })
   }
 
   const nowMs = Date.now()
-  const ranked = Array.from(grouped, ([ownerId, group]) => {
+  const ranked = Array.from(grouped, ([ownerId, group]): { score: number; owner: StoryOwner } | null => {
     const profile = profiles.get(ownerId)
     if (!profile?.username) return null
     const unseenCount = group.ids.filter((id) => !seen.has(id)).length
@@ -136,6 +136,7 @@ export async function getStoryRailData(
         storyCount: group.ids.length,
         unseenCount,
         latestStoryAt: group.latestAt,
+        preview: group.preview,
       } satisfies StoryOwner,
     }
   }).filter((entry): entry is { score: number; owner: StoryOwner } => Boolean(entry))
@@ -178,14 +179,19 @@ export async function getOwnerStories(
   const rows = (data ?? []) as StoryRow[]
   const listingIds = [...new Set(rows.map((row) => row.linked_listing_id).filter((id): id is string => Boolean(id)))]
   const storyIds = rows.map((row) => row.id)
-  const [listingsResponse, seenResponse] = await Promise.all([
+  const [listingsResponse, seenResponse, likesResponse] = await Promise.all([
     listingIds.length
       ? supabase.from("listings").select("id, slug, title, price, currency, cover_image_url, status").in("id", listingIds)
       : Promise.resolve({ data: [], error: null }),
     viewerId && storyIds.length
       ? supabase.from("story_views").select("story_id").eq("viewer_id", viewerId).in("story_id", storyIds)
       : Promise.resolve({ data: [], error: null }),
+    viewerId && storyIds.length
+      ? supabase.rpc("get_story_like_summary", { p_story_ids: storyIds })
+      : Promise.resolve({ data: [], error: null }),
   ])
+  if (likesResponse.error) throw new Error("story_likes_failed")
+  const likes = new Map(((likesResponse.data ?? []) as Array<{ story_id: string; liked: boolean; like_count: number | string | null }>).map((item) => [item.story_id, item]))
   const listings = new Map((listingsResponse.data ?? []).map((listing) => [listing.id, listing]))
   const seen = new Set((seenResponse.data ?? []).map((view) => view.story_id))
   return rows.map((row) => {
@@ -210,6 +216,8 @@ export async function getOwnerStories(
         status: listing.status,
       } : null,
       viewed: seen.has(row.id),
+      liked: likes.get(row.id)?.liked ?? false,
+      likeCount: viewerId === row.user_id ? Number(likes.get(row.id)?.like_count ?? 0) : null,
     }
   })
 }

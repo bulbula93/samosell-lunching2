@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
 import Avatar from "@/components/shared/Avatar"
+import BlockUserForm from "@/components/moderation/BlockUserForm"
 import SmartImage from "@/components/shared/SmartImage"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import {
@@ -19,6 +20,7 @@ type SearchParams = {
   show?: string | string[]
   page?: string | string[]
   flash?: string | string[]
+  safety?: string | string[]
 }
 
 const TABS: { key: ChatInboxFilter; label: string }[] = [
@@ -48,6 +50,7 @@ export default async function DashboardChatsPage({
     typeof params.page === "string" ? params.page : undefined,
   )
   const flash = typeof params.flash === "string" ? params.flash : ""
+  const safety = typeof params.safety === "string" ? params.safety : ""
   const { supabase, user } = await requireAuthenticatedUser(
     inboxHref(show, page),
   )
@@ -70,6 +73,11 @@ export default async function DashboardChatsPage({
 
   const { data: threads, error, count } = await query.range(from, to)
   const typedThreads = (threads ?? []) as ChatThread[]
+  const counterpartyIds = [...new Set(typedThreads.map((thread) => thread.counterparty_id))]
+  const { data: blocks, error: blocksError } = counterpartyIds.length
+    ? await supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id).in("blocked_id", counterpartyIds)
+    : { data: [], error: null }
+  const blockedIds = new Set((blocks ?? []).map((block) => block.blocked_id))
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / CHAT_PAGE_SIZE))
   const hasPrevious = page > 1
   const hasNext = page < totalPages
@@ -110,6 +118,9 @@ export default async function DashboardChatsPage({
           )
         })}
       </nav>
+
+      {safety ? <p role="status" className="mb-6 rounded-xl border border-line bg-white p-4 text-sm">{safety === "blocked" ? "მომხმარებელი დაბლოკილია. მიმოწერა შეჩერებულია და ერთმანეთის Story-ები აღარ გამოჩნდება. განცხადებები კვლავ ხელმისაწვდომია." : safety === "unblocked" ? "ბლოკი მოხსნილია." : safety}</p> : null}
+      {blocksError ? <p role="alert" className="mb-6 text-sm text-red-700">დაბლოკვის სტატუსი ვერ ჩაიტვირთა. განაახლე გვერდი.</p> : null}
 
       {flash ? (
         <p
@@ -232,6 +243,7 @@ export default async function DashboardChatsPage({
                           {thread.is_archived ? "აღდგენა" : "დამალვა"}
                         </button>
                       </form>
+                      {!blocksError ? <BlockUserForm blockedId={thread.counterparty_id} nextPath={inboxHref(show, page)} isBlocked={blockedIds.has(thread.counterparty_id)} /> : null}
                     </div>
                   </div>
                 </article>

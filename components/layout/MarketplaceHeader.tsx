@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { useUnreadNotifications } from "@/lib/use-unread-notifications"
 import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
 import MarketplaceSearch from "@/components/layout/MarketplaceSearch"
@@ -31,11 +34,13 @@ function NotificationBell({ count }: { count: number }) {
 
 export default function MarketplaceHeader({
   items,
-  userState,
+  userState: initialUserState,
 }: {
   items: MarketplaceNavItem[]
   userState: MarketplaceUserState
 }) {
+  const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
+  const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/95">
       <div className="ui-container flex min-h-[72px] items-center gap-3 py-3 lg:gap-5">
@@ -67,15 +72,6 @@ export default function MarketplaceHeader({
 
           {userState.signedIn ? (
             <>
-              <NotificationBell count={userState.unreadNotifications} />
-              <Link
-                href="/dashboard/chats"
-                aria-label="ჩათები"
-                title="ჩათები"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft"
-              >
-                ✉
-              </Link>
               <Link
                 href="/dashboard/favorites"
                 aria-label={ka.nav.favorites}
@@ -153,6 +149,13 @@ export default function MarketplaceHeader({
           )}
         </div>
 
+        {userState.signedIn ? <>
+          <Link href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft">
+            <span aria-hidden="true">✉</span>
+            {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}
+          </Link>
+          <NotificationBell count={userState.unreadNotifications} />
+        </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
           <Link href="/dashboard/listings/new" className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
             გაყიდე

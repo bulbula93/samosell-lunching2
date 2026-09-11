@@ -11,7 +11,7 @@ import ShareButton from "@/components/shared/ShareButton"
 import SmartImage from "@/components/shared/SmartImage"
 import FollowButton from "@/components/stories/FollowButton"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
-import StoryMuteButton from "@/components/stories/StoryMuteButton"
+import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
@@ -100,6 +100,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
   const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const sellerListings = (listings ?? []) as CatalogListing[]
+  const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
   const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
@@ -114,7 +115,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${username}`)
   const sellerAvatarSrc = getUserAvatar(profile)
-  const { data: muteRow } = user && user.id !== profile.id ? await supabase.from("story_mutes").select("muted_user_id").eq("user_id", user.id).eq("muted_user_id", profile.id).maybeSingle() : { data: null }
   const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
     profile.store_phone ||
@@ -159,7 +159,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                       <div className="mt-2 text-sm text-text-soft">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><StoryMuteButton userId={profile.id} initialMuted={Boolean(muteRow)} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
+                  <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><ProfileChatButton userId={profile.id} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
                 </div>
 
                 <p className="mt-6 max-w-3xl whitespace-pre-wrap text-base leading-7 text-text-soft sm:text-lg sm:leading-8">
@@ -174,6 +174,18 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ტიპი: {sellerTypeLabel(profile.seller_type)}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">VIP განცხადებები: {boostedListings}</span>
                 </div>
+                <section aria-label="ბოლოს ატვირთული ნივთები" className="mt-8 border-t border-line/70 pt-6">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-base font-black">ბოლოს ატვირთული ნივთები</h2>
+                    {sellerListings.length > 8 ? <a href="#seller-listings" className="shrink-0 text-xs font-bold text-brand hover:underline">ყველას ნახვა →</a> : null}
+                  </div>
+                  {latestListings.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {latestListings.map((item) => <Link key={item.id} href={`/listing/${item.slug}`} className="group overflow-hidden rounded-xl border border-line bg-white transition hover:border-brand/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-brand">
+                      <div className="aspect-[3/4] overflow-hidden bg-surface-alt"><SmartImage src={item.cover_image_url} alt={item.title} wrapperClassName="h-full w-full" className="object-cover transition-transform motion-safe:group-hover:scale-105" fallbackLabel="ფოტო არ არის" /></div>
+                      <div className="p-2"><h3 className="truncate text-xs font-semibold" title={item.title}>{item.title}</h3><p className="mt-1 text-sm font-black text-brand">{item.price} {item.currency === "GEL" ? "₾" : item.currency}</p></div>
+                    </Link>)}
+                  </div> : <p className="rounded-xl border border-dashed border-line bg-white/60 p-4 text-sm text-text-soft">ამ მომხმარებელს ჯერ აქტიური ნივთები არ აქვს.</p>}
+                </section>
               </div>
             </div>
 
@@ -228,7 +240,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
       <SellerReviewsSection data={sellerReviewData} />
 
-      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
+      <section id="seller-listings" className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6">
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

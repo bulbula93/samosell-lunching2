@@ -1,0 +1,28 @@
+name: Story media cleanup
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: story-production-cleanup
+  cancel-in-progress: false
+jobs:
+  cleanup:
+    if: github.repository == 'bulbula93/samosell-lunching2' && github.ref == 'refs/heads/main' && vars.STORY_CLEANUP_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: story-production-cleanup
+    steps:
+      - name: Invoke authenticated bounded cleanup
+        env:
+          CLEANUP_URL: ${{ vars.STORY_CLEANUP_URL }}
+          STORY_CLEANUP_SECRET: ${{ secrets.STORY_CLEANUP_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CLEANUP_URL" == https://*/api/internal/story-cleanup ]] || exit 1
+          [[ ${#STORY_CLEANUP_SECRET} -ge 32 ]] || exit 1
+          curl --proto '=https' --fail --silent --show-error --connect-timeout 10 --max-time 65 \
+            --retry 2 --retry-delay 15 --request POST \
+            --header "Authorization: Bearer $STORY_CLEANUP_SECRET" "$CLEANUP_URL"

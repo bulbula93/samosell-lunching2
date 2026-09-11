@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { validateStoryMedia } from "@/lib/story-media-validation"
 import { isChatUuid, validateChatMessageBody } from "@/lib/chats"
-import { notifyChatMessage } from "@/lib/notifications"
 import {
   isStoryMimeType,
   STORY_CAPTION_MAX_LENGTH,
@@ -169,6 +168,14 @@ export async function recordStoryListingClickAction(storyId: string) {
   return Boolean(data)
 }
 
+export async function setStoryLikedAction(storyId: string, liked: boolean) {
+  const context = await authenticatedContext()
+  if (!context || context.user.is_anonymous) return { ok: false as const, message: "მოწონებისთვის შედი ანგარიშში." }
+  if (!isChatUuid(storyId) || typeof liked !== "boolean") return { ok: false as const, message: "მოთხოვნა არასწორია." }
+  const { data, error } = await context.supabase.rpc("set_story_liked", { p_story_id: storyId, p_liked: liked })
+  return error ? { ok: false as const, message: storyErrorMessage(error.message) } : { ok: true as const, liked: Boolean(data) }
+}
+
 export async function replyToStoryAction(input: { storyId: string; body: string; clientRequestId: string }) {
   const context = await authenticatedContext()
   if (!context) return { ok: false as const, message: "პასუხისთვის შედი ანგარიშში." }
@@ -183,13 +190,7 @@ export async function replyToStoryAction(input: { storyId: string; body: string;
   })
   const row = Array.isArray(data) ? data[0] : null
   if (error || !row) return { ok: false as const, message: storyErrorMessage(error?.message) }
-  await notifyChatMessage({
-    chatId: row.chat_id,
-    messageId: row.message_id,
-    senderId: context.user.id,
-    body: row.message_body,
-    firstMessage: false,
-  })
+  // The database commits the unread notification atomically with this reply.
   return { ok: true as const, chatId: row.chat_id }
 }
 

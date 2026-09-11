@@ -19,7 +19,7 @@ function chunks(directory) {
 const clientChunks = chunks(join(root, "static/chunks"))
 // The Supabase SDK's dev comments mention secret env names in examples; check
 // our privileged modules and an actual private build sentinel instead.
-for (const forbidden of ["story-media-validation", "createAdminClient"]) {
+for (const forbidden of ["story-media-validation", "createAdminClient", "cleanup_project_mismatch", "prune_unpublished_story_upload_plans"]) {
   assert(!clientChunks.some((chunk) => chunk.includes(forbidden)), `Server-only code leaked to browser: ${forbidden}`)
 }
 if (process.env.STORY_BUNDLE_SECRET_SENTINEL) {

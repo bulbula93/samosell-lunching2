@@ -129,6 +129,10 @@ export default async function AdminReportsPage({
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
   const referenceTime = new Date().toISOString()
+  let storyReportsQuery = supabase.from("admin_story_reports")
+    .select("id, story_id, story_owner_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at")
+    .in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status])
+  if (priority === "high") storyReportsQuery = storyReportsQuery.in("reason", ["nudity", "scam", "harassment", "impersonation", "prohibited"])
 
   let listingReportsQuery = supabase
     .from("admin_listing_reports")
@@ -191,7 +195,7 @@ export default async function AdminReportsPage({
       )
       .order("created_at", { ascending: false })
       .limit(10),
-    supabase.from("admin_story_reports").select("id, story_id, story_owner_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at").in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status]).order("created_at", { ascending: false }).limit(PAGE_SIZE * 2),
+    storyReportsQuery.order("created_at", { ascending: false }).limit(PAGE_SIZE * 2),
     supabase.from("story_reports").select("status, reason, story_owner_id").in("status", ["open", "reviewing"]).limit(TRIAGE_SCAN_LIMIT),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
