@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$CLEANUP_URL" == https://*/api/internal/story-cleanup ]] || exit 1
+          [[ "$CLEANUP_URL" == 'https://samosell.ge/api/internal/story-cleanup' ]] || exit 1
           [[ ${#STORY_CLEANUP_SECRET} -ge 32 ]] || exit 1
           curl --proto '=https' --fail --silent --show-error --connect-timeout 10 --max-time 65 \
             --retry 2 --retry-delay 15 --request POST \

@@ -44,6 +44,7 @@ export default function StoryComposer({ listings, onClose }: { listings: StoryCo
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
   function publish() {
+    if (pending) return
     if (!file) return setError("აირჩიე ფოტო ან ვიდეო")
     startTransition(async () => {
       setError("")
@@ -70,7 +71,7 @@ export default function StoryComposer({ listings, onClose }: { listings: StoryCo
   }
 
   return <div role="dialog" aria-modal="true" aria-label="Story-ის დამატება" className="fixed inset-0 z-[110] overflow-y-auto bg-black/80 p-4"><div className="mx-auto my-8 max-w-lg rounded-3xl bg-white p-5 text-text shadow-2xl">
-    <div className="flex items-center justify-between"><h2 className="text-xl font-black">დაამატე Story</h2><button type="button" onClick={onClose} aria-label="დახურვა" className="p-2 text-2xl">×</button></div>
+    <div className="flex items-center justify-between"><h2 className="text-xl font-black">დაამატე Story</h2><button type="button" disabled={pending} onClick={() => { if (!pending) onClose() }} aria-label="დახურვა" className="p-2 text-2xl disabled:opacity-50">×</button></div>
     <label className="mt-5 flex min-h-56 cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-brand/30 bg-brand-soft/40 text-center text-sm font-bold text-brand">
       {preview && file ? file.type.startsWith("video/") ? <video src={preview} controls className="max-h-[55vh] w-full object-contain" /> : <>{/* Direct blob preview avoids a pointless Next Image transformation. */}<img src={preview} alt="Story preview" className="max-h-[55vh] w-full object-contain" /></> : "აირჩიე ფოტო ან მაქსიმუმ 15-წამიანი ვიდეო"}
       <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" className="sr-only" onChange={(event) => { const next = event.target.files?.[0] ?? null; setFile(next); setPreview(next ? URL.createObjectURL(next) : "") }} />

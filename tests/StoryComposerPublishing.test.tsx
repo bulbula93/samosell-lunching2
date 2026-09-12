@@ -28,6 +28,19 @@ function compose() {
 }
 
 describe("Story composer publishing boundary", () => {
+  it.each(["prepare", "upload", "publish"] as const)("prevents dismissal during %s and closes after success", async (stage) => {
+    let release!: (value: unknown) => void
+    mocks[stage].mockImplementationOnce(() => new Promise(resolve => { release=resolve }))
+    const onClose = compose()
+    await waitFor(() => expect(mocks[stage]).toHaveBeenCalled())
+    const close=screen.getByRole("button",{name:"დახურვა"})
+    expect(close).toBeDisabled()
+    fireEvent.click(close)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    release(stage === "prepare" ? {ok:true,storyId:"story",path:"owner/story/media.webp",token:"signed-token"} : stage === "upload" ? {error:null} : {ok:true})
+    await waitFor(()=>expect(onClose).toHaveBeenCalledOnce())
+  })
   it("prepares first, uploads only with the returned signature, then publishes the same plan", async () => {
     const onClose = compose()
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
