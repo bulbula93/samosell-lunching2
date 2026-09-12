@@ -2,7 +2,9 @@ import "server-only"
 
 import type { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
+import { getStoryRailData } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
+import type { StoryRailData } from "@/types/story"
 
 export const baseListingSelect =
   "id, public_id, slug, title, description, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
@@ -24,6 +26,7 @@ export type HomePageData = {
   popularBrands: PopularBrand[]
   favoriteIds: string[]
   activeCount: number
+  storyRail?: StoryRailData
 }
 
 function buildPopularBrands(rows: Array<{ brand_name?: string | null }>) {
@@ -140,6 +143,8 @@ export async function getHomePageData(): Promise<HomePageData> {
     throw new Error(`home_favorites_failed:${favoritesResponse.error.message}`)
   }
 
+  const storyRail = process.env.STORIES_UI_DISABLED === "true" ? undefined : await getStoryRailData(supabase, user)
+
   return {
     user,
     heroItems,
@@ -152,5 +157,6 @@ export async function getHomePageData(): Promise<HomePageData> {
     popularBrands: buildPopularBrands(brandRowsResponse.data ?? []),
     favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
     activeCount: activeCountResponse.count ?? latestItems.length,
+    storyRail,
   }
 }

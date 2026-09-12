@@ -60,6 +60,7 @@ export default async function DashboardNotificationsPage() {
   const { data, error } = await supabase
     .from("notifications")
     .select("id, type, title, body, href, read_at, created_at")
+    .not("type", "in", "(chat_started,chat_message)")
     .order("created_at", { ascending: false })
     .limit(80)
 
@@ -76,7 +77,7 @@ export default async function DashboardNotificationsPage() {
             <p className="ui-eyebrow">განახლებები</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-text">შეტყობინებები</h1>
             <p className="mt-2 text-sm leading-6 text-text-soft">
-              აქ გამოჩნდება ჩათის, შენახული ძებნების, შეთავაზებების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები.
+              აქ გამოჩნდება შენახული ძებნების, შეთავაზებების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები. Story-ზე პასუხები და ჩატის შეტყობინებები წერილებშია.
             </p>
           </div>
           {unreadCount > 0 ? (

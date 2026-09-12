@@ -12,11 +12,13 @@ export type MarketplaceNavItem = {
 }
 
 export type MarketplaceUserState = {
+  userId?: string | null
   signedIn: boolean
   profileLabel: string
   profileImage: string | null
   isAdmin: boolean
   unreadNotifications: number
+  unreadChats?: number
 }
 
 export default function MobileNavigation({

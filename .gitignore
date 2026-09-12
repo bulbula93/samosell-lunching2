@@ -29,3 +29,4 @@ tsconfig.tsbuildinfo
 # misc archives / temp files
 *.zip
 *.bak
+story-release.sql

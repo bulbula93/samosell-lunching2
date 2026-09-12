@@ -14,6 +14,12 @@ const items = [
 ]
 
 describe("MarketplaceHeader", () => {
+  it("shows unread chat replies on the envelope without marking the bell unread", () => {
+    render(<MarketplaceHeader items={items} userState={{ signedIn: true, profileLabel: "ნინო", profileImage: null, isAdmin: false, unreadNotifications: 0, unreadChats: 1 }} />)
+    expect(screen.getByRole("link", { name: "ჩათები — 1 წაუკითხავი" })).toHaveAttribute("href", "/dashboard/chats")
+    expect(screen.getByRole("link", { name: "ნოტიფიკაციები" })).toHaveAttribute("href", "/dashboard/notifications")
+    expect(screen.queryByRole("link", { name: /ნოტიფიკაციები —/ })).toBeNull()
+  })
   it("renders catalog, category, login, and registration links for a guest", () => {
     render(
       <MarketplaceHeader

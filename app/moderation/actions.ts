@@ -151,6 +151,7 @@ export async function toggleBlockUserAction(formData: FormData) {
     )
   }
 
+  revalidatePath("/")
   revalidateModerationPaths(nextPath)
   redirect(
     withSafeFeedback(
@@ -246,4 +247,17 @@ export async function restoreSellerAction(formData: FormData) {
 
   revalidateModerationPaths()
   redirect(withSafeFeedback(adminPath, "flash", "restored", adminPath))
+}
+
+export async function reviewStoryReportAction(formData: FormData) {
+  const reportId = String(formData.get("reportId") || "")
+  const decision = String(formData.get("decision") || "")
+  const note = String(formData.get("moderationNote") || "").trim()
+  const allowed = new Set(["reviewing", "resolved", "dismissed", "hide_story", "suspend_user"])
+  if (!isUuid(reportId) || !allowed.has(decision) || note.length > MODERATION_NOTE_MAX_LENGTH) redirect("/admin/reports?flash=invalid")
+  const { supabase } = await requireAdminUser("/dashboard")
+  const { error } = await supabase.rpc("review_story_report", { p_report_id: reportId, p_decision: decision, p_moderation_note: note })
+  if (error) redirect(`/admin/reports?flash=${encodeURIComponent(moderationErrorMessage(error.message))}`)
+  revalidateModerationPaths()
+  redirect(`/admin/reports?flash=${encodeURIComponent(decision)}`)
 }

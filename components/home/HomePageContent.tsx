@@ -8,6 +8,7 @@ import HomeSearchHeroSection from "@/components/home/HomeSearchHeroSection"
 import { ka } from "@/lib/i18n/ka"
 import type { HomePageData } from "@/lib/home-page"
 import type { AdsByPlacement } from "@/lib/ads"
+import StoriesRail from "@/components/stories/StoriesRail"
 
 export default function HomePageContent({
   data,
@@ -18,6 +19,7 @@ export default function HomePageContent({
 }) {
   return (
     <>
+      {data.storyRail ? <StoriesRail data={data.storyRail} /> : null}
       <HomeSearchHeroSection vipItems={data.heroItems} popularItems={data.popularItems} />
       <AdSlotRow
         placementKeys={["home_hero_left", "home_hero_right"]}

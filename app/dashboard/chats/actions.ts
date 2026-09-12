@@ -1,5 +1,7 @@
 "use server"
 
+import { hydrateStoryContexts } from "@/lib/chat-story-context"
+
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
@@ -256,7 +258,7 @@ export async function loadOlderMessagesAction(
     const before = beforeDate.toISOString()
     const { data, error } = await context.supabase
       .from("messages")
-      .select("id, chat_id, sender_id, body, created_at")
+      .select("id, chat_id, sender_id, body, created_at, message_type, story_id")
       .eq("chat_id", chatId)
       .or(`created_at.lt.${before},and(created_at.eq.${before},id.lt.${cursor.id})`)
       .order("created_at", { ascending: false })
@@ -271,6 +273,7 @@ export async function loadOlderMessagesAction(
       .slice(0, CHAT_MESSAGE_PAGE_SIZE)
       .reverse()
 
+    await hydrateStoryContexts(context.supabase, messages)
     return { ok: true, messages, hasMore }
   } catch {
     return {
@@ -302,6 +305,23 @@ export async function markChatReadAction(chatId: string) {
   revalidatePath("/dashboard/chats")
   revalidatePath("/dashboard/notifications")
   return { ok: true as const }
+}
+
+/** Re-read the actual message with participant RLS before hydrating realtime data. */
+export async function loadRealtimeMessageAction(chatId: string, messageId: string): Promise<ChatMessage | null> {
+  if (!isChatUuid(chatId) || !isChatUuid(messageId)) return null
+  const context = await getAuthenticatedChatContext()
+  if (!context) return null
+  try {
+    if (!(await canAccessChat(context, chatId))) return null
+    const { data, error } = await context.supabase.from("messages")
+      .select("id, chat_id, sender_id, body, created_at, message_type, story_id")
+      .eq("chat_id", chatId).eq("id", messageId).maybeSingle()
+    if (error || !data) return null
+    const messages = [data as ChatMessage]
+    await hydrateStoryContexts(context.supabase, messages)
+    return messages[0]
+  } catch { return null }
 }
 
 export async function updateChatVisibilityAction(formData: FormData) {
