@@ -16,18 +16,38 @@ type StoryRow = {
   duration_ms: number | null
 }
 
+// Bound each request without excluding older owners before their score is known.
+async function readStoryCandidates(supabase: SupabaseClient, now: string) {
+  const rows: Array<Pick<StoryRow, "id" | "user_id" | "created_at" | "media_type" | "expires_at">> = []
+  const pageSize = 240
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase.from("stories")
+      .select("id, user_id, created_at, media_type, expires_at")
+      .is("deleted_at", null).gt("expires_at", now).lte("created_at", now)
+      .order("created_at", { ascending: false }).order("id", { ascending: false })
+      .range(from, from + pageSize - 1)
+    if (error) return { data: null, error }
+    rows.push(...(data ?? []))
+    if ((data?.length ?? 0) < pageSize) return { data: rows, error: null }
+  }
+}
+
+async function readIdBatches<T>(ids: string[], query: (batch: string[]) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  const data: T[] = []
+  for (let from = 0; from < ids.length; from += 100) {
+    const response = await query(ids.slice(from, from + 100))
+    if (response.error) throw new Error("story_rail_metadata_failed")
+    data.push(...(response.data ?? []))
+  }
+  return { data, error: null }
+}
+
 export async function getStoryRailData(
   supabase: SupabaseClient,
   user: User | null,
 ): Promise<StoryRailData> {
   const now = new Date().toISOString()
-  const { data: storyRows, error } = await supabase
-    .from("stories")
-    .select("id, user_id, created_at, media_type, expires_at")
-    .is("deleted_at", null)
-    .gt("expires_at", now)
-    .order("created_at", { ascending: false })
-    .limit(240)
+  const { data: storyRows, error } = await readStoryCandidates(supabase, now)
 
   if (error) {
     // The feature branch can render safely before its migration reaches a test environment.
@@ -42,13 +62,13 @@ export async function getStoryRailData(
   const storyIds = rows.map((row) => row.id)
   const [profilesResponse, seenResponse, followsResponse, favoriteResponse, chatsResponse, ownListingsResponse, interactionsResponse, statsResponse] = await Promise.all([
     ownerIds.length
-      ? supabase.from("profiles").select("id, username, full_name, avatar_url, store_logo_url, seller_type").in("id", ownerIds).eq("is_suspended", false)
+      ? readIdBatches(ownerIds, (ids) => supabase.from("profiles").select("id, username, full_name, avatar_url, store_logo_url, seller_type").in("id", ids).eq("is_suspended", false))
       : Promise.resolve({ data: [], error: null }),
     user && storyIds.length
-      ? supabase.from("story_views").select("story_id").eq("viewer_id", user.id).in("story_id", storyIds)
+      ? readIdBatches(storyIds, (ids) => supabase.from("story_views").select("story_id").eq("viewer_id", user.id).in("story_id", ids))
       : Promise.resolve({ data: [], error: null }),
     user && ownerIds.length
-      ? supabase.from("user_follows").select("following_id").eq("follower_id", user.id).in("following_id", ownerIds)
+      ? readIdBatches(ownerIds, (ids) => supabase.from("user_follows").select("following_id").eq("follower_id", user.id).in("following_id", ids))
       : Promise.resolve({ data: [], error: null }),
     user
       ? supabase.from("favorites").select("listing:listings!inner(seller_id, category_id, brand_id)").eq("user_id", user.id).limit(300)
@@ -91,12 +111,12 @@ export async function getStoryRailData(
 
   const ownerListingAffinity = new Map<string, number>()
   if (user && ownerIds.length && (favoriteCategories.size || favoriteBrands.size)) {
-    const { data: affinityRows } = await supabase
+    const { data: affinityRows } = await readIdBatches(ownerIds, (ids) => supabase
       .from("listings")
       .select("seller_id, category_id, brand_id")
-      .in("seller_id", ownerIds)
+      .in("seller_id", ids)
       .eq("status", "active")
-      .limit(500)
+      .limit(500))
     for (const listing of affinityRows ?? []) {
       const categoryMatch = favoriteCategories.has(Number(listing.category_id)) ? 25 : 0
       const brandMatch = listing.brand_id && favoriteBrands.has(listing.brand_id) ? 15 : 0

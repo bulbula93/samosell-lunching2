@@ -11,9 +11,9 @@ export default async function SocialListPage({ username, page, mode }: { usernam
   const { data: profile } = await supabase.from("profiles").select("id, username, full_name").eq("username", username).eq("is_suspended", false).maybeSingle()
   if (!profile) notFound()
   const from = (page - 1) * PAGE_SIZE
-  const relation = mode === "followers" ? "follower:profiles!user_follows_follower_id_fkey(id,username,full_name,avatar_url,store_logo_url,seller_type,is_suspended)" : "following:profiles!user_follows_following_id_fkey(id,username,full_name,avatar_url,store_logo_url,seller_type,is_suspended)"
+  const relation = mode === "followers" ? "follower:profiles!user_follows_follower_id_fkey!inner(id,username,full_name,avatar_url,store_logo_url,seller_type,is_suspended)" : "following:profiles!user_follows_following_id_fkey!inner(id,username,full_name,avatar_url,store_logo_url,seller_type,is_suspended)"
   const filter = mode === "followers" ? { column: "following_id", value: profile.id } : { column: "follower_id", value: profile.id }
-  const { data, count } = await supabase.from("user_follows").select(relation, { count: "exact" }).eq(filter.column, filter.value).order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1)
+  const { data, count } = await supabase.from("user_follows").select(relation, { count: "exact" }).eq(filter.column, filter.value).eq(`${mode === "followers" ? "follower" : "following"}.is_suspended`, false).order("created_at", { ascending: false }).range(from, from + PAGE_SIZE - 1)
   type Person = { id: string; username: string; full_name: string | null; avatar_url: string | null; store_logo_url: string | null; seller_type: string | null; is_suspended: boolean }
   const people = (data ?? []).map((row) => (row as unknown as Record<string, Person | Person[]>)[mode === "followers" ? "follower" : "following"]).flatMap((value) => Array.isArray(value) ? value : value ? [value] : []).filter((person) => !person.is_suspended)
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE))
