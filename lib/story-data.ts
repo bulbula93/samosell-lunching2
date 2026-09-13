@@ -16,20 +16,21 @@ type StoryRow = {
   duration_ms: number | null
 }
 
-// Bound each request without excluding older owners before their score is known.
-async function readStoryCandidates(supabase: SupabaseClient, now: string) {
-  const rows: Array<Pick<StoryRow, "id" | "user_id" | "created_at" | "media_type" | "expires_at">> = []
-  const pageSize = 240
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase.from("stories")
-      .select("id, user_id, created_at, media_type, expires_at")
+// Independent priority pools protect own/followed Stories from global volume.
+// At most 3 requests / 490 rows, regardless of the size of the active set.
+async function readStoryCandidates(supabase: SupabaseClient, now: string, userId?: string) {
+  const pool = (following: boolean) => supabase.from("stories")
+      .select(`id, user_id, created_at, media_type, expires_at, owner:profiles!stories_user_id_fkey!inner(is_suspended${following ? ",follows:user_follows!user_follows_following_id_fkey!inner(follower_id)" : ""})`)
+      .eq("owner.is_suspended", false)
       .is("deleted_at", null).gt("expires_at", now).lte("created_at", now)
       .order("created_at", { ascending: false }).order("id", { ascending: false })
-      .range(from, from + pageSize - 1)
-    if (error) return { data: null, error }
-    rows.push(...(data ?? []))
-    if ((data?.length ?? 0) < pageSize) return { data: rows, error: null }
-  }
+  const responses = await Promise.all([
+    pool(false).limit(240),
+    ...(userId ? [pool(false).eq("user_id", userId).limit(10), pool(true).eq("owner.follows.follower_id", userId).limit(240)] : []),
+  ])
+  const error = responses.find(response => response.error)?.error ?? null
+  const rows = responses.flatMap(response => response.data ?? [])
+  return { data: [...new Map(rows.map(row => [row.id, row])).values()].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id)), error }
 }
 
 async function readIdBatches<T>(ids: string[], query: (batch: string[]) => PromiseLike<{ data: T[] | null; error: unknown }>) {
@@ -47,7 +48,7 @@ export async function getStoryRailData(
   user: User | null,
 ): Promise<StoryRailData> {
   const now = new Date().toISOString()
-  const { data: storyRows, error } = await readStoryCandidates(supabase, now)
+  const { data: storyRows, error } = await readStoryCandidates(supabase, now, user?.id)
 
   if (error) {
     // The feature branch can render safely before its migration reaches a test environment.
@@ -244,8 +245,8 @@ export async function getOwnerStories(
 
 export async function getFollowSummary(supabase: SupabaseClient, profileId: string, viewerId?: string | null) {
   const [followers, following, viewer] = await Promise.all([
-    supabase.from("user_follows").select("follower_id", { count: "exact", head: true }).eq("following_id", profileId),
-    supabase.from("user_follows").select("following_id", { count: "exact", head: true }).eq("follower_id", profileId),
+    supabase.from("user_follows").select("follower:profiles!user_follows_follower_id_fkey!inner(id)", { count: "exact", head: true }).eq("following_id", profileId).eq("follower.is_suspended", false),
+    supabase.from("user_follows").select("following:profiles!user_follows_following_id_fkey!inner(id)", { count: "exact", head: true }).eq("follower_id", profileId).eq("following.is_suspended", false),
     viewerId && viewerId !== profileId
       ? supabase.from("user_follows").select("following_id").eq("follower_id", viewerId).eq("following_id", profileId).maybeSingle()
       : Promise.resolve({ data: null, error: null }),
