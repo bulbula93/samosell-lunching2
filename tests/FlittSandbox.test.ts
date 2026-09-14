@@ -23,7 +23,7 @@ afterEach(() => {
 })
 
 describe("Flitt signature", () => {
-  it("matches the official Flitt checkout signature example", async () => {
+  it("hashes the exact string produced by Flitt's documented PHP/Python algorithm", async () => {
     const { buildFlittSignature } = await import("@/lib/flitt")
     const signature = buildFlittSignature({
       server_callback_url: "http://myshop/callback/",
@@ -34,7 +34,11 @@ describe("Flitt signature", () => {
       amount: 1000,
     }, "test")
 
-    expect(signature).toBe("91ea7da493a8367410fe3d7f877fb5e0ed666490")
+    // Flitt's documentation prints this exact input string:
+    // test|1000|GEL|1549901|Test payment|TestOrder2|http://myshop/callback/
+    // SHA-1 of that UTF-8 string is cd0edb..., even though one published
+    // example on the same page currently shows a stale/inconsistent hash.
+    expect(signature).toBe("cd0edb710cbbdb6c2a4d965cdb91fdfabc343215")
   })
 
   it("excludes empty values, signature and response_signature_string", async () => {
@@ -109,6 +113,29 @@ describe("Flitt callback validation", () => {
       providerPaymentId: "9001",
       status: "pending",
     })).toMatchObject({ ok: true, nextStatus: "approved", paymentId: "9001" })
+  })
+
+  it("rejects a row created for a different merchant even if callback matches current config", async () => {
+    const { buildFlittSignature, validateFlittCallback } = await import("@/lib/flitt")
+    const params: Record<string, unknown> = {
+      order_id: "order_merchant_drift",
+      merchant_id: 1549901,
+      amount: "100",
+      currency: "GEL",
+      payment_id: "9010",
+      order_status: "approved",
+      response_status: "success",
+    }
+    params.signature = buildFlittSignature(params, "test")
+
+    expect(validateFlittCallback(params, {
+      orderId: "order_merchant_drift",
+      merchantId: "9999999",
+      amount: 100,
+      currency: "GEL",
+      providerPaymentId: "9010",
+      status: "pending",
+    })).toMatchObject({ ok: false, reason: "attempt_merchant_mismatch" })
   })
 
   it.each([
