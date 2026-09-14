@@ -13,7 +13,8 @@ type ChatRow = {
   id: string
   buyer_id: string
   seller_id: string
-  listing_id: string
+  listing_id: string | null
+  chat_type: "listing" | "direct"
 }
 
 type ListingRow = {
@@ -88,7 +89,7 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
 
   const { data: chatData, error: chatError } = await admin
     .from("chats")
-    .select("id, buyer_id, seller_id, listing_id")
+    .select("id, buyer_id, seller_id, listing_id, chat_type")
     .eq("id", input.chatId)
     .maybeSingle()
 
@@ -100,11 +101,11 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
   if (recipientId === input.senderId) return
 
   const [{ data: listingData }, { data: senderData }] = await Promise.all([
-    admin
+    chat.listing_id ? admin
       .from("listings")
       .select("id, title, slug")
       .eq("id", chat.listing_id)
-      .maybeSingle(),
+      .maybeSingle() : Promise.resolve({ data: null }),
     admin
       .from("profiles")
       .select("id, full_name, username")
@@ -117,7 +118,7 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
   const senderLabel = sender?.full_name || sender?.username || "მომხმარებელი"
   const listingTitle = listing?.title || "განცხადება"
   const href = `/dashboard/chats/${chat.id}`
-  const firstMessage = input.firstMessage && input.senderId === chat.buyer_id
+  const firstMessage = chat.chat_type === "listing" && input.firstMessage && input.senderId === chat.buyer_id
   const title = firstMessage
     ? "ახალი დაინტერესებული მყიდველი"
     : "ახალი შეტყობინება"

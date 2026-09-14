@@ -82,7 +82,7 @@ export type UserAccountReport = {
 
 export type ModerationAuditEntry = {
   id: string
-  report_kind: "listing" | "user"
+  report_kind: "listing" | "user" | "story"
   report_id: string
   action: string
   target_listing_id: string | null

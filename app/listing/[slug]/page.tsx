@@ -25,6 +25,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
+import { hasActiveStory } from "@/lib/story-data"
 
 type ListingDetailsSearchParams = ListingPageQueryParams & {
   search_id?: string | string[]
@@ -121,6 +122,16 @@ export default async function ListingDetailsPage({
         images.map((image) => image.image_url),
       )
     : null
+  const sellerHasStory = listing.seller_id ? await hasActiveStory(await createClient(), listing.seller_id) : false
+  const sellerStoryOwner = sellerHasStory && listing.seller_id && (sellerProfile?.username || listing.seller_username) ? {
+    id: listing.seller_id,
+    username: sellerProfile?.username || listing.seller_username || "seller",
+    fullName: sellerProfile?.full_name || listing.seller_full_name || null,
+    avatarUrl: sellerAvatarSrc,
+    storyCount: 1,
+    unseenCount: 1,
+    latestStoryAt: new Date().toISOString(),
+  } : null
 
   return (
     <>
@@ -168,6 +179,8 @@ export default async function ListingDetailsPage({
               sellerReviewSummary={reviewData.summary}
               shareUrl={absoluteUrl(`/listing/${listing.slug}`)}
               searchId={searchId}
+              sellerStoryOwner={sellerStoryOwner}
+              currentUserId={viewerId}
             />
           </div>
         </section>

@@ -70,9 +70,10 @@ export function isModerationDecision(
 }
 
 export function reportPriority(
-  kind: ReportKind,
+  kind: ReportKind | "story",
   reason: string,
 ): ModerationPriority {
+  if (kind === "story" && reason === "nudity") return "high"
   const reasons =
     kind === "listing" ? HIGH_PRIORITY_LISTING_REASONS : HIGH_PRIORITY_USER_REASONS
   return reasons.has(reason) ? "high" : "normal"

@@ -48,6 +48,11 @@ const ACTION_RULES = {
     maxHits: 6,
     label: "განცხადებების წაშლა",
   },
+  story_upload: {
+    windowSeconds: 60 * 60,
+    maxHits: 20,
+    label: "Story ფაილების ატვირთვა",
+  },
 } as const
 
 type RateLimitAction = keyof typeof ACTION_RULES

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import ProfileCompletionIndicator from "@/components/dashboard/ProfileCompletionIndicator"
 import ProfileForm from "@/components/dashboard/ProfileForm"
 import { getProfileCompletion } from "@/lib/profile-completion"
@@ -31,6 +32,19 @@ export default async function DashboardProfilePage() {
         <h1 className="mt-3 text-4xl font-black">პროფილის რედაქტირება</h1>
         <p className="mt-3 max-w-2xl text-neutral-600">განაახლე ის ინფორმაცია, რომელსაც მყიდველები და გამყიდველები შენს ანგარიშთან ერთად ხედავენ.</p>
       </div>
+
+      {profile?.username ? (
+        <nav aria-label="გამომწერები და გამოწერები" className="mb-6 grid gap-3 sm:grid-cols-2">
+          <Link href={`/seller/${encodeURIComponent(profile.username)}/followers`} className="rounded-2xl border border-line bg-white p-5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-brand">
+            <span className="block text-lg font-black text-brand">გამომწერები →</span>
+            <span className="mt-1 block text-sm text-text-soft">ვინც შენ გამოგიწერა</span>
+          </Link>
+          <Link href={`/seller/${encodeURIComponent(profile.username)}/following`} className="rounded-2xl border border-line bg-white p-5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-brand">
+            <span className="block text-lg font-black text-brand">ჩემი გამოწერები →</span>
+            <span className="mt-1 block text-sm text-text-soft">მომხმარებლები, რომლებსაც შენ იწერ</span>
+          </Link>
+        </nav>
+      ) : null}
 
       <ProfileCompletionIndicator completion={completion} className="mb-6" />
 

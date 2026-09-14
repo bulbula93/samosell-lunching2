@@ -5,6 +5,8 @@ import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
+import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
+import type { StoryOwner } from "@/types/story"
 import ShareButton from "@/components/shared/ShareButton"
 import { ka } from "@/lib/i18n/ka"
 import {
@@ -45,6 +47,8 @@ type ListingOverviewCardProps = {
   sellerReviewSummary?: SellerReviewSummary
   shareUrl: string
   searchId?: string | null
+  sellerStoryOwner?: StoryOwner | null
+  currentUserId?: string | null
 }
 
 type DetailItem = {
@@ -117,6 +121,8 @@ export default function ListingOverviewCard({
   sellerReviewSummary,
   shareUrl,
   searchId = null,
+  sellerStoryOwner = null,
+  currentUserId = null,
 }: ListingOverviewCardProps) {
   const isActive = listing.status === "active"
   const statusMessage = getStatusMessage(listing.status)
@@ -245,7 +251,9 @@ export default function ListingOverviewCard({
         </h2>
 
         <div className="mt-4 flex min-w-0 items-center gap-3">
-          {sellerProfileHref ? (
+          {sellerStoryOwner ? (
+            <StoryRingAvatar owner={sellerStoryOwner} currentUserId={currentUserId} sizeClassName="h-14 w-14" textClassName="text-base" />
+          ) : sellerProfileHref ? (
             <Link
               href={sellerProfileHref}
               aria-label={`${sellerLabel} — ${ka.listingDetail.viewProfile}`}

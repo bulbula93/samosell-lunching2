@@ -9,6 +9,9 @@ import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import SmartImage from "@/components/shared/SmartImage"
+import FollowButton from "@/components/stories/FollowButton"
+import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
+import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
@@ -16,6 +19,7 @@ import { absoluteUrl, truncateDescription } from "@/lib/seo"
 import { getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
+import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 
 const listingSelect =
@@ -72,7 +76,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData] = await Promise.all([
+  const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
     supabase
       .from("listings_catalog")
       .select(listingSelect)
@@ -86,6 +90,8 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[] }),
     fetchSellerReviewData(supabase, profile.id, { limit: 8 }),
+    getFollowSummary(supabase, profile.id, user?.id),
+    hasActiveStory(supabase, profile.id),
   ])
 
   if (sellerCountsResponse.error) {
@@ -94,6 +100,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
   const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const sellerListings = (listings ?? []) as CatalogListing[]
+  const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
   const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
@@ -108,6 +115,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${username}`)
   const sellerAvatarSrc = getUserAvatar(profile)
+  const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
     profile.store_phone ||
     profile.store_whatsapp ||
@@ -142,7 +150,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">{profile.seller_type === "store" ? "მაღაზიის პროფილი" : "გამყიდველის პროფილი"}</div>
                 <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
-                    <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-20 w-20" textClassName="text-2xl" className="shrink-0" />
+                    {sellerHasStory ? <StoryRingAvatar owner={storyOwner} currentUserId={user?.id ?? null} /> : <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-20 w-20" textClassName="text-2xl" className="shrink-0" />}
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-black tracking-tight text-text sm:text-4xl">{sellerName}</h1>
@@ -151,7 +159,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                       <div className="mt-2 text-sm text-text-soft">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
                     </div>
                   </div>
-                  <ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} />
+                  <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><ProfileChatButton userId={profile.id} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
                 </div>
 
                 <p className="mt-6 max-w-3xl whitespace-pre-wrap text-base leading-7 text-text-soft sm:text-lg sm:leading-8">
@@ -159,11 +167,25 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-2">
+                  <Link href={`/seller/${encodeURIComponent(username)}/followers`} className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">გამომწერები: {followSummary.followers}</Link>
+                  <Link href={`/seller/${encodeURIComponent(username)}/following`} className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">გამოწერები: {followSummary.following}</Link>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ქალაქი: {profile.city || "არ არის მითითებული"}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">აქტიური განცხადებები: {activeListingsCount}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ტიპი: {sellerTypeLabel(profile.seller_type)}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">VIP განცხადებები: {boostedListings}</span>
                 </div>
+                <section aria-label="ბოლოს ატვირთული ნივთები" className="mt-8 border-t border-line/70 pt-6">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h2 className="text-base font-black">ბოლოს ატვირთული ნივთები</h2>
+                    {sellerListings.length > 8 ? <a href="#seller-listings" className="shrink-0 text-xs font-bold text-brand hover:underline">ყველას ნახვა →</a> : null}
+                  </div>
+                  {latestListings.length ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {latestListings.map((item) => <Link key={item.id} href={`/listing/${item.slug}`} className="group overflow-hidden rounded-xl border border-line bg-white transition hover:border-brand/40 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-brand">
+                      <div className="aspect-[3/4] overflow-hidden bg-surface-alt"><SmartImage src={item.cover_image_url} alt={item.title} wrapperClassName="h-full w-full" className="object-cover transition-transform motion-safe:group-hover:scale-105" fallbackLabel="ფოტო არ არის" /></div>
+                      <div className="p-2"><h3 className="truncate text-xs font-semibold" title={item.title}>{item.title}</h3><p className="mt-1 text-sm font-black text-brand">{item.price} {item.currency === "GEL" ? "₾" : item.currency}</p></div>
+                    </Link>)}
+                  </div> : <p className="rounded-xl border border-dashed border-line bg-white/60 p-4 text-sm text-text-soft">ამ მომხმარებელს ჯერ აქტიური ნივთები არ აქვს.</p>}
+                </section>
               </div>
             </div>
 
@@ -218,7 +240,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
       <SellerReviewsSection data={sellerReviewData} />
 
-      <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
+      <section id="seller-listings" className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6">
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

@@ -1,3 +1,4 @@
+import { hydrateStoryContexts } from "@/lib/chat-story-context"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
@@ -24,7 +25,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
   const { data: thread, error: threadError } = await supabase
     .from("chat_threads")
     .select(
-      "id, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url"
+      "id, chat_type, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url"
     )
     .eq("id", chatId)
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
@@ -45,22 +46,22 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
   const [messagesResult, listingStateResult, offersResult] = await Promise.all([
     supabase
       .from("messages")
-      .select("id, chat_id, sender_id, body, created_at")
+      .select("id, chat_id, sender_id, body, created_at, message_type, story_id")
       .eq("chat_id", chatId)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(CHAT_MESSAGE_PAGE_SIZE + 1),
-    supabase
+    typedThread.listing_id ? supabase
       .from("listings")
       .select("status, reserved_for_user_id, sold_to_user_id")
       .eq("id", typedThread.listing_id)
-      .maybeSingle(),
-    supabase
+      .maybeSingle() : Promise.resolve({ data: null, error: null }),
+    typedThread.chat_type === "listing" ? supabase
       .from("chat_offers")
       .select("id, amount, currency, status, created_at, responded_at")
       .eq("chat_id", chatId)
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(8) : Promise.resolve({ data: [], error: null }),
   ])
 
   if (messagesResult.error) throw new Error("CHAT_MESSAGES_QUERY_FAILED", { cause: messagesResult.error })
@@ -68,11 +69,12 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
   if (offersResult.error) throw new Error("CHAT_OFFERS_QUERY_FAILED", { cause: offersResult.error })
 
   const messageRows = (messagesResult.data ?? []) as ChatMessage[]
+  await hydrateStoryContexts(supabase, messageRows)
   const hasOlderMessages = messageRows.length > CHAT_MESSAGE_PAGE_SIZE
   const typedMessages = messageRows.slice(0, CHAT_MESSAGE_PAGE_SIZE).reverse()
   const otherPartyLabel = chatCounterpartyName(typedThread)
   const listingStatus = listingStateResult.data?.status ?? typedThread.listing_status
-  const canSend = canSendChatMessageForStatus(listingStatus)
+  const canSend = typedThread.chat_type === "direct" || canSendChatMessageForStatus(listingStatus)
   const listingIsPublic = listingStatus === "active"
   const role = typedThread.buyer_id === user.id ? "buyer" : "seller"
   const offers: ChatOfferSummary[] = (offersResult.data ?? []).map((offer) => ({
@@ -90,11 +92,10 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
         <div>
           <div className="ui-eyebrow">შეტყობინებები</div>
           <h1 className="mt-3 break-words text-3xl font-black text-text sm:text-4xl">
-            {typedThread.listing_title}
+            {typedThread.chat_type === "direct" ? otherPartyLabel : typedThread.listing_title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-text-soft">
-            <span>{formatPrice(typedThread.price, typedThread.currency)}</span>
-            <span>·</span>
+            {typedThread.chat_type === "listing" && typedThread.price !== null && typedThread.currency ? <><span>{formatPrice(typedThread.price, typedThread.currency)}</span><span>·</span></> : null}
             <span>{otherPartyLabel}</span>
             {typedThread.counterparty_city ? (
               <>
@@ -102,9 +103,9 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
                 <span>{typedThread.counterparty_city}</span>
               </>
             ) : null}
-            <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-bold">
+            {listingStatus ? <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-bold">
               {listingStatus}
-            </span>
+            </span> : <span className="rounded-full border border-line bg-white px-3 py-1 text-xs font-bold">პირადი დიალოგი</span>}
             {typedThread.is_archived ? (
               <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-bold">
                 შენს არქივშია
@@ -116,7 +117,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
           <Link href="/dashboard/chats" className="ui-btn-secondary">
             ყველა მიმოწერა
           </Link>
-          {listingIsPublic ? (
+          {listingIsPublic && typedThread.listing_slug ? (
             <Link href={`/listing/${typedThread.listing_slug}`} className="ui-btn-primary">
               განცხადების ნახვა
             </Link>
@@ -157,7 +158,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
                   {otherPartyLabel}
                 </h2>
                 <p className="mt-1 text-sm text-text-soft">
-                  {role === "buyer" ? "გამყიდველი" : "მყიდველი"}
+                  {typedThread.chat_type === "direct" ? "პირადი დიალოგი" : role === "buyer" ? "გამყიდველი" : "მყიდველი"}
                 </p>
               </div>
             </div>
@@ -173,7 +174,7 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
             ) : null}
           </section>
 
-          <ChatCommercePanel
+          {typedThread.chat_type === "listing" && listingStatus && typedThread.price !== null && typedThread.currency ? <ChatCommercePanel
             chatId={typedThread.id}
             role={role}
             buyerId={typedThread.buyer_id}
@@ -184,27 +185,27 @@ export default async function ChatThreadPage({ params }: { params: Promise<{ cha
             reservedForUserId={listingStateResult.data?.reserved_for_user_id ?? null}
             soldToUserId={listingStateResult.data?.sold_to_user_id ?? null}
             initialOffers={offers}
-          />
+          /> : null}
 
-          <section aria-labelledby="chat-listing-title" className="ui-card p-6">
+          {typedThread.chat_type === "listing" ? <section aria-labelledby="chat-listing-title" className="ui-card p-6">
             <div className="ui-eyebrow">განცხადების კონტექსტი</div>
             <div className="mt-3 flex gap-4">
               <div className="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-alt">
-                <SmartImage src={typedThread.cover_image_url} alt={typedThread.listing_title} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" />
+                <SmartImage src={typedThread.cover_image_url} alt={typedThread.listing_title || "განცხადება"} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 id="chat-listing-title" className="break-words text-lg font-black text-text">
                   {typedThread.listing_title}
                 </h2>
                 <div className="mt-1 text-sm text-text-soft">
-                  {formatPrice(typedThread.price, typedThread.currency)}
+                  {typedThread.price !== null && typedThread.currency ? formatPrice(typedThread.price, typedThread.currency) : null}
                 </div>
                 <p className="mt-4 text-sm leading-6 text-text-soft">
                   ისტორია ინახება განცხადების სტატუსის ცვლილების შემდეგაც.
                 </p>
               </div>
             </div>
-          </section>
+          </section> : null}
         </aside>
       </div>
     </main>

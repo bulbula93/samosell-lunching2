@@ -1,17 +1,18 @@
 export type ChatThread = {
   id: string
-  listing_id: string
+  chat_type: "listing" | "direct"
+  listing_id: string | null
   buyer_id: string
   seller_id: string
   created_at: string
   last_message_at: string | null
   buyer_last_read_at?: string | null
   seller_last_read_at?: string | null
-  listing_slug: string
-  listing_title: string
-  price: number
-  currency: string
-  listing_status: string
+  listing_slug: string | null
+  listing_title: string | null
+  price: number | null
+  currency: string | null
+  listing_status: string | null
   cover_image_url: string | null
   counterparty_id: string
   counterparty_username: string | null
@@ -32,6 +33,13 @@ export type ChatMessage = {
   sender_id: string
   body: string
   created_at: string
+  message_type?: "text" | "story_reply"
+  story_id?: string | null
+  story_context?: {
+    available: boolean
+    caption: string | null
+    linkedListingSlug: string | null
+  } | null
 }
 
 export type ChatMessageCursor = {
