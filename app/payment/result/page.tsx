@@ -37,21 +37,22 @@ export default async function PaymentResultPage({
   const safeOrder = String(order ?? "").trim().slice(0, 1024)
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const userId = user?.id ?? null
 
   let attempt: PaymentAttempt | null = null
   let fallbackChecked = false
 
-  if (user && safeOrder) {
+  if (userId && safeOrder) {
     const { data } = await supabase
       .from("flitt_payment_attempts")
       .select("status, amount, currency, merchant_id, provider_payment_id, mode, purpose")
       .eq("order_id", safeOrder)
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle()
     attempt = data as PaymentAttempt | null
   }
 
-  if (attempt?.status === "pending" && attempt.mode === "test" && attempt.purpose === "sandbox_test") {
+  if (userId && attempt?.status === "pending" && attempt.mode === "test" && attempt.purpose === "sandbox_test") {
     fallbackChecked = true
     try {
       const verified = await fetchFlittOrderStatus({
@@ -75,7 +76,7 @@ export default async function PaymentResultPage({
           updated_at: now,
         })
         .eq("order_id", safeOrder)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
 
       if (updateError) {
         console.error("[flitt] signed status fallback persistence failed", { code: updateError.code, orderId: safeOrder })
