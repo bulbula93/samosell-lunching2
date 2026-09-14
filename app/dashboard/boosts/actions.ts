@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { redirect, unstable_rethrow } from "next/navigation"
 import { buildSuggestedBoostReference } from "@/lib/boosts"
 import { activateBoostOrder, reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
+import { createFlittSandboxCheckout, getFlittConfig, getFlittReadiness } from "@/lib/flitt"
 import { humanizeSupabaseError } from "@/lib/listings"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -64,6 +65,12 @@ function withFlash(path: string, flash: string) {
   return `${url.pathname}${url.search}`
 }
 
+function toMinorUnits(value: number) {
+  const amount = Math.round(Number(value) * 100)
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("Invalid payment amount")
+  return amount
+}
+
 async function requireUser() {
   const supabase = await createClient()
   const {
@@ -111,7 +118,7 @@ export async function createBoostOrderAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
   const productId = String(formData.get("productId") || "")
   const requestedPaymentMethod = String(formData.get("paymentMethod") || "bank_transfer")
-  const paymentMethod = ["tbc_checkout", "bank_transfer", "manual_cash", "card_external"].includes(requestedPaymentMethod)
+  const paymentMethod = ["flitt", "tbc_checkout", "bank_transfer", "manual_cash", "card_external"].includes(requestedPaymentMethod)
     ? requestedPaymentMethod
     : "bank_transfer"
   const rawPaymentReference = String(formData.get("paymentReference") || "").trim()
@@ -147,6 +154,120 @@ export async function createBoostOrderAction(formData: FormData) {
     if ((existing ?? []).length > 0) redirect(withFlash(nextPath, "already_requested"))
 
     const trustedClient = createAdminClient()
+
+    if (paymentMethod === "flitt") {
+      const readiness = getFlittReadiness()
+      if (!readiness.sandboxEnabled) redirect(withFlash(nextPath, "flitt_disabled"))
+
+      const config = getFlittConfig()
+      const orderId = randomUUID()
+      const amountMinor = toMinorUnits(product.price)
+      const checkoutStartedAt = new Date().toISOString()
+
+      const { error: orderError } = await trustedClient.from("listing_boost_orders").insert({
+        id: orderId,
+        listing_id: listingId,
+        seller_id: user.id,
+        product_id: product.id,
+        status: "pending_payment",
+        payment_method: "flitt",
+        payment_reference: paymentReference || null,
+        amount: product.price,
+        currency: product.currency,
+        notes: notes || null,
+        payment_provider: "flitt",
+        provider_status: "created",
+        checkout_session_started_at: checkoutStartedAt,
+        last_payment_sync_at: checkoutStartedAt,
+      })
+
+      if (orderError) throw orderError
+
+      const { error: attemptError } = await trustedClient.from("flitt_payment_attempts").insert({
+        order_id: orderId,
+        boost_order_id: orderId,
+        user_id: user.id,
+        mode: "test",
+        purpose: "boost_order",
+        amount: amountMinor,
+        currency: product.currency,
+        merchant_id: config.merchantId,
+        status: "pending",
+      })
+
+      if (attemptError) {
+        await trustedClient
+          .from("listing_boost_orders")
+          .update({ status: "under_review", failure_reason: "Flitt payment attempt could not be initialized." })
+          .eq("id", orderId)
+        throw attemptError
+      }
+
+      let checkoutUrl = ""
+      try {
+        const checkout = await createFlittSandboxCheckout({
+          orderId,
+          amount: amountMinor,
+          currency: product.currency,
+          description: `SamoSell ${product.name}`,
+        })
+        checkoutUrl = checkout.checkoutUrl
+        const now = new Date().toISOString()
+
+        const [{ error: attemptUpdateError }, { error: orderUpdateError }] = await Promise.all([
+          trustedClient
+            .from("flitt_payment_attempts")
+            .update({ provider_payment_id: checkout.paymentId, updated_at: now })
+            .eq("order_id", orderId),
+          trustedClient
+            .from("listing_boost_orders")
+            .update({
+              provider_payment_id: checkout.paymentId,
+              provider_checkout_url: checkout.checkoutUrl,
+              provider_status: "created",
+              last_payment_sync_at: now,
+            })
+            .eq("id", orderId),
+        ])
+
+        if (attemptUpdateError) throw attemptUpdateError
+        if (orderUpdateError) throw orderUpdateError
+
+        const { error: eventError } = await trustedClient.from("listing_boost_order_events").insert({
+          order_id: orderId,
+          seller_id: user.id,
+          source: "create",
+          event_type: "checkout_created",
+          provider_status: "created",
+          provider_result_code: null,
+          message: "Flitt sandbox checkout session created successfully.",
+          payload: { providerPaymentId: checkout.paymentId, paymentReference, gateway: "flitt", mode: "test" },
+          event_key: `${orderId}:create:flitt_checkout_created:${checkout.paymentId}`,
+        })
+
+        if (eventError) throw eventError
+      } catch (checkoutError) {
+        const now = new Date().toISOString()
+        await Promise.all([
+          trustedClient
+            .from("flitt_payment_attempts")
+            .update({ status: "failed", updated_at: now })
+            .eq("order_id", orderId),
+          trustedClient
+            .from("listing_boost_orders")
+            .update({
+              status: "under_review",
+              failure_reason: "Flitt checkout creation could not be confirmed. Manual reconciliation required.",
+              admin_note: "Verify the Flitt payment attempt before allowing a replacement order.",
+            })
+            .eq("id", orderId),
+        ])
+        throw checkoutError
+      }
+
+      revalidatePath("/dashboard/billing")
+      redirect(checkoutUrl)
+    }
 
     if (paymentMethod === "tbc_checkout") {
       if (!isTbcCheckoutEnabled()) {
@@ -320,7 +441,9 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
 
       if (rejectError) throw rejectError
     } else if (decision === "activate") {
-      if (orderRow.payment_provider === "tbc_checkout") redirect(withFlash(nextPath, "tbc_sync_required"))
+      if (orderRow.payment_provider === "tbc_checkout" || orderRow.payment_provider === "flitt") {
+        redirect(withFlash(nextPath, "tbc_sync_required"))
+      }
       const product = Array.isArray(orderRow.listing_boost_products) ? orderRow.listing_boost_products[0] : orderRow.listing_boost_products
       const listing = Array.isArray(orderRow.listings) ? orderRow.listings[0] : orderRow.listings
       if (!product || !listing) redirect(withFlash(nextPath, "not_found"))
