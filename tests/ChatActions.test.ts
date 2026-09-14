@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   requireAuthenticatedUser: vi.fn(),
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
+  notifyChatMessage: vi.fn().mockResolvedValue(undefined),
+  recordSearchInteractionSafely: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -21,6 +23,14 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/auth", () => ({
   requireAuthenticatedUser: mocks.requireAuthenticatedUser,
+}))
+
+vi.mock("@/lib/notifications", () => ({
+  notifyChatMessage: mocks.notifyChatMessage,
+}))
+
+vi.mock("@/lib/search-analytics", () => ({
+  recordSearchInteractionSafely: mocks.recordSearchInteractionSafely,
 }))
 
 vi.mock("next/navigation", () => ({
