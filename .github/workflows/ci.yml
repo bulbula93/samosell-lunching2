@@ -21,9 +21,9 @@ jobs:
       TBC_CHECKOUT_ENABLED: "false"
       NEXT_PUBLIC_FLITT_PAYMENTS_ENABLED: "false"
       FLITT_MODE: test
-      FLITT_MERCHANT_ID: "1549901"
-      FLITT_SECRET_KEY: test
-      FLITT_API_URL: https://pay.flitt.com
+      FLITT_MERCHANT_ID: "424242"
+      FLITT_SECRET_KEY: "unit-test-only-signing-key"
+      FLITT_API_URL: "https://sandbox-payments.invalid"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

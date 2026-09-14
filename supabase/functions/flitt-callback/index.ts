@@ -1,13 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  FlittVerificationError,
+  processFlittCallback,
+  readFlittRuntimeConfig,
+  type FlittAttemptStatus,
+} from "./verification.ts";
 
 // Sandbox-only Flitt webhook. Live mode must use production credentials/secrets
 // and a separately reviewed deployment before it is enabled.
 const MAX_BODY_BYTES = 32768;
-const TEST_MERCHANT_ID = "1549901";
-const TEST_SECRET = "test";
-
-type AttemptStatus = "pending" | "approved" | "declined" | "expired" | "reversed" | "failed";
 type CallbackParams = Record<string, unknown>;
 
 function json(body: unknown, status = 200) {
@@ -19,51 +21,6 @@ function json(body: unknown, status = 200) {
 
 function text(value: unknown) {
   return value === undefined || value === null ? "" : String(value);
-}
-
-function nonEmpty(value: unknown) {
-  return value !== undefined && value !== null && String(value) !== "";
-}
-
-async function sha1Hex(input: string) {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-1", data);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function buildSignature(params: CallbackParams, secret: string) {
-  const keys = Object.keys(params)
-    .filter((key) => key !== "signature" && key !== "response_signature_string" && nonEmpty(params[key]))
-    .sort();
-  const values = keys.map((key) => String(params[key]));
-  return await sha1Hex([secret, ...values].join("|"));
-}
-
-async function verifySignature(params: CallbackParams, secret: string) {
-  const provided = text(params.signature).trim().toLowerCase();
-  if (!/^[a-f0-9]{40}$/.test(provided)) return false;
-  const expected = await buildSignature(params, secret);
-  return provided === expected;
-}
-
-function mapStatus(value: unknown): AttemptStatus {
-  switch (text(value).trim().toLowerCase()) {
-    case "approved": return "approved";
-    case "declined": return "declined";
-    case "expired": return "expired";
-    case "reversed": return "reversed";
-    case "created":
-    case "processing": return "pending";
-    default: return "failed";
-  }
-}
-
-function resolveStatus(current: AttemptStatus, incoming: AttemptStatus): AttemptStatus {
-  if (current === "reversed") return "reversed";
-  if (incoming === "reversed") return "reversed";
-  if (current === "approved") return "approved";
-  if (["declined", "expired", "failed"].includes(current)) return current;
-  return incoming;
 }
 
 async function parseBody(req: Request): Promise<CallbackParams> {
@@ -98,6 +55,15 @@ Deno.serve(async (req: Request) => {
   const orderId = text(params.order_id).trim();
   if (!orderId || orderId.length > 1024) return json({ error: "invalid_order_id" }, 400);
 
+  let config;
+  try {
+    config = readFlittRuntimeConfig((name) => Deno.env.get(name));
+  } catch (error) {
+    const code = error instanceof FlittVerificationError ? error.code : "flitt_configuration_error";
+    console.error("[flitt-edge] configuration unavailable", { code });
+    return json({ error: code }, 503);
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_configuration_error" }, 503);
@@ -105,7 +71,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: attempt, error: lookupError } = await admin
     .from("flitt_payment_attempts")
-    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, status, callback_count, mode, purpose")
+    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
     .eq("order_id", orderId)
     .maybeSingle();
 
@@ -118,55 +84,67 @@ Deno.serve(async (req: Request) => {
     return new Response("OK", { status: 200 });
   }
 
-  if (attempt.mode !== "test" || !["sandbox_test", "boost_order"].includes(attempt.purpose)) {
+  if (attempt.mode !== config.mode || !["sandbox_test", "boost_order"].includes(attempt.purpose)) {
     return json({ error: "unsupported_attempt" }, 409);
   }
-  if (String(attempt.merchant_id) !== TEST_MERCHANT_ID || text(params.merchant_id) !== TEST_MERCHANT_ID) {
-    return json({ error: "merchant_mismatch" }, 400);
-  }
-  if (!(await verifySignature(params, TEST_SECRET))) {
-    console.warn("[flitt-edge] invalid signature", { orderId });
-    return json({ error: "invalid_signature" }, 400);
-  }
-  if (text(params.order_id) !== String(attempt.order_id)) return json({ error: "order_mismatch" }, 400);
-  if (text(params.currency).toUpperCase() !== String(attempt.currency).toUpperCase()) return json({ error: "currency_mismatch" }, 400);
-  if (Number(params.amount) !== Number(attempt.amount)) return json({ error: "amount_mismatch" }, 400);
 
-  const callbackPaymentId = params.payment_id === undefined || params.payment_id === null ? null : String(params.payment_id);
-  if (attempt.provider_payment_id && callbackPaymentId !== String(attempt.provider_payment_id)) {
-    return json({ error: "payment_id_mismatch" }, 400);
-  }
-
-  const incoming = mapStatus(params.order_status);
-  const nextStatus = resolveStatus(attempt.status as AttemptStatus, incoming);
-  const now = new Date().toISOString();
-
-  const { error: updateError } = await admin
-    .from("flitt_payment_attempts")
-    .update({
-      provider_payment_id: attempt.provider_payment_id ?? callbackPaymentId,
-      status: nextStatus,
-      provider_status: text(params.order_status) || null,
-      response_status: text(params.response_status) || null,
-      callback_count: Number(attempt.callback_count ?? 0) + 1,
-      last_callback_at: now,
-      updated_at: now,
-    })
-    .eq("order_id", orderId);
-
-  if (updateError) {
-    console.error("[flitt-edge] persistence failed", { orderId, code: updateError.code });
-    return json({ error: "callback_persistence_failed" }, 500);
-  }
-
-  if (attempt.purpose === "boost_order" && attempt.boost_order_id && nextStatus === "approved") {
-    const { error: finalizeError } = await admin.rpc("finalize_flitt_boost_payment", { p_order_id: attempt.boost_order_id });
-    if (finalizeError) {
-      console.error("[flitt-edge] boost finalization failed", { orderId, code: finalizeError.code });
-      return json({ error: "boost_activation_failed" }, 500);
+  let verifiedStatus: FlittAttemptStatus | null = null;
+  try {
+    await processFlittCallback(params, {
+      orderId: String(attempt.order_id),
+      boostOrderId: attempt.boost_order_id ? String(attempt.boost_order_id) : null,
+      amount: Number(attempt.amount),
+      currency: String(attempt.currency),
+      merchantId: String(attempt.merchant_id),
+      providerPaymentId: attempt.provider_payment_id ? String(attempt.provider_payment_id) : null,
+      providerVerifiedAt: attempt.provider_verified_at ? String(attempt.provider_verified_at) : null,
+      providerVerificationSource: attempt.provider_verification_source ? String(attempt.provider_verification_source) : null,
+      status: attempt.status as FlittAttemptStatus,
+      purpose: String(attempt.purpose),
+    }, config, {
+      persist: async (status) => {
+        verifiedStatus = status.nextStatus;
+        const now = new Date().toISOString();
+        const { error: updateError } = await admin
+          .from("flitt_payment_attempts")
+          .update({
+            provider_payment_id: attempt.provider_payment_id ?? status.paymentId,
+            status: status.nextStatus,
+            provider_status: status.providerStatus || null,
+            response_status: status.responseStatus || null,
+            provider_verified_at: status.approved ? now : null,
+            provider_verification_source: status.approved ? "status_api" : null,
+            callback_count: Number(attempt.callback_count ?? 0) + 1,
+            last_callback_at: now,
+            updated_at: now,
+          })
+          .eq("order_id", orderId);
+        if (updateError) throw new FlittVerificationError("callback_persistence_failed", 500);
+      },
+      finalize: async (boostOrderId) => {
+        const { error: finalizeError } = await admin.rpc("finalize_flitt_boost_payment", { p_order_id: boostOrderId });
+        if (finalizeError) throw new FlittVerificationError("boost_activation_failed", 500);
+      },
+    });
+  } catch (error) {
+    const failure = error instanceof FlittVerificationError
+      ? error
+      : new FlittVerificationError("callback_processing_failed", 500);
+    if (!verifiedStatus) {
+      const now = new Date().toISOString();
+      await admin
+        .from("flitt_payment_attempts")
+        .update({
+          callback_count: Number(attempt.callback_count ?? 0) + 1,
+          last_callback_at: now,
+          updated_at: now,
+        })
+        .eq("order_id", orderId);
     }
+    console.warn("[flitt-edge] callback not authorized", { orderId, code: failure.code });
+    return json({ error: failure.code }, failure.httpStatus);
   }
 
-  console.log("[flitt-edge] callback accepted", { orderId, nextStatus });
+  console.log("[flitt-edge] callback verified", { orderId, status: verifiedStatus });
   return new Response("OK", { status: 200 });
 });

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
-import { validateFlittCallback } from "@/lib/flitt"
+import { fetchFlittOrderStatus, validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
@@ -17,6 +17,8 @@ type AttemptRow = {
   currency: string
   merchant_id: string
   provider_payment_id: string | null
+  provider_verified_at: string | null
+  provider_verification_source: string | null
   status: FlittAttemptStatus
   callback_count: number
   mode: string
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from("flitt_payment_attempts")
-    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, status, callback_count, mode, purpose")
+    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
     .eq("order_id", orderId)
     .maybeSingle()
 
@@ -101,14 +103,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validation.reason }, { status: 400 })
   }
 
+  let verified
+  try {
+    verified = await fetchFlittOrderStatus({
+      orderId: attempt.order_id,
+      amount: attempt.amount,
+      currency: attempt.currency,
+      merchantId: attempt.merchant_id,
+      providerPaymentId: attempt.provider_payment_id,
+      status: attempt.status,
+    })
+  } catch (error) {
+    console.warn("[flitt] callback status verification unavailable", {
+      orderId,
+      message: error instanceof Error ? error.message : "unknown_error",
+    })
+    return NextResponse.json({ error: "authoritative_status_unavailable" }, { status: 503 })
+  }
+
+  const independentlyApproved = verified.nextStatus === "approved"
+    && verified.providerStatus.toLowerCase() === "approved"
+    && verified.responseStatus.toLowerCase() === "success"
   const now = new Date().toISOString()
   const { error: updateError } = await admin
     .from("flitt_payment_attempts")
     .update({
-      provider_payment_id: attempt.provider_payment_id ?? validation.paymentId,
-      status: validation.nextStatus,
-      provider_status: validation.providerStatus || null,
-      response_status: validation.responseStatus || null,
+      provider_payment_id: attempt.provider_payment_id ?? verified.paymentId,
+      status: verified.nextStatus,
+      provider_status: verified.providerStatus || null,
+      response_status: verified.responseStatus || null,
+      provider_verified_at: independentlyApproved ? now : null,
+      provider_verification_source: independentlyApproved ? "status_api" : null,
       callback_count: attempt.callback_count + 1,
       last_callback_at: now,
       updated_at: now,
@@ -120,7 +145,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "callback_persistence_failed" }, { status: 500 })
   }
 
-  if (attempt.purpose === "boost_order" && attempt.boost_order_id && validation.nextStatus === "approved") {
+  const alreadyProviderVerified = attempt.status === "approved"
+    && Boolean(attempt.provider_verified_at)
+    && attempt.provider_verification_source === "status_api"
+  if (attempt.purpose === "boost_order" && attempt.boost_order_id && independentlyApproved && !alreadyProviderVerified) {
     try {
       await finalizeFlittBoostPayment(attempt.boost_order_id)
     } catch (error) {

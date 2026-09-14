@@ -1,4 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { createHash } from "node:crypto"
+
+const fixtureMerchantId = "424242"
+const fixtureSecret = "unit-test-only-signing-key"
 
 function stubBaseEnv() {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co")
@@ -6,9 +10,9 @@ function stubBaseEnv() {
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://preview.samosell.ge")
   vi.stubEnv("SITE_URL", "https://preview.samosell.ge")
   vi.stubEnv("FLITT_MODE", "test")
-  vi.stubEnv("FLITT_MERCHANT_ID", "1549901")
-  vi.stubEnv("FLITT_SECRET_KEY", "test")
-  vi.stubEnv("FLITT_API_URL", "https://pay.flitt.com")
+  vi.stubEnv("FLITT_MERCHANT_ID", fixtureMerchantId)
+  vi.stubEnv("FLITT_SECRET_KEY", fixtureSecret)
+  vi.stubEnv("FLITT_API_URL", "https://sandbox-payments.invalid")
   vi.stubEnv("NEXT_PUBLIC_FLITT_PAYMENTS_ENABLED", "true")
 }
 
@@ -29,30 +33,27 @@ describe("Flitt signature", () => {
       server_callback_url: "http://myshop/callback/",
       order_id: "TestOrder2",
       currency: "GEL",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       order_desc: "Test payment",
       amount: 1000,
-    }, "test")
+    }, fixtureSecret)
 
-    // Flitt's documentation prints this exact input string:
-    // test|1000|GEL|1549901|Test payment|TestOrder2|http://myshop/callback/
-    // SHA-1 of that UTF-8 string is cd0edb..., even though one published
-    // example on the same page currently shows a stale/inconsistent hash.
-    expect(signature).toBe("cd0edb710cbbdb6c2a4d965cdb91fdfabc343215")
+    const expectedInput = `${fixtureSecret}|1000|GEL|${fixtureMerchantId}|Test payment|TestOrder2|http://myshop/callback/`
+    expect(signature).toBe(createHash("sha1").update(expectedInput, "utf8").digest("hex"))
   })
 
   it("excludes empty values, signature and response_signature_string", async () => {
     const { buildFlittSignature } = await import("@/lib/flitt")
-    const base = buildFlittSignature({ amount: 100, currency: "GEL", merchant_id: 1549901 }, "test")
+    const base = buildFlittSignature({ amount: 100, currency: "GEL", merchant_id: Number(fixtureMerchantId) }, fixtureSecret)
     const noisy = buildFlittSignature({
       amount: 100,
       currency: "GEL",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       empty: "",
       nil: null,
       signature: "not-part-of-signature",
       response_signature_string: "masked-debug-value",
-    }, "test")
+    }, fixtureSecret)
     expect(noisy).toBe(base)
   })
 })
@@ -61,7 +62,7 @@ describe("Flitt sandbox checkout", () => {
   it("creates a signed checkout URL without exposing the secret", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       response: {
-        checkout_url: "https://pay.flitt.com/merchants/test/index.html?token=abc",
+        checkout_url: "https://pay.flitt.com/merchants/sandbox/index.html?token=abc",
         payment_id: "805230052",
         response_status: "success",
       },
@@ -77,10 +78,10 @@ describe("Flitt sandbox checkout", () => {
 
     const init = fetchMock.mock.calls[0][1] as RequestInit
     const body = JSON.parse(String(init.body)) as { request: Record<string, unknown> }
-    expect(body.request.merchant_id).toBe(1549901)
+    expect(body.request.merchant_id).toBe(Number(fixtureMerchantId))
     expect(body.request.amount).toBe(100)
     expect(body.request.signature).toMatch(/^[a-f0-9]{40}$/)
-    expect(JSON.stringify(body)).not.toContain('"test"')
+    expect(JSON.stringify(body)).not.toContain(fixtureSecret)
   })
 
   it("refuses live mode even when credentials are present", async () => {
@@ -96,18 +97,18 @@ describe("Flitt callback validation", () => {
     const { buildFlittSignature, validateFlittCallback } = await import("@/lib/flitt")
     const params: Record<string, unknown> = {
       order_id: "order_3",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       amount: "100",
       currency: "GEL",
       payment_id: "9001",
       order_status: "approved",
       response_status: "success",
     }
-    params.signature = buildFlittSignature(params, "test")
+    params.signature = buildFlittSignature(params, fixtureSecret)
 
     expect(validateFlittCallback(params, {
       orderId: "order_3",
-      merchantId: "1549901",
+      merchantId: fixtureMerchantId,
       amount: 100,
       currency: "GEL",
       providerPaymentId: "9001",
@@ -119,14 +120,14 @@ describe("Flitt callback validation", () => {
     const { buildFlittSignature, validateFlittCallback } = await import("@/lib/flitt")
     const params: Record<string, unknown> = {
       order_id: "order_merchant_drift",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       amount: "100",
       currency: "GEL",
       payment_id: "9010",
       order_status: "approved",
       response_status: "success",
     }
-    params.signature = buildFlittSignature(params, "test")
+    params.signature = buildFlittSignature(params, fixtureSecret)
 
     expect(validateFlittCallback(params, {
       orderId: "order_merchant_drift",
@@ -148,7 +149,7 @@ describe("Flitt callback validation", () => {
     const { buildFlittSignature, validateFlittCallback } = await import("@/lib/flitt")
     const params: Record<string, unknown> = {
       order_id: "order_4",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       amount: "100",
       currency: "GEL",
       payment_id: "9002",
@@ -156,11 +157,11 @@ describe("Flitt callback validation", () => {
       response_status: "success",
     }
     if (field !== "signature") params[field] = value
-    params.signature = field === "signature" ? value : buildFlittSignature(params, "test")
+    params.signature = field === "signature" ? value : buildFlittSignature(params, fixtureSecret)
 
     expect(validateFlittCallback(params, {
       orderId: "order_4",
-      merchantId: "1549901",
+      merchantId: fixtureMerchantId,
       amount: 100,
       currency: "GEL",
       providerPaymentId: "9002",

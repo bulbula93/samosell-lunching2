@@ -71,6 +71,9 @@ export default async function PaymentResultPage({
       const now = new Date().toISOString()
       const admin = createAdminClient()
       const nextStatus = verified.nextStatus as FlittAttemptStatus
+      const independentlyApproved = nextStatus === "approved"
+        && verified.providerStatus.toLowerCase() === "approved"
+        && verified.responseStatus.toLowerCase() === "success"
       const { error: updateError } = await admin
         .from("flitt_payment_attempts")
         .update({
@@ -78,6 +81,8 @@ export default async function PaymentResultPage({
           status: nextStatus,
           provider_status: verified.providerStatus || null,
           response_status: verified.responseStatus || null,
+          provider_verified_at: independentlyApproved ? now : null,
+          provider_verification_source: independentlyApproved ? "status_api" : null,
           updated_at: now,
         })
         .eq("order_id", safeOrder)

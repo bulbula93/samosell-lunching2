@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+const fixtureMerchantId = "424242"
+const fixtureSecret = "unit-test-only-signing-key"
+
 function stubBaseEnv() {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co")
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_test")
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://preview.samosell.ge")
   vi.stubEnv("SITE_URL", "https://preview.samosell.ge")
   vi.stubEnv("FLITT_MODE", "test")
-  vi.stubEnv("FLITT_MERCHANT_ID", "1549901")
-  vi.stubEnv("FLITT_SECRET_KEY", "test")
-  vi.stubEnv("FLITT_API_URL", "https://pay.flitt.com")
+  vi.stubEnv("FLITT_MERCHANT_ID", fixtureMerchantId)
+  vi.stubEnv("FLITT_SECRET_KEY", fixtureSecret)
+  vi.stubEnv("FLITT_API_URL", "https://sandbox-payments.invalid")
   vi.stubEnv("NEXT_PUBLIC_FLITT_PAYMENTS_ENABLED", "true")
 }
 
@@ -27,14 +30,14 @@ describe("Flitt signed order-status fallback", () => {
     const { buildFlittSignature, fetchFlittOrderStatus } = await import("@/lib/flitt")
     const responseParams: Record<string, unknown> = {
       order_id: "order_status_1",
-      merchant_id: 1549901,
+      merchant_id: Number(fixtureMerchantId),
       amount: 100,
       currency: "GEL",
       payment_id: "1014804009",
       order_status: "approved",
       response_status: "success",
     }
-    responseParams.signature = buildFlittSignature(responseParams, "test")
+    responseParams.signature = buildFlittSignature(responseParams, fixtureSecret)
 
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ response: responseParams }), { status: 200 }))
     vi.stubGlobal("fetch", fetchMock)
@@ -43,7 +46,7 @@ describe("Flitt signed order-status fallback", () => {
       orderId: "order_status_1",
       amount: 100,
       currency: "GEL",
-      merchantId: "1549901",
+      merchantId: fixtureMerchantId,
       providerPaymentId: "1014804009",
       status: "pending",
     })).resolves.toMatchObject({
@@ -55,10 +58,10 @@ describe("Flitt signed order-status fallback", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toBe("https://pay.flitt.com/api/status/order_id")
+    expect(url).toBe("https://sandbox-payments.invalid/api/status/order_id")
     const requestBody = JSON.parse(String(init.body)) as { request: Record<string, unknown> }
     expect(requestBody.request.order_id).toBe("order_status_1")
-    expect(requestBody.request.merchant_id).toBe(1549901)
+    expect(requestBody.request.merchant_id).toBe(Number(fixtureMerchantId))
     expect(requestBody.request.signature).toMatch(/^[a-f0-9]{40}$/)
   })
 
@@ -67,7 +70,7 @@ describe("Flitt signed order-status fallback", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       response: {
         order_id: "order_status_2",
-        merchant_id: 1549901,
+        merchant_id: Number(fixtureMerchantId),
         amount: 100,
         currency: "GEL",
         payment_id: "1014804010",
@@ -82,7 +85,7 @@ describe("Flitt signed order-status fallback", () => {
       orderId: "order_status_2",
       amount: 100,
       currency: "GEL",
-      merchantId: "1549901",
+      merchantId: fixtureMerchantId,
       providerPaymentId: "1014804010",
       status: "pending",
     })).rejects.toThrow("invalid_signature")
