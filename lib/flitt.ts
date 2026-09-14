@@ -147,6 +147,12 @@ export async function createFlittSandboxCheckout(params: {
   const currency = String(params.currency ?? "GEL").trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Flitt currency is invalid")
 
+  // Flitt's browser return does not reliably echo order_id. Preserve our own
+  // correlation key in the signed response_url so the result page can always
+  // reconcile this exact payment attempt server-to-server.
+  const responseUrl = new URL(config.responseUrl)
+  responseUrl.searchParams.set("order", params.orderId)
+
   const requestData: Record<string, unknown> = {
     version: "1.0.1",
     order_id: params.orderId,
@@ -154,7 +160,7 @@ export async function createFlittSandboxCheckout(params: {
     merchant_id: Number(config.merchantId),
     order_desc: String(params.description ?? "SamoSell test payment").trim().slice(0, 1024),
     amount: params.amount,
-    response_url: config.responseUrl,
+    response_url: responseUrl.toString(),
     server_callback_url: config.callbackUrl,
     lang: "ka",
   }
