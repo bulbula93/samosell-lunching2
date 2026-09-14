@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
 import { validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -11,6 +12,7 @@ type CallbackParams = Record<string, unknown>
 
 type AttemptRow = {
   order_id: string
+  boost_order_id: string | null
   amount: number
   currency: string
   merchant_id: string
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from("flitt_payment_attempts")
-    .select("order_id, amount, currency, merchant_id, provider_payment_id, status, callback_count, mode, purpose")
+    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, status, callback_count, mode, purpose")
     .eq("order_id", orderId)
     .maybeSingle()
 
@@ -71,8 +73,8 @@ export async function POST(request: Request) {
     return new NextResponse("OK", { status: 200 })
   }
 
-  if (attempt.mode !== "test" || attempt.purpose !== "sandbox_test") {
-    console.warn("[flitt] sandbox callback refused non-sandbox attempt", { orderId })
+  if (attempt.mode !== "test" || !["sandbox_test", "boost_order"].includes(attempt.purpose)) {
+    console.warn("[flitt] sandbox callback refused unsupported attempt", { orderId, purpose: attempt.purpose, mode: attempt.mode })
     return NextResponse.json({ error: "unsupported_attempt" }, { status: 409 })
   }
 
@@ -116,6 +118,19 @@ export async function POST(request: Request) {
   if (updateError) {
     console.error("[flitt] callback persistence failed", { code: updateError.code, orderId })
     return NextResponse.json({ error: "callback_persistence_failed" }, { status: 500 })
+  }
+
+  if (attempt.purpose === "boost_order" && attempt.boost_order_id && validation.nextStatus === "approved") {
+    try {
+      await finalizeFlittBoostPayment(attempt.boost_order_id)
+    } catch (error) {
+      console.error("[flitt] approved boost callback could not be finalized", {
+        orderId,
+        boostOrderId: attempt.boost_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "boost_activation_failed" }, { status: 500 })
+    }
   }
 
   return new NextResponse("OK", { status: 200 })
