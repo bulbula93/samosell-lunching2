@@ -66,24 +66,34 @@ export function getFlittReadiness() {
   }
 }
 
-export function getFlittConfig() {
+function readBaseConfig() {
   const readiness = getFlittReadiness()
-  if (!readiness.sandboxEnabled) throw new Error("Flitt sandbox is disabled")
-
   const merchantId = readRequired("FLITT_MERCHANT_ID")
   if (!/^\d{1,12}$/.test(merchantId)) throw new Error("FLITT_MERCHANT_ID is invalid")
 
   const siteUrl = getSiteUrlEnv()
-  const apiUrl = normalizeApiUrl(readRequired("FLITT_API_URL"))
-
   return {
+    readiness,
     mode: readiness.mode,
     merchantId,
     secretKey: readRequired("FLITT_SECRET_KEY"),
-    apiUrl,
+    apiUrl: normalizeApiUrl(readRequired("FLITT_API_URL")),
     responseUrl: `${siteUrl}/api/payments/flitt/return`,
     callbackUrl: `${siteUrl}/api/payments/flitt/callback`,
   }
+}
+
+export function getFlittConfig() {
+  const config = readBaseConfig()
+  if (!config.readiness.sandboxEnabled) throw new Error("Flitt sandbox is disabled")
+  if (config.mode !== "test") throw new Error("Flitt live checkout is not enabled")
+  return config
+}
+
+export function getFlittCallbackConfig() {
+  const config = readBaseConfig()
+  if (config.mode !== "test") throw new Error("Flitt live callbacks are not enabled")
+  return config
 }
 
 function isNonEmpty(value: unknown) {
@@ -128,7 +138,6 @@ export async function createFlittSandboxCheckout(params: {
   description?: string
 }) {
   const config = getFlittConfig()
-  if (config.mode !== "test") throw new Error("Flitt live checkout is not enabled")
 
   if (!Number.isInteger(params.amount) || params.amount <= 0) throw new Error("Flitt amount must be a positive integer")
   const currency = String(params.currency ?? "GEL").trim().toUpperCase()
@@ -198,7 +207,7 @@ export function resolveFlittAttemptStatus(current: FlittAttemptStatus, incoming:
 }
 
 export function validateFlittCallback(params: Record<string, unknown>, attempt: FlittAttemptIdentity) {
-  const config = getFlittConfig()
+  const config = getFlittCallbackConfig()
   if (!verifyFlittSignature(params, config.secretKey)) return { ok: false as const, reason: "invalid_signature" }
   if (String(params.merchant_id ?? "") !== config.merchantId) return { ok: false as const, reason: "merchant_mismatch" }
   if (String(params.order_id ?? "") !== attempt.orderId) return { ok: false as const, reason: "order_mismatch" }
