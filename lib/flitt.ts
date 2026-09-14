@@ -101,10 +101,10 @@ function isNonEmpty(value: unknown) {
 }
 
 export function buildFlittSignature(params: Record<string, unknown>, secretKey: string) {
-  const values = Object.entries(params)
-    .filter(([key, value]) => key !== "signature" && key !== "response_signature_string" && isNonEmpty(value))
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([, value]) => String(value))
+  const keys = Object.keys(params)
+    .filter((key) => key !== "signature" && key !== "response_signature_string" && isNonEmpty(params[key]))
+    .sort()
+  const values = keys.map((key) => String(params[key]))
 
   return createHash("sha1").update([secretKey, ...values].join("|"), "utf8").digest("hex")
 }
@@ -209,6 +209,7 @@ export function resolveFlittAttemptStatus(current: FlittAttemptStatus, incoming:
 export function validateFlittCallback(params: Record<string, unknown>, attempt: FlittAttemptIdentity) {
   const config = getFlittCallbackConfig()
   if (!verifyFlittSignature(params, config.secretKey)) return { ok: false as const, reason: "invalid_signature" }
+  if (attempt.merchantId !== config.merchantId) return { ok: false as const, reason: "attempt_merchant_mismatch" }
   if (String(params.merchant_id ?? "") !== config.merchantId) return { ok: false as const, reason: "merchant_mismatch" }
   if (String(params.order_id ?? "") !== attempt.orderId) return { ok: false as const, reason: "order_mismatch" }
   if (String(params.currency ?? "").toUpperCase() !== attempt.currency.toUpperCase()) return { ok: false as const, reason: "currency_mismatch" }
