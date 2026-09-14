@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
 import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
 
 export const dynamic = "force-dynamic"
@@ -24,6 +25,7 @@ type PaymentAttempt = {
   currency: string
   merchant_id: string
   provider_payment_id: string | null
+  boost_order_id: string | null
   mode: string
   purpose: string
 }
@@ -41,18 +43,20 @@ export default async function PaymentResultPage({
 
   let attempt: PaymentAttempt | null = null
   let fallbackChecked = false
+  let boostActivated = false
+  let boostActivationFailed = false
 
   if (userId && safeOrder) {
     const { data } = await supabase
       .from("flitt_payment_attempts")
-      .select("status, amount, currency, merchant_id, provider_payment_id, mode, purpose")
+      .select("status, amount, currency, merchant_id, provider_payment_id, boost_order_id, mode, purpose")
       .eq("order_id", safeOrder)
       .eq("user_id", userId)
       .maybeSingle()
     attempt = data as PaymentAttempt | null
   }
 
-  if (userId && attempt?.status === "pending" && attempt.mode === "test" && attempt.purpose === "sandbox_test") {
+  if (userId && attempt?.status === "pending" && attempt.mode === "test" && ["sandbox_test", "boost_order"].includes(attempt.purpose)) {
     fallbackChecked = true
     try {
       const verified = await fetchFlittOrderStatus({
@@ -96,6 +100,20 @@ export default async function PaymentResultPage({
     }
   }
 
+  if (attempt?.purpose === "boost_order" && attempt.boost_order_id && attempt.status === "approved") {
+    try {
+      const activation = await finalizeFlittBoostPayment(attempt.boost_order_id)
+      boostActivated = activation.status === "active"
+    } catch (error) {
+      boostActivationFailed = true
+      console.error("[flitt] approved boost status could not be finalized", {
+        orderId: safeOrder,
+        boostOrderId: attempt.boost_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-10">
       <section className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -109,6 +127,16 @@ export default async function PaymentResultPage({
         {attempt ? (
           <p className="mt-4 text-sm font-medium">
             თანხა: {(attempt.amount / 100).toFixed(2)} {attempt.currency}
+          </p>
+        ) : null}
+        {boostActivated ? (
+          <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            გადახდა დადასტურდა და არჩეული VIP/boost პაკეტი ავტომატურად გააქტიურდა.
+          </p>
+        ) : null}
+        {boostActivationFailed ? (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            გადახდა დადასტურებულია, მაგრამ პაკეტის აქტივაცია ჯერ ვერ დასრულდა. გადახდა არ დაიკარგება; ხელახლა გახსენი ეს გვერდი ან მიმართე მხარდაჭერას.
           </p>
         ) : null}
         {attempt?.status === "pending" && fallbackChecked ? (
@@ -126,7 +154,11 @@ export default async function PaymentResultPage({
               სტატუსის ხელახლა შემოწმება
             </Link>
           ) : null}
-          <Link href="/admin/flitt-sandbox" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">Sandbox-ზე დაბრუნება</Link>
+          {attempt?.purpose === "boost_order" ? (
+            <Link href="/dashboard/billing" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">შეკვეთებზე დაბრუნება</Link>
+          ) : (
+            <Link href="/admin/flitt-sandbox" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">Sandbox-ზე დაბრუნება</Link>
+          )}
         </div>
       </section>
     </main>
