@@ -26,6 +26,10 @@ type FlittCheckoutResponse = {
   }
 }
 
+type FlittStatusResponse = {
+  response?: Record<string, unknown>
+}
+
 function isTrue(value?: string) {
   return String(value ?? "").trim().toLowerCase() === "true"
 }
@@ -228,4 +232,42 @@ export function validateFlittCallback(params: Record<string, unknown>, attempt: 
     responseStatus: String(params.response_status ?? ""),
     nextStatus: resolveFlittAttemptStatus(attempt.status, incomingStatus),
   }
+}
+
+export async function fetchFlittOrderStatus(attempt: FlittAttemptIdentity) {
+  const config = getFlittCallbackConfig()
+  if (attempt.merchantId !== config.merchantId) throw new Error("Flitt attempt merchant does not match current configuration")
+
+  const requestData: Record<string, unknown> = {
+    version: "1.0.1",
+    order_id: attempt.orderId,
+    merchant_id: Number(config.merchantId),
+  }
+  requestData.signature = buildFlittSignature(requestData, config.secretKey)
+
+  const response = await fetch(`${config.apiUrl}/api/status/order_id`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ request: requestData }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  const text = await response.text()
+  let payload: FlittStatusResponse
+  try {
+    payload = JSON.parse(text) as FlittStatusResponse
+  } catch {
+    throw new Error("Flitt status returned invalid JSON")
+  }
+
+  const params = payload.response
+  if (!response.ok || !params || String(params.response_status ?? "") !== "success") {
+    const code = params?.error_code ? ` (${String(params.error_code)})` : ""
+    throw new Error(`Flitt status request failed${code}`)
+  }
+
+  const validation = validateFlittCallback(params, attempt)
+  if (!validation.ok) throw new Error(`Flitt status validation failed: ${validation.reason}`)
+  return validation
 }
