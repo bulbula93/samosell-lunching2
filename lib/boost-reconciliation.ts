@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 
 type ActivateBoostOrderParams = {
   orderId: string
-  activationSource: "tbc" | "admin"
+  activationSource: "tbc" | "flitt" | "admin"
   reviewedBy?: string | null
   featuredSlot?: number | null
 }
