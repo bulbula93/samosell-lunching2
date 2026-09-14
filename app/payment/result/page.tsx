@@ -66,11 +66,12 @@ export default async function PaymentResultPage({
 
       const now = new Date().toISOString()
       const admin = createAdminClient()
+      const nextStatus = verified.nextStatus as FlittAttemptStatus
       const { error: updateError } = await admin
         .from("flitt_payment_attempts")
         .update({
           provider_payment_id: attempt.provider_payment_id ?? verified.paymentId,
-          status: verified.nextStatus,
+          status: nextStatus,
           provider_status: verified.providerStatus || null,
           response_status: verified.responseStatus || null,
           updated_at: now,
@@ -84,7 +85,7 @@ export default async function PaymentResultPage({
         attempt = {
           ...attempt,
           provider_payment_id: attempt.provider_payment_id ?? verified.paymentId,
-          status: verified.nextStatus,
+          status: nextStatus,
         }
       }
     } catch (error) {
