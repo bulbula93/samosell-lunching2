@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createHash, timingSafeEqual } from "node:crypto"
-import { getSiteUrlEnv } from "@/lib/env"
+import { getPublicEnv, getSiteUrlEnv } from "@/lib/env"
 
 export type FlittMode = "test" | "live"
 export type FlittAttemptStatus = "pending" | "approved" | "declined" | "expired" | "reversed" | "failed"
@@ -76,6 +76,11 @@ function readBaseConfig() {
   if (!/^\d{1,12}$/.test(merchantId)) throw new Error("FLITT_MERCHANT_ID is invalid")
 
   const siteUrl = getSiteUrlEnv()
+  const publicEnv = getPublicEnv()
+  const callbackUrl = readiness.mode === "test"
+    ? `${publicEnv.supabaseUrl}/functions/v1/flitt-callback`
+    : `${siteUrl}/api/payments/flitt/callback`
+
   return {
     readiness,
     mode: readiness.mode,
@@ -83,7 +88,7 @@ function readBaseConfig() {
     secretKey: readRequired("FLITT_SECRET_KEY"),
     apiUrl: normalizeApiUrl(readRequired("FLITT_API_URL")),
     responseUrl: `${siteUrl}/api/payments/flitt/return`,
-    callbackUrl: `${siteUrl}/api/payments/flitt/callback`,
+    callbackUrl,
   }
 }
 
