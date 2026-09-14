@@ -33,6 +33,11 @@ describe("Phase 13 PWA + Web Push", () => {
     expect(worker).not.toContain("vapid_private_key: \"")
   })
 
+  it("uses the new Edge Runtime secret-key object instead of the legacy service-role JWT", () => {
+    expect(worker).toContain('Deno.env.get("SUPABASE_SECRET_KEYS")')
+    expect(worker).not.toContain('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")')
+  })
+
   it("requires an explicit user gesture before asking for notification permission", () => {
     expect(settings).toContain("async function enablePush")
     expect(settings).toContain("Notification.requestPermission()")

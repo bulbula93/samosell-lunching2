@@ -6,6 +6,7 @@ import {
   readFlittRuntimeConfig,
   type FlittAttemptStatus,
 } from "./verification.ts";
+import { readDefaultSupabaseSecretKey } from "../_shared/supabase-secret.ts";
 
 // Sandbox-only Flitt webhook. Live mode must use production credentials/secrets
 // and a separately reviewed deployment before it is enabled.
@@ -64,10 +65,18 @@ Deno.serve(async (req: Request) => {
     return json({ error: code }, 503);
   }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (!supabaseUrl || !serviceRoleKey) return json({ error: "server_configuration_error" }, 503);
-  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  let secretKey: string;
+  try {
+    secretKey = readDefaultSupabaseSecretKey(Deno.env.get("SUPABASE_SECRET_KEYS"));
+  } catch (error) {
+    console.error("[flitt-edge] Supabase configuration unavailable", {
+      code: error instanceof Error ? error.message : "supabase_configuration_error",
+    });
+    return json({ error: "server_configuration_error" }, 503);
+  }
+  if (!supabaseUrl) return json({ error: "server_configuration_error" }, 503);
+  const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   const { data: attempt, error: lookupError } = await admin
     .from("flitt_payment_attempts")
