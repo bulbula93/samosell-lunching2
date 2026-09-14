@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SITE_URL: https://example.com
+      SITE_URL: https://example.com
+      SUPABASE_SERVICE_ROLE_KEY: ci_service_role_placeholder
+      TBC_CHECKOUT_ENABLED: "false"
+      NEXT_PUBLIC_FLITT_PAYMENTS_ENABLED: "false"
+      FLITT_MODE: test
+      FLITT_MERCHANT_ID: "1549901"
+      FLITT_SECRET_KEY: test
+      FLITT_API_URL: https://pay.flitt.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
