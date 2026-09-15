@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "npm:@supabase/supabase-js@2.57.4"
 import webpush from "npm:web-push@3.6.7"
+import { readDefaultSupabaseSecretKey } from "../_shared/supabase-secret.ts"
 
 type Delivery = {
   delivery_id: string
@@ -26,10 +27,18 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return response(405, { error: "method_not_allowed" })
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? ""
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  if (!supabaseUrl || !serviceRoleKey) return response(500, { error: "server_config_missing" })
+  let secretKey: string
+  try {
+    secretKey = readDefaultSupabaseSecretKey(Deno.env.get("SUPABASE_SECRET_KEYS"))
+  } catch (error) {
+    console.error("[push-dispatch] Supabase configuration unavailable", {
+      code: error instanceof Error ? error.message : "supabase_configuration_error",
+    })
+    return response(500, { error: "server_config_missing" })
+  }
+  if (!supabaseUrl) return response(500, { error: "server_config_missing" })
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
+  const admin = createClient(supabaseUrl, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 

@@ -122,6 +122,8 @@ export function paymentMethodLabel(value?: string | null) {
       return "გარე ბარათის ლინკი"
     case "tbc_checkout":
       return "TBC Checkout"
+    case "flitt":
+      return "Flitt / ბარათით გადახდა"
     default:
       return value || "—"
   }
@@ -179,13 +181,11 @@ export function activePromotionEndsAt(listing: PromotionState, placement?: strin
   }
 }
 
-
 export function buildSuggestedBoostReference(listingId: string, productId: string) {
   const listingPart = listingId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase() || "LIST"
   const productPart = productId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase() || "BOOST"
   return `SS-${listingPart}-${productPart}`
 }
-
 
 export function promotionBadgeClass(label?: string | null) {
   const value = String(label || "").toLowerCase()

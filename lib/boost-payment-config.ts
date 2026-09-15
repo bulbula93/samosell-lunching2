@@ -1,5 +1,6 @@
 import "server-only"
 
+import { getFlittReadiness } from "@/lib/flitt"
 import { getSupportConfig } from "@/lib/site"
 import { isTbcCheckoutEnabled } from "@/lib/tbc"
 
@@ -14,6 +15,7 @@ export function getBoostPaymentConfig() {
   const bankName = readOptionalEnv("BOOST_BANK_NAME", "")
   const accountHolder = readOptionalEnv("BOOST_ACCOUNT_HOLDER", "")
   const accountNumber = readOptionalEnv("BOOST_BANK_ACCOUNT", "")
+  const flitt = getFlittReadiness()
 
   return {
     bankName,
@@ -33,5 +35,7 @@ export function getBoostPaymentConfig() {
     hasExternalPaymentUrl: Boolean(externalPaymentUrl),
     hasBankDetails: Boolean(bankName || accountNumber || accountHolder),
     tbcCheckoutEnabled: isTbcCheckoutEnabled(),
+    flittCheckoutEnabled: flitt.sandboxEnabled,
+    flittMode: flitt.mode,
   }
 }

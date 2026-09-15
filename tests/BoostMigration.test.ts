@@ -17,6 +17,16 @@ const boostActions = readFileSync(
   "utf8",
 )
 
+const flittVerificationMigration = readFileSync(
+  join(process.cwd(), "supabase", "migrations", "20260914160354_harden_flitt_status_verification.sql"),
+  "utf8",
+)
+
+const flittReversalMigration = readFileSync(
+  join(process.cwd(), "supabase", "migrations", "20260915090335_reconcile_reversed_flitt_boosts.sql"),
+  "utf8",
+)
+
 describe("hardened listing boosts migration", () => {
   it("blocks ordinary clients from changing every promotion field", () => {
     expect(migration).toContain("private.protect_listing_promotion_fields")
@@ -104,5 +114,26 @@ describe("hardened listing boosts migration", () => {
     expect(finalSecurityMigration).toContain("v_listing.vip_until := greatest(coalesce(v_listing.vip_until, v_ends_at), v_ends_at)")
     expect(finalSecurityMigration).toContain("v_listing.promoted_until := greatest(coalesce(v_listing.promoted_until, v_ends_at), v_ends_at)")
     expect(finalSecurityMigration).toContain("v_listing.featured_until := greatest(coalesce(v_listing.featured_until, v_ends_at), v_ends_at)")
+  })
+
+  it("requires an independently verified Flitt status marker before finalization", () => {
+    expect(flittVerificationMigration).toContain("provider_verified_at is null")
+    expect(flittVerificationMigration).toContain("provider_verification_source <> 'status_api'")
+    expect(flittVerificationMigration).toContain("v_attempt.status <> 'approved'")
+    expect(flittVerificationMigration).toContain("v_attempt.provider_payment_id is null")
+    expect(flittVerificationMigration).toContain("v_order.seller_id is distinct from v_attempt.user_id")
+    expect(flittVerificationMigration).toContain("round(v_order.amount::numeric * 100)::integer <> v_attempt.amount")
+    expect(flittVerificationMigration).toContain("grant execute on function public.finalize_flitt_boost_payment(uuid) to service_role")
+  })
+
+  it("reconciles provider-verified Flitt reversals through a service-role-only RPC", () => {
+    expect(flittReversalMigration).toContain("public.reverse_flitt_boost_payment")
+    expect(flittReversalMigration).toContain("v_attempt.status <> 'reversed'")
+    expect(flittReversalMigration).toContain("v_order.seller_id is distinct from v_attempt.user_id")
+    expect(flittReversalMigration).toContain("status = 'cancelled'")
+    expect(flittReversalMigration).toContain("perform private.reconcile_listing_boost_state(v_order.listing_id)")
+    expect(flittReversalMigration).toContain("on conflict (event_key) do nothing")
+    expect(flittReversalMigration).toContain("revoke all on function public.reverse_flitt_boost_payment(uuid) from public, anon, authenticated")
+    expect(flittReversalMigration).toContain("grant execute on function public.reverse_flitt_boost_payment(uuid) to service_role")
   })
 })

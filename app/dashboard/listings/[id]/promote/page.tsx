@@ -38,6 +38,8 @@ function flashLabel(value?: string) {
       return "განცხადება ან პაკეტი ვერ მოიძებნა."
     case "bad_product":
       return "პაკეტის კონფიგურაცია არასწორია."
+    case "flitt_disabled":
+      return "Flitt sandbox ამ გარემოში ჩართული არ არის."
     case "tbc_sync_active":
       return "სტატუსი განახლდა: TBC გადახდა დადასტურდა და boost უკვე აქტიურია."
     case "tbc_sync_pending":
@@ -67,6 +69,7 @@ export default async function DashboardListingPromotePage({
   const flash = typeof query.flash === "string" ? flashLabel(query.flash) : ""
   const payment = getBoostPaymentConfig()
   const tbcEnabled = payment.tbcCheckoutEnabled
+  const flittEnabled = payment.flittCheckoutEnabled
 
   const supabase = await createClient()
   const {
@@ -146,7 +149,7 @@ export default async function DashboardListingPromotePage({
             <div className="ui-eyebrow">მეტი ხილვადობა</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გააძლიერე განცხადება</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აირჩიე ოთხი მარტივი პაკეტიდან. {tbcEnabled ? "TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს" : "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"}; ხელით გადახდას ადმინი დაადასტურებს.
+              აირჩიე ოთხი მარტივი პაკეტიდან. {flittEnabled ? "Preview-ზე Flitt sandbox რეალურ VIP/boost შეკვეთას ამუშავებს და ხელმოწერილი სტატუსის დადასტურების შემდეგ პაკეტს ავტომატურად ააქტიურებს" : tbcEnabled ? "TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს" : "ბარათით გადახდა ჯერ სატესტო რეჟიმშია"}; ხელით გადახდას ადმინი დაადასტურებს.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -184,7 +187,7 @@ export default async function DashboardListingPromotePage({
           <h2 className="mt-3 text-2xl font-black text-text">გადახდის ინსტრუქცია</h2>
           <div className="mt-4 space-y-3 text-sm leading-7 text-text-soft">
             <p>1. აირჩიე სასურველი პაკეტი და შექმენი შეკვეთა.</p>
-            <p>2. {tbcEnabled ? "თუ აირჩევ TBC Checkout-ს, პირდაპირ ბანკის დაცულ გვერდზე გადახვალ" : "TBC Checkout ბანკის დამტკიცების შემდეგ ჩაირთვება"}.</p>
+            <p>2. {flittEnabled ? "Flitt sandbox-ის არჩევისას გადახვალ Flitt-ის სატესტო გადახდის გვერდზე; წარმატებული სატესტო გადახდა ამ Preview გარემოში არჩეულ პაკეტს რეალურად ააქტიურებს" : tbcEnabled ? "თუ აირჩევ TBC Checkout-ს, პირდაპირ ბანკის დაცულ გვერდზე გადახვალ" : "ბარათით გადახდის არხი ჯერ არ არის ჩართული"}.</p>
             <p>3. ხელით გადახდისას გამოიყენე წინასწარ შევსებული რეფერენსი გადარიცხვის დანიშნულებაში.</p>
             <p>4. ხელით დამუშავებადი შეკვეთები ჩვეულებრივ სრულდება დაახლოებით {payment.approvalTime}-ში.</p>
           </div>
@@ -196,6 +199,13 @@ export default async function DashboardListingPromotePage({
                 {payment.bankName ? <div>ბანკი: <span className="font-medium text-text">{payment.bankName}</span></div> : null}
                 {payment.accountHolder ? <div>მიმღები: <span className="font-medium text-text">{payment.accountHolder}</span></div> : null}
                 {payment.accountNumber ? <div>ანგარიში / IBAN: <span className="font-mono text-xs text-text sm:text-sm">{payment.accountNumber}</span></div> : null}
+              </div>
+            ) : null}
+
+            {flittEnabled ? (
+              <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
+                <div className="font-semibold">Flitt Sandbox</div>
+                <div>ეს არის სატესტო გადახდა: თანხა რეალურად არ ჩამოიჭრება, მაგრამ Preview-ში VIP/boost შეკვეთის სრული აქტივაციის ჯაჭვი მოწმდება.</div>
               </div>
             ) : null}
 
@@ -256,7 +266,8 @@ export default async function DashboardListingPromotePage({
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-text">გადახდის მეთოდი</label>
-                    <select name="paymentMethod" defaultValue={tbcEnabled ? "tbc_checkout" : "bank_transfer"} className="ui-input" suppressHydrationWarning>
+                    <select name="paymentMethod" defaultValue={flittEnabled ? "flitt" : tbcEnabled ? "tbc_checkout" : "bank_transfer"} className="ui-input" suppressHydrationWarning>
+                      {flittEnabled ? <option value="flitt">Flitt Sandbox — სატესტო</option> : null}
                       {tbcEnabled ? <option value="tbc_checkout">TBC Checkout — რეკომენდებული</option> : null}
                       <option value="bank_transfer">საბანკო გადარიცხვა</option>
                       <option value="manual_cash">ქეში / ოფლაინ</option>
@@ -276,7 +287,7 @@ export default async function DashboardListingPromotePage({
                 </div>
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-5">
-                  <div className="text-xs leading-5 text-text-soft">{tbcEnabled ? "TBC Checkout მთავარ მეთოდადაა არჩეული" : "ამ ეტაპზე გამოიყენე ხელით გადახდის მეთოდი"}; ხელით გადახდა დამატებით შემოწმებას საჭიროებს.</div>
+                  <div className="text-xs leading-5 text-text-soft">{flittEnabled ? "Preview-ზე Flitt Sandbox მთავარ სატესტო მეთოდადაა არჩეული" : tbcEnabled ? "TBC Checkout მთავარ მეთოდადაა არჩეული" : "ამ ეტაპზე გამოიყენე ხელით გადახდის მეთოდი"}; ხელით გადახდა დამატებით შემოწმებას საჭიროებს.</div>
                   <ModerationSubmitButton className="ui-btn-primary" idleLabel={boostProductCta(product.placement)} pendingLabel="შეკვეთა მზადდება…" />
                 </div>
               </form>
@@ -304,12 +315,20 @@ export default async function DashboardListingPromotePage({
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">რეფერენსი:</span> {order.payment_reference || "—"}</div>
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">შეიქმნა:</span> {formatDateOnly(order.created_at)}</div>
                 <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">ვადა:</span> {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
-                {order.provider_status ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">TBC სტატუსი:</span> {tbcProviderStatusLabel(order.provider_status)}</div> : null}
+                {order.provider_status ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">{order.payment_provider === "tbc_checkout" ? "TBC სტატუსი:" : "გადახდის სტატუსი:"}</span> {order.payment_provider === "tbc_checkout" ? tbcProviderStatusLabel(order.provider_status) : order.provider_status}</div> : null}
                 {order.last_payment_sync_at ? <div className="rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">ბოლო სინქი:</span> {formatDateOnly(order.last_payment_sync_at)}</div> : null}
               </div>
-              {order.failure_reason ? <div className="mt-3 rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">TBC მიზეზი: {order.failure_reason}</div> : null}
+              {order.failure_reason ? <div className="mt-3 rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">გადახდის მიზეზი: {order.failure_reason}</div> : null}
               {order.notes ? <div className="mt-3 rounded-[1rem] bg-white px-4 py-3 text-sm text-text-soft">შენი შენიშვნა: {order.notes}</div> : null}
               {order.admin_note ? <div className="mt-3 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">ადმინის შენიშვნა: {order.admin_note}</div> : null}
+              {flittEnabled && order.payment_provider === "flitt" ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {order.provider_checkout_url && order.status === "pending_payment" ? (
+                    <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">Flitt-ით გადახდის გაგრძელება</a>
+                  ) : null}
+                  <Link href={`/payment/result?order=${encodeURIComponent(order.id)}`} className="ui-btn-secondary">Flitt სტატუსის გადამოწმება</Link>
+                </div>
+              ) : null}
               {tbcEnabled && order.payment_provider === "tbc_checkout" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {order.provider_checkout_url && order.status === "pending_payment" ? (
