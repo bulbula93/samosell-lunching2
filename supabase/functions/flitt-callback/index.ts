@@ -7,10 +7,10 @@ import {
   type FlittAttemptStatus,
 } from "./verification.ts";
 import { readDefaultSupabaseSecretKey } from "../_shared/supabase-secret.ts";
+import { CallbackBodyError, parseCallbackBody } from "./body.ts";
 
 // Sandbox-only Flitt webhook. Live mode must use production credentials/secrets
 // and a separately reviewed deployment before it is enabled.
-const MAX_BODY_BYTES = 32768;
 type CallbackParams = Record<string, unknown>;
 
 function json(body: unknown, status = 200) {
@@ -24,22 +24,6 @@ function text(value: unknown) {
   return value === undefined || value === null ? "" : String(value);
 }
 
-async function parseBody(req: Request): Promise<CallbackParams> {
-  const raw = await req.text();
-  if (new TextEncoder().encode(raw).byteLength > MAX_BODY_BYTES) throw new Error("callback_too_large");
-  const contentType = req.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid_json");
-    const obj = parsed as Record<string, unknown>;
-    if (obj.response && typeof obj.response === "object" && !Array.isArray(obj.response)) {
-      return obj.response as CallbackParams;
-    }
-    return obj;
-  }
-  return Object.fromEntries(new URLSearchParams(raw).entries());
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     return json({ ok: true, provider: "flitt", mode: "test" });
@@ -48,9 +32,12 @@ Deno.serve(async (req: Request) => {
 
   let params: CallbackParams;
   try {
-    params = await parseBody(req);
-  } catch {
-    return json({ error: "invalid_callback_body" }, 400);
+    params = await parseCallbackBody(req);
+  } catch (error) {
+    const failure = error instanceof CallbackBodyError
+      ? error
+      : new CallbackBodyError("invalid_callback_body", 400);
+    return json({ error: failure.code }, failure.httpStatus);
   }
 
   const orderId = text(params.order_id).trim();
@@ -133,6 +120,10 @@ Deno.serve(async (req: Request) => {
       finalize: async (boostOrderId) => {
         const { error: finalizeError } = await admin.rpc("finalize_flitt_boost_payment", { p_order_id: boostOrderId });
         if (finalizeError) throw new FlittVerificationError("boost_activation_failed", 500);
+      },
+      reverse: async (boostOrderId) => {
+        const { error: reverseError } = await admin.rpc("reverse_flitt_boost_payment", { p_order_id: boostOrderId });
+        if (reverseError) throw new FlittVerificationError("boost_reversal_failed", 500);
       },
     });
   } catch (error) {

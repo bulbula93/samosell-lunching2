@@ -68,6 +68,7 @@ function dependencies(fetchImpl: typeof fetch) {
     fetchImpl,
     persist: vi.fn().mockResolvedValue(undefined),
     finalize: vi.fn().mockResolvedValue(undefined),
+    reverse: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -142,7 +143,7 @@ describe("Flitt Edge callback authoritative verification", () => {
     expect(deps.finalize).toHaveBeenCalledWith(baseAttempt.boostOrderId)
   })
 
-  it("does not invoke finalization again for a duplicate provider-verified callback", async () => {
+  it("retries idempotent finalization for a duplicate provider-verified callback", async () => {
     const deps = dependencies(statusFetch(await signedStatus()))
     await processFlittCallback(await signedCallback(), baseAttempt, config, deps)
     await processFlittCallback(await signedCallback(), {
@@ -153,7 +154,59 @@ describe("Flitt Edge callback authoritative verification", () => {
     }, config, deps)
 
     expect(deps.persist).toHaveBeenCalledTimes(2)
-    expect(deps.finalize).toHaveBeenCalledTimes(1)
+    expect(deps.finalize).toHaveBeenCalledTimes(2)
+  })
+
+  it("retries finalization after approval persistence succeeded but finalization failed", async () => {
+    const fetchImpl = statusFetch(await signedStatus())
+    const first = dependencies(fetchImpl)
+    first.finalize.mockRejectedValueOnce(new Error("transient database failure"))
+
+    await expect(processFlittCallback(await signedCallback(), baseAttempt, config, first)).rejects.toThrow(
+      "transient database failure",
+    )
+    expect(first.persist).toHaveBeenCalledTimes(1)
+    expect(first.finalize).toHaveBeenCalledTimes(1)
+
+    const retry = dependencies(fetchImpl)
+    await expect(processFlittCallback(await signedCallback(), {
+      ...baseAttempt,
+      status: "approved",
+      providerVerifiedAt: "2026-09-15T09:00:00.000Z",
+      providerVerificationSource: "status_api",
+    }, config, retry)).resolves.toMatchObject({ approved: true })
+    expect(retry.finalize).toHaveBeenCalledTimes(1)
+  })
+
+  it("reconciles every authoritative reversed boost callback", async () => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "reversed" })))
+    await expect(processFlittCallback(await signedCallback(), {
+      ...baseAttempt,
+      status: "approved",
+      providerVerifiedAt: "2026-09-15T09:00:00.000Z",
+      providerVerificationSource: "status_api",
+    }, config, deps)).resolves.toMatchObject({ nextStatus: "reversed", approved: false })
+    expect(deps.persist).toHaveBeenCalledWith(expect.objectContaining({ nextStatus: "reversed" }))
+    expect(deps.reverse).toHaveBeenCalledTimes(1)
+    expect(deps.reverse).toHaveBeenCalledWith(baseAttempt.boostOrderId)
+    expect(deps.finalize).not.toHaveBeenCalled()
+  })
+
+  it("retries reversal reconciliation and isolates non-boost sandbox payments", async () => {
+    const fetchImpl = statusFetch(await signedStatus({ order_status: "reversed" }))
+    const boostDeps = dependencies(fetchImpl)
+    const reversedAttempt = { ...baseAttempt, status: "reversed" as const }
+    await processFlittCallback(await signedCallback(), reversedAttempt, config, boostDeps)
+    await processFlittCallback(await signedCallback(), reversedAttempt, config, boostDeps)
+    expect(boostDeps.reverse).toHaveBeenCalledTimes(2)
+
+    const sandboxDeps = dependencies(fetchImpl)
+    await processFlittCallback(await signedCallback(), {
+      ...reversedAttempt,
+      purpose: "sandbox_test",
+      boostOrderId: null,
+    }, config, sandboxDeps)
+    expect(sandboxDeps.reverse).not.toHaveBeenCalled()
   })
 
   it("keeps reversed status terminal and never reactivates it", async () => {
@@ -169,5 +222,6 @@ describe("Flitt Edge callback authoritative verification", () => {
       nextStatus: "reversed",
     })
     expect(deps.finalize).not.toHaveBeenCalled()
+    expect(deps.reverse).toHaveBeenCalledTimes(1)
   })
 })

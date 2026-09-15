@@ -225,16 +225,17 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   fetchImpl?: FetchLike;
   persist: (status: VerifiedStatus) => Promise<void>;
   finalize: (boostOrderId: string) => Promise<void>;
+  reverse: (boostOrderId: string) => Promise<void>;
 }) {
   await validateIncomingCallback(params, attempt, config);
   const verified = await fetchAuthoritativeFlittStatus(attempt, config, deps.fetchImpl);
   await deps.persist(verified);
 
-  const alreadyProviderVerified = attempt.status === "approved"
-    && Boolean(attempt.providerVerifiedAt)
-    && attempt.providerVerificationSource === "status_api";
-  if (verified.approved && !alreadyProviderVerified && attempt.purpose === "boost_order" && attempt.boostOrderId) {
+  if (verified.approved && attempt.purpose === "boost_order" && attempt.boostOrderId) {
     await deps.finalize(attempt.boostOrderId);
+  }
+  if (verified.nextStatus === "reversed" && attempt.purpose === "boost_order" && attempt.boostOrderId) {
+    await deps.reverse(attempt.boostOrderId);
   }
   return verified;
 }
