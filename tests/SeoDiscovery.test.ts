@@ -2,12 +2,15 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
+  absoluteUrl,
   buildCatalogCanonicalPath,
   buildHomeStructuredData,
   buildListingStructuredData,
+  getSiteUrl,
   GOOGLE_SITE_VERIFICATION,
   INDEXABLE_CATALOG_CATEGORIES,
   serializeJsonLd,
+  SITE_URL,
 } from "@/lib/seo"
 import { makeListing } from "@/tests/fixtures"
 
@@ -21,6 +24,12 @@ describe("Google discovery metadata", () => {
       "uQuez09mPR--nX75FjQfxC1lHoSPZ4Kp19VP2rdNhf0",
     )
     expect(read("app/layout.tsx")).toContain("google: GOOGLE_SITE_VERIFICATION")
+  })
+
+  it("pins canonical and share URLs to the production domain", () => {
+    expect(SITE_URL).toBe("https://samosell.ge")
+    expect(getSiteUrl()).toBe("https://samosell.ge")
+    expect(absoluteUrl("/login")).toBe("https://samosell.ge/login")
   })
 
   it("indexes clean catalog/category pages and consolidates faceted URLs", () => {
