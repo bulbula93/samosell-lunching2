@@ -1,8 +1,8 @@
-import { getSiteUrlEnv } from "@/lib/env"
 import { SITE_DESCRIPTION_EN, SITE_NAME } from "@/lib/site"
 import type { CatalogListing } from "@/types/marketplace"
 
 export const GOOGLE_SITE_VERIFICATION = "uQuez09mPR--nX75FjQfxC1lHoSPZ4Kp19VP2rdNhf0"
+export const SITE_URL = "https://samosell.ge"
 
 export const INDEXABLE_CATALOG_CATEGORIES = [
   { value: "women", label: "ქალებისთვის" },
@@ -15,7 +15,7 @@ export const INDEXABLE_CATALOG_CATEGORIES = [
 ] as const
 
 export function getSiteUrl() {
-  return getSiteUrlEnv().replace(/\/$/, "")
+  return SITE_URL
 }
 
 export function absoluteUrl(path = "/") {
