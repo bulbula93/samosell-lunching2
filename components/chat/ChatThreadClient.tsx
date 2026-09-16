@@ -615,7 +615,7 @@ export default function ChatThreadClient({
                 onKeyDown={handleComposerKeyDown}
                 maxLength={CHAT_MESSAGE_MAX_LENGTH}
                 rows={1}
-                aria-describedby="chat-message-help chat-message-feedback"
+                aria-describedby="chat-message-feedback"
                 placeholder={selectedImage ? "დაამატე წარწერა…" : "დაწერე შეტყობინება…"}
                 className="min-h-11 max-h-36 flex-1 resize-none rounded-2xl border border-line bg-surface-alt px-4 py-2.5 text-sm leading-5 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand-soft"
               />
@@ -646,16 +646,6 @@ export default function ChatThreadClient({
             ამ განცხადების მიმდინარე სტატუსზე მიმოწერის ისტორია ხელმისაწვდომია, მაგრამ ახალი შეტყობინების გაგზავნა შეზღუდულია.
           </p>
         )}
-
-        <div
-          id="chat-message-help"
-          className="mx-auto mt-1 flex max-w-3xl justify-between px-1 text-[10px] text-text-soft"
-        >
-          <span>Enter — გაგზავნა · Shift+Enter — ახალი ხაზი · ფოტო მაქს. 8 MB</span>
-          <span>
-            {body.length}/{CHAT_MESSAGE_MAX_LENGTH}
-          </span>
-        </div>
 
         <div
           id="chat-message-feedback"
