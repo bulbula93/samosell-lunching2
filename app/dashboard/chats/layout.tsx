@@ -1,5 +1,5 @@
 import ChatWorkspace from "@/components/chat/ChatWorkspace"
-import { requireAuthenticatedUser } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 import type { ReactNode } from "react"
 import type { ChatThread } from "@/types/chat"
 
@@ -10,9 +10,16 @@ export default async function ChatsLayout({
 }: {
   children: ReactNode
 }) {
-  const { supabase, user } = await requireAuthenticatedUser("/dashboard/chats")
-  const participantFilter = `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
+  // Let the leaf route perform the redirect so a direct thread URL can preserve
+  // `/dashboard/chats/{chatId}` as its post-login destination.
+  if (!user) return children
+
+  const participantFilter = `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
   const { data, error } = await supabase
     .from("chat_threads")
     .select(
