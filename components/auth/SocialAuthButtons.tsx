@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from "react"
 import type { Provider } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
-import { getPublicEnv } from "@/lib/env"
 
 type SocialAuthButtonsProps = {
   mode: "login" | "register"
@@ -43,7 +42,11 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
 
     try {
       const safeNext = getSafeAuthRedirectPath(nextPath)
-      const redirectUrl = new URL("/auth/callback", getPublicEnv().siteUrl)
+      // Keep OAuth callbacks on the same host that initiated sign-in. This lets
+      // Vercel previews establish their own auth cookie while production still
+      // returns to samosell.ge. Supabase's redirect allow-list remains the
+      // security boundary for accepted callback hosts.
+      const redirectUrl = new URL("/auth/callback", window.location.origin)
       redirectUrl.searchParams.set("next", safeNext)
 
       const { error: authError } = await supabase.auth.signInWithOAuth({
