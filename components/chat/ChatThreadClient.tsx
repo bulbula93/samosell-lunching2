@@ -98,6 +98,7 @@ export default function ChatThreadClient({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
   const requestIdRef = useRef("")
+  const previewUrlRef = useRef("")
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     requestAnimationFrame(() => {
@@ -135,15 +136,10 @@ export default function ChatThreadClient({
   }, [body])
 
   useEffect(() => {
-    if (!selectedImage) {
-      setImagePreviewUrl("")
-      return
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
     }
-
-    const url = URL.createObjectURL(selectedImage)
-    setImagePreviewUrl(url)
-    return () => URL.revokeObjectURL(url)
-  }, [selectedImage])
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -241,6 +237,13 @@ export default function ChatThreadClient({
     }
   }
 
+  function replacePreviewUrl(file: File) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
+    const nextUrl = URL.createObjectURL(file)
+    previewUrlRef.current = nextUrl
+    setImagePreviewUrl(nextUrl)
+  }
+
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
     if (!file) return
@@ -259,9 +262,15 @@ export default function ChatThreadClient({
 
     setSendError("")
     setSelectedImage(file)
+    replacePreviewUrl(file)
   }
 
   function clearSelectedImage() {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current)
+      previewUrlRef.current = ""
+    }
+    setImagePreviewUrl("")
     setSelectedImage(null)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
