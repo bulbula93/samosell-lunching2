@@ -1,4 +1,8 @@
-export default function DashboardChatsPage() {
+import { requireAuthenticatedUser } from "@/lib/auth"
+
+export default async function DashboardChatsPage() {
+  await requireAuthenticatedUser("/dashboard/chats")
+
   return (
     <div className="hidden h-full min-h-0 flex-1 items-center justify-center p-8 lg:flex">
       <div className="max-w-sm text-center">
