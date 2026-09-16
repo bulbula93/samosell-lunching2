@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import Avatar from "@/components/shared/Avatar"
 import { chatCounterpartyName, formatChatTimestamp, truncateChatText } from "@/lib/chats"
@@ -71,6 +71,7 @@ export default function ChatWorkspace({
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = useMemo(() => createClient(), [])
   const activeChatId = activeChatIdFromPath(pathname)
   const threadOpen = Boolean(activeChatId)
@@ -183,8 +184,34 @@ export default function ChatWorkspace({
     0,
   )
 
+  const safety = searchParams.get("safety") ?? ""
+  const flash = searchParams.get("flash") ?? ""
+  const feedbackMessage = flash || (
+    safety === "blocked"
+      ? "მომხმარებელი დაბლოკილია. მიმოწერა შეჩერებულია."
+      : safety === "unblocked"
+        ? "ბლოკი მოხსნილია."
+        : safety
+  )
+  const feedbackIsError = Boolean(flash) || (
+    Boolean(safety) && safety !== "blocked" && safety !== "unblocked"
+  )
+
   return (
     <main className="mx-auto w-full max-w-[1600px] px-3 py-3 sm:px-5 sm:py-5">
+      {feedbackMessage ? (
+        <p
+          role={feedbackIsError ? "alert" : "status"}
+          className={
+            feedbackIsError
+              ? "mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
+              : "mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+          }
+        >
+          {feedbackMessage}
+        </p>
+      ) : null}
+
       <div className="flex min-h-[calc(100dvh-8rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-[0_18px_60px_rgba(7,63,59,0.08)] lg:h-[calc(100dvh-8rem)] lg:min-h-[620px]">
         <aside
           aria-label="მიმოწერების სია"
