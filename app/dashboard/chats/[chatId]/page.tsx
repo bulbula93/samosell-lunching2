@@ -145,7 +145,7 @@ export default async function ChatThreadPage({
                 href={`/seller/${encodeURIComponent(typedThread.counterparty_username)}`}
                 className="hidden rounded-full border border-line px-3 py-2 text-xs font-bold text-text transition hover:bg-surface-alt sm:inline-flex"
               >
-                პროფილი
+                პროფილის ნახვა
               </Link>
             ) : null}
 
