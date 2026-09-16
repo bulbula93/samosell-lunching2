@@ -1,20 +1,30 @@
 "use client"
 
+import Image from "next/image"
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react"
 import {
+  abortChatImageUploadAction,
   loadOlderMessagesAction,
   loadRealtimeMessageAction,
   markChatReadAction,
+  prepareChatImageUploadAction,
+  sendChatImageMessageAction,
   sendChatMessageAction,
 } from "@/app/dashboard/chats/actions"
+import {
+  CHAT_IMAGE_BUCKET,
+  CHAT_IMAGE_MAX_BYTES,
+  isChatImageMimeType,
+} from "@/lib/chat-images"
 import {
   CHAT_MESSAGE_MAX_LENGTH,
   formatBubbleTimestamp,
@@ -52,6 +62,11 @@ function nearBottom(viewport: HTMLDivElement | null, threshold = 120) {
   return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= threshold
 }
 
+function formatImageSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function ChatThreadClient({
   chatId,
   currentUserId,
@@ -70,6 +85,8 @@ export default function ChatThreadClient({
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [body, setBody] = useState("")
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("")
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState("")
   const [hasMore, setHasMore] = useState(initialHasMore)
@@ -78,6 +95,7 @@ export default function ChatThreadClient({
   const [newMessageCount, setNewMessageCount] = useState(0)
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
   const requestIdRef = useRef("")
 
@@ -115,6 +133,17 @@ export default function ChatThreadClient({
     textarea.style.height = `${nextHeight}px`
     textarea.style.overflowY = textarea.scrollHeight > 144 ? "auto" : "hidden"
   }, [body])
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreviewUrl("")
+      return
+    }
+
+    const url = URL.createObjectURL(selectedImage)
+    setImagePreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [selectedImage])
 
   useEffect(() => {
     let cancelled = false
@@ -212,21 +241,84 @@ export default function ChatThreadClient({
     }
   }
 
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null
+    if (!file) return
+
+    if (!isChatImageMimeType(file.type)) {
+      setSendError("დაშვებულია JPG, PNG ან WEBP ფოტო.")
+      event.target.value = ""
+      return
+    }
+
+    if (file.size < 1 || file.size > CHAT_IMAGE_MAX_BYTES) {
+      setSendError("ფოტო მაქსიმუმ 8 MB უნდა იყოს.")
+      event.target.value = ""
+      return
+    }
+
+    setSendError("")
+    setSelectedImage(file)
+  }
+
+  function clearSelectedImage() {
+    setSelectedImage(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const trimmed = body.trim()
-    if (!trimmed || sending || !canSend) return
+    if ((!trimmed && !selectedImage) || sending || !canSend) return
 
     const clientRequestId = requestIdRef.current || crypto.randomUUID()
     requestIdRef.current = clientRequestId
     setSending(true)
     setSendError("")
 
-    const result = await sendChatMessageAction({
-      chatId,
-      body: trimmed,
-      clientRequestId,
-    })
+    let result: Awaited<ReturnType<typeof sendChatMessageAction>>
+
+    if (selectedImage) {
+      const preparation = await prepareChatImageUploadAction({
+        chatId,
+        mimeType: selectedImage.type,
+        size: selectedImage.size,
+      })
+
+      if (!preparation.ok) {
+        setSendError(preparation.message)
+        setSending(false)
+        return
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from(CHAT_IMAGE_BUCKET)
+        .uploadToSignedUrl(preparation.path, preparation.token, selectedImage, {
+          contentType: selectedImage.type,
+        })
+
+      if (uploadError) {
+        await abortChatImageUploadAction({ chatId, path: preparation.path })
+        setSendError("ფოტოს ატვირთვა ვერ მოხერხდა. სცადე ხელახლა.")
+        setSending(false)
+        return
+      }
+
+      result = await sendChatImageMessageAction({
+        chatId,
+        body: trimmed,
+        path: preparation.path,
+        mimeType: selectedImage.type,
+        size: selectedImage.size,
+        clientRequestId,
+      })
+    } else {
+      result = await sendChatMessageAction({
+        chatId,
+        body: trimmed,
+        clientRequestId,
+      })
+    }
 
     if (!result.ok) {
       setSendError(result.message)
@@ -236,6 +328,7 @@ export default function ChatThreadClient({
 
     setMessages((current) => mergeMessages(current, [result.message]))
     setBody("")
+    clearSelectedImage()
     requestIdRef.current = crypto.randomUUID()
     setSending(false)
     setNewMessageCount(0)
@@ -253,7 +346,7 @@ export default function ChatThreadClient({
     }
 
     event.preventDefault()
-    if (!sending && canSend && body.trim()) {
+    if (!sending && canSend && (body.trim() || selectedImage)) {
       formRef.current?.requestSubmit()
     }
   }
@@ -319,6 +412,9 @@ export default function ChatThreadClient({
                 const previous = messages[index - 1]
                 const grouped =
                   Boolean(previous) && previous.sender_id === message.sender_id
+                const imageUrl = `/api/chats/media/${encodeURIComponent(message.id)}`
+                const showImageCaption =
+                  message.message_type === "image" && message.body !== "📷 ფოტო"
 
                 return (
                   <article
@@ -376,9 +472,30 @@ export default function ChatThreadClient({
                         </div>
                       ) : null}
 
-                      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-5">
-                        {message.body}
-                      </p>
+                      {message.message_type === "image" ? (
+                        <a
+                          href={imageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block overflow-hidden rounded-xl bg-black/5"
+                          aria-label="ფოტოს სრულ ზომაზე გახსნა"
+                        >
+                          <Image
+                            src={imageUrl}
+                            alt="ჩათში გაგზავნილი ფოტო"
+                            width={720}
+                            height={720}
+                            unoptimized
+                            className="max-h-[420px] w-auto max-w-full object-contain"
+                          />
+                        </a>
+                      ) : null}
+
+                      {message.message_type !== "image" || showImageCaption ? (
+                        <p className={`${message.message_type === "image" ? "mt-2" : ""} whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-5`}>
+                          {message.body}
+                        </p>
+                      ) : null}
                       <time
                         suppressHydrationWarning
                         dateTime={message.created_at}
@@ -422,43 +539,98 @@ export default function ChatThreadClient({
         className="shrink-0 border-t border-line bg-white px-3 py-3 sm:px-5"
       >
         {canSend ? (
-          <div className="mx-auto flex w-full max-w-3xl items-end gap-2">
-            <label htmlFor="chat-message-body" className="sr-only">
-              შეტყობინება
-            </label>
-            <textarea
-              ref={textareaRef}
-              id="chat-message-body"
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              maxLength={CHAT_MESSAGE_MAX_LENGTH}
-              required
-              rows={1}
-              aria-describedby="chat-message-help chat-message-feedback"
-              placeholder="დაწერე შეტყობინება…"
-              className="min-h-11 max-h-36 flex-1 resize-none rounded-2xl border border-line bg-surface-alt px-4 py-2.5 text-sm leading-5 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand-soft"
-            />
-            <button
-              type="submit"
-              disabled={sending || !body.trim()}
-              aria-label="გაგზავნა"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {sending ? (
-                <span className="text-[10px] font-black">...</span>
-              ) : (
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-5 w-5 fill-none stroke-current"
-                  strokeWidth="2"
+          <div className="mx-auto w-full max-w-3xl">
+            {selectedImage && imagePreviewUrl ? (
+              <div className="mb-2 flex items-center gap-3 rounded-2xl border border-line bg-surface-alt p-2">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
+                  <Image
+                    src={imagePreviewUrl}
+                    alt="გასაგზავნი ფოტოს წინასწარი ნახვა"
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-black text-text">{selectedImage.name}</p>
+                  <p className="mt-0.5 text-[11px] text-text-soft">{formatImageSize(selectedImage.size)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearSelectedImage}
+                  disabled={sending}
+                  aria-label="არჩეული ფოტოს მოშორება"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text-soft transition hover:bg-white hover:text-text disabled:opacity-50"
                 >
-                  <path d="m4 4 16 8-16 8 3-8-3-8Z" />
-                  <path d="M7 12h13" />
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="2">
+                    <path d="m6 6 12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </div>
+            ) : null}
+
+            <div className="flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageChange}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+                aria-label="ფოტოს დამატება"
+                title="ფოტოს დამატება"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-white text-brand transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="16" rx="3" />
+                  <circle cx="9" cy="10" r="2" />
+                  <path d="m21 15-4.5-4.5L7 20" />
                 </svg>
-              )}
-            </button>
+              </button>
+
+              <label htmlFor="chat-message-body" className="sr-only">
+                შეტყობინება
+              </label>
+              <textarea
+                ref={textareaRef}
+                id="chat-message-body"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                onKeyDown={handleComposerKeyDown}
+                maxLength={CHAT_MESSAGE_MAX_LENGTH}
+                rows={1}
+                aria-describedby="chat-message-help chat-message-feedback"
+                placeholder={selectedImage ? "დაამატე წარწერა…" : "დაწერე შეტყობინება…"}
+                className="min-h-11 max-h-36 flex-1 resize-none rounded-2xl border border-line bg-surface-alt px-4 py-2.5 text-sm leading-5 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand-soft"
+              />
+              <button
+                type="submit"
+                disabled={sending || (!body.trim() && !selectedImage)}
+                aria-label={selectedImage ? "ფოტოს გაგზავნა" : "გაგზავნა"}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sending ? (
+                  <span className="text-[10px] font-black">...</span>
+                ) : (
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5 fill-none stroke-current"
+                    strokeWidth="2"
+                  >
+                    <path d="m4 4 16 8-16 8 3-8-3-8Z" />
+                    <path d="M7 12h13" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
         ) : (
           <p className="mx-auto max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
@@ -470,7 +642,7 @@ export default function ChatThreadClient({
           id="chat-message-help"
           className="mx-auto mt-1 flex max-w-3xl justify-between px-1 text-[10px] text-text-soft"
         >
-          <span>Enter — გაგზავნა · Shift+Enter — ახალი ხაზი</span>
+          <span>Enter — გაგზავნა · Shift+Enter — ახალი ხაზი · ფოტო მაქს. 8 MB</span>
           <span>
             {body.length}/{CHAT_MESSAGE_MAX_LENGTH}
           </span>
