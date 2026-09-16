@@ -53,6 +53,11 @@ const ACTION_RULES = {
     maxHits: 20,
     label: "Story ფაილების ატვირთვა",
   },
+  support_contact: {
+    windowSeconds: 60 * 60,
+    maxHits: 5,
+    label: "მხარდაჭერისთვის წერილების გაგზავნა",
+  },
 } as const
 
 type RateLimitAction = keyof typeof ACTION_RULES

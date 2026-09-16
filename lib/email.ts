@@ -5,6 +5,7 @@ type SendEmailInput = {
   subject: string
   text: string
   html: string
+  replyTo?: string
 }
 
 export type SendEmailResult =
@@ -46,6 +47,7 @@ export async function sendTransactionalEmail(
         subject: input.subject,
         text: input.text,
         html: input.html,
+        ...(input.replyTo ? { reply_to: [input.replyTo] } : {}),
       }),
       signal: AbortSignal.timeout(6000),
     })
@@ -57,7 +59,10 @@ export async function sendTransactionalEmail(
 
     return { ok: true }
   } catch (error) {
-    console.error("[email] delivery request failed", error instanceof Error ? error.message : "unknown error")
+    console.error(
+      "[email] delivery request failed",
+      error instanceof Error ? error.message : "unknown error",
+    )
     return { ok: false, skipped: false }
   }
 }
