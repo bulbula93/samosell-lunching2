@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
   CHAT_IMAGE_BUCKET,
@@ -41,8 +41,11 @@ describe("chat image messaging", () => {
   })
 
   it("keeps the bucket private and the image RPC locked to authenticated roles", () => {
-    const migrationPath = fileURLToPath(
-      new URL("../supabase/migrations/20260916111909_add_private_chat_image_messages.sql", import.meta.url),
+    const migrationPath = join(
+      process.cwd(),
+      "supabase",
+      "migrations",
+      "20260916111909_add_private_chat_image_messages.sql",
     )
     const migration = readFileSync(migrationPath, "utf8")
     expect(migration).toContain("'chat-images'")
