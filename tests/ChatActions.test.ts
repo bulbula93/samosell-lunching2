@@ -201,6 +201,7 @@ describe("chat server actions", () => {
         sender_id: buyerId,
         body: "პასუხი",
         created_at: createdAt,
+        message_type: "text",
       },
     })
     expect(rpc).toHaveBeenCalledWith("send_chat_message", {

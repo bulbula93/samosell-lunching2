@@ -6,6 +6,15 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import {
+  CHAT_IMAGE_BUCKET,
+  CHAT_IMAGE_MAX_BYTES,
+  chatImageErrorMessage,
+  chatImageExtensionForMime,
+  isChatImageMimeType,
+  ownedChatImagePath,
+  validateChatImageBlob,
+} from "@/lib/chat-images"
+import {
   CHAT_MESSAGE_PAGE_SIZE,
   chatErrorMessage,
   isChatUuid,
@@ -14,6 +23,7 @@ import {
 import { isValidListingSlug } from "@/lib/listing-page"
 import { notifyChatMessage } from "@/lib/notifications"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { ChatMessage, ChatMessageCursor } from "@/types/chat"
 
@@ -25,6 +35,10 @@ export type StartChatState = {
 export type SendChatMessageResult =
   | { ok: true; message: ChatMessage }
   | { ok: false; code: "unauthorized" | "invalid" | "not_found" | "server_error"; message: string }
+
+export type PrepareChatImageUploadResult =
+  | { ok: true; path: string; token: string }
+  | { ok: false; message: string }
 
 export type LoadOlderMessagesResult =
   | { ok: true; messages: ChatMessage[]; hasMore: boolean }
@@ -75,6 +89,7 @@ function buildMessage(
   row: MessageRpcRow,
   chatId: string,
   senderId: string,
+  messageType: ChatMessage["message_type"] = "text",
 ): ChatMessage {
   return {
     id: row.message_id,
@@ -82,6 +97,7 @@ function buildMessage(
     sender_id: senderId,
     body: row.message_body,
     created_at: row.message_created_at,
+    message_type: messageType,
   }
 }
 
@@ -91,6 +107,18 @@ async function createChatNotificationSafely(input: Parameters<typeof notifyChatM
   } catch (error) {
     console.error(
       "[notifications] chat notification failed",
+      error instanceof Error ? error.message : "unknown error",
+    )
+  }
+}
+
+async function removeChatImageSafely(path: string) {
+  try {
+    const { error } = await createAdminClient().storage.from(CHAT_IMAGE_BUCKET).remove([path])
+    if (error) console.error("[chat-images] cleanup failed", error.message)
+  } catch (error) {
+    console.error(
+      "[chat-images] cleanup failed",
       error instanceof Error ? error.message : "unknown error",
     )
   }
@@ -221,6 +249,198 @@ export async function sendChatMessageAction(
       code: "server_error",
       message: chatErrorMessage(),
     }
+  }
+}
+
+export async function prepareChatImageUploadAction(input: {
+  chatId: string
+  mimeType: string
+  size: number
+}): Promise<PrepareChatImageUploadResult> {
+  const context = await getAuthenticatedChatContext()
+  if (!context) return { ok: false, message: "ფოტოს გასაგზავნად შედი ანგარიშში." }
+
+  const mimeType = String(input?.mimeType ?? "")
+  const size = Number(input?.size ?? 0)
+  if (
+    !isChatUuid(input?.chatId) ||
+    !isChatImageMimeType(mimeType) ||
+    !Number.isSafeInteger(size) ||
+    size < 1 ||
+    size > CHAT_IMAGE_MAX_BYTES
+  ) {
+    return { ok: false, message: chatImageErrorMessage(size > CHAT_IMAGE_MAX_BYTES ? "chat_image_invalid_size" : "chat_image_invalid_type") }
+  }
+
+  try {
+    if (!(await canAccessChat(context, input.chatId))) {
+      return { ok: false, message: chatImageErrorMessage("conversation_not_found") }
+    }
+
+    const extension = chatImageExtensionForMime(mimeType)
+    const path = `${context.user.id}/${input.chatId}/${crypto.randomUUID()}.${extension}`
+    const { data, error } = await createAdminClient()
+      .storage
+      .from(CHAT_IMAGE_BUCKET)
+      .createSignedUploadUrl(path, { upsert: false })
+
+    if (error || !data?.token) {
+      throw error ?? new Error("chat_image_upload_url_missing")
+    }
+
+    return { ok: true, path, token: data.token }
+  } catch (error) {
+    return {
+      ok: false,
+      message: chatImageErrorMessage(error instanceof Error ? error.message : ""),
+    }
+  }
+}
+
+export async function abortChatImageUploadAction(input: {
+  chatId: string
+  path: string
+}) {
+  const context = await getAuthenticatedChatContext()
+  if (
+    !context ||
+    !isChatUuid(input?.chatId) ||
+    !ownedChatImagePath(String(input?.path ?? ""), context.user.id, input.chatId)
+  ) {
+    return { ok: false as const }
+  }
+
+  await removeChatImageSafely(input.path)
+  return { ok: true as const }
+}
+
+export async function sendChatImageMessageAction(input: {
+  chatId: string
+  body?: string
+  path: string
+  mimeType: string
+  size: number
+  clientRequestId: string
+}): Promise<SendChatMessageResult> {
+  const context = await getAuthenticatedChatContext()
+  if (!context) {
+    return {
+      ok: false,
+      code: "unauthorized",
+      message: "სესია დასრულებულია. ხელახლა შედი ანგარიშში.",
+    }
+  }
+
+  const mimeType = String(input?.mimeType ?? "")
+  const size = Number(input?.size ?? 0)
+  const path = String(input?.path ?? "")
+  if (
+    !isChatUuid(input?.chatId) ||
+    !isChatUuid(input?.clientRequestId) ||
+    !isChatImageMimeType(mimeType) ||
+    !Number.isSafeInteger(size) ||
+    size < 1 ||
+    size > CHAT_IMAGE_MAX_BYTES ||
+    !ownedChatImagePath(path, context.user.id, input.chatId) ||
+    !path.toLowerCase().endsWith(`.${chatImageExtensionForMime(mimeType)}`)
+  ) {
+    return { ok: false, code: "invalid", message: "ფოტოს მონაცემები არასწორია." }
+  }
+
+  const rawBody = String(input?.body ?? "").trim()
+  let messageBody = "📷 ფოტო"
+  if (rawBody) {
+    const validation = validateChatMessageBody(rawBody)
+    if (!validation.ok) {
+      await removeChatImageSafely(path)
+      return { ok: false, code: "invalid", message: validation.message }
+    }
+    messageBody = validation.body
+  }
+
+  let rpcCompleted = false
+  try {
+    if (!(await canAccessChat(context, input.chatId))) {
+      await removeChatImageSafely(path)
+      return {
+        ok: false,
+        code: "not_found",
+        message: chatImageErrorMessage("conversation_not_found"),
+      }
+    }
+
+    const admin = createAdminClient()
+    const { data: blob, error: downloadError } = await admin.storage
+      .from(CHAT_IMAGE_BUCKET)
+      .download(path)
+    if (downloadError || !blob) throw new Error("chat_image_missing")
+
+    await validateChatImageBlob(blob, mimeType, size)
+
+    const { data, error } = await context.supabase
+      .rpc("send_chat_image_message", {
+        p_chat_id: input.chatId,
+        p_body: messageBody,
+        p_media_path: path,
+        p_mime_type: mimeType,
+        p_media_size: size,
+        p_client_request_id: input.clientRequestId,
+      })
+      .single()
+
+    const row = data as MessageRpcRow | null
+    if (error || !row?.message_id) {
+      const { data: existing } = await context.supabase
+        .from("messages")
+        .select("id, chat_id, sender_id, body, created_at, message_type")
+        .eq("sender_id", context.user.id)
+        .eq("client_request_id", input.clientRequestId)
+        .maybeSingle()
+
+      if (
+        existing &&
+        existing.chat_id === input.chatId &&
+        existing.message_type === "image"
+      ) {
+        rpcCompleted = true
+        return {
+          ok: true,
+          message: {
+            id: existing.id,
+            chat_id: existing.chat_id,
+            sender_id: existing.sender_id,
+            body: existing.body,
+            created_at: existing.created_at,
+            message_type: "image",
+          },
+        }
+      }
+
+      throw error ?? new Error("chat_image_message_failed")
+    }
+
+    rpcCompleted = true
+    await createChatNotificationSafely({
+      chatId: input.chatId,
+      messageId: row.message_id,
+      senderId: context.user.id,
+      body: row.message_body,
+      firstMessage: false,
+    })
+
+    revalidatePath("/dashboard/chats")
+    revalidatePath("/dashboard/notifications")
+    revalidatePath(`/dashboard/chats/${input.chatId}`)
+
+    return {
+      ok: true,
+      message: buildMessage(row, input.chatId, context.user.id, "image"),
+    }
+  } catch (error) {
+    if (!rpcCompleted) await removeChatImageSafely(path)
+    const rawError = error instanceof Error ? error.message : ""
+    const code = rawError.includes("conversation_not_found") ? "not_found" : "server_error"
+    return { ok: false, code, message: chatImageErrorMessage(rawError) }
   }
 }
 

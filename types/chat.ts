@@ -33,7 +33,7 @@ export type ChatMessage = {
   sender_id: string
   body: string
   created_at: string
-  message_type?: "text" | "story_reply"
+  message_type?: "text" | "story_reply" | "image"
   story_id?: string | null
   story_context?: {
     available: boolean
