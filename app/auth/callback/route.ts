@@ -7,7 +7,10 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = getSafeAuthRedirectPath(requestUrl.searchParams.get("next"))
-  const redirectOrigin = process.env.NODE_ENV === "development" ? requestUrl.origin : getSiteUrlEnv()
+  const redirectOrigin =
+    process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "preview"
+      ? requestUrl.origin
+      : getSiteUrlEnv()
 
   if (code) {
     const supabase = await createClient()
