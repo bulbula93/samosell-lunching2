@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
+import SupportContactCard from "@/components/support/SupportContactCard"
 import { SITE_NAME, getSupportConfig } from "@/lib/site"
+import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
   title: "დახმარება და კონტაქტი",
@@ -11,8 +13,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function ContactPage() {
+export default async function ContactPage() {
   const support = getSupportConfig()
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const userEmail = String(user?.email ?? "").trim() || null
 
   return (
     <main className="min-h-screen bg-neutral-50 text-neutral-900">
@@ -26,13 +33,15 @@ export default function ContactPage() {
             ყველაზე მგრძნობიარე შემთხვევებისთვის გამოიყენე უსაფრთხოების მისამართი.
           </p>
 
+          <SupportContactCard userEmail={userEmail} supportEmail={support.supportEmail} />
+
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">მხარდაჭერა</div>
-              <a href={`mailto:${support.supportEmail}`} className="mt-3 block text-lg font-black text-neutral-900 underline decoration-neutral-300 underline-offset-4">
+              <div className="mt-3 break-all text-lg font-black text-neutral-900">
                 {support.supportEmail}
-              </a>
-              <p className="mt-2 text-sm leading-6 text-neutral-600">ანგარიშის, განცხადების, ჩათისა და ტექნიკური საკითხებისთვის.</p>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-neutral-600">ანგარიშის, განცხადების, ჩათისა და ტექნიკური საკითხებისთვის. წერილის გაგზავნა შეგიძლია პირდაპირ ზემოთ არსებული ფორმიდან.</p>
             </div>
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">პასუხის დრო</div>
@@ -46,7 +55,7 @@ export default function ContactPage() {
             </div>
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">უსაფრთხოება</div>
-              <a href={`mailto:${support.trustEmail}`} className="mt-3 block text-lg font-black text-neutral-900 underline decoration-neutral-300 underline-offset-4">
+              <a href={`mailto:${support.trustEmail}`} className="mt-3 block break-all text-lg font-black text-neutral-900 underline decoration-neutral-300 underline-offset-4">
                 {support.trustEmail}
               </a>
               <p className="mt-2 text-sm leading-6 text-neutral-600">თაღლითობა, სხვისადმი თავის გასაღება ან წესების დარღვევა აქ გამოგზავნე.</p>
