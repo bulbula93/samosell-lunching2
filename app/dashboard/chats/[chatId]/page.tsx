@@ -239,6 +239,7 @@ export default async function ChatThreadPage({
 
       <div className="min-h-0 flex-1">
         <ChatThreadClient
+          key={typedThread.id}
           chatId={typedThread.id}
           currentUserId={user.id}
           initialMessages={typedMessages}

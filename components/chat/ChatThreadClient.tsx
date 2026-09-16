@@ -90,7 +90,6 @@ export default function ChatThreadClient({
         } else {
           viewport.scrollTop = viewport.scrollHeight
         }
-        setNewMessageCount(0)
       }
     })
   }, [])
@@ -100,22 +99,12 @@ export default function ChatThreadClient({
   }, [chatId])
 
   useEffect(() => {
-    setMessages(initialMessages)
-    setHasMore(initialHasMore)
-    setNewMessageCount(0)
     scrollToBottom()
     const lastMessage = initialMessages.at(-1)
     if (lastMessage && lastMessage.sender_id !== currentUserId) {
       void markRead()
     }
-  }, [
-    chatId,
-    currentUserId,
-    initialHasMore,
-    initialMessages,
-    markRead,
-    scrollToBottom,
-  ])
+  }, [currentUserId, initialMessages, markRead, scrollToBottom])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -160,6 +149,7 @@ export default function ChatThreadClient({
           }
 
           if (shouldStick) {
+            setNewMessageCount(0)
             scrollToBottom(incoming.sender_id === currentUserId ? "auto" : "smooth")
           } else if (incoming.sender_id !== currentUserId) {
             setNewMessageCount((count) => count + 1)
@@ -248,6 +238,7 @@ export default function ChatThreadClient({
     setBody("")
     requestIdRef.current = crypto.randomUUID()
     setSending(false)
+    setNewMessageCount(0)
     scrollToBottom()
     void markRead()
   }
@@ -412,7 +403,10 @@ export default function ChatThreadClient({
         {newMessageCount > 0 ? (
           <button
             type="button"
-            onClick={() => scrollToBottom("smooth")}
+            onClick={() => {
+              setNewMessageCount(0)
+              scrollToBottom("smooth")
+            }}
             className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-text px-4 py-2 text-xs font-black text-white shadow-lg"
           >
             {newMessageCount === 1

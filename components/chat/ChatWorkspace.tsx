@@ -23,6 +23,18 @@ type RealtimeMessage = {
   created_at: string
 }
 
+type ThreadUpdate = Partial<
+  Pick<
+    ChatThread,
+    | "last_message_body"
+    | "last_message_sender_id"
+    | "last_message_created_at"
+    | "last_message_at"
+    | "sort_at"
+    | "unread_count"
+  >
+>
+
 function isRealtimeMessage(value: unknown): value is RealtimeMessage {
   if (!value || typeof value !== "object") return false
   const message = value as Partial<RealtimeMessage>
@@ -62,13 +74,23 @@ export default function ChatWorkspace({
   const supabase = useMemo(() => createClient(), [])
   const activeChatId = activeChatIdFromPath(pathname)
   const threadOpen = Boolean(activeChatId)
-  const [threads, setThreads] = useState(() => sortThreads(initialThreads))
+  const [threadUpdates, setThreadUpdates] = useState<Record<string, ThreadUpdate>>({})
   const [filter, setFilter] = useState<InboxFilter>("inbox")
   const [query, setQuery] = useState("")
 
-  useEffect(() => {
-    setThreads(sortThreads(initialThreads))
-  }, [initialThreads])
+  const threads = useMemo(
+    () =>
+      sortThreads(
+        initialThreads.map((thread) => {
+          const update = threadUpdates[thread.id]
+          const merged = update ? { ...thread, ...update } : thread
+          return merged.id === activeChatId && merged.unread_count > 0
+            ? { ...merged, unread_count: 0 }
+            : merged
+        }),
+      ),
+    [activeChatId, initialThreads, threadUpdates],
+  )
 
   useEffect(() => {
     const channel = supabase
@@ -83,14 +105,18 @@ export default function ChatWorkspace({
         (payload) => {
           if (!isRealtimeMessage(payload.new)) return
           const incoming = payload.new
+          const baseThread = initialThreads.find(
+            (thread) => thread.id === incoming.chat_id,
+          )
 
-          setThreads((current) => {
-            const existing = current.find((thread) => thread.id === incoming.chat_id)
-            if (!existing) {
-              router.refresh()
-              return current
-            }
+          if (!baseThread) {
+            router.refresh()
+            return
+          }
 
+          setThreadUpdates((current) => {
+            const existingUpdate = current[incoming.chat_id] ?? {}
+            const existing = { ...baseThread, ...existingUpdate }
             const nextUnread =
               incoming.sender_id !== currentUserId && activeChatId !== incoming.chat_id
                 ? existing.unread_count + 1
@@ -98,20 +124,18 @@ export default function ChatWorkspace({
                   ? 0
                   : existing.unread_count
 
-            const updated: ChatThread = {
-              ...existing,
-              last_message_body: incoming.body,
-              last_message_sender_id: incoming.sender_id,
-              last_message_created_at: incoming.created_at,
-              last_message_at: incoming.created_at,
-              sort_at: incoming.created_at,
-              unread_count: nextUnread,
+            return {
+              ...current,
+              [incoming.chat_id]: {
+                ...existingUpdate,
+                last_message_body: incoming.body,
+                last_message_sender_id: incoming.sender_id,
+                last_message_created_at: incoming.created_at,
+                last_message_at: incoming.created_at,
+                sort_at: incoming.created_at,
+                unread_count: nextUnread,
+              },
             }
-
-            return sortThreads([
-              updated,
-              ...current.filter((thread) => thread.id !== incoming.chat_id),
-            ])
           })
         },
       )
@@ -120,18 +144,20 @@ export default function ChatWorkspace({
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [activeChatId, currentUserId, router, supabase])
+  }, [activeChatId, currentUserId, initialThreads, router, supabase])
 
-  useEffect(() => {
-    if (!activeChatId) return
-    setThreads((current) =>
-      current.map((thread) =>
-        thread.id === activeChatId && thread.unread_count > 0
-          ? { ...thread, unread_count: 0 }
-          : thread,
-      ),
-    )
-  }, [activeChatId])
+  function markThreadLocallyRead(chatId: string) {
+    setThreadUpdates((current) => {
+      const existing = current[chatId] ?? {}
+      return {
+        ...current,
+        [chatId]: {
+          ...existing,
+          unread_count: 0,
+        },
+      }
+    })
+  }
 
   const normalizedQuery = query.trim().toLocaleLowerCase("ka-GE")
   const visibleThreads = threads.filter((thread) => {
@@ -235,6 +261,7 @@ export default function ChatWorkspace({
                     <Link
                       key={thread.id}
                       href={`/dashboard/chats/${thread.id}`}
+                      onClick={() => markThreadLocallyRead(thread.id)}
                       aria-current={active ? "page" : undefined}
                       className={`grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-3 transition ${
                         active
