@@ -8,10 +8,6 @@ const footerGroups = [
     links: [
       { href: "/catalog", label: "კატალოგი" },
       { href: "/catalog?category=women", label: "ქალებისთვის" },
-      { href: "/catalog?category=men", label: "მამაკაცებისთვის" },
-      { href: "/catalog?category=kids", label: "ბავშვებისთვის" },
-      { href: "/catalog?category=footwear", label: "ფეხსაცმელი" },
-      { href: "/catalog?category=bags", label: "ჩანთები" },
       { href: "/catalog?category=accessories", label: "აქსესუარები" },
       { href: "/catalog?category=vintage", label: "ვინტაჟი" },
       { href: "/sell-fast", label: "როგორ გავყიდო" },
@@ -48,7 +44,7 @@ export default function SiteFooter() {
             <p className="mt-4 text-sm leading-7 text-white/70">
               ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
             </p>
-            <Link href="/dashboard/listings/new" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
+            <Link href="/sell-fast" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
             </Link>
           </div>
