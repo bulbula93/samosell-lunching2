@@ -1,4 +1,4 @@
-import { SITE_DESCRIPTION_EN, SITE_NAME } from "@/lib/site"
+import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import type { CatalogListing } from "@/types/marketplace"
 
 export const GOOGLE_SITE_VERIFICATION = "uQuez09mPR--nX75FjQfxC1lHoSPZ4Kp19VP2rdNhf0"
@@ -35,12 +35,14 @@ export function truncateDescription(value?: string | null, maxLength = 160) {
 }
 
 export function buildCatalogTitle(page = 1, categoryLabel = "") {
-  const base = categoryLabel ? `${categoryLabel} — კატალოგი` : "კატალოგი"
+  const base = categoryLabel
+    ? `${categoryLabel} — მეორადი ტანსაცმლის კატალოგი`
+    : "მეორადი ტანსაცმლის კატალოგი საქართველოში"
   return page > 1 ? `${base} — გვერდი ${page}` : base
 }
 
 export function buildCatalogDescription(filters: string[] = []) {
-  const base = SITE_DESCRIPTION_EN
+  const base = SITE_DESCRIPTION_KA
   if (filters.length === 0) return base
   return `${base} აქტიური ფილტრები: ${filters.join(", ")}.`
 }
