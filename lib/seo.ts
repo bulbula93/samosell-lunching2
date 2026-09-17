@@ -27,11 +27,23 @@ export function stripHtml(value?: string | null) {
   return String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 }
 
+const SHORT_META_DESCRIPTION_THRESHOLD = 90
+const SHORT_META_DESCRIPTION_SUFFIX =
+  "დამატებითი დეტალები, ფოტოები და სხვა აქტიური შეთავაზებები ნახე SamoSell-ზე."
+
 export function truncateDescription(value?: string | null, maxLength = 160) {
   const safe = stripHtml(value)
   if (!safe) return ""
-  if (safe.length <= maxLength) return safe
-  return `${safe.slice(0, maxLength - 1).trim()}…`
+
+  const shouldEnrichForMeta =
+    maxLength <= 180 && safe.length < SHORT_META_DESCRIPTION_THRESHOLD
+  const punctuation = /[.!?…]$/.test(safe) ? "" : "."
+  const enriched = shouldEnrichForMeta
+    ? `${safe}${punctuation} ${SHORT_META_DESCRIPTION_SUFFIX}`
+    : safe
+
+  if (enriched.length <= maxLength) return enriched
+  return `${enriched.slice(0, maxLength - 1).trim()}…`
 }
 
 export function buildCatalogTitle(page = 1, categoryLabel = "") {
