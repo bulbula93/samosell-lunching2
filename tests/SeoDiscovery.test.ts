@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest"
 import {
   absoluteUrl,
   buildCatalogCanonicalPath,
+  buildCatalogDescription,
+  buildCatalogTitle,
   buildHomeStructuredData,
   buildListingStructuredData,
   getSiteUrl,
@@ -30,6 +32,16 @@ describe("Google discovery metadata", () => {
     expect(SITE_URL).toBe("https://samosell.ge")
     expect(getSiteUrl()).toBe("https://samosell.ge")
     expect(absoluteUrl("/login")).toBe("https://samosell.ge/login")
+  })
+
+  it("uses descriptive Georgian metadata for home and catalog discovery", () => {
+    expect(buildCatalogTitle()).toContain("მეორადი ტანსაცმლის კატალოგი")
+    expect(buildCatalogTitle(1, "ქალებისთვის")).toContain("ქალებისთვის")
+    expect(buildCatalogDescription()).toContain("SamoSell")
+    expect(buildCatalogDescription()).not.toContain("Fashion-first marketplace")
+    expect(read("app/page.tsx")).toContain(
+      "SamoSell — მეორადი ტანსაცმელი და აქსესუარები საქართველოში",
+    )
   })
 
   it("indexes clean catalog/category pages and consolidates faceted URLs", () => {
@@ -100,17 +112,36 @@ describe("Google discovery metadata", () => {
     expect(serialized).toContain("\\u003c/script\\u003e")
   })
 
-  it("keeps private auth routes out of search and public sellers in the sitemap", () => {
+  it("keeps anonymous crawl paths public while private routes stay out of search", () => {
     expect(read("app/login/page.tsx")).toContain(
       "robots: { index: false, follow: false }",
     )
     expect(read("app/register/page.tsx")).toContain(
       "robots: { index: false, follow: false }",
     )
+
+    const footer = read("components/layout/SiteFooter.tsx")
+    expect(footer).not.toContain('/dashboard/favorites')
+    expect(footer).not.toContain('href="/dashboard/listings/new"')
+    expect(footer).toContain('href="/sell-fast"')
+
+    const desktopHeader = read("components/layout/MarketplaceHeader.tsx")
+    const mobileHeader = read("components/layout/MobileNavigation.tsx")
+    expect(desktopHeader).toContain(
+      'const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"',
+    )
+    expect(mobileHeader).toContain(
+      'const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"',
+    )
+  })
+
+  it("keeps public sellers/listings and only populated categories in the sitemap", () => {
     const sitemap = read("app/sitemap.ts")
     expect(sitemap).toContain('seller_username')
     expect(sitemap).toContain('/seller/${encodeURIComponent(username)}')
     expect(sitemap).toContain("INDEXABLE_CATALOG_CATEGORIES")
+    expect(sitemap).toContain("applyCatalogFilters")
+    expect(sitemap).toContain("count > 0")
     expect(sitemap).toContain('select("slug, updated_at")')
     expect(read("app/listing/[slug]/page.tsx")).toContain(
       "if (!metadata) notFound()",
