@@ -152,7 +152,7 @@ export default function ListingGallery({
               >
                 <SmartImage
                   src={image.image_url}
-                  alt=""
+                  alt={`${title} — ${ka.listingDetail.imageCount} ${index + 1}`}
                   wrapperClassName="h-full w-full"
                   className="object-cover"
                   fallbackLabel=""
