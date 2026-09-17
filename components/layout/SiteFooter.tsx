@@ -7,8 +7,14 @@ const footerGroups = [
     title: "აღმოაჩინე",
     links: [
       { href: "/catalog", label: "კატალოგი" },
+      { href: "/catalog?category=women", label: "ქალებისთვის" },
+      { href: "/catalog?category=men", label: "მამაკაცებისთვის" },
+      { href: "/catalog?category=kids", label: "ბავშვებისთვის" },
+      { href: "/catalog?category=footwear", label: "ფეხსაცმელი" },
+      { href: "/catalog?category=bags", label: "ჩანთები" },
+      { href: "/catalog?category=accessories", label: "აქსესუარები" },
+      { href: "/catalog?category=vintage", label: "ვინტაჟი" },
       { href: "/sell-fast", label: "როგორ გავყიდო" },
-      { href: "/dashboard/favorites", label: "რჩეულები" },
     ],
   },
   {
