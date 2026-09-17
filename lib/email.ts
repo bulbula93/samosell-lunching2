@@ -9,7 +9,7 @@ type SendEmailInput = {
 }
 
 export type SendEmailResult =
-  | { ok: true }
+  | { ok: true; id?: string }
   | { ok: false; skipped: true }
   | { ok: false; skipped: false; status?: number }
 
@@ -57,7 +57,12 @@ export async function sendTransactionalEmail(
       return { ok: false, skipped: false, status: response.status }
     }
 
-    return { ok: true }
+    const payload = (await response.json().catch(() => null)) as
+      | { id?: unknown }
+      | null
+    const id = typeof payload?.id === "string" ? payload.id : undefined
+
+    return { ok: true, ...(id ? { id } : {}) }
   } catch (error) {
     console.error(
       "[email] delivery request failed",
