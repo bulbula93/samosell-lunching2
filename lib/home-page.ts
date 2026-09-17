@@ -17,7 +17,7 @@ export type PopularBrand = {
 export type HomePageData = {
   user: User | null
   heroItems: CatalogListing[]
-  featuredItems: CatalogListing[]
+  vipItems: CatalogListing[]
   bannerItems: CatalogListing[]
   latestItems: CatalogListing[]
   popularItems: CatalogListing[]
@@ -48,7 +48,7 @@ export async function getHomePageData(): Promise<HomePageData> {
   const [
     authResponse,
     heroResponse,
-    featuredResponse,
+    vipResponse,
     bannerResponse,
     latestResponse,
     popularResponse,
@@ -62,18 +62,22 @@ export async function getHomePageData(): Promise<HomePageData> {
       .from("listings_catalog")
       .select(baseListingSelect)
       .eq("status", "active")
+      .eq("is_featured", true)
+      .eq("is_promoted", true)
       .eq("is_vip", true)
       .not("cover_image_url", "is", null)
+      .order("featured_slot", { ascending: true, nullsFirst: false })
       .order("published_at", { ascending: false, nullsFirst: false })
       .limit(8),
     supabase
       .from("listings_catalog")
       .select(baseListingSelect)
       .eq("status", "active")
-      .eq("is_featured", true)
-      .order("featured_slot", { ascending: true, nullsFirst: false })
+      .eq("is_vip", true)
+      .not("cover_image_url", "is", null)
+      .order("promotion_tier", { ascending: false })
       .order("published_at", { ascending: false, nullsFirst: false })
-      .limit(10),
+      .limit(12),
     supabase
       .from("listings_catalog")
       .select(baseListingSelect)
@@ -115,7 +119,7 @@ export async function getHomePageData(): Promise<HomePageData> {
 
   const criticalError =
     heroResponse.error ||
-    featuredResponse.error ||
+    vipResponse.error ||
     bannerResponse.error ||
     latestResponse.error ||
     popularResponse.error ||
@@ -148,7 +152,7 @@ export async function getHomePageData(): Promise<HomePageData> {
   return {
     user,
     heroItems,
-    featuredItems: (featuredResponse.data ?? []) as CatalogListing[],
+    vipItems: (vipResponse.data ?? []) as CatalogListing[],
     bannerItems: (bannerResponse.data ?? []) as CatalogListing[],
     latestItems: latestItems.slice(0, 10),
     popularItems: popularItems.slice(0, 10),
