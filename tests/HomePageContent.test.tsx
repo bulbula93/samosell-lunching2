@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import HomePageContent from "@/components/home/HomePageContent"
 import SiteFooter from "@/components/layout/SiteFooter"
@@ -7,11 +7,21 @@ import type { HomePageData } from "@/lib/home-page"
 import { makeListing } from "@/tests/fixtures"
 
 function makeHomeData(): HomePageData {
-  const listing = makeListing()
+  const listing = makeListing({ cover_image_url: "/listing.jpg" })
+  const vipListing = makeListing({ id: "vip-rail-1", title: "VIP ნივთი", cover_image_url: "/vip.jpg", is_vip: true })
+  const vipMaxListing = makeListing({
+    id: "vip-max-1",
+    title: "VIP MAX ნივთი",
+    cover_image_url: "/vip-max.jpg",
+    is_vip: true,
+    is_promoted: true,
+    is_featured: true,
+  })
+
   return {
     user: null,
-    heroItems: [listing],
-    featuredItems: [],
+    heroItems: [vipMaxListing],
+    vipItems: [vipListing, vipMaxListing],
     bannerItems: [],
     latestItems: [listing],
     popularItems: [],
@@ -28,11 +38,12 @@ describe("HomePageContent", () => {
     vi.useRealTimers()
   })
 
-  it("renders the original hero, real product section, brands, and how-it-works content", () => {
+  it("renders the hero, dedicated VIP rail, real product section, brands, and how-it-works content", () => {
     render(<HomePageContent data={makeHomeData()} />)
 
     expect(screen.getByRole("heading", { level: 1, name: ka.home.title })).toBeInTheDocument()
     expect(screen.getByText(ka.home.description)).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "VIP განცხადებები" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()
@@ -41,26 +52,26 @@ describe("HomePageContent", () => {
     expect(screen.getByText("გახადე შენი განცხადება უფრო პოპულარული")).toBeInTheDocument()
   })
 
-  it("renders only real VIP listings in the hero carousel", () => {
+  it("renders only VIP MAX listings in the hero carousel", () => {
     const data = makeHomeData()
     data.heroItems = [
-      makeListing({ id: "vip-1", title: "VIP კაბა", cover_image_url: "/vip-1.jpg", is_vip: true }),
-      makeListing({ id: "vip-2", title: "VIP პალტო", cover_image_url: "/vip-2.jpg", is_vip: true }),
-      makeListing({ id: "regular-1", title: "ჩვეულებრივი ჩანთა", cover_image_url: "/regular-1.jpg", is_vip: false }),
+      makeListing({ id: "max-1", title: "VIP MAX კაბა", cover_image_url: "/max-1.jpg", is_vip: true, is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-2", title: "VIP MAX პალტო", cover_image_url: "/max-2.jpg", is_vip: true, is_promoted: true, is_featured: true }),
+      makeListing({ id: "vip-only", title: "ჩვეულებრივი VIP", cover_image_url: "/vip-only.jpg", is_vip: true, is_promoted: false, is_featured: false }),
     ]
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByAltText("VIP კაბა")).toBeInTheDocument()
-    expect(screen.queryByAltText("ჩვეულებრივი ჩანთა")).not.toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "VIP განცხადება: VIP კაბა" })).toHaveAttribute("href", "/listing/linen-jacket")
+    expect(screen.getByAltText("VIP MAX კაბა")).toBeInTheDocument()
+    expect(screen.queryByAltText("ჩვეულებრივი VIP")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "VIP MAX განცხადება: VIP MAX კაბა" })).toHaveAttribute("href", "/listing/linen-jacket")
 
     fireEvent.click(screen.getByRole("button", { name: "შემდეგი განცხადება" }))
-    expect(screen.getByAltText("VIP პალტო")).toBeInTheDocument()
-    expect(screen.queryByAltText("ჩვეულებრივი ჩანთა")).not.toBeInTheDocument()
+    expect(screen.getByAltText("VIP MAX პალტო")).toBeInTheDocument()
+    expect(screen.queryByAltText("ჩვეულებრივი VIP")).not.toBeInTheDocument()
   })
 
-  it("falls back to popular listings when no active VIP listing exists", () => {
+  it("does not fall back to popular listings when there is no VIP MAX listing", () => {
     const data = makeHomeData()
     data.heroItems = []
     data.popularItems = [
@@ -69,45 +80,39 @@ describe("HomePageContent", () => {
 
     render(<HomePageContent data={data} />)
 
-    const popularCarousel = screen.getByRole("region", { name: "პოპულარული ნივთები" })
-    expect(popularCarousel).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "პოპულარული განცხადება: პოპულარული კაბა" })).toHaveAttribute(
-      "href",
-      "/listing/linen-jacket",
-    )
-    expect(within(popularCarousel).getByAltText("პოპულარული კაბა")).toBeInTheDocument()
-    expect(screen.queryByText("VIP სივრცე")).not.toBeInTheDocument()
+    expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
+    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები")).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "პოპულარული ნივთები" })).not.toBeInTheDocument()
   })
 
-  it("rotates hero listings every five seconds and supports pausing", () => {
+  it("rotates VIP MAX hero listings every five seconds and supports pausing", () => {
     vi.useFakeTimers()
     const data = makeHomeData()
     data.heroItems = [
-      makeListing({ id: "vip-1", title: "პირველი VIP", cover_image_url: "/vip-1.jpg", is_vip: true }),
-      makeListing({ id: "vip-2", title: "მეორე VIP", cover_image_url: "/vip-2.jpg", is_vip: true }),
+      makeListing({ id: "max-1", title: "პირველი VIP MAX", cover_image_url: "/max-1.jpg", is_vip: true, is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-2", title: "მეორე VIP MAX", cover_image_url: "/max-2.jpg", is_vip: true, is_promoted: true, is_featured: true }),
     ]
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByAltText("პირველი VIP")).toBeInTheDocument()
+    expect(screen.getByAltText("პირველი VIP MAX")).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(5_000))
-    expect(screen.getByAltText("მეორე VIP")).toBeInTheDocument()
+    expect(screen.getByAltText("მეორე VIP MAX")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "ავტომატური მონაცვლეობის შეჩერება" }))
     act(() => vi.advanceTimersByTime(5_000))
-    expect(screen.getByAltText("მეორე VIP")).toBeInTheDocument()
+    expect(screen.getByAltText("მეორე VIP MAX")).toBeInTheDocument()
   })
 
-  it("shows the VIP promotion only when neither VIP nor popular listings exist", () => {
+  it("shows the VIP MAX promotion when no VIP MAX listing exists", () => {
     const data = makeHomeData()
     data.heroItems = []
-    data.popularItems = []
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByText("VIP სივრცე")).toBeInTheDocument()
-    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP განცხადებები")).toBeInTheDocument()
-    expect(screen.getAllByRole("link", { name: "შექმენი VIP განცხადება" })[0]).toHaveAttribute("href", "/dashboard/listings")
+    expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
+    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "გააქტიურე VIP MAX" })).toHaveAttribute("href", "/dashboard/listings")
   })
 
   it("renders the requested footer description without a sentence-ending period", () => {
@@ -121,6 +126,7 @@ describe("HomePageContent", () => {
 
   it("does not invent product sections when their data source is empty", () => {
     const data = makeHomeData()
+    data.vipItems = []
     data.latestItems = []
     data.popularItems = []
     data.affordableItems = []
@@ -129,6 +135,7 @@ describe("HomePageContent", () => {
 
     render(<HomePageContent data={data} />)
 
+    expect(screen.queryByRole("heading", { name: "VIP განცხადებები" })).not.toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: ka.home.latest })).not.toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: ka.home.popular })).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.emptyTitle })).toBeInTheDocument()
