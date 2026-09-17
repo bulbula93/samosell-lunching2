@@ -207,7 +207,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showPrevious}
             aria-label="წინა განცხადება"
-            className="absolute left-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-left-5"
+            className="absolute left-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:left-[18%] lg:left-[17%]"
           >
             <span aria-hidden="true">‹</span>
           </button>
@@ -215,7 +215,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showNext}
             aria-label="შემდეგი განცხადება"
-            className="absolute right-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-right-5"
+            className="absolute right-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:right-[18%] lg:right-[17%]"
           >
             <span aria-hidden="true">›</span>
           </button>
