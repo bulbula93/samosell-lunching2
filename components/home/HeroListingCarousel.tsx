@@ -46,12 +46,8 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
     return () => window.clearInterval(intervalId)
   }, [items.length, pausedByInteraction, pausedByUser, prefersReducedMotion])
 
-  useEffect(() => {
-    if (activeIndex < items.length) return
-    setActiveIndex(0)
-  }, [activeIndex, items.length])
-
-  const activeItem = items[activeIndex] ?? items[0]
+  const normalizedActiveIndex = items.length > 0 ? activeIndex % items.length : 0
+  const activeItem = items[normalizedActiveIndex] ?? items[0]
   const label = "VIP MAX განცხადებები"
   const badge = "VIP MAX"
 
@@ -64,13 +60,13 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
   }
 
   function getVisualPosition(index: number): VisualPosition {
-    if (index === activeIndex) return "center"
+    if (index === normalizedActiveIndex) return "center"
 
     if (items.length === 2) {
-      return index === (activeIndex + 1) % items.length ? "right" : "left"
+      return index === (normalizedActiveIndex + 1) % items.length ? "right" : "left"
     }
 
-    const forwardDistance = (index - activeIndex + items.length) % items.length
+    const forwardDistance = (index - normalizedActiveIndex + items.length) % items.length
     const backwardDistance = forwardDistance - items.length
     const offset = Math.abs(backwardDistance) < Math.abs(forwardDistance) ? backwardDistance : forwardDistance
 
@@ -227,8 +223,8 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
                 type="button"
                 onClick={() => setActiveIndex(index)}
                 aria-label={`${index + 1}-ე განცხადების ჩვენება`}
-                aria-current={index === activeIndex ? "true" : undefined}
-                className={`h-2.5 rounded-full border border-brand/30 transition-all duration-300 ${index === activeIndex ? "w-7 bg-brand" : "w-2.5 bg-brand/20 hover:bg-brand/45"}`}
+                aria-current={index === normalizedActiveIndex ? "true" : undefined}
+                className={`h-2.5 rounded-full border border-brand/30 transition-all duration-300 ${index === normalizedActiveIndex ? "w-7 bg-brand" : "w-2.5 bg-brand/20 hover:bg-brand/45"}`}
               />
             ))}
           </div>
