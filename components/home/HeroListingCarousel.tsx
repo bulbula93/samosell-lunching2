@@ -17,7 +17,7 @@ type HeroListingCarouselProps = {
   items: HeroListingItem[]
 }
 
-type CardPosition = "side" | "center"
+type VisualPosition = "far-left" | "left" | "center" | "right" | "far-right"
 
 export default function HeroListingCarousel({ items }: HeroListingCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -55,11 +55,6 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
   const label = "VIP MAX განცხადებები"
   const badge = "VIP MAX"
 
-  function itemAt(offset: number) {
-    const index = (activeIndex + offset + items.length) % items.length
-    return items[index]
-  }
-
   function showPrevious() {
     setActiveIndex((current) => (current - 1 + items.length) % items.length)
   }
@@ -68,28 +63,63 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
     setActiveIndex((current) => (current + 1) % items.length)
   }
 
-  function renderCard(item: HeroListingItem, position: CardPosition, keyPrefix: string) {
+  function getVisualPosition(index: number): VisualPosition {
+    if (index === activeIndex) return "center"
+
+    if (items.length === 2) {
+      return index === (activeIndex + 1) % items.length ? "right" : "left"
+    }
+
+    const forwardDistance = (index - activeIndex + items.length) % items.length
+    const backwardDistance = forwardDistance - items.length
+    const offset = Math.abs(backwardDistance) < Math.abs(forwardDistance) ? backwardDistance : forwardDistance
+
+    if (offset === -1) return "left"
+    if (offset === 1) return "right"
+    return offset < 0 ? "far-left" : "far-right"
+  }
+
+  function positionClasses(position: VisualPosition) {
+    switch (position) {
+      case "center":
+        return "z-20 translate-x-0 scale-100 opacity-100"
+      case "left":
+        return "z-10 -translate-x-[104%] scale-[0.96] opacity-75 sm:-translate-x-[78%] sm:scale-[0.78] sm:opacity-85"
+      case "right":
+        return "z-10 translate-x-[104%] scale-[0.96] opacity-75 sm:translate-x-[78%] sm:scale-[0.78] sm:opacity-85"
+      case "far-left":
+        return "pointer-events-none z-0 -translate-x-[155%] scale-[0.72] opacity-0 sm:-translate-x-[138%]"
+      case "far-right":
+        return "pointer-events-none z-0 translate-x-[155%] scale-[0.72] opacity-0 sm:translate-x-[138%]"
+    }
+  }
+
+  function renderCard(item: HeroListingItem, index: number) {
+    const position = getVisualPosition(index)
     const isCenter = position === "center"
+    const isSide = position === "left" || position === "right"
 
     return (
       <Link
-        key={`${keyPrefix}-${item.id}`}
+        key={item.id}
         href={`/listing/${item.slug}`}
         aria-label={`${badge} განცხადება: ${item.title}`}
-        className={`group/card relative block min-w-0 overflow-hidden rounded-[26px] border border-[#e8c778]/45 bg-brand shadow-[0_22px_60px_rgba(7,63,59,0.18)] transition duration-500 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand ${
-          isCenter
-            ? "z-10 h-full flex-[1.45] sm:min-w-[46%]"
-            : "my-6 h-[calc(100%-3rem)] flex-[0.82] opacity-90 sm:min-w-[23%] lg:my-8 lg:h-[calc(100%-4rem)]"
-        }`}
+        aria-hidden={!isCenter && !isSide ? true : undefined}
+        tabIndex={!isCenter && !isSide ? -1 : undefined}
+        className={`group/card absolute inset-y-0 left-0 right-0 mx-auto block w-[92%] overflow-hidden rounded-[26px] border border-[#e8c778]/45 bg-brand shadow-[0_22px_60px_rgba(7,63,59,0.18)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:w-[60%] ${
+          prefersReducedMotion
+            ? "transition-none"
+            : "transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        } ${positionClasses(position)}`}
       >
         <SmartImage
           src={item.cover_image_url}
           alt={item.title}
           wrapperClassName="h-full w-full"
-          className={`h-full w-full object-cover transition duration-500 group-hover/card:scale-[1.035] ${isCenter ? "" : "saturate-[0.92]"}`}
+          className={`h-full w-full object-cover transition duration-500 group-hover/card:scale-[1.035] ${isCenter ? "" : "saturate-[0.9]"}`}
           fallbackLabel={`${item.title} — ფოტო არ არის`}
           loading={isCenter ? "eager" : "lazy"}
-          sizes={isCenter ? "(max-width: 639px) 92vw, (max-width: 1279px) 52vw, 520px" : "(max-width: 1279px) 24vw, 280px"}
+          sizes={isCenter ? "(max-width: 639px) 92vw, (max-width: 1279px) 58vw, 520px" : "(max-width: 1279px) 40vw, 340px"}
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,28,26,0.04)_16%,rgba(3,28,26,0.96)_100%)]" />
         <div className={`absolute rounded-full border border-[#f6d98e]/60 bg-[#102f2b]/90 font-black tracking-[0.14em] text-[#f6d98e] shadow-sm backdrop-blur ${isCenter ? "left-5 top-5 px-4 py-2 text-[11px]" : "left-4 top-4 px-3 py-1.5 text-[10px]"}`}>
@@ -105,7 +135,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
           <p className={`mt-3 font-black text-[#f6d98e] ${isCenter ? "text-xl" : "text-base"}`}>
             {formatPrice(item.price, item.currency)}
           </p>
-          <span className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-[#f6d98e] font-black text-[#073f3b] shadow-sm ${isCenter ? "px-4 py-2.5 text-sm" : "px-3 py-2 text-xs"}`}>
+          <span className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-[#f6d98e] font-black text-[#073f3b] shadow-sm transition group-hover/card:bg-white ${isCenter ? "px-4 py-2.5 text-sm" : "px-3 py-2 text-xs"}`}>
             ნახე განცხადება <span aria-hidden="true">→</span>
           </span>
         </div>
@@ -114,20 +144,6 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
   }
 
   if (!activeItem) return null
-
-  const desktopCards =
-    items.length === 1
-      ? [{ item: activeItem, position: "center" as const, keyPrefix: "center" }]
-      : items.length === 2
-        ? [
-            { item: itemAt(-1), position: "side" as const, keyPrefix: "previous" },
-            { item: activeItem, position: "center" as const, keyPrefix: "center" },
-          ]
-        : [
-            { item: itemAt(-1), position: "side" as const, keyPrefix: "previous" },
-            { item: activeItem, position: "center" as const, keyPrefix: "center" },
-            { item: itemAt(1), position: "side" as const, keyPrefix: "next" },
-          ]
 
   return (
     <div
@@ -157,12 +173,8 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
     >
       <p className="sr-only" aria-live="polite">აქტიური VIP MAX განცხადება: {activeItem.title}</p>
 
-      <div className="h-full sm:hidden">
-        {renderCard(activeItem, "center", "mobile")}
-      </div>
-
-      <div className="hidden h-full items-stretch justify-center gap-3 sm:flex lg:gap-4">
-        {desktopCards.map(({ item, position, keyPrefix }) => renderCard(item, position, keyPrefix))}
+      <div className="relative h-full w-full">
+        {items.map((item, index) => renderCard(item, index))}
       </div>
 
       {items.length > 1 ? (
@@ -171,7 +183,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showPrevious}
             aria-label="წინა განცხადება"
-            className="absolute left-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition hover:scale-105 hover:bg-[#f6d98e] sm:-left-5"
+            className="absolute left-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-left-5"
           >
             <span aria-hidden="true">‹</span>
           </button>
@@ -179,12 +191,12 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showNext}
             aria-label="შემდეგი განცხადება"
-            className="absolute right-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition hover:scale-105 hover:bg-[#f6d98e] sm:-right-5"
+            className="absolute right-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-right-5"
           >
             <span aria-hidden="true">›</span>
           </button>
 
-          <div className="absolute -bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2" aria-label="განცხადების არჩევა">
+          <div className="absolute -bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2" aria-label="განცხადების არჩევა">
             {items.map((item, index) => (
               <button
                 key={item.id}
@@ -192,7 +204,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
                 onClick={() => setActiveIndex(index)}
                 aria-label={`${index + 1}-ე განცხადების ჩვენება`}
                 aria-current={index === activeIndex ? "true" : undefined}
-                className={`h-2.5 rounded-full border border-brand/30 transition-all ${index === activeIndex ? "w-7 bg-brand" : "w-2.5 bg-brand/20 hover:bg-brand/45"}`}
+                className={`h-2.5 rounded-full border border-brand/30 transition-all duration-300 ${index === activeIndex ? "w-7 bg-brand" : "w-2.5 bg-brand/20 hover:bg-brand/45"}`}
               />
             ))}
           </div>
@@ -202,7 +214,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             onClick={() => setPausedByUser((current) => !current)}
             aria-label={pausedByUser ? "ავტომატური მონაცვლეობის გაგრძელება" : "ავტომატური მონაცვლეობის შეჩერება"}
             aria-pressed={pausedByUser}
-            className="absolute -bottom-10 right-0 z-20 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-brand/15 bg-white/85 px-2 text-[11px] font-bold text-brand shadow-sm backdrop-blur transition hover:bg-white"
+            className="absolute -bottom-10 right-0 z-30 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-brand/15 bg-white/85 px-2 text-[11px] font-bold text-brand shadow-sm backdrop-blur transition hover:bg-white"
           >
             <span aria-hidden="true">{pausedByUser ? "▶" : "Ⅱ"}</span>
           </button>
