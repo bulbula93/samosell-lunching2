@@ -19,7 +19,9 @@ describe("boost presentation and lifecycle helpers", () => {
     expect(placementLabel("combo")).toBe("VIP MAX")
     expect(boostProductName("legacy", "banner_home")).toBe("მთავარი გვერდის ბანერი")
     expect(boostProductCta("combo")).toBe("გააქტიურე VIP MAX")
-    expect(boostProductBenefits("promoted")).toContain("TOP მონიშვნა")
+    expect(boostProductBenefits("promoted")).toContain("TOP მონიშვნა განცხადების ბარათზე")
+    expect(boostProductBenefits("vip")).toContain("მთავარ გვერდზე „VIP განცხადებების“ ჰორიზონტალურ რიგში გამოჩენა")
+    expect(boostProductBenefits("combo")).toContain("მთავარი გვერდის Hero-ში VIP MAX პოზიცია")
   })
 
   it("shows stale active orders as completed", () => {

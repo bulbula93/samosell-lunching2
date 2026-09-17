@@ -5,16 +5,15 @@ import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
 export default function HomeSearchHeroSection({
-  vipItems,
-  popularItems,
+  featuredItems,
 }: {
-  vipItems: CatalogListing[]
-  popularItems: CatalogListing[]
+  featuredItems: CatalogListing[]
 }) {
-  const activeVipItems = vipItems.filter((item) => item.is_vip).slice(0, 8)
-  const showcaseItems = activeVipItems.length > 0 ? activeVipItems : popularItems.slice(0, 8)
-  const showcaseMode = activeVipItems.length > 0 ? "vip" : "popular"
-  const carouselItems: HeroListingItem[] = showcaseItems.map((item) => ({
+  const activeVipMaxItems = featuredItems
+    .filter((item) => item.is_featured && item.is_promoted && item.is_vip)
+    .slice(0, 8)
+
+  const carouselItems: HeroListingItem[] = activeVipMaxItems.map((item) => ({
     id: item.id,
     slug: item.slug,
     title: item.title,
@@ -43,24 +42,24 @@ export default function HomeSearchHeroSection({
 
         <div className="relative mx-auto h-[340px] w-full max-w-[520px] sm:h-[420px]">
           {carouselItems.length > 0 ? (
-            <HeroListingCarousel items={carouselItems} mode={showcaseMode} />
+            <HeroListingCarousel items={carouselItems} />
           ) : (
             <div className="relative flex h-full overflow-hidden rounded-[32px] border border-[#e8c778]/55 bg-[radial-gradient(circle_at_85%_15%,rgba(246,217,142,0.2),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
               <div className="relative z-10 flex max-w-sm flex-col justify-end">
                 <span className="w-fit rounded-full border border-[#f6d98e]/55 bg-white/5 px-4 py-2 text-xs font-black tracking-[0.18em] text-[#f6d98e]">
-                  VIP სივრცე
+                  VIP MAX სივრცე
                 </span>
                 <h2 className="mt-5 text-3xl font-black leading-tight tracking-[-0.035em] sm:text-4xl">
                   შენი ნივთი გამოაჩინე პირველივე ეკრანზე
                 </h2>
                 <p className="mt-4 text-sm leading-7 text-white/70">
-                  აქ გამოჩნდება მხოლოდ აქტიური VIP განცხადებები
+                  აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები
                 </p>
                 <Link
                   href="/dashboard/listings"
                   className="mt-7 inline-flex min-h-12 w-fit items-center justify-center rounded-xl bg-[#f6d98e] px-6 text-sm font-black text-[#073f3b] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
-                  შექმენი VIP განცხადება
+                  გააქტიურე VIP MAX
                 </Link>
               </div>
               <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#f6d98e]/20" />

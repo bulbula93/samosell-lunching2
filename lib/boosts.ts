@@ -138,18 +138,52 @@ export function boostProductName(value?: string | null, placement?: string | nul
   return value || "გაძლიერების პაკეტი"
 }
 
+export function boostProductDescription(placement?: string | null, fallback?: string | null) {
+  switch (placement) {
+    case "vip":
+      return "7 დღით განცხადება მიიღებს VIP ბეჯს და გამოჩნდება მთავარი გვერდის „VIP განცხადებების“ ჰორიზონტალურ რიგში. Hero სივრცე მხოლოდ VIP MAX პაკეტისთვისაა."
+    case "promoted":
+      return "7 დღით განცხადება მიიღებს TOP მონიშვნას და უფრო მაღალ promotion პრიორიტეტს კატალოგსა და შესაბამის კატეგორიებში. VIP რიგსა და Hero-ში TOP მარტო არ ხვდება."
+    case "combo":
+      return "7 დღით ერთდროულად აქტიურდება VIP + TOP + VIP MAX: განცხადება გამოჩნდება VIP რიგში, მიიღებს მაღალ კატალოგის პრიორიტეტს და მოხვდება მთავარი გვერდის Hero carousel-ში."
+    case "banner_home":
+      return "7 დღით განცხადება გამოჩნდება მთავარ გვერდზე დიდ სარეკლამო ბანერში, საიდანაც მომხმარებელი პირდაპირ განცხადების გვერდზე გადავა. ეს პაკეტი VIP/TOP სტატუსს ავტომატურად არ ამატებს."
+    case "featured_home":
+      return "მთავარი გვერდის Hero-ში გამორჩეული პოზიცია."
+    default:
+      return fallback || "—"
+  }
+}
+
 export function boostProductBenefits(placement?: string | null) {
   switch (placement) {
     case "vip":
-      return ["VIP ბეჯი", "მთავარი გვერდის VIP სივრცე", "VIP ფილტრი"]
+      return [
+        "VIP ბეჯი განცხადების ბარათზე",
+        "მთავარ გვერდზე „VIP განცხადებების“ ჰორიზონტალურ რიგში გამოჩენა",
+        "VIP ფილტრსა და VIP დალაგებაში პრიორიტეტი",
+      ]
     case "promoted":
-      return ["უფრო მაღალი ადგილი კატალოგში", "მეტი ხილვადობა ძებნაში", "TOP მონიშვნა"]
+      return [
+        "TOP მონიშვნა განცხადების ბარათზე",
+        "კატალოგსა და შესაბამის კატეგორიაში უფრო მაღალი პოზიცია",
+        "ჩვეულებრივ განცხადებებზე მაღალი promotion პრიორიტეტი",
+      ]
     case "combo":
-      return ["VIP-ის ყველა უპირატესობა", "TOP პოზიცია", "მთავარი გვერდის გამორჩეული ბლოკი"]
+      return [
+        "VIP-ის ყველა უპირატესობა",
+        "TOP პოზიცია კატალოგსა და შესაბამის კატეგორიებში",
+        "მთავარი გვერდის Hero-ში VIP MAX პოზიცია",
+        "VIP MAX ბეჯი განცხადების ბარათზე",
+      ]
     case "banner_home":
-      return ["დიდი სარეკლამო ბანერი", "მთავარი გვერდის გამორჩეული სივრცე", "7-დღიანი განთავსება"]
+      return [
+        "მთავარი გვერდის დიდი სარეკლამო ბანერი",
+        "ბანერიდან განცხადებაზე პირდაპირი გადასვლა",
+        "7-დღიანი გამორჩეული განთავსება",
+      ]
     case "featured_home":
-      return ["მთავარი გვერდის გამორჩეული პოზიცია"]
+      return ["მთავარი გვერდის Hero-ში გამორჩეული პოზიცია"]
     default:
       return []
   }
@@ -189,8 +223,8 @@ export function buildSuggestedBoostReference(listingId: string, productId: strin
 
 export function promotionBadgeClass(label?: string | null) {
   const value = String(label || "").toLowerCase()
-  if (value.includes("vip")) return "ui-pill-vip"
   if (value.includes("max") || value.includes("გამორჩეული")) return "ui-pill-featured"
   if (value.includes("top")) return "ui-pill-promoted"
+  if (value.includes("vip")) return "ui-pill-vip"
   return "ui-pill-soft"
 }

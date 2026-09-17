@@ -20,12 +20,14 @@ export default function HomePageContent({
   return (
     <>
       {data.storyRail ? <StoriesRail data={data.storyRail} /> : null}
-      <HomeSearchHeroSection vipItems={data.heroItems} popularItems={data.popularItems} />
-      <AdSlotRow
-        placementKeys={["home_hero_left", "home_hero_right"]}
-        pagePath="/"
-        className="border-b border-line bg-white py-8 sm:py-10"
-        ads={heroAds}
+      <HomeSearchHeroSection featuredItems={data.heroItems} />
+      <HomeProductsSection
+        title="VIP განცხადებები"
+        description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში."
+        href="/catalog?vip=1&sort=vip"
+        items={data.vipItems}
+        favoriteIds={data.favoriteIds}
+        layout="horizontal"
       />
       {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
       <HomeProductsSection
@@ -35,15 +37,7 @@ export default function HomePageContent({
         items={data.latestItems}
         favoriteIds={data.favoriteIds}
       />
-      {data.featuredItems.length > 0 ? (
-        <HomeProductsSection
-          title="VIP MAX"
-          description="მთავარი გვერდის გამორჩეული განცხადებები"
-          href="/catalog?sort=vip"
-          items={data.featuredItems}
-          favoriteIds={data.favoriteIds}
-        />
-      ) : null}
+      <HomePromoBanner bannerItems={data.bannerItems} />
       <HomeProductsSection
         title={ka.home.popular}
         description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით"
@@ -51,7 +45,12 @@ export default function HomePageContent({
         items={data.popularItems}
         favoriteIds={data.favoriteIds}
       />
-      <HomePromoBanner bannerItems={data.bannerItems} />
+      <AdSlotRow
+        placementKeys={["home_hero_left", "home_hero_right"]}
+        pagePath="/"
+        className="border-b border-line bg-white py-8 sm:py-10"
+        ads={heroAds}
+      />
       <HomeProductsSection
         title={ka.home.affordable}
         description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით"

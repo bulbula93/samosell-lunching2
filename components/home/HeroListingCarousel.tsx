@@ -15,10 +15,9 @@ export type HeroListingItem = Pick<
 
 type HeroListingCarouselProps = {
   items: HeroListingItem[]
-  mode: "vip" | "popular"
 }
 
-export default function HeroListingCarousel({ items, mode }: HeroListingCarouselProps) {
+export default function HeroListingCarousel({ items }: HeroListingCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [pausedByUser, setPausedByUser] = useState(false)
   const [pausedByInteraction, setPausedByInteraction] = useState(false)
@@ -46,8 +45,8 @@ export default function HeroListingCarousel({ items, mode }: HeroListingCarousel
   }, [items.length, pausedByInteraction, pausedByUser, prefersReducedMotion])
 
   const activeItem = items[activeIndex] ?? items[0]
-  const label = mode === "vip" ? "VIP განცხადებები" : "პოპულარული ნივთები"
-  const badge = mode === "vip" ? "VIP" : "პოპულარული"
+  const label = "VIP MAX განცხადებები"
+  const badge = "VIP MAX"
 
   function showPrevious() {
     setActiveIndex((current) => (current - 1 + items.length) % items.length)

@@ -10,6 +10,7 @@ export default function HomeProductsSection({
   href,
   items,
   favoriteIds,
+  layout = "grid",
 }: {
   id?: string
   title: string
@@ -17,8 +18,18 @@ export default function HomeProductsSection({
   href: string
   items: CatalogListing[]
   favoriteIds: string[]
+  layout?: "grid" | "horizontal"
 }) {
   if (items.length === 0) return null
+
+  const cards = items.slice(0, 10).map((item) => (
+    <MarketplaceProductCard
+      key={`${title}-${item.id}`}
+      item={item}
+      currentPath="/"
+      isFavorited={favoriteIds.includes(item.id)}
+    />
+  ))
 
   return (
     <section id={id} className="border-b border-line bg-bg py-12 sm:py-16">
@@ -33,16 +44,19 @@ export default function HomeProductsSection({
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-5">
-          {items.slice(0, 10).map((item) => (
-            <MarketplaceProductCard
-              key={`${title}-${item.id}`}
-              item={item}
-              currentPath="/"
-              isFavorited={favoriteIds.includes(item.id)}
-            />
-          ))}
-        </div>
+        {layout === "horizontal" ? (
+          <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:thin]">
+            {cards.map((card, index) => (
+              <div key={`${title}-rail-${items[index]?.id ?? index}`} className="w-[76vw] max-w-[260px] shrink-0 snap-start sm:w-[240px] lg:w-[250px]">
+                {card}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-5">
+            {cards}
+          </div>
+        )}
 
         <Link href={href} className="ui-btn-secondary mt-8 w-full sm:hidden">
           {ka.home.viewAll}

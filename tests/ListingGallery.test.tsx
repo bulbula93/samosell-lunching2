@@ -10,6 +10,10 @@ const firstImage =
 const secondImage =
   "https://lxsvjzbiuewgwpajqrwr.supabase.co/storage/v1/object/public/listing-images/second.jpg"
 
+function visibleGalleryImage(name: RegExp) {
+  return screen.getAllByRole("img", { name }).find((image) => image.getAttribute("loading") === "eager")
+}
+
 describe("ListingGallery", () => {
   it("deduplicates real images and supports thumbnail keyboard navigation", () => {
     render(
@@ -26,7 +30,7 @@ describe("ListingGallery", () => {
     const tabs = screen.getAllByRole("tab")
     expect(tabs).toHaveLength(2)
     expect(tabs[0]).toHaveAttribute("aria-selected", "true")
-    const firstVisibleImage = screen.getByRole("img", { name: /ატლასის კაბა.*1/ })
+    const firstVisibleImage = visibleGalleryImage(/ატლასის კაბა.*1/)
     expect(firstVisibleImage).toBeInTheDocument()
     expect(firstVisibleImage).toHaveAttribute("loading", "eager")
     expect(firstVisibleImage).toHaveAttribute("fetchpriority", "high")
@@ -36,7 +40,7 @@ describe("ListingGallery", () => {
 
     expect(tabs[1]).toHaveFocus()
     expect(tabs[1]).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByRole("img", { name: /ატლასის კაბა.*2/ })).toBeInTheDocument()
+    expect(visibleGalleryImage(/ატლასის კაბა.*2/)).toBeInTheDocument()
   })
 
   it("uses a stable fallback when images are missing or untrusted", () => {
