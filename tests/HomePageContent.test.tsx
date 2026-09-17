@@ -48,8 +48,8 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()
     expect(screen.getByText("ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "შექმენი VIP განცხადება" })).toBeInTheDocument()
-    expect(screen.getByText("გახადე შენი განცხადება უფრო პოპულარული")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "გამოაჩინე განცხადება დიდ სარეკლამო სივრცეში" })).toBeInTheDocument()
+    expect(screen.getByText(/ბანერის პაკეტი განცხადებას 7 დღით ათავსებს მთავარ გვერდზე დიდ ვიზუალურ ბლოკში/)).toBeInTheDocument()
   })
 
   it("renders only VIP MAX listings in the hero carousel", () => {
