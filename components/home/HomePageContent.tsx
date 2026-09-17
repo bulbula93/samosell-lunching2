@@ -29,12 +29,6 @@ export default function HomePageContent({
         favoriteIds={data.favoriteIds}
         layout="horizontal"
       />
-      <AdSlotRow
-        placementKeys={["home_hero_left", "home_hero_right"]}
-        pagePath="/"
-        className="border-b border-line bg-white py-8 sm:py-10"
-        ads={heroAds}
-      />
       {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
       <HomeProductsSection
         title={ka.home.latest}
@@ -50,6 +44,12 @@ export default function HomePageContent({
         href="/catalog?sort=popular"
         items={data.popularItems}
         favoriteIds={data.favoriteIds}
+      />
+      <AdSlotRow
+        placementKeys={["home_hero_left", "home_hero_right"]}
+        pagePath="/"
+        className="border-b border-line bg-white py-8 sm:py-10"
+        ads={heroAds}
       />
       <HomeProductsSection
         title={ka.home.affordable}
