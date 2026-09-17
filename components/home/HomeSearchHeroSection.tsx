@@ -26,7 +26,7 @@ export default function HomeSearchHeroSection({
 
   return (
     <section className="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_15%,rgba(40,170,153,0.22),transparent_32%),linear-gradient(135deg,#eff8f6_0%,#f9fbfa_54%,#e5f1ee_100%)]">
-      <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:grid-cols-[1.08fr_0.92fr] md:py-16 lg:min-h-[570px]">
+      <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:py-16 lg:min-h-[590px] lg:grid-cols-[0.7fr_1.3fr] lg:gap-12">
         <div className="max-w-2xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">{ka.home.eyebrow}</p>
           <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.35rem,5.5vw,4.7rem)] font-normal leading-[1.09] tracking-[-0.025em] text-text">
@@ -40,11 +40,11 @@ export default function HomeSearchHeroSection({
           </p>
         </div>
 
-        <div className="relative mx-auto h-[340px] w-full max-w-[520px] sm:h-[420px]">
+        <div className="relative mx-auto mb-8 h-[360px] w-full max-w-[860px] sm:h-[430px] lg:mb-0 lg:h-[450px]">
           {carouselItems.length > 0 ? (
             <HeroListingCarousel items={carouselItems} />
           ) : (
-            <div className="relative flex h-full overflow-hidden rounded-[32px] border border-[#e8c778]/55 bg-[radial-gradient(circle_at_85%_15%,rgba(246,217,142,0.2),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
+            <div className="relative mx-auto flex h-full max-w-[620px] overflow-hidden rounded-[32px] border border-[#e8c778]/55 bg-[radial-gradient(circle_at_85%_15%,rgba(246,217,142,0.2),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
               <div className="relative z-10 flex max-w-sm flex-col justify-end">
                 <span className="w-fit rounded-full border border-[#f6d98e]/55 bg-white/5 px-4 py-2 text-xs font-black tracking-[0.18em] text-[#f6d98e]">
                   VIP MAX სივრცე
