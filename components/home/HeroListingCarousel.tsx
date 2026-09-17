@@ -79,18 +79,40 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
     return offset < 0 ? "far-left" : "far-right"
   }
 
-  function positionClasses(position: VisualPosition) {
+  function positionStyles(position: VisualPosition): React.CSSProperties {
     switch (position) {
       case "center":
-        return "z-20 translate-x-0 scale-100 opacity-100"
+        return {
+          transform: "translate3d(0%, 0, 0) scale(1) rotateY(0deg)",
+          opacity: 1,
+          zIndex: 30,
+        }
       case "left":
-        return "z-10 -translate-x-[104%] scale-[0.96] opacity-75 sm:-translate-x-[78%] sm:scale-[0.78] sm:opacity-85"
+        return {
+          transform: "translate3d(-70%, 0, -90px) scale(0.82) rotateY(9deg)",
+          opacity: 0.88,
+          zIndex: 20,
+        }
       case "right":
-        return "z-10 translate-x-[104%] scale-[0.96] opacity-75 sm:translate-x-[78%] sm:scale-[0.78] sm:opacity-85"
+        return {
+          transform: "translate3d(70%, 0, -90px) scale(0.82) rotateY(-9deg)",
+          opacity: 0.88,
+          zIndex: 20,
+        }
       case "far-left":
-        return "pointer-events-none z-0 -translate-x-[155%] scale-[0.72] opacity-0 sm:-translate-x-[138%]"
+        return {
+          transform: "translate3d(-138%, 0, -180px) scale(0.68) rotateY(16deg)",
+          opacity: 0,
+          zIndex: 10,
+          pointerEvents: "none",
+        }
       case "far-right":
-        return "pointer-events-none z-0 translate-x-[155%] scale-[0.72] opacity-0 sm:translate-x-[138%]"
+        return {
+          transform: "translate3d(138%, 0, -180px) scale(0.68) rotateY(-16deg)",
+          opacity: 0,
+          zIndex: 10,
+          pointerEvents: "none",
+        }
     }
   }
 
@@ -106,11 +128,12 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
         aria-label={`${badge} განცხადება: ${item.title}`}
         aria-hidden={!isCenter && !isSide ? true : undefined}
         tabIndex={!isCenter && !isSide ? -1 : undefined}
+        style={positionStyles(position)}
         className={`group/card absolute inset-y-0 left-0 right-0 mx-auto block w-[92%] overflow-hidden rounded-[26px] border border-[#e8c778]/45 bg-brand shadow-[0_22px_60px_rgba(7,63,59,0.18)] will-change-transform focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand sm:w-[60%] ${
           prefersReducedMotion
             ? "transition-none"
-            : "transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-        } ${positionClasses(position)}`}
+            : "transition-[transform,opacity,filter] duration-[780ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        }`}
       >
         <SmartImage
           src={item.cover_image_url}
@@ -170,10 +193,11 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
         }
       }}
       className="relative h-full w-full overflow-visible focus-visible:outline-none"
+      style={{ perspective: "1200px" }}
     >
       <p className="sr-only" aria-live="polite">აქტიური VIP MAX განცხადება: {activeItem.title}</p>
 
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full [transform-style:preserve-3d]">
         {items.map((item, index) => renderCard(item, index))}
       </div>
 
@@ -183,7 +207,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showPrevious}
             aria-label="წინა განცხადება"
-            className="absolute left-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-left-5"
+            className="absolute left-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-left-5"
           >
             <span aria-hidden="true">‹</span>
           </button>
@@ -191,12 +215,12 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             type="button"
             onClick={showNext}
             aria-label="შემდეგი განცხადება"
-            className="absolute right-2 top-1/2 z-30 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-right-5"
+            className="absolute right-2 top-1/2 z-40 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#073f3b]/10 bg-white/95 text-2xl text-[#073f3b] shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:bg-[#f6d98e] sm:-right-5"
           >
             <span aria-hidden="true">›</span>
           </button>
 
-          <div className="absolute -bottom-8 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2" aria-label="განცხადების არჩევა">
+          <div className="absolute -bottom-8 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2" aria-label="განცხადების არჩევა">
             {items.map((item, index) => (
               <button
                 key={item.id}
@@ -214,7 +238,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             onClick={() => setPausedByUser((current) => !current)}
             aria-label={pausedByUser ? "ავტომატური მონაცვლეობის გაგრძელება" : "ავტომატური მონაცვლეობის შეჩერება"}
             aria-pressed={pausedByUser}
-            className="absolute -bottom-10 right-0 z-30 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-brand/15 bg-white/85 px-2 text-[11px] font-bold text-brand shadow-sm backdrop-blur transition hover:bg-white"
+            className="absolute -bottom-10 right-0 z-40 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-brand/15 bg-white/85 px-2 text-[11px] font-bold text-brand shadow-sm backdrop-blur transition hover:bg-white"
           >
             <span aria-hidden="true">{pausedByUser ? "▶" : "Ⅱ"}</span>
           </button>
