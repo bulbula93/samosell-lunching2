@@ -52,7 +52,7 @@ describe("HomePageContent", () => {
     expect(screen.getByText(/ბანერის პაკეტი განცხადებას 7 დღით ათავსებს მთავარ გვერდზე დიდ ვიზუალურ ბლოკში/)).toBeInTheDocument()
   })
 
-  it("renders only VIP MAX listings in the hero carousel", () => {
+  it("renders only VIP MAX listings in the hero carousel and keeps neighboring VIP MAX cards visible", () => {
     const data = makeHomeData()
     data.heroItems = [
       makeListing({ id: "max-1", title: "VIP MAX კაბა", cover_image_url: "/max-1.jpg", is_vip: true, is_promoted: true, is_featured: true }),
@@ -62,12 +62,14 @@ describe("HomePageContent", () => {
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByAltText("VIP MAX კაბა")).toBeInTheDocument()
+    expect(screen.getAllByAltText("VIP MAX კაბა").length).toBeGreaterThan(0)
+    expect(screen.getAllByAltText("VIP MAX პალტო").length).toBeGreaterThan(0)
     expect(screen.queryByAltText("ჩვეულებრივი VIP")).not.toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "VIP MAX განცხადება: VIP MAX კაბა" })).toHaveAttribute("href", "/listing/linen-jacket")
+    expect(screen.getByText("აქტიური VIP MAX განცხადება: VIP MAX კაბა")).toBeInTheDocument()
+    expect(screen.getAllByRole("link", { name: "VIP MAX განცხადება: VIP MAX კაბა" })[0]).toHaveAttribute("href", "/listing/linen-jacket")
 
     fireEvent.click(screen.getByRole("button", { name: "შემდეგი განცხადება" }))
-    expect(screen.getByAltText("VIP MAX პალტო")).toBeInTheDocument()
+    expect(screen.getByText("აქტიური VIP MAX განცხადება: VIP MAX პალტო")).toBeInTheDocument()
     expect(screen.queryByAltText("ჩვეულებრივი VIP")).not.toBeInTheDocument()
   })
 
@@ -95,13 +97,13 @@ describe("HomePageContent", () => {
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByAltText("პირველი VIP MAX")).toBeInTheDocument()
+    expect(screen.getByText("აქტიური VIP MAX განცხადება: პირველი VIP MAX")).toBeInTheDocument()
     act(() => vi.advanceTimersByTime(5_000))
-    expect(screen.getByAltText("მეორე VIP MAX")).toBeInTheDocument()
+    expect(screen.getByText("აქტიური VIP MAX განცხადება: მეორე VIP MAX")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "ავტომატური მონაცვლეობის შეჩერება" }))
     act(() => vi.advanceTimersByTime(5_000))
-    expect(screen.getByAltText("მეორე VIP MAX")).toBeInTheDocument()
+    expect(screen.getByText("აქტიური VIP MAX განცხადება: მეორე VIP MAX")).toBeInTheDocument()
   })
 
   it("shows the VIP MAX promotion when no VIP MAX listing exists", () => {
