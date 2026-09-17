@@ -32,6 +32,7 @@ export default function MobileNavigation({
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
 
   useEffect(() => {
     if (!open) return
@@ -149,7 +150,7 @@ export default function MobileNavigation({
             </nav>
 
             <div className="mt-auto space-y-3 border-t border-line p-5">
-              <Link href="/dashboard/listings/new" onClick={() => setOpen(false)} className="ui-btn-primary w-full">
+              <Link href={sellHref} onClick={() => setOpen(false)} className="ui-btn-primary w-full">
                 {ka.nav.sell}
               </Link>
               {userState.signedIn ? (
