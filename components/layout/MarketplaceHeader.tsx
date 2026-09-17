@@ -41,6 +41,8 @@ export default function MarketplaceHeader({
 }) {
   const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
+  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
+
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-white/95">
       <div className="ui-container flex min-h-[72px] items-center gap-3 py-3 lg:gap-5">
@@ -63,7 +65,7 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href="/dashboard/listings/new" className="ui-btn-primary">
+          <Link href={sellHref} className="ui-btn-primary">
             გაყიდე
           </Link>
           <Link href="/catalog" className="ui-btn-secondary">
@@ -157,7 +159,7 @@ export default function MarketplaceHeader({
           <NotificationBell count={userState.unreadNotifications} />
         </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
-          <Link href="/dashboard/listings/new" className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
+          <Link href={sellHref} className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
             გაყიდე
           </Link>
           <Link href="/catalog" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
