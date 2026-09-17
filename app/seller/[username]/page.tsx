@@ -15,7 +15,7 @@ import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
-import { absoluteUrl, truncateDescription } from "@/lib/seo"
+import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
 import { getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
@@ -128,9 +128,83 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     profile.store_map_url
   )
   const featuredListingHref = sellerListings[0]?.slug ? `/listing/${sellerListings[0].slug}` : "/catalog"
+  const sellerDescription = truncateDescription(
+    profile.bio || `${sellerName} სელერის საჯარო პროფილი ${SITE_NAME}-ზე.`,
+    155,
+  )
+  const sellerImage = sellerAvatarSrc
+    ? sellerAvatarSrc.startsWith("/")
+      ? absoluteUrl(sellerAvatarSrc)
+      : sellerAvatarSrc
+    : null
+  const sellerEntityId = `${shareUrl}#seller`
+  const sellerSameAs = [
+    profile.store_website,
+    profile.store_instagram,
+    profile.store_facebook,
+  ].filter((value): value is string => Boolean(value && /^https?:\/\//i.test(value)))
+  const sellerStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "ProfilePage",
+        "@id": `${shareUrl}#profilepage`,
+        url: shareUrl,
+        name: `${sellerName} — ${SITE_NAME} სელერი`,
+        description: sellerDescription,
+        inLanguage: "ka-GE",
+        mainEntity: { "@id": sellerEntityId },
+      },
+      {
+        "@type": profile.seller_type === "store" ? "Organization" : "Person",
+        "@id": sellerEntityId,
+        name: sellerName,
+        url: shareUrl,
+        description: sellerDescription,
+        ...(sellerImage ? { image: sellerImage } : {}),
+        ...(profile.city
+          ? {
+              address: {
+                "@type": "PostalAddress",
+                addressLocality: profile.city,
+                addressCountry: "GE",
+              },
+            }
+          : {}),
+        ...(sellerSameAs.length > 0 ? { sameAs: sellerSameAs } : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "მთავარი",
+            item: absoluteUrl("/"),
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "კატალოგი",
+            item: absoluteUrl("/catalog"),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: sellerName,
+            item: shareUrl,
+          },
+        ],
+      },
+    ],
+  }
 
   return (
     <main className="min-h-screen bg-bg text-text">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(sellerStructuredData) }}
+      />
       <SiteHeader />
       <section className="ui-container py-10 sm:py-14">
         <div className="overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[0_24px_90px_rgba(23,23,23,0.08)]">
