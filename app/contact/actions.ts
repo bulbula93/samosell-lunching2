@@ -126,8 +126,12 @@ export async function sendSupportMessageAction(
     }
   }
 
+  if (delivery.id) {
+    console.info(`[support] Resend accepted email ${delivery.id}`)
+  }
+
   return {
     ok: true,
-    message: `შეტყობინება გაიგზავნა. პასუხს მიიღებ ${accountEmail}-ზე.`,
+    message: `მოთხოვნა მიღებულია გასაგზავნად. პასუხს მიიღებ ${accountEmail}-ზე.`,
   }
 }
