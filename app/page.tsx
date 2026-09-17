@@ -7,7 +7,9 @@ import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 
 export const metadata: Metadata = {
-  title: "მთავარი",
+  title: {
+    absolute: "SamoSell — მეორადი ტანსაცმელი და აქსესუარები საქართველოში",
+  },
   description: SITE_DESCRIPTION_KA,
   alternates: { canonical: "/" },
   openGraph: {
