@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next"
+import { applyCatalogFilters } from "@/lib/catalog-page"
 import { getSiteUrl, INDEXABLE_CATALOG_CATEGORIES } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 
@@ -7,11 +8,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/`, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/catalog`, changeFrequency: "hourly", priority: 0.9 },
-    ...INDEXABLE_CATALOG_CATEGORIES.map((category) => ({
-      url: `${siteUrl}/catalog?category=${category.value}`,
-      changeFrequency: "daily" as const,
-      priority: 0.7,
-    })),
     { url: `${siteUrl}/contact`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/faq`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/safety`, changeFrequency: "monthly", priority: 0.5 },
@@ -21,9 +17,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/payment-terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${siteUrl}/refund-policy`, changeFrequency: "yearly", priority: 0.3 },
   ]
+
   try {
     const supabase = await createClient()
-    const [listingsResponse, sellersResponse] = await Promise.all([
+    const categoryCountPromises = INDEXABLE_CATALOG_CATEGORIES.map(async (category) => {
+      const baseQuery = supabase
+        .from("listings_catalog")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+      const response = await applyCatalogFilters(baseQuery, {
+        category: category.value,
+      })
+      return { category, count: response.count ?? 0, error: response.error }
+    })
+
+    const [listingsResponse, sellersResponse, categoryCounts] = await Promise.all([
       supabase
         .from("listings")
         .select("slug, updated_at")
@@ -35,14 +43,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select("seller_username")
         .eq("status", "active")
         .limit(1_000),
+      Promise.all(categoryCountPromises),
     ])
+
     if (listingsResponse.error || sellersResponse.error) {
       throw listingsResponse.error ?? sellersResponse.error
     }
+
     const listings = listingsResponse.data ?? []
     const sellers = sellersResponse.data ?? []
 
-    const listingEntries: MetadataRoute.Sitemap = (listings ?? [])
+    const categoryEntries: MetadataRoute.Sitemap = categoryCounts
+      .filter(({ count, error }) => !error && count > 0)
+      .map(({ category }) => ({
+        url: `${siteUrl}/catalog?category=${category.value}`,
+        changeFrequency: "daily",
+        priority: 0.7,
+      }))
+
+    const listingEntries: MetadataRoute.Sitemap = listings
       .filter((item) => item.slug)
       .map((item) => ({
         url: `${siteUrl}/listing/${item.slug}`,
@@ -63,7 +82,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }))
 
-    return [...routes, ...sellerEntries, ...listingEntries]
+    return [...routes, ...categoryEntries, ...sellerEntries, ...listingEntries]
   } catch {
     return routes
   }
