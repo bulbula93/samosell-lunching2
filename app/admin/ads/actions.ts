@@ -144,7 +144,7 @@ export async function launchAdminAdAction(formData: FormData) {
   const schedule = createSevenDayAdSchedule()
   const { data, error } = await createAdminClient()
     .from("ads")
-    .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })
+    .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt, review_status: "approved" })
     .eq("id", adId)
     .select("id")
     .maybeSingle()

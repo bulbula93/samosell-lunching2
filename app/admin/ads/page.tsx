@@ -28,6 +28,8 @@ type AdminAdRow = {
   ends_at: string | null
   priority: number
   advertiser_name: string | null
+  submitted_by: string | null
+  review_status: "pending" | "approved" | "rejected"
   created_at: string
   updated_at: string
 }
@@ -96,7 +98,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
   const [{ data, error }, { data: eventCounts, error: eventCountsError }] = await Promise.all([
     admin
       .from("ads")
-      .select("id, placement_key, title, description, image_url, target_url, is_active, starts_at, ends_at, priority, advertiser_name, created_at, updated_at")
+      .select("id, placement_key, title, description, image_url, target_url, is_active, starts_at, ends_at, priority, advertiser_name, submitted_by, review_status, created_at, updated_at")
       .order("created_at", { ascending: false }),
     admin.rpc("get_admin_ad_event_counts_service", { p_actor_id: user.id }),
   ])
@@ -213,6 +215,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClasses[status]}`}>{statusLabels[status]}</span>
                         <span className="text-xs font-semibold text-text-soft">პრიორიტეტი {ad.priority}</span>
+                        {ad.submitted_by && ad.review_status === "pending" ? (
+                          <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800">მომხმარებლის მოთხოვნა</span>
+                        ) : null}
                       </div>
                       <h3 className="mt-3 truncate text-xl font-black text-text">{ad.title || "უსათაურო რეკლამა"}</h3>
                       <p className="mt-1 truncate text-sm font-semibold text-brand">{ad.advertiser_name || "—"}</p>
