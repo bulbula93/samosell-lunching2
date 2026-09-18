@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { ka } from "@/lib/i18n/ka"
+import PaymentMethodMarks from "@/components/payments/PaymentMethodMarks"
 import { SITE_NAME } from "@/lib/site"
 
 const footerGroups = [
@@ -67,7 +68,7 @@ export default function SiteFooter() {
           </nav>
         </div>
 
-        <div className="grid gap-6 border-b border-white/15 py-7 sm:grid-cols-3">
+        <div className="grid gap-6 border-b border-white/15 py-7 sm:grid-cols-4">
           <div>
             <h2 className="text-sm font-black">მიწოდება</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">ცენტრალიზებული მიწოდების სერვისი ჯერ არ არის ჩართული</p>
@@ -75,6 +76,14 @@ export default function SiteFooter() {
           <div>
             <h2 className="text-sm font-black">დაბრუნება</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება და samosell.ge პასუხისმგებლობას იხსნის ნივთებთან დაკავშირებული პრობლემებისგან</p>
+          </div>
+          <div>
+            <h2 className="text-sm font-black">გადახდის მეთოდები</h2>
+            <p className="mt-2 text-xs leading-6 text-white/60">SamoSell-ის ფასიანი ციფრული მომსახურებებისთვის</p>
+            <div className="mt-3 text-neutral-900"><PaymentMethodMarks compact /></div>
+            <Link href="/payment-terms" className="mt-3 inline-block text-xs font-semibold text-white/80 underline underline-offset-4 hover:text-white">
+              დეტალური პირობები
+            </Link>
           </div>
           <div>
             <h2 className="text-sm font-black">სოციალური ქსელები</h2>
