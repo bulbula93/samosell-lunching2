@@ -1,6 +1,6 @@
 import { getSafeImageSource } from "@/lib/media"
 
-export const ADVERTISE_WITH_US_HREF = "/contact?topic=advertising"
+export const ADVERTISE_WITH_US_HREF = "/advertise"
 
 export const AD_PLACEMENT_KEYS = [
   "home_hero_left",
