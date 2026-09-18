@@ -35,7 +35,7 @@ export default async function ContactPage() {
 
           <SupportContactCard userEmail={userEmail} supportEmail={support.supportEmail} />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">მხარდაჭერა</div>
               <div className="mt-3 break-all text-lg font-black text-neutral-900">
@@ -43,6 +43,20 @@ export default async function ContactPage() {
               </div>
               <p className="mt-2 text-sm leading-6 text-neutral-600">ანგარიშის, განცხადების, ჩათისა და ტექნიკური საკითხებისთვის. წერილის გაგზავნა შეგიძლია პირდაპირ ზემოთ არსებული ფორმიდან.</p>
             </div>
+            {support.phone ? (
+              <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
+                <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">ტელეფონი</div>
+                <a href={`tel:${support.phone.replace(/\s+/g, "")}`} className="mt-3 block text-lg font-black text-neutral-900 underline decoration-neutral-300 underline-offset-4">{support.phone}</a>
+                <p className="mt-2 text-sm leading-6 text-neutral-600">საკონტაქტო ნომერი გადახდისა და მხარდაჭერის საკითხებისთვის.</p>
+              </div>
+            ) : null}
+            {support.address ? (
+              <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
+                <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">მისამართი</div>
+                <div className="mt-3 text-lg font-black text-neutral-900">{support.address}</div>
+                <p className="mt-2 text-sm leading-6 text-neutral-600">SamoSell-ის საჯარო საკონტაქტო მისამართი.</p>
+              </div>
+            ) : null}
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
               <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">პასუხის დრო</div>
               <div className="mt-3 text-lg font-black text-neutral-900">{support.responseTime}</div>

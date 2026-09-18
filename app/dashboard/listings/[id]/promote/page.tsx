@@ -192,7 +192,13 @@ export default async function DashboardListingPromotePage({
             <p>4. ხელით დამუშავებადი შეკვეთები ჩვეულებრივ სრულდება დაახლოებით {payment.approvalTime}-ში.</p>
           </div>
 
-          <div className="mt-5 space-y-4 rounded-[1.25rem] border border-dashed border-line bg-surface-alt px-4 py-4 text-sm text-text-soft">
+          <div className="mt-5 rounded-[1.25rem] border border-line bg-white px-4 py-4 text-sm text-text-soft">
+            <div className="font-semibold text-text">დაცული ონლაინ გადახდა</div>
+            <div className="mt-1">Flitt checkout-ზე გამოიყენება Visa/Mastercard ბარათი; Apple Pay და Google Pay ხელმისაწვდომობა დამოკიდებულია მოწყობილობასა და მერჩანტის აქტიურ კონფიგურაციაზე.</div>
+            <div className="mt-2 text-xs">SamoSell ამ checkout-ით მხოლოდ VIP/TOP/VIP MAX/Home Banner მომსახურების საფასურს იღებს — ნივთის გაყიდვის თანხას არა.</div>
+          </div>
+
+          <div className="mt-4 space-y-4 rounded-[1.25rem] border border-dashed border-line bg-surface-alt px-4 py-4 text-sm text-text-soft">
             {payment.hasBankDetails ? (
               <div className="space-y-2">
                 <div className="font-semibold text-text">საბანკო გადარიცხვა</div>
@@ -252,6 +258,7 @@ export default async function DashboardListingPromotePage({
                   <div>
                     <div className="ui-eyebrow">{product.placement === "combo" ? "ყველაზე სრული" : "7 დღე"}</div>
                     <div className="mt-2 text-2xl font-black text-text">{packageName}</div>
+                    <div className="mt-1 font-mono text-xs text-text-soft">მომსახურების კოდი: {product.id}</div>
                     <div className="mt-2 text-sm leading-7 text-text-soft">{product.description || "—"}</div>
                   </div>
                   <div className="shrink-0 rounded-2xl bg-brand px-4 py-3 text-center text-white"><div className="text-lg font-black">{product.price} ₾</div><div className="text-[11px] font-semibold text-white/75">7 დღე</div></div>
