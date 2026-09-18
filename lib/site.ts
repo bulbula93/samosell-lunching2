@@ -15,5 +15,7 @@ export function getSupportConfig() {
     trustEmail: readOptionalEnv("TRUST_EMAIL", "trust@samosell.ge"),
     responseTime: readOptionalEnv("SUPPORT_RESPONSE_TIME", "24–48 საათი"),
     businessHours: readOptionalEnv("SUPPORT_BUSINESS_HOURS", "ორშ–პარ, 11:00–19:00"),
+    phone: readOptionalEnv("SUPPORT_PHONE", ""),
+    address: readOptionalEnv("SUPPORT_ADDRESS", ""),
   }
 }
