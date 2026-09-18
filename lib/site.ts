@@ -16,6 +16,6 @@ export function getSupportConfig() {
     responseTime: readOptionalEnv("SUPPORT_RESPONSE_TIME", "24–48 საათი"),
     businessHours: readOptionalEnv("SUPPORT_BUSINESS_HOURS", "ორშ–პარ, 11:00–19:00"),
     phone: readOptionalEnv("SUPPORT_PHONE", "577 00 33 06"),
-    address: readOptionalEnv("SUPPORT_ADDRESS", "ნუცუბიძის 77ბ"),
+    address: readOptionalEnv("SUPPORT_ADDRESS", "თბილისი, ნუცუბიძის 77ბ"),
   }
 }
