@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
+import { unstable_cache } from "next/cache"
 import { after } from "next/server"
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
@@ -13,7 +14,6 @@ import {
   applyCatalogFilters,
   getCatalogDatabaseFilters,
   getCatalogPath,
-  normalizeText,
   resolveCatalogState,
   type CatalogSearchParams,
   summarizeFilters,
@@ -31,6 +31,7 @@ import {
   buildCatalogTitle,
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
+import { createPublicServerClient } from "@/lib/supabase/public-server"
 import type { CatalogListing } from "@/types/marketplace"
 
 type CatalogPageParams = CatalogSearchParams & {
@@ -53,6 +54,51 @@ type SearchExperimentAssignment = {
 
 const CATALOG_LISTING_SELECT =
   "id, public_id, slug, title, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
+
+type CatalogFilterOptions = {
+  sizes: Array<{ label: string; group_name: string; sort_order: number }>
+  colors: string[]
+  cities: string[]
+}
+
+const getCachedCatalogFilterOptions = unstable_cache(
+  async (): Promise<CatalogFilterOptions> => {
+    const supabase = createPublicServerClient()
+    const [sizesResponse, facetsResponse] = await Promise.all([
+      supabase
+        .from("sizes")
+        .select("label, group_name, sort_order")
+        .order("group_name", { ascending: true })
+        .order("sort_order", { ascending: true }),
+      supabase.rpc("get_catalog_public_facets"),
+    ])
+
+    const publicOptionsError = sizesResponse.error || facetsResponse.error
+    if (publicOptionsError) {
+      throw new Error(`catalog_public_options_failed:${publicOptionsError.message}`)
+    }
+
+    const facets = (facetsResponse.data ?? {}) as {
+      colors?: unknown
+      cities?: unknown
+    }
+    const normalizeList = (value: unknown) =>
+      Array.isArray(value)
+        ? value.map((item) => String(item ?? "").trim()).filter(Boolean)
+        : []
+
+    return {
+      sizes: (sizesResponse.data ?? []) as CatalogFilterOptions["sizes"],
+      colors: normalizeList(facets.colors),
+      cities: normalizeList(facets.cities),
+    }
+  },
+  ["catalog-public-filter-options-v1"],
+  {
+    revalidate: 300,
+    tags: ["catalog-public-filter-options"],
+  },
+)
 
 function readStatus(value?: string | string[]) {
   return typeof value === "string" ? value : ""
@@ -138,9 +184,11 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const rangeTo = rangeFrom + PAGE_SIZE - 1
 
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [authResponse, filterOptions] = await Promise.all([
+    supabase.auth.getUser(),
+    getCachedCatalogFilterOptions(),
+  ])
+  const user = authResponse.data.user
 
   let rankingVersion: string | null = null
   let experimentId: string | null = null
@@ -234,18 +282,12 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     rankedSearchResponse,
     listingsResponse,
     countResponse,
-    sizesResponse,
-    colorsResponse,
-    citiesResponse,
     favoritesResponse,
     savedSearchResponse,
   ] = await Promise.all([
     rankedSearchPromise,
     listingsPromise,
     countPromise,
-    supabase.from("sizes").select("label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
-    supabase.from("listings_catalog").select("color").eq("status", "active"),
-    supabase.from("listings_catalog").select("city").eq("status", "active"),
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
@@ -289,17 +331,12 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     ? rankedPayload.resolved_query
     : ""
   const rescueMessage = rescueMode !== "none" ? rescueLabel(rescueMode, resolvedQuery, q) : ""
-  const sizes = sizesResponse.data
-  const colorsRaw = colorsResponse.data
-  const citiesRaw = citiesResponse.data
+  const sizes = filterOptions.sizes
 
   const queryError =
     rankedSearchResponse.error ||
     listingsResponse.error ||
     countResponse.error ||
-    sizesResponse.error ||
-    colorsResponse.error ||
-    citiesResponse.error ||
     favoritesResponse.error ||
     savedSearchResponse.error
 
@@ -308,9 +345,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   }
 
   const categories = CATALOG_SECTION_OPTIONS.map((item) => ({ slug: item.value, name: item.label }))
-  const uniqueColors = Array.from(new Set((colorsRaw ?? []).map((item: { color?: string | null }) => normalizeText(item?.color)).filter(Boolean)))
-  const legacyCities = (citiesRaw ?? []).map((item: { city?: string | null }) => normalizeText(item?.city)).filter(Boolean)
-  const cityOptions = Array.from(new Set([...GEORGIA_CITIES, ...legacyCities]))
+  const uniqueColors = filterOptions.colors
+  const cityOptions = Array.from(new Set([...GEORGIA_CITIES, ...filterOptions.cities]))
 
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))

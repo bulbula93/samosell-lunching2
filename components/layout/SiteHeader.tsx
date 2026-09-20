@@ -1,9 +1,11 @@
 import type { User } from "@supabase/supabase-js"
+import { unstable_cache } from "next/cache"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
 import type { MarketplaceNavItem } from "@/components/layout/MobileNavigation"
 import { getCatalogItemLabel } from "@/lib/catalog-taxonomy"
 import { getUserAvatar } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/server"
+import { createPublicServerClient } from "@/lib/supabase/public-server"
 
 const categoryLabelOverrides: Record<string, string> = {
   women: "ქალებისთვის",
@@ -12,13 +14,69 @@ const categoryLabelOverrides: Record<string, string> = {
   vintage: "ვინტაჟი",
 }
 
+const supportingItems: MarketplaceNavItem[] = [
+  { label: "ბავშვებისთვის", href: "/catalog?category=kids" },
+  { label: getCatalogItemLabel("footwear"), href: "/catalog?category=footwear" },
+  { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
+]
+
+const getCachedNavigationItems = unstable_cache(
+  async (): Promise<MarketplaceNavItem[]> => {
+    const supabase = createPublicServerClient()
+    const { data } = await supabase
+      .from("categories")
+      .select("slug, name")
+      .order("id", { ascending: true })
+
+    const databaseItems = (data ?? [])
+      .filter((item) => item.slug && item.name)
+      .map((item) => ({
+        label: categoryLabelOverrides[item.slug] || item.name,
+        href: `/catalog?category=${encodeURIComponent(item.slug)}`,
+      }))
+
+    const seen = new Set<string>()
+    return [...databaseItems, ...supportingItems].filter((item) => {
+      if (!item.label || seen.has(item.href)) return false
+      seen.add(item.href)
+      return true
+    })
+  },
+  ["marketplace-header-navigation-v1"],
+  {
+    revalidate: 600,
+    tags: ["marketplace-navigation"],
+  },
+)
+
 export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: Pick<User, "id"> | null } = {}) {
+  const itemsPromise = getCachedNavigationItems()
+
+  if (authenticatedUser === null) {
+    const items = await itemsPromise
+    return (
+      <MarketplaceHeader
+        key="guest"
+        items={items}
+        userState={{
+          userId: null,
+          signedIn: false,
+          profileLabel: "პროფილი",
+          profileImage: null,
+          isAdmin: false,
+          unreadNotifications: 0,
+          unreadChats: 0,
+        }}
+      />
+    )
+  }
+
   const supabase = await createClient()
-  const [user, categoriesResponse] = await Promise.all([
+  const [user, items] = await Promise.all([
     authenticatedUser === undefined
       ? supabase.auth.getUser().then((response) => response.data.user)
       : Promise.resolve(authenticatedUser),
-    supabase.from("categories").select("slug, name").order("id", { ascending: true }),
+    itemsPromise,
   ])
 
   let profile: {
@@ -53,25 +111,6 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
   }
 
   const profileLabel = profile?.full_name || profile?.username || "პროფილი"
-  const databaseItems = (categoriesResponse.data ?? [])
-    .filter((item) => item.slug && item.name)
-    .map((item) => ({
-      label: categoryLabelOverrides[item.slug] || item.name,
-      href: `/catalog?category=${encodeURIComponent(item.slug)}`,
-    }))
-
-  const supportingItems: MarketplaceNavItem[] = [
-    { label: "ბავშვებისთვის", href: "/catalog?category=kids" },
-    { label: getCatalogItemLabel("footwear"), href: "/catalog?category=footwear" },
-    { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
-  ]
-
-  const seen = new Set<string>()
-  const items = [...databaseItems, ...supportingItems].filter((item) => {
-    if (!item.label || seen.has(item.href)) return false
-    seen.add(item.href)
-    return true
-  })
 
   return (
     <MarketplaceHeader
