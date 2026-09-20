@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
+import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
 import { fetchFlittOrderStatus, validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -124,6 +124,9 @@ export async function POST(request: Request) {
   const independentlyApproved = verified.nextStatus === "approved"
     && verified.providerStatus.toLowerCase() === "approved"
     && verified.responseStatus.toLowerCase() === "success"
+  const independentlyReversed = verified.nextStatus === "reversed"
+    && verified.providerStatus.toLowerCase() === "reversed"
+    && verified.responseStatus.toLowerCase() === "success"
   const now = new Date().toISOString()
   const { error: updateError } = await admin
     .from("flitt_payment_attempts")
@@ -145,11 +148,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "callback_persistence_failed" }, { status: 500 })
   }
 
-  const alreadyProviderVerified = attempt.status === "approved"
-    && Boolean(attempt.provider_verified_at)
-    && attempt.provider_verification_source === "status_api"
-  if (attempt.purpose === "boost_order" && attempt.boost_order_id && independentlyApproved && !alreadyProviderVerified) {
+  if (attempt.purpose === "boost_order" && attempt.boost_order_id && independentlyApproved) {
     try {
+      // Always retry the idempotent database finalizer. If status persistence
+      // succeeded but activation failed on an earlier callback, a duplicate
+      // provider callback must be able to finish the paid entitlement.
       await finalizeFlittBoostPayment(attempt.boost_order_id)
     } catch (error) {
       console.error("[flitt] approved boost callback could not be finalized", {
@@ -158,6 +161,19 @@ export async function POST(request: Request) {
         message: error instanceof Error ? error.message : "unknown_error",
       })
       return NextResponse.json({ error: "boost_activation_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "boost_order" && attempt.boost_order_id && independentlyReversed) {
+    try {
+      await reverseFlittBoostPayment(attempt.boost_order_id)
+    } catch (error) {
+      console.error("[flitt] reversed boost callback could not be reconciled", {
+        orderId,
+        boostOrderId: attempt.boost_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "boost_reversal_failed" }, { status: 500 })
     }
   }
 

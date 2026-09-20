@@ -11,6 +11,14 @@ export type FlittBoostFinalizeResult = {
   activated: boolean
 }
 
+export type FlittBoostReversalResult = {
+  order_id: string
+  listing_id: string
+  status: string
+  reconciled: boolean
+  changed: boolean
+}
+
 export async function finalizeFlittBoostPayment(orderId: string) {
   const safeOrderId = String(orderId ?? "").trim()
   if (!safeOrderId) throw new Error("Flitt boost order id is required")
@@ -21,4 +29,16 @@ export async function finalizeFlittBoostPayment(orderId: string) {
 
   if (error) throw error
   return data as FlittBoostFinalizeResult
+}
+
+export async function reverseFlittBoostPayment(orderId: string) {
+  const safeOrderId = String(orderId ?? "").trim()
+  if (!safeOrderId) throw new Error("Flitt boost order id is required")
+
+  const { data, error } = await createAdminClient().rpc("reverse_flitt_boost_payment", {
+    p_order_id: safeOrderId,
+  })
+
+  if (error) throw error
+  return data as FlittBoostReversalResult
 }

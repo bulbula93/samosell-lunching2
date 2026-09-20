@@ -89,6 +89,15 @@ describe("Flitt sandbox checkout", () => {
     const { createFlittSandboxCheckout } = await import("@/lib/flitt")
     await expect(createFlittSandboxCheckout({ orderId: "order_2", amount: 100 })).rejects.toThrow()
   })
+
+  it("refuses sandbox checkout on a Vercel production deployment", async () => {
+    vi.stubEnv("VERCEL_ENV", "production")
+    const { getFlittReadiness, createFlittSandboxCheckout } = await import("@/lib/flitt")
+
+    expect(getFlittReadiness().sandboxEnabled).toBe(false)
+    await expect(createFlittSandboxCheckout({ orderId: "order_prod", amount: 100 })).rejects.toThrow("Flitt sandbox is disabled")
+  })
+
 })
 
 describe("Flitt callback validation", () => {

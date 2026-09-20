@@ -433,6 +433,20 @@ export async function deleteListingAction(formData: FormData) {
   if (listingError) redirect(buildRedirect(filter, humanizeSupabaseError(listingError.message)))
   if (!listing) redirect(buildRedirect(filter, "error"))
 
+  const { data: paymentHistory, error: paymentHistoryError } = await supabase
+    .from("listing_boost_orders")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("seller_id", user.id)
+    .limit(1)
+
+  if (paymentHistoryError) {
+    redirect(buildRedirect(filter, humanizeSupabaseError(paymentHistoryError.message)))
+  }
+  if ((paymentHistory ?? []).length > 0) {
+    redirect(buildRedirect(filter, "payment_history"))
+  }
+
   const { data: listingImages, error: imagesError } = await supabase
     .from("listing_images")
     .select("image_url")
@@ -450,6 +464,9 @@ export async function deleteListingAction(formData: FormData) {
   )
 
   const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId).eq("seller_id", user.id)
+  if (deleteError?.message.includes("listing_has_payment_history")) {
+    redirect(buildRedirect(filter, "payment_history"))
+  }
   if (deleteError) redirect(buildRedirect(filter, humanizeSupabaseError(deleteError.message)))
 
   if (storagePaths.length > 0) {
