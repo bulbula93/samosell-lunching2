@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { describe, expect, it, afterEach } from "vitest"
+import { describe, expect, it, afterEach, vi } from "vitest"
 import {
   canActivateTbcBoost,
   classifyTbcHttpFailure,
@@ -84,8 +84,25 @@ describe("refund preparation", () => {
     expect(refundStatusLabel("approved")).toContain("ბანკის მოქმედებას ელოდება")
   })
 
-  it("keeps the provider refund adapter deliberately non-networked", async () => {
-    await expect(requestProviderRefund({ paymentId: "pay-id", amount: 10, currency: "GEL" })).resolves.toMatchObject({ ok: false, code: "not_configured" })
+  it("executes a full TBC cancel request without sending a partial amount", async () => {
+    process.env.TBC_CHECKOUT_ENABLED = "true"
+    process.env.TBC_API_KEY = "api-key"
+    process.env.TBC_CLIENT_ID = "client-id"
+    process.env.TBC_CLIENT_SECRET = "client-secret"
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "access-token" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response("", { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await expect(requestProviderRefund({ paymentId: "pay-id", amount: 10, currency: "GEL" }))
+      .resolves.toMatchObject({ ok: true, code: "accepted", httpStatus: 200 })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const cancelCall = fetchMock.mock.calls[1]
+    expect(String(cancelCall[0])).toContain("/payments/pay-id/cancel")
+    expect(JSON.parse(String((cancelCall[1] as RequestInit).body))).toEqual({})
+    vi.unstubAllGlobals()
   })
 })
 
@@ -117,8 +134,9 @@ describe("database and route hardening contracts", () => {
     expect(returnRoute).toContain('getSiteUrlEnv()')
   })
 
-  it("keeps reconciliation protected and absent from Vercel cron configuration", () => {
-    expect(cron).toContain('request.headers.get("authorization") !== `Bearer ${cronSecret}`')
+  it("keeps reconciliation protected without depending on Vercel cron scheduling", () => {
+    expect(cron).toContain('"verify_tbc_recovery_token"')
+    expect(cron).toContain("reconcileProcessingTbcRefunds")
     expect(readFileSync("vercel.json", "utf8")).not.toContain('"crons"')
   })
 
