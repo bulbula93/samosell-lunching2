@@ -101,16 +101,18 @@ export async function reviewBoostRefundAction(formData: FormData) {
         })
 
         if (!provider.ok) {
+          const ambiguousProviderFailure = provider.classification === "rate_limited"
+            || provider.classification === "provider_unavailable"
           const { error: recordError } = await trustedClient.rpc("record_tbc_refund_execution_result", {
             p_refund_id: refundId,
-            p_outcome: "rejected",
+            p_outcome: ambiguousProviderFailure ? "ambiguous" : "rejected",
             p_http_status: provider.httpStatus,
             p_result_code: provider.resultCode,
             p_error: provider.message,
           })
           if (recordError) throw recordError
           revalidatePaymentViews()
-          paymentsRedirect(nextPath, "refund_provider_rejected")
+          paymentsRedirect(nextPath, ambiguousProviderFailure ? "refund_provider_uncertain" : "refund_provider_rejected")
         }
 
         const { error: recordError } = await trustedClient.rpc("record_tbc_refund_execution_result", {
