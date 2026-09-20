@@ -17,7 +17,10 @@ function flashLabel(value?: string) {
     case "reconcile_partial": return "ნაწილი განახლდა, ნაწილი დამატებით შემოწმებას საჭიროებს"
     case "reconcile_failed": return "TBC სტატუსის განახლება ვერ შესრულდა"
     case "refund_reviewing": return "დაბრუნების მოთხოვნა განხილვაშია"
-    case "refund_approved": return "შიდა დაბრუნების მოთხოვნა დამტკიცებულია; ბანკის მოქმედება ჯერ არ დაწყებულა"
+    case "refund_approved": return "დაბრუნების მოთხოვნა დამტკიცებულია"
+    case "refund_processing": return "TBC-ში თანხის დაბრუნების მოთხოვნა გაგზავნილია; საბოლოო სტატუსი ავტომატურად გადამოწმდება"
+    case "refund_provider_rejected": return "TBC-მ თანხის დაბრუნების მოთხოვნა უარყო; დეტალები audit trail-შია"
+    case "refund_provider_uncertain": return "TBC მოთხოვნის შედეგი გაურკვეველია; განმეორებითი refund დაბლოკილია და recovery სტატუსს ავტომატურად გადაამოწმებს"
     case "refund_rejected": return "დაბრუნების მოთხოვნა უარყოფილია"
     case "refund_unchanged": return "სტატუსი უკვე ამ მდგომარეობაშია"
     case "refund_invalid_state": return "ამ მდგომარეობიდან მოთხოვნის შეცვლა დაუშვებელია"
@@ -44,7 +47,7 @@ export default async function AdminPaymentDetailPage({ params, searchParams }: P
 
   const [{ data: events }, { data: refunds }, { data: seller }] = await Promise.all([
     supabase.from("listing_boost_order_events").select("id, source, event_type, provider_status, provider_result_code, message, created_at").eq("order_id", order.id).order("created_at", { ascending: false }).limit(100),
-    supabase.from("listing_boost_refund_requests").select("id, status, amount, currency, reason, admin_note, requested_at, reviewed_at, completed_at, provider_reference").eq("order_id", order.id).order("created_at", { ascending: false }),
+    supabase.from("listing_boost_refund_requests").select("id, status, amount, currency, reason, admin_note, requested_at, reviewed_at, completed_at, provider_reference, provider_attempted_at, provider_last_checked_at, provider_http_status, provider_result_code, provider_error").eq("order_id", order.id).order("created_at", { ascending: false }),
     supabase.from("profiles").select("username, full_name").eq("id", order.seller_id).maybeSingle(),
   ])
   const listing = Array.isArray(order.listings) ? order.listings[0] : order.listings
@@ -102,7 +105,9 @@ export default async function AdminPaymentDetailPage({ params, searchParams }: P
                   <div className="font-bold text-text">{refundStatusLabel(refund.status)} · {refund.amount} {refund.currency}</div>
                   <p className="mt-2 text-sm text-text-soft">{refund.reason}</p>
                   {refund.admin_note ? <p className="mt-2 text-sm text-text-soft">ადმინის შენიშვნა: {refund.admin_note}</p> : null}
-                  {["requested", "under_review"].includes(refund.status) ? <form action={reviewBoostRefundAction} className="mt-4 space-y-3"><input type="hidden" name="refundId" value={refund.id} /><input type="hidden" name="nextPath" value={nextPath} /><textarea name="adminNote" className="ui-input min-h-24" placeholder="ადმინის შენიშვნა" /><div className="flex flex-wrap gap-2"><button name="decision" value="review" className="ui-btn-secondary">განხილვა</button><button name="decision" value="reject" className="ui-btn-secondary">უარყოფა</button><button name="decision" value="approve" className="ui-btn-primary">შიდა მოთხოვნის დამტკიცება</button></div><p className="text-xs text-text-soft">დამტკიცება ბანკში თანხის დაბრუნებას არ იწყებს</p></form> : null}
+                  {refund.provider_attempted_at ? <p className="mt-2 text-xs text-text-soft">Provider request: {formatDateOnly(refund.provider_attempted_at)} · HTTP {refund.provider_http_status ?? "—"} · {refund.provider_result_code || "no result code"}</p> : null}
+                  {refund.provider_error ? <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">{refund.provider_error}</p> : null}
+                  {["requested", "under_review"].includes(refund.status) ? <form action={reviewBoostRefundAction} className="mt-4 space-y-3"><input type="hidden" name="refundId" value={refund.id} /><input type="hidden" name="nextPath" value={nextPath} /><textarea name="adminNote" className="ui-input min-h-24" placeholder="ადმინის შენიშვნა" /><div className="flex flex-wrap gap-2"><button name="decision" value="review" className="ui-btn-secondary">განხილვა</button><button name="decision" value="reject" className="ui-btn-secondary">უარყოფა</button><button name="decision" value="approve" className="ui-btn-primary">დამტკიცება და TBC-ში დაბრუნება</button></div><p className="text-xs text-text-soft">დამტკიცებისას SamoSell ერთჯერადად გაუგზავნის TBC-ს სრული თანხის დაბრუნების მოთხოვნას. საბოლოო სტატუსი ბანკიდან ხელახლა გადამოწმდება.</p></form> : null}
                 </article>
               )) : <p className="text-sm text-text-soft">Refund მოთხოვნა არ არის</p>}
             </div>
