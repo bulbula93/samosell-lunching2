@@ -43,6 +43,8 @@ function getFlashMessage(params: MyListingsSearchParams) {
       return "განცხადება წარმატებით განახლდა."
     case "deleted":
       return "განცხადება წაიშალა."
+    case "payment_history":
+      return "ამ განცხადების წაშლა შეუძლებელია, რადგან მას VIP/გადახდის ისტორია აქვს. საჭიროების შემთხვევაში გადაიტანე არქივში."
     default:
       return ""
   }
@@ -75,6 +77,7 @@ export default async function DashboardListingsPage({
   const rangeFrom = (page - 1) * MY_LISTINGS_PAGE_SIZE
   const rangeTo = rangeFrom + MY_LISTINGS_PAGE_SIZE - 1
   const flashMessage = getFlashMessage(params)
+  const flashIsWarning = readParam(params.flash) === "payment_history"
 
   const { supabase, user } = await requireAuthenticatedUser(
     getMyListingsPath(activeFilter, page, publicId)
@@ -156,7 +159,11 @@ export default async function DashboardListingsPage({
         {flashMessage ? (
           <p
             role="status"
-            className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+            className={`mt-6 rounded-xl border px-4 py-3 text-sm font-semibold ${
+              flashIsWarning
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
           >
             {flashMessage}
           </p>
