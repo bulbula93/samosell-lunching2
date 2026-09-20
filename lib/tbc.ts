@@ -268,8 +268,7 @@ export async function cancelTbcPayment(payId: string): Promise<TbcCancelPaymentR
       Authorization: `Bearer ${accessToken}`,
     },
     // TBC documents amount only for partial cancellation. SamoSell currently
-    // supports full-service refunds only, so the amount is intentionally omitted.
-    body: JSON.stringify({}),
+    // supports full-service refunds only, so the request body is intentionally omitted.
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   })
