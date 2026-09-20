@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Suspense } from "react"
+import Script from "next/script"
 import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
@@ -70,6 +71,14 @@ export default function RootLayout({
           მთავარ კონტენტზე გადასვლა
         </a>
         <PwaRuntime />
+        <Script id="vercel-speed-insights-init" strategy="afterInteractive">
+          {`window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };`}
+        </Script>
+        <Script
+          id="vercel-speed-insights"
+          src="/_vercel/speed-insights/script.js"
+          strategy="afterInteractive"
+        />
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>
