@@ -42,6 +42,16 @@ export type TbcPaymentDetails = {
   userMessage?: string | null
 }
 
+export type TbcCancelPaymentResult =
+  | { ok: true; httpStatus: number }
+  | {
+      ok: false
+      httpStatus: number
+      resultCode: string | null
+      detail: string | null
+      classification: ReturnType<typeof classifyTbcHttpFailure>
+    }
+
 function readRequired(name: string) {
   const value = String(process.env[name] ?? "").trim()
   if (!value) throw new Error(`აკლია გარემოს ცვლადი: ${name}`)
@@ -238,6 +248,55 @@ export async function getTbcPaymentDetails(payId: string) {
   }
 
   return parseProviderJson<TbcPaymentDetails>(text)
+}
+
+
+export async function cancelTbcPayment(payId: string): Promise<TbcCancelPaymentResult> {
+  const safePayId = String(payId ?? "").trim()
+  if (!/^[A-Za-z0-9_-]{1,160}$/.test(safePayId)) {
+    throw new Error("TBC payment id is invalid")
+  }
+
+  const config = getTbcCheckoutConfig()
+  const accessToken = await getAccessToken()
+  const response = await fetch(`${config.paymentsUrl}/${encodeURIComponent(safePayId)}/cancel`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      accept: "application/json",
+      apikey: config.apiKey,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    // TBC documents amount only for partial cancellation. SamoSell currently
+    // supports full-service refunds only, so the request body is intentionally omitted.
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  const text = await response.text()
+  if (response.ok) return { ok: true, httpStatus: response.status }
+
+  if (response.status === 401) cachedToken = null
+
+  let resultCode: string | null = null
+  let detail: string | null = null
+  if (text) {
+    try {
+      const payload = JSON.parse(text) as { resultCode?: unknown; detail?: unknown }
+      resultCode = payload.resultCode == null ? null : String(payload.resultCode).slice(0, 160)
+      detail = payload.detail == null ? null : String(payload.detail).slice(0, 1000)
+    } catch {
+      detail = text.slice(0, 1000)
+    }
+  }
+
+  return {
+    ok: false,
+    httpStatus: response.status,
+    resultCode,
+    detail,
+    classification: classifyTbcHttpFailure(response.status),
+  }
 }
 
 export function mapTbcStatusToBoostOrderStatus(status?: string | null) {
