@@ -5,28 +5,28 @@ import HomeMarketplaceEmptyState from "@/components/home/HomeMarketplaceEmptySta
 import HomeProductsSection from "@/components/home/HomeProductsSection"
 import HomePromoBanner from "@/components/home/HomePromoBanner"
 import HomeSearchHeroSection from "@/components/home/HomeSearchHeroSection"
+import HomeStoriesSlot from "@/components/home/HomeStoriesSlot"
 import { ka } from "@/lib/i18n/ka"
-import type { HomePageData } from "@/lib/home-page"
+import type { PublicHomePageData } from "@/lib/home-page"
 import type { AdsByPlacement } from "@/lib/ads"
-import StoriesRail from "@/components/stories/StoriesRail"
 
 export default function HomePageContent({
   data,
   heroAds = {},
 }: {
-  data: HomePageData
+  data: PublicHomePageData
   heroAds?: AdsByPlacement
 }) {
   return (
     <>
-      {data.storyRail ? <StoriesRail data={data.storyRail} /> : null}
+      <HomeStoriesSlot />
       <HomeSearchHeroSection featuredItems={data.heroItems} />
       <HomeProductsSection
         title="VIP განცხადებები"
         description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში."
         href="/catalog?vip=1&sort=vip"
         items={data.vipItems}
-        favoriteIds={data.favoriteIds}
+        favoriteIds={[]}
         layout="horizontal"
       />
       {data.latestItems.length === 0 ? <HomeMarketplaceEmptyState /> : null}
@@ -35,7 +35,7 @@ export default function HomePageContent({
         description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`}
         href="/catalog?sort=latest"
         items={data.latestItems}
-        favoriteIds={data.favoriteIds}
+        favoriteIds={[]}
       />
       <HomePromoBanner bannerItems={data.bannerItems} />
       <HomeProductsSection
@@ -43,7 +43,7 @@ export default function HomePageContent({
         description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით"
         href="/catalog?sort=popular"
         items={data.popularItems}
-        favoriteIds={data.favoriteIds}
+        favoriteIds={[]}
       />
       <AdSlotRow
         placementKeys={["home_hero_left", "home_hero_right"]}
@@ -56,13 +56,13 @@ export default function HomePageContent({
         description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით"
         href="/catalog?sort=price_asc"
         items={data.affordableItems}
-        favoriteIds={data.favoriteIds}
+        favoriteIds={[]}
       />
       <HomeProductsSection
         title={ka.home.vintage}
         href="/catalog?category=vintage"
         items={data.vintageItems}
-        favoriteIds={data.favoriteIds}
+        favoriteIds={[]}
       />
       <HomeCollectionsSection brands={data.popularBrands} />
       <HomeHowItWorks />
