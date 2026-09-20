@@ -9,6 +9,10 @@ const migration = readFileSync(
 const actions = readFileSync(join(process.cwd(), "app/admin/payments/actions.ts"), "utf8")
 const recovery = readFileSync(join(process.cwd(), "app/api/internal/tbc/reconcile/route.ts"), "utf8")
 const sync = readFileSync(join(process.cwd(), "lib/tbc-sync.ts"), "utf8")
+const schedule = readFileSync(
+  join(process.cwd(), "supabase/migrations/20260920221130_schedule_tbc_recovery_every_5m.sql"),
+  "utf8",
+)
 
 describe("TBC refund execution hardening", () => {
   it("claims a refund before provider I/O and blocks browser execution", () => {
@@ -38,5 +42,13 @@ describe("TBC refund execution hardening", () => {
     expect(recovery).toContain('"verify_tbc_recovery_token"')
     expect(migration).toContain("vault.decrypted_secrets")
     expect(migration).toContain("samosell_tbc_recovery_token")
+  })
+
+  it("schedules plan-independent recovery every five minutes from Supabase", () => {
+    expect(schedule).toContain("'samosell-tbc-recovery'")
+    expect(schedule).toContain("'*/5 * * * *'")
+    expect(schedule).toContain("net.http_get")
+    expect(schedule).toContain("vault.decrypted_secrets")
+    expect(schedule).toContain("https://samosell.ge/api/internal/tbc/reconcile")
   })
 })
