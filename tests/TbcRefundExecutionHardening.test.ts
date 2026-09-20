@@ -8,6 +8,7 @@ const migration = readFileSync(
 )
 const actions = readFileSync(join(process.cwd(), "app/admin/payments/actions.ts"), "utf8")
 const recovery = readFileSync(join(process.cwd(), "app/api/internal/tbc/reconcile/route.ts"), "utf8")
+const refunds = readFileSync(join(process.cwd(), "lib/tbc-refunds.ts"), "utf8")
 const sync = readFileSync(join(process.cwd(), "lib/tbc-sync.ts"), "utf8")
 const schedule = readFileSync(
   join(process.cwd(), "supabase/migrations/20260920221130_schedule_tbc_recovery_every_5m.sql"),
@@ -29,6 +30,7 @@ describe("TBC refund execution hardening", () => {
     expect(actions).toContain('p_outcome: "ambiguous"')
     expect(actions).toContain('provider.classification === "rate_limited"')
     expect(actions).toContain('provider.classification === "provider_unavailable"')
+    expect(refunds).toContain("classification: result.classification")
     expect(actions).toContain('paymentsRedirect(nextPath, "refund_provider_uncertain")')
   })
 
