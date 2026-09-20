@@ -1,8 +1,10 @@
 "use client"
 
 import { useFormStatus } from "react-dom"
+import { useHomePersonalization } from "@/components/home/HomePersonalizationProvider"
 
 type FavoriteSubmitButtonProps = {
+  listingId?: string
   isFavorited: boolean
   compact?: boolean
   className?: string
@@ -22,20 +24,26 @@ function HeartIcon({ compact = false }: { compact?: boolean }) {
 }
 
 export default function FavoriteSubmitButton({
+  listingId,
   isFavorited,
   compact = false,
   className,
 }: FavoriteSubmitButtonProps) {
   const { pending } = useFormStatus()
+  const personalization = useHomePersonalization()
+  const effectiveIsFavorited =
+    listingId && personalization?.loaded
+      ? personalization.favoriteIds.includes(listingId)
+      : isFavorited
 
   if (compact) {
     return (
       <button
         type="submit"
         disabled={pending}
-        aria-label={isFavorited ? "ფავორიტებიდან ამოშლა" : "ფავორიტებში დამატება"}
-        aria-pressed={isFavorited}
-        title={isFavorited ? "ფავორიტებში დამატებულია" : "ფავორიტებში დამატება"}
+        aria-label={effectiveIsFavorited ? "ფავორიტებიდან ამოშლა" : "ფავორიტებში დამატება"}
+        aria-pressed={effectiveIsFavorited}
+        title={effectiveIsFavorited ? "ფავორიტებში დამატებულია" : "ფავორიტებში დამატება"}
         className={[
           "inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand bg-brand transition duration-200",
           "disabled:cursor-wait disabled:opacity-70",
@@ -43,7 +51,7 @@ export default function FavoriteSubmitButton({
           className ?? "",
         ].join(" ")}
       >
-        <span className={isFavorited ? "text-[#b9fff5]" : "text-white"}>
+        <span className={effectiveIsFavorited ? "text-[#b9fff5]" : "text-white"}>
           <HeartIcon compact />
         </span>
       </button>
@@ -54,21 +62,21 @@ export default function FavoriteSubmitButton({
     <button
       type="submit"
       disabled={pending}
-      aria-label={isFavorited ? "ფავორიტებიდან ამოშლა" : "ფავორიტებში დამატება"}
-      aria-pressed={isFavorited}
+      aria-label={effectiveIsFavorited ? "ფავორიტებიდან ამოშლა" : "ფავორიტებში დამატება"}
+      aria-pressed={effectiveIsFavorited}
       className={[
         "inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition",
         "disabled:cursor-wait disabled:opacity-70",
-        isFavorited
+        effectiveIsFavorited
           ? "border-brand bg-brand text-white hover:bg-brand-hover"
           : "border-line bg-white text-text hover:border-brand hover:text-brand",
         className ?? "",
       ].join(" ")}
     >
-      <span className={isFavorited ? "text-[#b9fff5]" : "text-brand"}>
+      <span className={effectiveIsFavorited ? "text-[#b9fff5]" : "text-brand"}>
         <HeartIcon />
       </span>
-      <span>{pending ? "იტვირთება..." : isFavorited ? "შენახულია" : "ფავორიტებში"}</span>
+      <span>{pending ? "იტვირთება..." : effectiveIsFavorited ? "შენახულია" : "ფავორიტებში"}</span>
     </button>
   )
 }
