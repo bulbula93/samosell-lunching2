@@ -91,7 +91,13 @@ Seller და admin ხელით ამოწმებენ provider სტ�
 
 ## 9) refund
 
-Admin-ის `approved` ნიშნავს მხოლოდ შიდა მოთხოვნის დამტკიცებას. რეალური `refunded` ან `partially_refunded` ინახება მხოლოდ მაშინ, როცა TBC-ის ავტორიტეტული სტატუსი არის `Returned` ან `PartialReturned`. `lib/tbc-refunds.ts` ქსელურ მოთხოვნას არ აკეთებს, სანამ ბანკის ზუსტი refund API contract არ დადასტურდება.
+Admin-ის refund-ის დამტკიცება ახლა ერთჯერადად აგზავნის TBC-ის full-cancel მოთხოვნას `POST /v1/tpay/payments/{payId}/cancel` endpoint-ზე. SamoSell partial refund-ს ჯერ არ აკეთებს, ამიტომ provider request-ში `amount` არ იგზავნება.
+
+Provider request-მდე refund DB-ში ატომურად გადადის `provider_processing` მდგომარეობაში, ამიტომ double-click ან პარალელური admin request მეორე cancel call-ს ვერ გაუშვებს. HTTP 200 მხოლოდ იმას ნიშნავს, რომ TBC-მ cancel request მიიღო; საბოლოო `refunded` ან `partially_refunded` მდგომარეობა იწერება მხოლოდ მაშინ, როცა შემდგომი ავტორიტეტული payment-status GET აბრუნებს `Returned` ან `PartialReturned`.
+
+თუ provider request-ის network outcome გაურკვეველია (მაგ. timeout), refund რჩება `provider_processing`-ში და სისტემა cancel request-ს ავტომატურად აღარ იმეორებს. Recovery job ყოველ 5 წუთში მხოლოდ payment status-ს ამოწმებს.
+
+Lost callback recovery მუშაობს Supabase `pg_cron + pg_net`-ით და `samosell_tbc_recovery_token` secret ინახება Supabase Vault-ში. Secret source control-ში არ ინახება.
 
 ## 10) რა არის შემდეგი ეტაპი
 

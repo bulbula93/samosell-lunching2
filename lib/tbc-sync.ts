@@ -95,3 +95,51 @@ export async function reconcilePendingTbcOrders(limit = 5): Promise<ReconcilePen
   }
   return { enabled: true, attempted, synced, failed }
 }
+
+
+export type ReconcileProcessingTbcRefundsResult = {
+  enabled: boolean
+  attempted: number
+  terminal: number
+  failed: number
+}
+
+export async function reconcileProcessingTbcRefunds(limit = 2): Promise<ReconcileProcessingTbcRefundsResult> {
+  if (!isTbcCheckoutEnabled()) return { enabled: false, attempted: 0, terminal: 0, failed: 0 }
+
+  const boundedLimit = Number.isFinite(limit) ? Math.max(1, Math.min(5, Math.floor(limit))) : 2
+  const minAge = new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  const admin = createAdminClient()
+  const { data: refunds, error } = await admin
+    .from("listing_boost_refund_requests")
+    .select("id, order_id")
+    .eq("status", "provider_processing")
+    .lte("updated_at", minAge)
+    .order("provider_last_checked_at", { ascending: true, nullsFirst: true })
+    .limit(boundedLimit)
+
+  if (error) throw error
+
+  let attempted = 0
+  let terminal = 0
+  let failed = 0
+  for (const refund of refunds ?? []) {
+    attempted += 1
+    try {
+      const result = await syncBoostOrderFromTbcByOrderId(String(refund.order_id), "reconciliation")
+      const providerStatus = String(result?.payment?.status ?? ((result?.order as { provider_status?: string | null } | null)?.provider_status ?? ""))
+      await admin
+        .from("listing_boost_refund_requests")
+        .update({ provider_last_checked_at: new Date().toISOString() })
+        .eq("id", refund.id)
+        .eq("status", "provider_processing")
+
+      if (providerStatus === "Returned" || providerStatus === "PartialReturned") terminal += 1
+    } catch {
+      failed += 1
+      console.error("[tbc] refund reconciliation failed for request", String(refund.id))
+    }
+  }
+
+  return { enabled: true, attempted, terminal, failed }
+}
