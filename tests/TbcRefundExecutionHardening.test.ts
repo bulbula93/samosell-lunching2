@@ -27,6 +27,8 @@ describe("TBC refund execution hardening", () => {
     expect(migration).toContain("p_outcome not in ('accepted','rejected','ambiguous')")
     expect(migration).toContain("case when p_outcome = 'ambiguous'")
     expect(actions).toContain('p_outcome: "ambiguous"')
+    expect(actions).toContain('provider.classification === "rate_limited"')
+    expect(actions).toContain('provider.classification === "provider_unavailable"')
     expect(actions).toContain('paymentsRedirect(nextPath, "refund_provider_uncertain")')
   })
 
