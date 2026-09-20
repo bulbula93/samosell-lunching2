@@ -464,6 +464,9 @@ export async function deleteListingAction(formData: FormData) {
   )
 
   const { error: deleteError } = await supabase.from("listings").delete().eq("id", listingId).eq("seller_id", user.id)
+  if (deleteError?.message.includes("listing_has_payment_history")) {
+    redirect(buildRedirect(filter, "payment_history"))
+  }
   if (deleteError) redirect(buildRedirect(filter, humanizeSupabaseError(deleteError.message)))
 
   if (storagePaths.length > 0) {
