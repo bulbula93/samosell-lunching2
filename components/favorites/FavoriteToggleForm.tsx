@@ -31,7 +31,7 @@ export default function FavoriteToggleForm({
       {normalizedSearchId ? (
         <input type="hidden" name="searchId" value={normalizedSearchId} />
       ) : null}
-      <FavoriteSubmitButton isFavorited={isFavorited} compact={compact} className={className} />
+      <FavoriteSubmitButton listingId={listingId} isFavorited={isFavorited} compact={compact} className={className} />
     </form>
   )
 }
