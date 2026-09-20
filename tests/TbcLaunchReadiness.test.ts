@@ -101,7 +101,7 @@ describe("refund preparation", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     const cancelCall = fetchMock.mock.calls[1]
     expect(String(cancelCall[0])).toContain("/payments/pay-id/cancel")
-    expect(JSON.parse(String((cancelCall[1] as RequestInit).body))).toEqual({})
+    expect((cancelCall[1] as RequestInit).body).toBeUndefined()
     vi.unstubAllGlobals()
   })
 })
