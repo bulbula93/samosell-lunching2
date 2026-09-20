@@ -20,7 +20,7 @@ const supportingItems: MarketplaceNavItem[] = [
   { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
 ]
 
-const getCachedNavigationItems = unstable_cache(
+export const getMarketplaceNavigationItems = unstable_cache(
   async (): Promise<MarketplaceNavItem[]> => {
     const supabase = createPublicServerClient()
     const { data } = await supabase
@@ -50,7 +50,7 @@ const getCachedNavigationItems = unstable_cache(
 )
 
 export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: Pick<User, "id"> | null } = {}) {
-  const itemsPromise = getCachedNavigationItems()
+  const itemsPromise = getMarketplaceNavigationItems()
 
   if (authenticatedUser === null) {
     const items = await itemsPromise
