@@ -17,7 +17,7 @@ const getCachedActiveAdRows = unstable_cache(
       .from("ads")
       .select(AD_SELECT)
       .eq("is_active", true)
-      .in("placement_key", placementKeys)
+      .in("placement_key", [...placementKeys])
       .order("priority", { ascending: false })
       .order("created_at", { ascending: false })
 
