@@ -4,6 +4,7 @@ import Script from "next/script"
 import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
+import FieldWebVitals from "@/components/shared/FieldWebVitals"
 import { absoluteUrl, getSiteUrl, GOOGLE_SITE_VERIFICATION } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import "./globals.css"
@@ -79,6 +80,7 @@ export default function RootLayout({
           src="/_vercel/speed-insights/script.js"
           strategy="afterInteractive"
         />
+        <FieldWebVitals />
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>
