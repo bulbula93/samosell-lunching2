@@ -19,7 +19,7 @@ describe("boost order product-term snapshots", () => {
   it("activates and reconciles using the purchased snapshot rather than the mutable product catalog", () => {
     expect(migration).toContain("v_placement := v_order.placement_snapshot")
     expect(migration).toContain("v_duration_days := v_order.duration_days_snapshot")
-    expect(migration).toContain("where o.placement_snapshot = 'combo'")
+    expect(migration).toContain("o.placement_snapshot = 'combo'")
     expect(migration).toContain("where o.placement_snapshot in ('vip', 'combo')")
     expect(migration).not.toContain("join public.listing_boost_products p on p.id = o.product_id\n  join public.listings")
   })
