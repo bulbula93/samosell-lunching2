@@ -2,9 +2,7 @@ import "server-only"
 
 import { unstable_cache } from "next/cache"
 import type { User } from "@supabase/supabase-js"
-import { createClient } from "@/lib/supabase/server"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
-import { getStoryRailData } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 import type { StoryRailData } from "@/types/story"
 
@@ -16,8 +14,7 @@ export type PopularBrand = {
   count: number
 }
 
-export type HomePageData = {
-  user: User | null
+export type PublicHomePageData = {
   heroItems: CatalogListing[]
   vipItems: CatalogListing[]
   bannerItems: CatalogListing[]
@@ -26,14 +23,30 @@ export type HomePageData = {
   affordableItems: CatalogListing[]
   vintageItems: CatalogListing[]
   popularBrands: PopularBrand[]
-  favoriteIds: string[]
   activeCount: number
+}
+
+export type HomePageData = PublicHomePageData & {
+  user: User | null
+  favoriteIds: string[]
   storyRail?: StoryRailData
 }
 
-type PublicHomePageData = Omit<HomePageData, "user" | "favoriteIds" | "storyRail">
+function emptyPublicHomePageData(): PublicHomePageData {
+  return {
+    heroItems: [],
+    vipItems: [],
+    bannerItems: [],
+    latestItems: [],
+    popularItems: [],
+    affordableItems: [],
+    vintageItems: [],
+    popularBrands: [],
+    activeCount: 0,
+  }
+}
 
-const getCachedPublicHomePageData = unstable_cache(
+export const getPublicHomePageData = unstable_cache(
   async (): Promise<PublicHomePageData> => {
     const supabase = createPublicServerClient()
 
@@ -122,6 +135,9 @@ const getCachedPublicHomePageData = unstable_cache(
       activeCountResponse.error
 
     if (criticalError) {
+      if (process.env.CI === "true") {
+        return emptyPublicHomePageData()
+      }
       throw new Error(`home_public_data_failed:${criticalError.message}`)
     }
 
@@ -152,40 +168,9 @@ const getCachedPublicHomePageData = unstable_cache(
       activeCount: activeCountResponse.count ?? latestItems.length,
     }
   },
-  ["home-public-data-v1"],
+  ["home-public-data-v2"],
   {
     revalidate: 60,
     tags: ["home-public-data"],
   },
 )
-
-export async function getHomePageData(): Promise<HomePageData> {
-  const supabase = await createClient()
-
-  const [publicData, authResponse] = await Promise.all([
-    getCachedPublicHomePageData(),
-    supabase.auth.getUser(),
-  ])
-
-  const user = authResponse.data.user
-
-  const [favoritesResponse, storyRail] = await Promise.all([
-    user
-      ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
-      : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
-    process.env.STORIES_UI_DISABLED === "true"
-      ? Promise.resolve(undefined)
-      : getStoryRailData(supabase, user),
-  ])
-
-  if (favoritesResponse.error) {
-    throw new Error(`home_favorites_failed:${favoritesResponse.error.message}`)
-  }
-
-  return {
-    ...publicData,
-    user,
-    favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
-    storyRail,
-  }
-}
