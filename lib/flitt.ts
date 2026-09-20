@@ -58,6 +58,8 @@ export function getFlittReadiness() {
   const merchantIdPresent = Boolean(String(process.env.FLITT_MERCHANT_ID ?? "").trim())
   const secretPresent = Boolean(String(process.env.FLITT_SECRET_KEY ?? "").trim())
   const apiUrlPresent = Boolean(String(process.env.FLITT_API_URL ?? "").trim())
+  const productionDeployment = String(process.env.VERCEL_ENV ?? "").trim().toLowerCase() === "production"
+  const credentialsReady = merchantIdPresent && secretPresent && apiUrlPresent
 
   return {
     mode,
@@ -65,8 +67,9 @@ export function getFlittReadiness() {
     merchantIdPresent,
     secretPresent,
     apiUrlPresent,
-    sandboxEnabled: mode === "test" && featureFlagEnabled && merchantIdPresent && secretPresent && apiUrlPresent,
-    liveEnabled: mode === "live" && featureFlagEnabled && merchantIdPresent && secretPresent && apiUrlPresent,
+    productionDeployment,
+    sandboxEnabled: mode === "test" && featureFlagEnabled && credentialsReady && !productionDeployment,
+    liveEnabled: mode === "live" && featureFlagEnabled && credentialsReady,
   }
 }
 
