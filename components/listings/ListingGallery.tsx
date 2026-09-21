@@ -1,6 +1,12 @@
 "use client"
 
-import { type KeyboardEvent, useMemo, useRef, useState } from "react"
+import {
+  type KeyboardEvent,
+  type TouchEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import SmartImage from "@/components/shared/SmartImage"
 import { ka } from "@/lib/i18n/ka"
 import { getSafeImageSource } from "@/lib/media"
@@ -40,6 +46,7 @@ export default function ListingGallery({
   )
   const [selectedIndex, setSelectedIndex] = useState(0)
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const activeIndex =
     galleryItems.length > 0 ? Math.min(selectedIndex, galleryItems.length - 1) : 0
   const activeItem = galleryItems[activeIndex] ?? null
@@ -70,12 +77,32 @@ export default function ListingGallery({
     }
   }
 
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0]
+    if (!touch) return
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    const start = touchStartRef.current
+    const touch = event.changedTouches[0]
+    touchStartRef.current = null
+    if (!start || !touch || galleryItems.length < 2) return
+
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return
+
+    selectImage(activeIndex + (deltaX < 0 ? 1 : -1))
+  }
+
   return (
-    <section
-      aria-label={ka.listingDetail.imageRegion}
-      className="min-w-0"
-    >
-      <div className="ui-card relative aspect-[4/5] overflow-hidden bg-surface-alt sm:aspect-square">
+    <section aria-label={ka.listingDetail.imageRegion} className="min-w-0">
+      <div
+        className="ui-card relative aspect-[4/5] touch-pan-y select-none overflow-hidden bg-surface-alt sm:aspect-square"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <SmartImage
           src={activeItem?.image_url}
           alt={
@@ -96,7 +123,7 @@ export default function ListingGallery({
               type="button"
               onClick={() => selectImage(activeIndex - 1)}
               aria-label={ka.listingDetail.previousImage}
-              className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/95 text-xl font-bold text-text shadow-lg transition hover:bg-brand hover:text-white"
+              className="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/95 text-xl font-bold text-text shadow-lg transition hover:bg-brand hover:text-white sm:inline-flex"
             >
               <span aria-hidden="true">‹</span>
             </button>
@@ -104,10 +131,27 @@ export default function ListingGallery({
               type="button"
               onClick={() => selectImage(activeIndex + 1)}
               aria-label={ka.listingDetail.nextImage}
-              className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/95 text-xl font-bold text-text shadow-lg transition hover:bg-brand hover:text-white"
+              className="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-white/95 text-xl font-bold text-text shadow-lg transition hover:bg-brand hover:text-white sm:inline-flex"
             >
               <span aria-hidden="true">›</span>
             </button>
+
+            {galleryItems.length <= 7 ? (
+              <div
+                aria-hidden="true"
+                className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/25 px-2.5 py-2 backdrop-blur-sm sm:hidden"
+              >
+                {galleryItems.map((item, index) => (
+                  <span
+                    key={item.id}
+                    className={[
+                      "h-1.5 rounded-full transition-all",
+                      index === activeIndex ? "w-5 bg-white" : "w-1.5 bg-white/60",
+                    ].join(" ")}
+                  />
+                ))}
+              </div>
+            ) : null}
           </>
         ) : null}
 
@@ -123,45 +167,50 @@ export default function ListingGallery({
       </div>
 
       {galleryItems.length > 1 ? (
-        <div
-          role="tablist"
-          aria-label={ka.listingDetail.imageRegion}
-          className="mt-3 flex gap-3 overflow-x-auto pb-2"
-        >
-          {galleryItems.map((image, index) => {
-            const isActive = activeIndex === index
-            return (
-              <button
-                key={image.id}
-                ref={(node) => {
-                  thumbnailRefs.current[index] = node
-                }}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-label={`${ka.listingDetail.imageCount} ${index + 1}`}
-                tabIndex={isActive ? 0 : -1}
-                onClick={() => selectImage(index)}
-                onKeyDown={(event) => handleThumbnailKeyDown(event, index)}
-                className={[
-                  "relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-surface-alt transition sm:w-24",
-                  isActive
-                    ? "border-brand shadow-[0_0_0_3px_rgba(7,90,83,0.12)]"
-                    : "border-transparent hover:border-line",
-                ].join(" ")}
-              >
-                <SmartImage
-                  src={image.image_url}
-                  alt={`${title} — ${ka.listingDetail.imageCount} ${index + 1}`}
-                  wrapperClassName="h-full w-full"
-                  className="object-cover"
-                  fallbackLabel=""
-                  sizes="96px"
-                />
-              </button>
-            )
-          })}
-        </div>
+        <>
+          <p className="mt-2 text-center text-[11px] font-semibold text-text-soft sm:hidden">
+            ფოტოების სანახავად გადაუსვი მარცხნივ ან მარჯვნივ
+          </p>
+          <div
+            role="tablist"
+            aria-label={ka.listingDetail.imageRegion}
+            className="mt-3 hidden gap-3 overflow-x-auto pb-2 sm:flex"
+          >
+            {galleryItems.map((image, index) => {
+              const isActive = activeIndex === index
+              return (
+                <button
+                  key={image.id}
+                  ref={(node) => {
+                    thumbnailRefs.current[index] = node
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={`${ka.listingDetail.imageCount} ${index + 1}`}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => selectImage(index)}
+                  onKeyDown={(event) => handleThumbnailKeyDown(event, index)}
+                  className={[
+                    "relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-surface-alt transition sm:w-24",
+                    isActive
+                      ? "border-brand shadow-[0_0_0_3px_rgba(7,90,83,0.12)]"
+                      : "border-transparent hover:border-line",
+                  ].join(" ")}
+                >
+                  <SmartImage
+                    src={image.image_url}
+                    alt={`${title} — ${ka.listingDetail.imageCount} ${index + 1}`}
+                    wrapperClassName="h-full w-full"
+                    className="object-cover"
+                    fallbackLabel=""
+                    sizes="96px"
+                  />
+                </button>
+              )
+            })}
+          </div>
+        </>
       ) : null}
     </section>
   )
