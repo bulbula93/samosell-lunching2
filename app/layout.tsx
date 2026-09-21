@@ -13,6 +13,7 @@ import "./globals.css"
 export const viewport: Viewport = {
   themeColor: "#075A53",
   colorScheme: "light",
+  viewportFit: "cover",
 }
 
 export const metadata: Metadata = {
