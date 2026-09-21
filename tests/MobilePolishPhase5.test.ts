@@ -10,6 +10,7 @@ const prompt = read("components/pwa/PwaInstallPrompt.tsx")
 const manifest = read("app/manifest.ts")
 const mobileNav = read("components/layout/MobileBottomNavigation.tsx")
 const globals = read("app/globals.css")
+const rootLayout = read("app/layout.tsx")
 const vitalsClient = read("components/shared/FieldWebVitals.tsx")
 const vitalsRoute = read("app/api/web-vitals/route.ts")
 const vitalsMigration = read("supabase/migrations/20260921090130_add_mobile_dimensions_to_web_vitals.sql")
@@ -29,6 +30,10 @@ describe("Phase 5 mobile QA and app-like polish", () => {
     expect(manifest).toContain("shortcuts")
     expect(manifest).toContain('url: "/catalog"')
     expect(manifest).toContain('url: "/sell-fast"')
+  })
+
+  it("enables full safe-area viewport coverage on iPhone", () => {
+    expect(rootLayout).toContain('viewportFit: "cover"')
   })
 
   it("compacts bottom navigation in short landscape viewports", () => {
