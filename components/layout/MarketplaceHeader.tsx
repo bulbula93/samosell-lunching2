@@ -47,6 +47,8 @@ export default function MarketplaceHeader({
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const isChatRoute = pathname.startsWith("/dashboard/chats")
   const isChatThread = pathname.startsWith("/dashboard/chats/")
+  const isListingCreateRoute = pathname === "/dashboard/listings/new"
+  const hideMobileMarketplaceSearch = isChatRoute || isListingCreateRoute
 
   return (
     <>
@@ -174,7 +176,7 @@ export default function MarketplaceHeader({
         </div>
       </div>
 
-      {!isChatRoute ? (
+      {!hideMobileMarketplaceSearch ? (
         <div className="border-t border-line px-3 pb-2 pt-2 sm:px-4 sm:pb-3 sm:pt-3 md:hidden">
           <MarketplaceSearch compact id="mobile-header-marketplace-search" />
         </div>

@@ -31,7 +31,7 @@ type CategoryOption = { id: number; name: string; slug?: string | null }
 type SizeOption = { id: string; label?: string; group_name?: string | null }
 type EditableImage = { id: string; imageUrl: string; file: File }
 type ToggleOption = { value: string; label: string; helper?: string }
-type Step = 1 | 2 | 3
+type Step = 1 | 2 | 3 | 4
 
 type Props = {
   categories: CategoryOption[]
@@ -60,9 +60,10 @@ const genderOptions: ToggleOption[] = [
 ]
 
 const stepMeta: Array<{ step: Step; label: string; helper: string }> = [
-  { step: 1, label: "მთავარი", helper: "ფოტო, სათაური, ფასი" },
-  { step: 2, label: "დეტალები", helper: "აღწერა და მახასიათებლები" },
-  { step: 3, label: "დასრულება", helper: "შემოწმება და გამოქვეყნება" },
+  { step: 1, label: "ფოტოები", helper: "კამერა, გალერეა, რიგი" },
+  { step: 2, label: "დეტალები", helper: "სათაური და მახასიათებლები" },
+  { step: 3, label: "ფასი", helper: "ფასი და გაყიდვის ტიპი" },
+  { step: 4, label: "Preview", helper: "შემოწმება და გამოქვეყნება" },
 ]
 
 function fieldErrorId(id: string) {
@@ -115,7 +116,7 @@ function TextInput({
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
-        className={`ui-input ${error ? "border-red-500 focus:border-red-600 focus:ring-red-100" : ""}`}
+        className={`ui-input scroll-mt-24 text-base sm:text-sm ${error ? "border-red-500 focus:border-red-600 focus:ring-red-100" : ""}`}
       />
       {helper ? <p id={helperId} className="text-xs leading-5 text-text-soft">{helper}</p> : null}
       <FieldError id={id} message={error} />
@@ -214,8 +215,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const formPrefix = useId().replace(/:/g, "")
   const topRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const submittingRef = useRef(false)
   const imagesRef = useRef<EditableImage[]>([])
+  const draggingImageIdRef = useRef("")
 
   const [step, setStep] = useState<Step>(1)
   const [title, setTitle] = useState("")
@@ -238,6 +241,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [loading, setLoading] = useState(false)
   const [progressText, setProgressText] = useState("")
   const [progressPercent, setProgressPercent] = useState(0)
+  const [draggingImageId, setDraggingImageId] = useState("")
 
   const titleId = `${formPrefix}-title`
   const descriptionId = `${formPrefix}-description`
@@ -313,19 +317,24 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
   }
 
-  function validateCurrentStep(currentStep: 1 | 2) {
-    const validation = validateListingInput(formInput)
-    const imageMissing = currentStep === 1 && images.length === 0
-    if (validation.ok && !imageMissing) return true
+  function validateCurrentStep(currentStep: 1 | 2 | 3) {
+    if (currentStep === 1) {
+      if (images.length > 0) return true
+      setFieldErrors((current) => ({ ...current, images: "დაამატე მინიმუმ ერთი ფოტო." }))
+      setFormError("ფოტოს გარეშე განცხადება ვერ გაგრძელდება.")
+      requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+      return false
+    }
 
-    const allowedFields: Array<keyof ListingFormInput> = currentStep === 1
-      ? ["title", "price", "categoryId"]
-      : ["description", "brandId", "sizeId", "condition", "saleType", "gender", "color", "material", "city"]
+    const validation = validateListingInput(formInput)
+    const allowedFields: Array<keyof ListingFormInput> = currentStep === 2
+      ? ["title", "categoryId", "description", "brandId", "sizeId", "condition", "gender", "color", "material", "city"]
+      : ["price", "saleType"]
     const nextErrors: ListingFieldErrors = {}
+
     for (const field of allowedFields) {
       if (!validation.ok && validation.fieldErrors[field]) nextErrors[field] = validation.fieldErrors[field]
     }
-    if (imageMissing) nextErrors.images = "დაამატე მინიმუმ ერთი ფოტო."
 
     if (Object.keys(nextErrors).length === 0) return true
     setFieldErrors((current) => ({ ...current, ...nextErrors }))
@@ -337,6 +346,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   function handleNext() {
     if (step === 1 && validateCurrentStep(1)) jumpToStep(2)
     if (step === 2 && validateCurrentStep(2)) jumpToStep(3)
+    if (step === 3 && validateCurrentStep(3)) jumpToStep(4)
   }
 
   async function handleFilesSelected(fileList: FileList | null) {
@@ -397,9 +407,48 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     })
   }
 
+
+  function reorderImage(sourceId: string, targetId: string) {
+    if (!sourceId || sourceId === targetId) return
+    setImages((current) => {
+      const sourceIndex = current.findIndex((item) => item.id === sourceId)
+      const targetIndex = current.findIndex((item) => item.id === targetId)
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return current
+      const copy = [...current]
+      const [item] = copy.splice(sourceIndex, 1)
+      copy.splice(targetIndex, 0, item)
+      return copy
+    })
+  }
+
+  function beginPointerReorder(event: React.PointerEvent<HTMLButtonElement>, imageId: string) {
+    if (loading) return
+    draggingImageIdRef.current = imageId
+    setDraggingImageId(imageId)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function continuePointerReorder(event: React.PointerEvent<HTMLButtonElement>) {
+    const sourceId = draggingImageIdRef.current
+    if (!sourceId) return
+    const target = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-listing-image-id]")
+      ?.dataset.listingImageId
+    if (target) reorderImage(sourceId, target)
+  }
+
+  function endPointerReorder(event: React.PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    draggingImageIdRef.current = ""
+    setDraggingImageId("")
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (step !== 3 || submittingRef.current) return
+    if (step !== 4 || submittingRef.current) return
 
     if (images.length === 0) {
       setStep(1)
@@ -412,11 +461,12 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     const validation = validateListingInput(formInput)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
-      const stepOneError = ["title", "price", "categoryId"].some((field) => Boolean(validation.fieldErrors[field as keyof ListingFieldErrors]))
-      const stepTwoError = ["description", "brandId", "sizeId", "condition", "saleType", "gender", "color", "material", "city"]
+      const stepTwoError = ["title", "categoryId", "description", "brandId", "sizeId", "condition", "gender", "color", "material", "city"]
         .some((field) => Boolean(validation.fieldErrors[field as keyof ListingFieldErrors]))
-      if (stepOneError) setStep(1)
-      else if (stepTwoError) setStep(2)
+      const stepThreeError = ["price", "saleType"]
+        .some((field) => Boolean(validation.fieldErrors[field as keyof ListingFieldErrors]))
+      if (stepTwoError) setStep(2)
+      else if (stepThreeError) setStep(3)
       setFormError("შეამოწმე მონიშნული ველები და სცადე ხელახლა.")
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
       return
@@ -516,12 +566,12 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       <header className="ui-card overflow-hidden">
         <div className="bg-[linear-gradient(135deg,#eff8f6_0%,#ffffff_62%)] px-5 py-7 sm:px-8">
           <p className="ui-eyebrow">ახალი განცხადება</p>
-          <h1 className="mt-2 text-2xl font-black tracking-tight text-text sm:text-3xl">გაყიდე ნივთი 3 ნაბიჯში</h1>
+          <h1 className="mt-2 text-2xl font-black tracking-tight text-text sm:text-3xl">გაყიდე ნივთი 4 ნაბიჯში</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
-            პირველ ეტაპზე მხოლოდ მთავარი ინფორმაცია გვჭირდება. დანარჩენ დეტალებს შემდეგ ნაბიჯზე დაამატებ.
+            დაიწყე ფოტოებით, შემდეგ შეავსე დეტალები და ფასი. ბოლოს ნახავ ზუსტად როგორ გამოიყურება განცხადება.
           </p>
 
-          <ol className="mt-6 grid grid-cols-3 gap-2" aria-label="განცხადების შექმნის პროგრესი">
+          <ol className="mt-6 grid grid-cols-4 gap-2" aria-label="განცხადების შექმნის პროგრესი">
             {stepMeta.map((item) => {
               const active = item.step === step
               const complete = item.step < step
@@ -540,7 +590,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                     } disabled:cursor-default`}
                     aria-current={active ? "step" : undefined}
                   >
-                    <span className="block text-xs font-black">{item.step}/3 · {item.label}</span>
+                    <span className="block text-xs font-black">{item.step}/4 · {item.label}</span>
                     <span className={`mt-1 hidden text-[11px] sm:block ${active ? "text-white/80" : "text-text-soft"}`}>{item.helper}</span>
                   </button>
                 </li>
@@ -558,70 +608,140 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       ) : null}
 
       {step === 1 ? (
-        <>
-          <section className="ui-card p-5 sm:p-8" aria-labelledby={`${imagesId}-heading`}>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">1. დაამატე ფოტოები <span className="text-red-700" aria-hidden="true">*</span></h2>
-                <p className="mt-1 text-sm leading-6 text-text-soft">მინიმუმ ერთი ფოტო სავალდებულოა. პირველი ფოტო გახდება მთავარი.</p>
-              </div>
-              <span className="shrink-0 text-sm font-bold text-text-soft">{images.length}/{MAX_LISTING_IMAGES}</span>
+        <section className="ui-card p-5 sm:p-8" aria-labelledby={`${imagesId}-heading`}>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id={`${imagesId}-heading`} className="text-lg font-black text-text">1. დაამატე ფოტოები <span className="text-red-700" aria-hidden="true">*</span></h2>
+              <p className="mt-1 text-sm leading-6 text-text-soft">პირველი ფოტო გახდება მთავარი. დაჭერით და გადაადგილებით შეგიძლია რიგის შეცვლა.</p>
             </div>
+            <span className="shrink-0 text-sm font-bold text-text-soft">{images.length}/{MAX_LISTING_IMAGES}</span>
+          </div>
 
-            <input
-              ref={fileInputRef}
-              id={imagesId}
-              type="file"
-              accept={LISTING_IMAGE_ACCEPT}
-              multiple
-              required={images.length === 0}
-              className="sr-only"
-              aria-label="განცხადების სურათების არჩევა"
-              aria-required="true"
-              aria-invalid={Boolean(fieldErrors.images)}
-              aria-describedby={fieldErrors.images ? fieldErrorId(imagesId) : `${imagesId}-heading`}
-              onChange={(event) => {
-                void handleFilesSelected(event.target.files)
-                event.currentTarget.value = ""
-              }}
-            />
+          <input
+            ref={fileInputRef}
+            id={imagesId}
+            type="file"
+            accept={LISTING_IMAGE_ACCEPT}
+            multiple
+            required={images.length === 0}
+            className="sr-only"
+            aria-label="განცხადების სურათების არჩევა"
+            aria-required="true"
+            aria-invalid={Boolean(fieldErrors.images)}
+            aria-describedby={fieldErrors.images ? fieldErrorId(imagesId) : `${imagesId}-heading`}
+            onChange={(event) => {
+              void handleFilesSelected(event.target.files)
+              event.currentTarget.value = ""
+            }}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept={LISTING_IMAGE_ACCEPT}
+            capture="environment"
+            className="sr-only"
+            aria-label="კამერით ფოტოს გადაღება"
+            onChange={(event) => {
+              void handleFilesSelected(event.target.files)
+              event.currentTarget.value = ""
+            }}
+          />
 
-            {images.length === 0 ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-5 flex min-h-44 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-brand/35 bg-brand-soft/25 px-6 text-center text-brand transition hover:border-brand hover:bg-brand-soft/50"
-              >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl shadow-sm" aria-hidden="true">+</span>
-                <span className="mt-3 text-sm font-black">ფოტოების არჩევა</span>
-                <span className="mt-1 text-xs text-text-soft">JPEG, PNG ან WEBP · მაქს. 7 MB თითო ფოტო</span>
-              </button>
-            ) : (
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {images.map((image, index) => (
-                  <article key={image.id} className="relative aspect-square overflow-hidden rounded-2xl border border-line bg-surface-alt">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image.imageUrl} alt={`ფოტო ${index + 1}`} className="h-full w-full object-cover" />
-                    {index === 0 ? <span className="absolute left-2 top-2 rounded-full bg-brand px-2.5 py-1 text-[11px] font-black text-white">მთავარი</span> : null}
-                    <div className="absolute inset-x-1.5 bottom-1.5 flex gap-1 rounded-xl bg-white/95 p-1 shadow-sm backdrop-blur">
-                      <button type="button" disabled={index === 0 || loading} onClick={() => moveImage(image.id, -1)} className="min-h-9 min-w-9 rounded-lg text-sm font-black disabled:opacity-30">←</button>
-                      <button type="button" disabled={index === images.length - 1 || loading} onClick={() => moveImage(image.id, 1)} className="min-h-9 min-w-9 rounded-lg text-sm font-black disabled:opacity-30">→</button>
-                      {index > 0 ? <button type="button" disabled={loading} onClick={() => setAsCover(image.id)} className="min-h-9 rounded-lg px-2 text-[10px] font-black text-brand">მთავარი</button> : null}
-                      <button type="button" disabled={loading} onClick={() => removeImage(image.id)} className="ml-auto min-h-9 min-w-9 rounded-lg font-black text-red-700">×</button>
-                    </div>
-                  </article>
-                ))}
-                {images.length < MAX_LISTING_IMAGES ? (
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="aspect-square rounded-2xl border-2 border-dashed border-brand/35 bg-brand-soft/20 text-2xl text-brand">+</button>
-                ) : null}
-              </div>
-            )}
-            <FieldError id={imagesId} message={fieldErrors.images} />
-          </section>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              disabled={loading || images.length >= MAX_LISTING_IMAGES}
+              onClick={() => cameraInputRef.current?.click()}
+              className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-brand/25 bg-brand-soft/35 px-4 text-center text-brand transition hover:border-brand disabled:opacity-50 sm:min-h-32"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
+                <path d="M4 7.5h3l1.5-2h7l1.5 2h3a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5a2 2 0 0 1 2-2Z" />
+                <circle cx="12" cy="13" r="3.5" />
+              </svg>
+              <span className="mt-2 text-sm font-black">კამერით გადაღება</span>
+              <span className="mt-1 text-[11px] text-text-soft">გახსენი ტელეფონის კამერა</span>
+            </button>
+            <button
+              type="button"
+              disabled={loading || images.length >= MAX_LISTING_IMAGES}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-line bg-white px-4 text-center text-text transition hover:border-brand/40 hover:bg-brand-soft/20 disabled:opacity-50 sm:min-h-32"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current text-brand" strokeWidth="1.8">
+                <rect x="3" y="4" width="18" height="16" rx="3" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="m21 15-4.5-4.5L7 20" />
+              </svg>
+              <span className="mt-2 text-sm font-black">გალერეიდან არჩევა</span>
+              <span className="mt-1 text-[11px] text-text-soft">აირჩიე რამდენიმე ფოტო ერთად</span>
+            </button>
+          </div>
 
+          {images.length > 0 ? (
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {images.map((image, index) => (
+                <article
+                  key={image.id}
+                  data-listing-image-id={image.id}
+                  draggable={!loading}
+                  onDragStart={(event) => {
+                    draggingImageIdRef.current = image.id
+                    setDraggingImageId(image.id)
+                    event.dataTransfer.effectAllowed = "move"
+                    event.dataTransfer.setData("text/plain", image.id)
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault()
+                    reorderImage(draggingImageIdRef.current || event.dataTransfer.getData("text/plain"), image.id)
+                  }}
+                  onDragEnd={() => {
+                    draggingImageIdRef.current = ""
+                    setDraggingImageId("")
+                  }}
+                  className={`relative aspect-square overflow-hidden rounded-2xl border bg-surface-alt transition ${draggingImageId === image.id ? "scale-[0.98] border-brand opacity-80" : "border-line"}`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={image.imageUrl} alt={`ფოტო ${index + 1}`} className="h-full w-full object-cover" />
+                  <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-2">
+                    {index === 0 ? <span className="rounded-full bg-brand px-2.5 py-1 text-[11px] font-black text-white">მთავარი</span> : <span />}
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onPointerDown={(event) => beginPointerReorder(event, image.id)}
+                      onPointerMove={continuePointerReorder}
+                      onPointerUp={endPointerReorder}
+                      onPointerCancel={endPointerReorder}
+                      className="touch-none rounded-full bg-white/95 px-2.5 py-1.5 text-sm font-black text-text shadow-sm active:cursor-grabbing"
+                      aria-label={`ფოტო ${index + 1} გადაალაგე დაჭერით და გადაადგილებით`}
+                    >
+                      ☰
+                    </button>
+                  </div>
+                  <div className="absolute inset-x-1.5 bottom-1.5 flex gap-1 rounded-xl bg-white/95 p-1 shadow-sm backdrop-blur">
+                    <button type="button" disabled={index === 0 || loading} onClick={() => moveImage(image.id, -1)} className="min-h-10 min-w-10 rounded-lg text-sm font-black disabled:opacity-30" aria-label={`ფოტო ${index + 1} გადაიტანე მარცხნივ`}>←</button>
+                    <button type="button" disabled={index === images.length - 1 || loading} onClick={() => moveImage(image.id, 1)} className="min-h-10 min-w-10 rounded-lg text-sm font-black disabled:opacity-30" aria-label={`ფოტო ${index + 1} გადაიტანე მარჯვნივ`}>→</button>
+                    {index > 0 ? <button type="button" disabled={loading} onClick={() => setAsCover(image.id)} className="min-h-10 rounded-lg px-2 text-[10px] font-black text-brand">მთავარი</button> : null}
+                    <button type="button" disabled={loading} onClick={() => removeImage(image.id)} className="ml-auto min-h-10 min-w-10 rounded-lg font-black text-red-700" aria-label={`ფოტო ${index + 1} წაშალე`}>×</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface-alt/35 px-5 py-6 text-center">
+              <p className="text-sm font-bold text-text">ჯერ ფოტო არ აგირჩევია</p>
+              <p className="mt-1 text-xs leading-5 text-text-soft">კარგი მთავარი ფოტო ზრდის განცხადების ნახვის შანსს.</p>
+            </div>
+          )}
+          <p className="mt-3 text-xs leading-5 text-text-soft">JPEG, PNG ან WEBP · მაქს. 7 MB თითო ფოტო · მაქსიმუმ {MAX_LISTING_IMAGES} ფოტო.</p>
+          <FieldError id={imagesId} message={fieldErrors.images} />
+        </section>
+      ) : null}
+
+      {step === 2 ? (
+        <>
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-main-heading`}>
-            <h2 id={`${formPrefix}-main-heading`} className="text-lg font-black text-text">2. მთავარი ინფორმაცია</h2>
-            <p className="mt-1 text-sm text-text-soft">ამ სამი ველით უკვე ვიგებთ რას ყიდი და რა ფასად.</p>
+            <h2 id={`${formPrefix}-main-heading`} className="text-lg font-black text-text">2. რა ნივთს ყიდი?</h2>
+            <p className="mt-1 text-sm text-text-soft">სათაური და კატეგორია მომხმარებელს სწრაფად ეხმარება ნივთის პოვნაში.</p>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <TextInput
@@ -654,26 +774,21 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 error={fieldErrors.categoryId}
                 required
               />
-              <TextInput
-                id={priceId}
-                label="ფასი (₾)"
-                value={price}
-                onChange={(value) => { setPrice(value); clearFieldError("price") }}
-                error={fieldErrors.price}
-                required
-                inputMode="decimal"
-                placeholder="მაგ: 120"
+              <SelectField
+                id={cityId}
+                label="ქალაქი"
+                value={city}
+                onChange={(value) => { setCity(value); clearFieldError("city") }}
+                options={cityOptions.map((item) => ({ value: item, label: item }))}
+                placeholder="აირჩიე ქალაქი"
+                error={fieldErrors.city}
               />
             </div>
           </section>
-        </>
-      ) : null}
 
-      {step === 2 ? (
-        <>
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-description-heading`}>
             <h2 id={`${formPrefix}-description-heading`} className="text-lg font-black text-text">აღწერე ნივთი</h2>
-            <p className="mt-1 text-sm text-text-soft">მიუთითე მნიშვნელოვანი ინფორმაცია და ნებისმიერი დეფექტი — ეს ამცირებს ზედმეტ კითხვებს ჩატში.</p>
+            <p className="mt-1 text-sm text-text-soft">მიუთითე მნიშვნელოვანი ინფორმაცია და ნებისმიერი დეფექტი.</p>
             <div className="mt-5 space-y-1.5">
               <div className="flex items-center justify-between gap-3">
                 <label htmlFor={descriptionId} className="text-sm font-bold text-text">აღწერა<span className="ml-1 text-red-700" aria-hidden="true">*</span></label>
@@ -685,10 +800,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 onChange={(event) => { setDescription(event.target.value); clearFieldError("description") }}
                 required
                 maxLength={LISTING_TEXT_LIMITS.descriptionMax}
+                enterKeyHint="next"
                 aria-invalid={Boolean(fieldErrors.description)}
                 aria-describedby={fieldErrors.description ? fieldErrorId(descriptionId) : undefined}
                 placeholder="მაგ: თითქმის ახალია, ორჯერ მეცვა. დეფექტი არ აქვს."
-                className={`min-h-36 w-full resize-y rounded-xl border bg-white px-4 py-3 text-sm leading-6 text-text outline-none transition placeholder:text-text-soft focus:ring-4 ${fieldErrors.description ? "border-red-500 focus:border-red-600 focus:ring-red-100" : "border-line focus:border-brand focus:ring-brand-soft"}`}
+                className={`min-h-36 w-full scroll-mt-24 resize-y rounded-xl border bg-white px-4 py-3 text-base leading-6 text-text outline-none transition placeholder:text-text-soft focus:ring-4 sm:text-sm ${fieldErrors.description ? "border-red-500 focus:border-red-600 focus:ring-red-100" : "border-line focus:border-brand focus:ring-brand-soft"}`}
               />
               <FieldError id={descriptionId} message={fieldErrors.description} />
             </div>
@@ -697,13 +813,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-attributes-heading`}>
             <h2 id={`${formPrefix}-attributes-heading`} className="text-lg font-black text-text">მახასიათებლები</h2>
             <div className="mt-5 grid gap-6">
-              <TogglePills
-                legend="მდგომარეობა"
-                value={condition}
-                onChange={(value) => { setCondition(value); clearFieldError("condition") }}
-                options={conditionOptions}
-                error={fieldErrors.condition}
-              />
+              <TogglePills legend="მდგომარეობა" value={condition} onChange={(value) => { setCondition(value); clearFieldError("condition") }} options={conditionOptions} error={fieldErrors.condition} />
               <TogglePills
                 legend="ვისთვისაა"
                 value={gender}
@@ -717,13 +827,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 options={genderOptions.filter((option) => LISTING_GENDERS.includes(option.value as typeof LISTING_GENDERS[number]))}
                 error={fieldErrors.gender}
               />
-              <TogglePills
-                legend="გაყიდვა ან გაცვლა"
-                value={saleType}
-                onChange={(value) => { setSaleType(value); clearFieldError("saleType") }}
-                options={saleTypeOptions}
-                error={fieldErrors.saleType}
-              />
             </div>
           </section>
 
@@ -731,43 +834,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             <h2 id={`${formPrefix}-fit-heading`} className="text-lg font-black text-text">ზომა და ბრენდი</h2>
             <p className="mt-1 text-sm text-text-soft">არჩევითია, მაგრამ ზუსტი მონაცემები ძებნის ფილტრებში უკეთ გამოჩნდება.</p>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <SelectField
-                id={brandIdField}
-                label="ბრენდი"
-                value={brandId}
-                onChange={(value) => { setBrandId(value); clearFieldError("brandId") }}
-                options={brands.map((item) => ({ value: item.id, label: item.name ?? item.id }))}
-                placeholder="ბრენდის გარეშე"
-                error={fieldErrors.brandId}
-              />
-              <SelectField
-                id={sizeTypeId}
-                label="ზომის ტიპი"
-                value={sizeType}
-                onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }}
-                options={sizeTypeChoices}
-                placeholder="აირჩიე ზომის ტიპი"
-              />
-              <SelectField
-                id={sizeIdField}
-                label="ზომა"
-                value={sizeId}
-                onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }}
-                options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
-                placeholder="ზომის გარეშე"
-                error={fieldErrors.sizeId}
-              />
-              <SelectField
-                id={cityId}
-                label="ქალაქი"
-                value={city}
-                onChange={(value) => { setCity(value); clearFieldError("city") }}
-                options={cityOptions.map((item) => ({ value: item, label: item }))}
-                placeholder="აირჩიე ქალაქი"
-                error={fieldErrors.city}
-              />
+              <SelectField id={brandIdField} label="ბრენდი" value={brandId} onChange={(value) => { setBrandId(value); clearFieldError("brandId") }} options={brands.map((item) => ({ value: item.id, label: item.name ?? item.id }))} placeholder="ბრენდის გარეშე" error={fieldErrors.brandId} />
+              <SelectField id={sizeTypeId} label="ზომის ტიპი" value={sizeType} onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }} options={sizeTypeChoices} placeholder="აირჩიე ზომის ტიპი" />
+              <SelectField id={sizeIdField} label="ზომა" value={sizeId} onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }} options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))} placeholder="ზომის გარეშე" error={fieldErrors.sizeId} />
             </div>
-
             <details className="mt-5 rounded-2xl border border-line bg-surface-alt/35 p-4">
               <summary className="cursor-pointer text-sm font-black text-brand">+ ფერი და მასალა</summary>
               <div className="mt-4 grid gap-5 sm:grid-cols-2">
@@ -780,16 +850,38 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       ) : null}
 
       {step === 3 ? (
+        <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-price-heading`}>
+          <h2 id={`${formPrefix}-price-heading`} className="text-lg font-black text-text">3. ფასი და გაყიდვის ტიპი</h2>
+          <p className="mt-1 text-sm leading-6 text-text-soft">მიუთითე ფასი და აირჩიე, ყიდი ნივთს თუ გაცვლაც გაწყობს.</p>
+          <div className="mt-5 grid gap-6">
+            <div className="max-w-md">
+              <TextInput
+                id={priceId}
+                label="ფასი (₾)"
+                value={price}
+                onChange={(value) => { setPrice(value); clearFieldError("price") }}
+                error={fieldErrors.price}
+                required
+                inputMode="decimal"
+                placeholder="მაგ: 120"
+                helper="მიუთითე მხოლოდ რიცხვი, მაგალითად 120 ან 120.50"
+              />
+            </div>
+            <TogglePills legend="გაყიდვა ან გაცვლა" value={saleType} onChange={(value) => { setSaleType(value); clearFieldError("saleType") }} options={saleTypeOptions} error={fieldErrors.saleType} />
+          </div>
+        </section>
+      ) : null}
+
+      {step === 4 ? (
         <>
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-review-heading`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 id={`${formPrefix}-review-heading`} className="text-lg font-black text-text">შეამოწმე განცხადება</h2>
+                <h2 id={`${formPrefix}-review-heading`} className="text-lg font-black text-text">Preview — ასე გამოჩნდება განცხადება</h2>
                 <p className="mt-1 text-sm text-text-soft">თუ რამე შესაცვლელია, შესაბამის ნაბიჯზე დაბრუნდი.</p>
               </div>
               <span className="ui-pill-soft self-start">{images.length} ფოტო</span>
             </div>
-
             <div className="mt-6 grid gap-4 md:grid-cols-[180px_1fr]">
               <div className="aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
                 {images[0] ? (
@@ -807,32 +899,33 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-text-soft">
                   <span className="ui-pill-soft">{conditionOptions.find((item) => item.value === condition)?.label}</span>
                   <span className="ui-pill-soft">{genderOptions.find((item) => item.value === gender)?.label}</span>
+                  <span className="ui-pill-soft">{saleTypeOptions.find((item) => item.value === saleType)?.label}</span>
                   {selectedBrand ? <span className="ui-pill-soft">{selectedBrand.name}</span> : null}
                   {selectedSize ? <span className="ui-pill-soft">ზომა {selectedSize.label}</span> : null}
                   {city ? <span className="ui-pill-soft">{city}</span> : null}
                 </div>
               </div>
             </div>
+            {images.length > 1 ? (
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {images.slice(1).map((image, index) => (
+                  <div key={image.id} className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-line bg-surface-alt">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={image.imageUrl} alt={`დამატებითი ფოტო ${index + 2}`} className="h-full w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-publish-heading`}>
-            <h2 id={`${formPrefix}-publish-heading`} className="text-lg font-black text-text">როგორ შეინახოს?</h2>
+            <h2 id={`${formPrefix}-publish-heading`} className="text-lg font-black text-text">4. გამოქვეყნება</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setPublishNow(true)}
-                aria-pressed={publishNow}
-                className={`rounded-2xl border p-5 text-left transition ${publishNow ? "border-brand bg-brand-soft shadow-[0_0_0_3px_rgba(7,90,83,0.08)]" : "border-line bg-white hover:border-brand/40"}`}
-              >
+              <button type="button" onClick={() => setPublishNow(true)} aria-pressed={publishNow} className={`rounded-2xl border p-5 text-left transition ${publishNow ? "border-brand bg-brand-soft shadow-[0_0_0_3px_rgba(7,90,83,0.08)]" : "border-line bg-white hover:border-brand/40"}`}>
                 <span className="text-sm font-black text-text">გამოქვეყნება ახლავე</span>
                 <span className="mt-1 block text-xs leading-5 text-text-soft">განცხადება დაუყოვნებლივ გამოჩნდება კატალოგში.</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setPublishNow(false)}
-                aria-pressed={!publishNow}
-                className={`rounded-2xl border p-5 text-left transition ${!publishNow ? "border-brand bg-brand-soft shadow-[0_0_0_3px_rgba(7,90,83,0.08)]" : "border-line bg-white hover:border-brand/40"}`}
-              >
+              <button type="button" onClick={() => setPublishNow(false)} aria-pressed={!publishNow} className={`rounded-2xl border p-5 text-left transition ${!publishNow ? "border-brand bg-brand-soft shadow-[0_0_0_3px_rgba(7,90,83,0.08)]" : "border-line bg-white hover:border-brand/40"}`}>
                 <span className="text-sm font-black text-text">დრაფტად შენახვა</span>
                 <span className="mt-1 block text-xs leading-5 text-text-soft">მხოლოდ შენს კაბინეტში დარჩება და მოგვიანებით გამოაქვეყნებ.</span>
               </button>
@@ -850,14 +943,14 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         </div>
       ) : null}
 
-      <footer className="ui-card sticky bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 p-4 shadow-[0_16px_45px_rgba(7,63,59,0.14)] sm:static sm:p-5">
+      <footer className="ui-card sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 p-3 shadow-[0_16px_45px_rgba(7,63,59,0.14)] sm:static sm:p-5">
         {step === 1 ? (
           <Link href="/dashboard/listings" className="ui-btn-secondary">გაუქმება</Link>
         ) : (
           <button type="button" disabled={loading} onClick={() => jumpToStep((step - 1) as Step)} className="ui-btn-secondary">← უკან</button>
         )}
 
-        {step < 3 ? (
+        {step < 4 ? (
           <button type="button" disabled={loading} onClick={handleNext} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
         ) : (
           <button type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
