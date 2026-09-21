@@ -105,7 +105,10 @@ export default async function ChatThreadPage({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
-      <header className="shrink-0 border-b border-line bg-white px-3 py-3 sm:px-4">
+      <header
+        className="relative z-20 shrink-0 border-b border-line bg-white px-3 pb-3 sm:px-4 sm:py-3"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/chats"
@@ -149,7 +152,7 @@ export default async function ChatThreadPage({
               </Link>
             ) : null}
 
-            <form action={updateChatVisibilityAction}>
+            <form action={updateChatVisibilityAction} className="hidden sm:block">
               <input type="hidden" name="chatId" value={typedThread.id} />
               <input
                 type="hidden"
@@ -174,6 +177,51 @@ export default async function ChatThreadPage({
                 />
               </div>
             ) : null}
+
+            <details className="group relative sm:hidden">
+              <summary
+                aria-label="მიმოწერის მოქმედებები"
+                className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-xl font-black text-text transition hover:bg-surface-alt [&::-webkit-details-marker]:hidden"
+              >
+                <span aria-hidden="true">⋯</span>
+              </summary>
+              <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-60 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.18)]">
+                {typedThread.counterparty_username ? (
+                  <Link
+                    href={`/seller/${encodeURIComponent(typedThread.counterparty_username)}`}
+                    className="block rounded-xl px-3 py-3 text-sm font-bold text-text transition hover:bg-surface-alt"
+                  >
+                    პროფილის ნახვა
+                  </Link>
+                ) : null}
+
+                <form action={updateChatVisibilityAction}>
+                  <input type="hidden" name="chatId" value={typedThread.id} />
+                  <input
+                    type="hidden"
+                    name="intent"
+                    value={typedThread.is_archived ? "restore" : "archive"}
+                  />
+                  <input type="hidden" name="returnTo" value="thread" />
+                  <button
+                    type="submit"
+                    className="block w-full rounded-xl px-3 py-3 text-left text-sm font-bold text-text transition hover:bg-surface-alt"
+                  >
+                    {typedThread.is_archived ? "არქივიდან აღდგენა" : "არქივში გადატანა"}
+                  </button>
+                </form>
+
+                {!blockResult.error ? (
+                  <div className="mt-1 border-t border-line pt-2">
+                    <BlockUserForm
+                      blockedId={typedThread.counterparty_id}
+                      nextPath={`/dashboard/chats/${typedThread.id}`}
+                      isBlocked={isBlocked}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </details>
           </div>
         </div>
 
