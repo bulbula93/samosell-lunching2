@@ -222,6 +222,29 @@ describe("self-service Brand Ad database invariants", () => {
     expect(new Date(order.ends_at).getTime() - new Date(order.starts_at).getTime()).toBe(7 * 24 * 60 * 60 * 1000)
   })
 
+  it("treats an active ad without an end date as an occupied slot", async () => {
+    const unboundedLeft = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+    const boundedRight = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+    await db.exec(`
+      insert into ads (id, placement_key, is_active, starts_at, ends_at)
+      values
+        ('${unboundedLeft}', 'home_hero_left', true, now() - interval '1 day', null),
+        ('${boundedRight}', 'home_hero_right', true, now() - interval '1 day', now() + interval '2 days');
+    `)
+    await insertPaidOrder()
+    await db.query(`select public.approve_self_service_ad('${adId}', '${admin}')`)
+
+    const order = (await db.query<{ selected_placement: string; starts_at: string }>(
+      `select selected_placement, starts_at from ad_orders where id = '${orderId}'`,
+    )).rows[0]
+    const rightEnd = (await db.query<{ ends_at: string }>(
+      `select ends_at from ads where id = '${boundedRight}'`,
+    )).rows[0].ends_at
+
+    expect(order.selected_placement).toBe("home_hero_right")
+    expect(new Date(order.starts_at).toISOString()).toBe(new Date(rightEnd).toISOString())
+  })
+
   it("serially approved ads do not double-book the two slots", async () => {
     const adTwo = "77777777-7777-4777-8777-777777777777"
     const orderTwo = "88888888-8888-4888-8888-888888888888"
