@@ -20,6 +20,7 @@ function flashMessage(code: string) {
     case "invalid_title": return "მიუთითე რეკლამის სწორი სათაური."
     case "invalid_description": return "რეკლამის ტექსტი არ უნდა აღემატებოდეს 280 სიმბოლოს."
     case "invalid_target": return "მიუთითე უსაფრთხო SamoSell ან http/https ბმული."
+    case "terms_required": return "რეკლამის შექმნამდე უნდა დაეთანხმო სარეკლამო პირობებს."
     case "image_size": return "სურათი უნდა იყოს 850 KB-ზე ნაკლები."
     case "image_type": return "სურათი უნდა იყოს JPEG, PNG ან WEBP ფორმატში."
     case "upload_failed": return "სურათი ვერ აიტვირთა. სცადე ხელახლა."
