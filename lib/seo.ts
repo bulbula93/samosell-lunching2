@@ -92,6 +92,104 @@ export function buildCatalogCanonicalPath({
   }
 }
 
+export function buildCatalogStructuredData({
+  canonicalPath,
+  title,
+  description,
+  categoryLabel,
+  page = 1,
+  listings,
+}: {
+  canonicalPath: string
+  title: string
+  description: string
+  categoryLabel?: string
+  page?: number
+  listings: CatalogListing[]
+}) {
+  const pageUrl = absoluteUrl(canonicalPath)
+  const itemListId = `${pageUrl}#item-list`
+  const collectionId = `${pageUrl}#collection`
+  const breadcrumbItems: Array<Record<string, unknown>> = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "მთავარი",
+      item: absoluteUrl("/"),
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "კატალოგი",
+      item: absoluteUrl("/catalog"),
+    },
+  ]
+
+  if (categoryLabel) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: 3,
+      name: categoryLabel,
+      item: absoluteUrl(
+        `/catalog?category=${encodeURIComponent(
+          INDEXABLE_CATALOG_CATEGORIES.find((item) => item.label === categoryLabel)?.value ?? "",
+        )}`,
+      ),
+    })
+  }
+
+  if (page > 1) {
+    breadcrumbItems.push({
+      "@type": "ListItem",
+      position: breadcrumbItems.length + 1,
+      name: `გვერდი ${page}`,
+      item: pageUrl,
+    })
+  }
+
+  const listItems = listings.map((listing, index) => ({
+    "@type": "ListItem",
+    position: (page - 1) * 24 + index + 1,
+    url: absoluteUrl(`/listing/${listing.slug}`),
+    name: listing.title,
+    ...(listing.cover_image_url
+      ? {
+          image: listing.cover_image_url.startsWith("/")
+            ? absoluteUrl(listing.cover_image_url)
+            : listing.cover_image_url,
+        }
+      : {}),
+  }))
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": collectionId,
+        url: pageUrl,
+        name: title,
+        description,
+        inLanguage: "ka-GE",
+        isPartOf: { "@id": `${getSiteUrl()}/#website` },
+        mainEntity: { "@id": itemListId },
+      },
+      {
+        "@type": "ItemList",
+        "@id": itemListId,
+        name: categoryLabel ? `${categoryLabel} — SamoSell` : "SamoSell კატალოგი",
+        numberOfItems: listItems.length,
+        itemListOrder: "https://schema.org/ItemListOrderDescending",
+        itemListElement: listItems,
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbItems,
+      },
+    ],
+  }
+}
+
 export function serializeJsonLd(value: unknown) {
   return JSON.stringify(value)
     .replace(/</g, "\\u003c")
