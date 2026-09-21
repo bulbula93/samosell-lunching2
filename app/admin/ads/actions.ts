@@ -75,6 +75,8 @@ function revalidateAdSurfaces() {
   revalidatePath("/")
   revalidatePath("/catalog")
   revalidatePath("/dashboard/listings/new")
+  revalidatePath("/dashboard/ads")
+  revalidatePath("/advertise")
 }
 
 export async function saveAdminAdAction(formData: FormData) {
@@ -137,19 +139,41 @@ export async function saveAdminAdAction(formData: FormData) {
 }
 
 export async function launchAdminAdAction(formData: FormData) {
-  await requireAdminUser("/dashboard")
+  const { user } = await requireAdminUser("/dashboard")
   const adId = readText(formData, "adId")
   if (!isAdId(adId)) adminAdsRedirect("invalid_id")
 
-  const schedule = createSevenDayAdSchedule()
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient()
+  const { data: ad, error: adError } = await admin
     .from("ads")
-    .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })
+    .select("id, submitted_by")
     .eq("id", adId)
-    .select("id")
     .maybeSingle()
 
-  if (error || !data) adminAdsRedirect("not_found")
+  if (adError || !ad) adminAdsRedirect("not_found")
+
+  if (ad.submitted_by) {
+    const { error } = await admin.rpc("approve_self_service_ad", {
+      p_ad_id: adId,
+      p_reviewed_by: user.id,
+    })
+
+    if (error) {
+      if (error.code === "42501") adminAdsRedirect("unpaid", adId)
+      adminAdsRedirect("launch_failed", adId)
+    }
+  } else {
+    const schedule = createSevenDayAdSchedule()
+    const { data, error } = await admin
+      .from("ads")
+      .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })
+      .eq("id", adId)
+      .select("id")
+      .maybeSingle()
+
+    if (error || !data) adminAdsRedirect("not_found")
+  }
+
   revalidateAdSurfaces()
   adminAdsRedirect("launched")
 }
