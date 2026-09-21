@@ -28,6 +28,8 @@ type AdminAdRow = {
   ends_at: string | null
   priority: number
   advertiser_name: string | null
+  submitted_by: string | null
+  review_status: "pending" | "approved" | "rejected"
   created_at: string
   updated_at: string
 }
@@ -35,6 +37,15 @@ type AdminAdRow = {
 type AdminAdsSearchParams = { edit?: string | string[]; flash?: string | string[] }
 
 type AdEventCountRow = { ad_id: string; impressions: number | string; clicks: number | string }
+type AdminAdOrderRow = {
+  ad_id: string
+  status: string
+  amount: number | string
+  currency: string
+  paid_at: string | null
+  starts_at: string | null
+  ends_at: string | null
+}
 
 const statusLabels: Record<AdminAdStatus, string> = {
   active: "აქტიური",
@@ -58,6 +69,8 @@ function flashMessage(value: string) {
     case "updated": return "რეკლამის მონაცემები განახლდა"
     case "launched": return "რეკლამა გაეშვა და ზუსტად 7 დღეში ავტომატურად შეწყვეტს ჩვენებას"
     case "stopped": return "რეკლამის ჩვენება შეჩერებულია"
+    case "unpaid": return "მომხმარებლის რეკლამა ჯერ გადახდილი და server-side დადასტურებული არ არის"
+    case "launch_failed": return "რეკლამის დამტკიცება/დაგეგმვა ვერ დასრულდა"
     case "invalid_advertiser": return "შეავსე რეკლამის დამკვეთის სახელი (მაქსიმუმ 120 სიმბოლო)"
     case "invalid_title": return "შეავსე სწორი სათაური (მაქსიმუმ 120 სიმბოლო)"
     case "invalid_description": return "აღწერა არ უნდა აღემატებოდეს 280 სიმბოლოს"
@@ -93,12 +106,20 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
 
   const { user } = await requireAdminUser("/dashboard")
   const admin = createAdminClient()
-  const [{ data, error }, { data: eventCounts, error: eventCountsError }] = await Promise.all([
+  const [
+    { data, error },
+    { data: eventCounts, error: eventCountsError },
+    { data: adOrders, error: adOrdersError },
+  ] = await Promise.all([
     admin
       .from("ads")
-      .select("id, placement_key, title, description, image_url, target_url, is_active, starts_at, ends_at, priority, advertiser_name, created_at, updated_at")
+      .select("id, placement_key, title, description, image_url, target_url, is_active, starts_at, ends_at, priority, advertiser_name, submitted_by, review_status, created_at, updated_at")
       .order("created_at", { ascending: false }),
     admin.rpc("get_admin_ad_event_counts_service", { p_actor_id: user.id }),
+    admin
+      .from("ad_orders")
+      .select("ad_id, status, amount, currency, paid_at, starts_at, ends_at")
+      .order("created_at", { ascending: false }),
   ])
 
   const ads = (data ?? []) as AdminAdRow[]
@@ -107,6 +128,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
       row.ad_id,
       { impressions: Number(row.impressions) || 0, clicks: Number(row.clicks) || 0 },
     ]),
+  )
+  const orderMap = new Map(
+    ((adOrders ?? []) as AdminAdOrderRow[]).map((order) => [order.ad_id, order]),
   )
   const editingAd = editId ? ads.find((ad) => ad.id === editId) ?? null : null
 
@@ -131,9 +155,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
         </div>
       ) : null}
 
-      {error || eventCountsError ? (
+      {error || eventCountsError || adOrdersError ? (
         <div role="alert" className="mt-6 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error ? "რეკლამების სია ვერ ჩაიტვირთა" : "ნახვებისა და დაჭერების სტატისტიკა დროებით ვერ ჩაიტვირთა"}. სცადე გვერდის განახლება
+          რეკლამების ან გადახდების მონაცემები სრულად ვერ ჩაიტვირთა. სცადე გვერდის განახლება
         </div>
       ) : null}
 
@@ -205,6 +229,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
             {ads.length > 0 ? ads.map((ad) => {
               const status = getAdminAdStatus(ad)
               const eventCount = eventCountMap.get(ad.id) ?? { impressions: 0, clicks: 0 }
+              const adOrder = orderMap.get(ad.id)
+              const selfService = Boolean(ad.submitted_by)
+              const paidAndReady = adOrder?.status === "paid_pending_review"
               return (
                 <article key={ad.id} className="ui-card overflow-hidden p-5 sm:p-6">
                   <div className="grid gap-5 sm:grid-cols-[9rem_minmax(0,1fr)]">
@@ -213,6 +240,22 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClasses[status]}`}>{statusLabels[status]}</span>
                         <span className="text-xs font-semibold text-text-soft">პრიორიტეტი {ad.priority}</span>
+                        {selfService ? (
+                          <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-800">
+                            მომხმარებლის მოთხოვნა
+                          </span>
+                        ) : null}
+                        {adOrder ? (
+                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${paidAndReady || ["active", "scheduled"].includes(adOrder.status) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+                            {adOrder.status === "paid_pending_review"
+                              ? "გადახდილია · დასამტკიცებელია"
+                              : adOrder.status === "pending_payment"
+                                ? "გადახდა მოლოდინშია"
+                                : adOrder.status === "payment_failed"
+                                  ? "გადახდა ვერ დაიწყო"
+                                  : adOrder.status}
+                          </span>
+                        ) : null}
                       </div>
                       <h3 className="mt-3 truncate text-xl font-black text-text">{ad.title || "უსათაურო რეკლამა"}</h3>
                       <p className="mt-1 truncate text-sm font-semibold text-brand">{ad.advertiser_name || "—"}</p>
@@ -230,6 +273,17 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                             <input type="hidden" name="adId" value={ad.id} />
                             <button className="inline-flex min-h-11 items-center justify-center rounded-full border border-amber-300 bg-amber-50 px-5 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">შეჩერება</button>
                           </form>
+                        ) : selfService ? (
+                          paidAndReady ? (
+                            <form action={launchAdminAdAction}>
+                              <input type="hidden" name="adId" value={ad.id} />
+                              <button className="ui-btn-primary">დამტკიცება და ავტომატური დაგეგმვა</button>
+                            </form>
+                          ) : (
+                            <span className="inline-flex min-h-11 items-center rounded-full border border-line bg-surface-alt px-5 text-sm font-semibold text-text-soft">
+                              {adOrder?.status === "expired" ? "ვადა დასრულდა" : "გადახდას/დადასტურებას ელოდება"}
+                            </span>
+                          )
                         ) : (
                           <form action={launchAdminAdAction}>
                             <input type="hidden" name="adId" value={ad.id} />
