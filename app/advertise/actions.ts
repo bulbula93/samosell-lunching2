@@ -67,6 +67,7 @@ export async function submitSelfServiceAdAction(formData: FormData) {
   const readiness = getFlittReadiness()
   const checkoutEnabled = readiness.mode === "test" ? readiness.sandboxEnabled : readiness.liveEnabled
   if (!checkoutEnabled) redirect(withFlash("payment_unavailable"))
+  if (String(formData.get("acceptAdTerms") ?? "") !== "yes") redirect(withFlash("terms_required"))
 
   const validation = validateAdminAdInput({
     advertiserName: formData.get("advertiserName"),
