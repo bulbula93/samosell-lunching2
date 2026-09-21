@@ -108,6 +108,25 @@ describe("chat components", () => {
     expect(screen.getByText("ნინო წერს:")).toHaveClass("sr-only")
   })
 
+  it("keeps the mobile composer keyboard-aware and safe-area padded", () => {
+    render(
+      <ChatThreadClient
+        chatId={chatId}
+        currentUserId={currentUserId}
+        initialMessages={[message()]}
+        otherPartyLabel="ნინო"
+        canSend
+        initialHasMore={false}
+      />,
+    )
+
+    const composer = screen.getByLabelText("შეტყობინება")
+    expect(composer).toHaveAttribute("enterkeyhint", "send")
+    expect(composer.closest("form")).toHaveStyle({
+      paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+    })
+  })
+
   it("keeps composer text after a server failure", async () => {
     const user = userEvent.setup()
     mocks.sendChatMessageAction.mockResolvedValue({

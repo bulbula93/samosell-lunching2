@@ -377,7 +377,7 @@ export default function ChatThreadClient({
           aria-live="polite"
           aria-relevant="additions"
           aria-label={`${otherPartyLabel}-თან შეტყობინებები`}
-          className="h-full overflow-y-auto px-3 py-4 sm:px-5"
+          className="h-full touch-pan-y overscroll-contain overflow-y-auto px-3 py-4 sm:px-5"
         >
           <div className="mx-auto flex w-full max-w-3xl flex-col">
             {hasMore ? (
@@ -545,7 +545,8 @@ export default function ChatThreadClient({
       <form
         ref={formRef}
         onSubmit={handleSend}
-        className="shrink-0 border-t border-line bg-white px-3 py-3 sm:px-5"
+        className="sticky bottom-0 z-20 shrink-0 border-t border-line bg-white/98 px-3 pt-3 backdrop-blur sm:px-5"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         {canSend ? (
           <div className="mx-auto w-full max-w-3xl">
@@ -613,8 +614,10 @@ export default function ChatThreadClient({
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
                 onKeyDown={handleComposerKeyDown}
+                onFocus={() => scrollToBottom("smooth")}
                 maxLength={CHAT_MESSAGE_MAX_LENGTH}
                 rows={1}
+                enterKeyHint="send"
                 aria-describedby="chat-message-feedback"
                 placeholder={selectedImage ? "დაამატე წარწერა…" : "დაწერე შეტყობინება…"}
                 className="min-h-11 max-h-36 flex-1 resize-none rounded-2xl border border-line bg-surface-alt px-4 py-2.5 text-sm leading-5 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand-soft"
