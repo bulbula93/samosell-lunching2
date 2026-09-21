@@ -67,7 +67,7 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText("ნინო")).toBeInTheDocument()
     expect(screen.getByText(/3.*აქტიური ნივთები/)).toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: ka.listingDetail.loginToMessage }),
+      screen.getByRole("link", { name: new RegExp(ka.listingDetail.loginToMessage) }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
     expect(
       screen.getByRole("button", { name: /რჩეულებში დამატება/ }),
