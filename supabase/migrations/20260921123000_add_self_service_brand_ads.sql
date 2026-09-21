@@ -303,7 +303,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_attempt public.flitt_payment_attempts%rowtype;
   v_order public.ad_orders%rowtype;
@@ -373,7 +373,7 @@ begin
     'changed', true
   );
 end;
-$;
+$$;
 
 revoke all on function public.fail_flitt_ad_payment(uuid) from public, anon, authenticated;
 grant execute on function public.fail_flitt_ad_payment(uuid) to service_role;
@@ -586,7 +586,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select
     o.ad_id,
     count(*) filter (where e.event_type = 'impression')::bigint as impressions,
@@ -595,7 +595,7 @@ as $
   left join public.ad_events e on e.ad_id = o.ad_id
   where o.user_id = (select auth.uid())
   group by o.ad_id
-$;
+$$;
 
 revoke all on function public.get_own_ad_event_counts() from public, anon;
 grant execute on function public.get_own_ad_event_counts() to authenticated;
