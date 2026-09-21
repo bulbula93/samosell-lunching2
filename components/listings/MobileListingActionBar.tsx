@@ -56,7 +56,7 @@ export default function MobileListingActionBar({
           <StartChatButton
             listingId={listingId}
             listingSlug={listingSlug}
-            presentation="sheet"
+            presentation="responsive"
             className="ui-btn-primary min-h-11 shrink-0 px-4 md:min-h-12 md:w-full md:shadow-md"
             label={ka.listingDetail.messageSeller}
           />
