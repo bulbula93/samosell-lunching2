@@ -122,16 +122,18 @@ export default function ChatWorkspace({
     }
 
     updateViewport()
-    const resizeObserver = new ResizeObserver(updateViewport)
-    if (header) resizeObserver.observe(header)
-    if (bottomNavigation) resizeObserver.observe(bottomNavigation)
+    const resizeObserver = typeof ResizeObserver !== "undefined"
+      ? new ResizeObserver(updateViewport)
+      : null
+    if (header) resizeObserver?.observe(header)
+    if (bottomNavigation) resizeObserver?.observe(bottomNavigation)
     media.addEventListener("change", updateViewport)
     window.addEventListener("resize", updateViewport)
     visualViewport?.addEventListener("resize", updateViewport)
     visualViewport?.addEventListener("scroll", updateViewport)
 
     return () => {
-      resizeObserver.disconnect()
+      resizeObserver?.disconnect()
       media.removeEventListener("change", updateViewport)
       window.removeEventListener("resize", updateViewport)
       visualViewport?.removeEventListener("resize", updateViewport)
@@ -258,7 +260,7 @@ export default function ChatWorkspace({
       className={[
         "flex w-full min-h-0 flex-col",
         threadOpen
-          ? "fixed inset-x-0 z-[60] overflow-hidden bg-white md:static md:z-auto md:mx-auto md:max-w-[1600px] md:bg-transparent md:px-5 md:py-5"
+          ? "fixed inset-x-0 z-[60] h-[100dvh] overflow-hidden bg-white md:static md:z-auto md:mx-auto md:h-auto md:max-w-[1600px] md:bg-transparent md:px-5 md:py-5"
           : "mx-auto max-w-[1600px] overflow-hidden px-0 py-0 md:px-5 md:py-5",
       ].join(" ")}
     >
