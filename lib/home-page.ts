@@ -32,20 +32,6 @@ export type HomePageData = PublicHomePageData & {
   storyRail?: StoryRailData
 }
 
-function emptyPublicHomePageData(): PublicHomePageData {
-  return {
-    heroItems: [],
-    vipItems: [],
-    bannerItems: [],
-    latestItems: [],
-    popularItems: [],
-    affordableItems: [],
-    vintageItems: [],
-    popularBrands: [],
-    activeCount: 0,
-  }
-}
-
 const HOME_QUERY_BUDGET_MS = 2500
 
 async function settleHomeQuery<T>(
