@@ -3,6 +3,7 @@ export type FlittAttemptStatus = "pending" | "approved" | "declined" | "expired"
 export type FlittAttempt = {
   orderId: string;
   boostOrderId: string | null;
+  adOrderId: string | null;
   amount: number;
   currency: string;
   merchantId: string;
@@ -226,6 +227,8 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   persist: (status: VerifiedStatus) => Promise<void>;
   finalize: (boostOrderId: string) => Promise<void>;
   reverse: (boostOrderId: string) => Promise<void>;
+  finalizeAd?: (adOrderId: string) => Promise<void>;
+  reverseAd?: (adOrderId: string) => Promise<void>;
 }) {
   await validateIncomingCallback(params, attempt, config);
   const verified = await fetchAuthoritativeFlittStatus(attempt, config, deps.fetchImpl);
@@ -236,6 +239,14 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   }
   if (verified.nextStatus === "reversed" && attempt.purpose === "boost_order" && attempt.boostOrderId) {
     await deps.reverse(attempt.boostOrderId);
+  }
+  if (verified.approved && attempt.purpose === "ad_order" && attempt.adOrderId) {
+    if (!deps.finalizeAd) throw new FlittVerificationError("ad_finalizer_unavailable", 500);
+    await deps.finalizeAd(attempt.adOrderId);
+  }
+  if (verified.nextStatus === "reversed" && attempt.purpose === "ad_order" && attempt.adOrderId) {
+    if (!deps.reverseAd) throw new FlittVerificationError("ad_reversal_handler_unavailable", 500);
+    await deps.reverseAd(attempt.adOrderId);
   }
   return verified;
 }
