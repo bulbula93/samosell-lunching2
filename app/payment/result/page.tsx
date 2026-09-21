@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { finalizeFlittAdPayment } from "@/lib/flitt-ad"
+import { failFlittAdPayment, finalizeFlittAdPayment } from "@/lib/flitt-ad"
 import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
 import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
 
@@ -130,6 +130,18 @@ export default async function PaymentResultPage({
     } catch (error) {
       adPaymentFinalizationFailed = true
       console.error("[flitt] approved ad status could not be finalized", {
+        orderId: safeOrder,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+    }
+  }
+
+  if (attempt?.purpose === "ad_order" && attempt.ad_order_id && ["declined", "expired", "failed"].includes(attempt.status)) {
+    try {
+      await failFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] terminal ad status could not be reconciled", {
         orderId: safeOrder,
         adOrderId: attempt.ad_order_id,
         message: error instanceof Error ? error.message : "unknown_error",
