@@ -2,7 +2,6 @@ import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
 import SmartImage from "@/components/shared/SmartImage"
 import { requireAuthenticatedUser } from "@/lib/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -82,29 +81,26 @@ export default async function DashboardAdsPage() {
 
   const orders = (orderData ?? []) as AdOrderRow[]
   const adIds = orders.map((order) => order.ad_id)
-  const admin = createAdminClient()
-
-  const [{ data: adData }, { data: eventData }] = adIds.length > 0
+  const [{ data: adData }, { data: eventCounts }] = adIds.length > 0
     ? await Promise.all([
-        admin
+        supabase
           .from("ads")
           .select("id, title, description, advertiser_name, image_url, target_url, review_status, is_active")
           .in("id", adIds),
-        admin
-          .from("ad_events")
-          .select("ad_id, event_type")
-          .in("ad_id", adIds),
+        supabase.rpc("get_own_ad_event_counts"),
       ])
     : [{ data: [] }, { data: [] }]
 
   const ads = new Map(((adData ?? []) as AdRow[]).map((ad) => [ad.id, ad]))
-  const stats = new Map<string, { impressions: number; clicks: number }>()
-  for (const event of (eventData ?? []) as Array<{ ad_id: string; event_type: string }>) {
-    const current = stats.get(event.ad_id) ?? { impressions: 0, clicks: 0 }
-    if (event.event_type === "impression") current.impressions += 1
-    if (event.event_type === "click") current.clicks += 1
-    stats.set(event.ad_id, current)
-  }
+  const stats = new Map(
+    ((eventCounts ?? []) as Array<{ ad_id: string; impressions: number | string; clicks: number | string }>).map((row) => [
+      row.ad_id,
+      {
+        impressions: Number(row.impressions) || 0,
+        clicks: Number(row.clicks) || 0,
+      },
+    ]),
+  )
 
   return (
     <main className="min-h-screen bg-bg text-text">
