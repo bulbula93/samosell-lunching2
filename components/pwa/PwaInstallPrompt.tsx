@@ -53,7 +53,10 @@ export default function PwaInstallPrompt() {
     if (!media.matches) return
 
     const iosDevice = isIosDevice()
-    setIos(iosDevice)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setIos(iosDevice)
+    })
 
     let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -83,6 +86,7 @@ export default function PwaInstallPrompt() {
     if (iosDevice) reveal()
 
     return () => {
+      cancelled = true
       if (timer) clearTimeout(timer)
       window.removeEventListener("beforeinstallprompt", beforeInstall)
       window.removeEventListener("appinstalled", onInstalled)
