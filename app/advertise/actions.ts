@@ -173,6 +173,7 @@ export async function submitSelfServiceAdAction(formData: FormData) {
     redirect(withFlash("payment_failed"))
   }
 
+  let checkoutUrl: string
   try {
     const checkout = await createFlittCheckout({
       orderId,
@@ -180,6 +181,7 @@ export async function submitSelfServiceAdAction(formData: FormData) {
       currency: product.currency,
       description: `SamoSell ${product.name} / 7 days`,
     })
+    checkoutUrl = checkout.checkoutUrl
 
     const now = new Date().toISOString()
     const [{ error: attemptUpdateError }, { error: orderUpdateError }] = await Promise.all([
@@ -200,8 +202,6 @@ export async function submitSelfServiceAdAction(formData: FormData) {
     if (attemptUpdateError || orderUpdateError) {
       throw attemptUpdateError ?? orderUpdateError ?? new Error("payment persistence failed")
     }
-
-    redirect(checkout.checkoutUrl)
   } catch (error) {
     const now = new Date().toISOString()
     await Promise.all([
@@ -220,4 +220,6 @@ export async function submitSelfServiceAdAction(formData: FormData) {
     })
     redirect(withFlash("payment_failed"))
   }
+
+  redirect(checkoutUrl)
 }
