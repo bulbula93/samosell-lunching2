@@ -1,5 +1,4 @@
 import Link from "next/link"
-import StartChatButton from "@/components/chat/StartChatButton"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
@@ -363,15 +362,6 @@ export default function ListingOverviewCard({
 
       <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
-          {isOwner ? (
-            <Link
-              href={`/dashboard/listings/${listing.id}/edit`}
-              className="ui-btn-primary hidden w-full text-center md:inline-flex"
-            >
-              {ka.listingDetail.edit}
-            </Link>
-          ) : null}
-
           {isActive && !isOwner ? (
             <FavoriteToggleForm
               listingId={listing.id}
@@ -390,23 +380,18 @@ export default function ListingOverviewCard({
             className="min-h-11 w-full"
           />
 
-          {isActive && !isOwner && isAuthenticated && canChat ? (
-            <StartChatButton
-              listingId={listing.id}
-              listingSlug={listing.slug}
-              className="ui-btn-primary hidden min-h-12 w-full shadow-md md:inline-flex sm:col-span-2"
-              label={ka.listingDetail.messageSeller}
-            />
-          ) : null}
-
-          {isActive && !isOwner && !isAuthenticated ? (
-            <Link
-              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
-              className="ui-btn-primary hidden w-full text-center md:inline-flex sm:col-span-2"
-            >
-              {ka.listingDetail.loginToMessage}
-            </Link>
-          ) : null}
+          <MobileListingActionBar
+            listingId={listing.id}
+            listingSlug={listing.slug}
+            price={listing.price}
+            currency={listing.currency}
+            isActive={isActive}
+            isOwner={isOwner}
+            isAuthenticated={isAuthenticated}
+            canChat={canChat}
+            messagingUnavailable={messagingUnavailable}
+            listingReturnPath={listingReturnPath}
+          />
         </div>
 
         {messagingUnavailable ? (
@@ -438,19 +423,6 @@ export default function ListingOverviewCard({
           {reportFlash}
         </p>
       ) : null}
-      <MobileListingActionBar
-        listingId={listing.id}
-        listingSlug={listing.slug}
-        price={listing.price}
-        currency={listing.currency}
-        isActive={isActive}
-        isOwner={isOwner}
-        isAuthenticated={isAuthenticated}
-        canChat={canChat}
-        messagingUnavailable={messagingUnavailable}
-        listingReturnPath={listingReturnPath}
-      />
-
       {safetyFlash ? (
         <p
           role={safetyIsError ? "alert" : "status"}
