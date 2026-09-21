@@ -12,14 +12,28 @@ const action = fs.readFileSync(path.join(root, "app/advertise/actions.ts"), "utf
 const callback = fs.readFileSync(path.join(root, "app/api/payments/flitt/callback/route.ts"), "utf8")
 const edge = fs.readFileSync(path.join(root, "supabase/functions/flitt-callback/index.ts"), "utf8")
 const dashboard = fs.readFileSync(path.join(root, "app/dashboard/ads/page.tsx"), "utf8")
+const paymentResult = fs.readFileSync(path.join(root, "app/payment/result/page.tsx"), "utf8")
+const hardeningMigration = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260921153000_harden_self_service_brand_ad_finalization.sql"),
+  "utf8",
+)
 
 describe("self-service Brand Ads", () => {
   it("rejects unsafe ad destination schemes", () => {
     expect(normalizeAdTargetUrl("javascript:alert(1)")).toBeNull()
     expect(normalizeAdTargetUrl("data:text/html,hello")).toBeNull()
     expect(normalizeAdTargetUrl("file:///tmp/test")).toBeNull()
+    expect(normalizeAdTargetUrl("https://user:password@example.com/shop")).toBeNull()
+    expect(normalizeAdTargetUrl(`https://example.com/${"x".repeat(2048)}`)).toBeNull()
     expect(normalizeAdTargetUrl("https://example.com/shop")).toBe("https://example.com/shop")
     expect(normalizeAdTargetUrl("/seller/test-shop")).toBe("/seller/test-shop")
+  })
+
+  it("requires the authoritative Status API marker in the privileged ad finalizer", () => {
+    expect(hardeningMigration).toContain("v_attempt.provider_verified_at is null")
+    expect(hardeningMigration).toContain("v_attempt.provider_verification_source <> 'status_api'")
+    expect(hardeningMigration).toContain("from public, anon, authenticated")
+    expect(hardeningMigration).toContain("to service_role")
   })
 
   it("keeps migration dollar-quoting syntactically valid", () => {
@@ -46,6 +60,7 @@ describe("self-service Brand Ads", () => {
     expect(action).toContain('formData.get("acceptAdTerms")')
     expect(callback).toContain("finalizeFlittAdPayment")
     expect(edge).toContain("finalize_flitt_ad_payment")
+    expect(paymentResult).toContain("reverseFlittAdPayment(attempt.ad_order_id)")
   })
 
   it("prevents unpaid launch and deactivates reversed payments", () => {

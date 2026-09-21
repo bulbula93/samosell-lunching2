@@ -4,6 +4,7 @@ import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt
 import type { FlittAttemptStatus } from "@/lib/flitt"
 import { fetchFlittOrderStatus, getFlittReadiness, validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { BoundedBodyError, readBoundedRequestBody } from "@/lib/bounded-request-body"
 
 export const dynamic = "force-dynamic"
 
@@ -28,8 +29,7 @@ type AttemptRow = {
 }
 
 async function parseCallback(request: Request): Promise<CallbackParams> {
-  const text = await request.text()
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) throw new Error("callback_too_large")
+  const text = await readBoundedRequestBody(request, MAX_BODY_BYTES)
 
   const contentType = request.headers.get("content-type") ?? ""
   if (contentType.includes("application/json")) {
@@ -50,7 +50,10 @@ export async function POST(request: Request) {
   let params: CallbackParams
   try {
     params = await parseCallback(request)
-  } catch {
+  } catch (error) {
+    if (error instanceof BoundedBodyError && error.httpStatus === 413) {
+      return NextResponse.json({ error: "callback_too_large" }, { status: 413 })
+    }
     return NextResponse.json({ error: "invalid_callback_body" }, { status: 400 })
   }
 

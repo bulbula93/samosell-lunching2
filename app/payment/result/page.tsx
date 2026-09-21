@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { failFlittAdPayment, finalizeFlittAdPayment } from "@/lib/flitt-ad"
+import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
 import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
 import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
 
@@ -142,6 +142,18 @@ export default async function PaymentResultPage({
       await failFlittAdPayment(attempt.ad_order_id)
     } catch (error) {
       console.error("[flitt] terminal ad status could not be reconciled", {
+        orderId: safeOrder,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+    }
+  }
+
+  if (attempt?.purpose === "ad_order" && attempt.ad_order_id && attempt.status === "reversed") {
+    try {
+      await reverseFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] reversed ad status could not be reconciled", {
         orderId: safeOrder,
         adOrderId: attempt.ad_order_id,
         message: error instanceof Error ? error.message : "unknown_error",

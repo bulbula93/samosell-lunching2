@@ -70,11 +70,12 @@ export function isAdPagePathAllowed(placementKey: AdPlacementKey, pagePath: stri
 
 export function normalizeAdTargetUrl(value?: string | null) {
   const target = String(value ?? "").trim()
-  if (!target) return null
+  if (!target || target.length > 2048) return null
   if (target.startsWith("/") && !target.startsWith("//")) return target
 
   try {
     const url = new URL(target)
+    if (url.username || url.password) return null
     return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null
   } catch {
     return null

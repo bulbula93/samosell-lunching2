@@ -99,7 +99,7 @@ export async function saveAdminAdAction(formData: FormData) {
   const admin = createAdminClient()
   const adId = editing ? requestedId : crypto.randomUUID()
   const { data: existing, error: existingError } = editing
-    ? await admin.from("ads").select("id, image_url").eq("id", adId).maybeSingle()
+    ? await admin.from("ads").select("id, image_url, submitted_by, placement_key, priority").eq("id", adId).maybeSingle()
     : { data: null, error: null }
   if (existingError) adminAdsRedirect("save_failed", adId)
   if (editing && !existing) adminAdsRedirect("not_found")
@@ -110,11 +110,11 @@ export async function saveAdminAdAction(formData: FormData) {
   if (upload && !upload.ok) adminAdsRedirect(upload.error, editing ? adId : undefined)
 
   const payload = {
-    placement_key: validation.data.placementKey,
+    placement_key: existing?.submitted_by ? existing.placement_key : validation.data.placementKey,
     title: validation.data.title,
     description: validation.data.description,
     target_url: validation.data.targetUrl,
-    priority: validation.data.priority,
+    priority: existing?.submitted_by ? existing.priority : validation.data.priority,
     advertiser_name: validation.data.advertiserName,
     image_url: upload?.ok ? upload.imageUrl : existing?.image_url ?? null,
   }
