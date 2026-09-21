@@ -26,6 +26,7 @@ function Icon({ name }: { name: NavKey }) {
 
 export default function MobileBottomNavigation({ userState }: { userState: MarketplaceUserState }) {
   const pathname = usePathname()
+  const hideForChatThread = /^\\/dashboard\\/chats\\/[^/]+/.test(pathname)
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const messagesHref = userState.signedIn ? "/dashboard/chats" : "/login"
   const profileHref = userState.signedIn ? "/dashboard/profile" : "/login"
@@ -36,9 +37,10 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
     const media = window.matchMedia("(max-width: 767px)")
 
     const syncBodyPadding = () => {
-      document.body.style.paddingBottom = media.matches
-        ? "calc(4.75rem + env(safe-area-inset-bottom))"
-        : previousPaddingBottom
+      document.body.style.paddingBottom =
+        media.matches && !hideForChatThread
+          ? "calc(4.75rem + env(safe-area-inset-bottom))"
+          : previousPaddingBottom
     }
 
     syncBodyPadding()
@@ -47,7 +49,9 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
       media.removeEventListener("change", syncBodyPadding)
       document.body.style.paddingBottom = previousPaddingBottom
     }
-  }, [])
+  }, [hideForChatThread])
+
+  if (hideForChatThread) return null
 
   const active = (key: NavKey) => {
     if (key === "home") return pathname === "/"
@@ -62,6 +66,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
 
   return (
     <nav
+      id="mobile-bottom-navigation"
       aria-label="მობილური სწრაფი ნავიგაცია"
       className="fixed inset-x-0 bottom-0 z-[70] border-t border-line bg-white/95 px-2 pt-1 shadow-[0_-10px_30px_rgba(7,63,59,0.09)] backdrop-blur md:hidden"
       style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
