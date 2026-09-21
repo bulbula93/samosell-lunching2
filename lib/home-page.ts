@@ -32,7 +32,7 @@ export type HomePageData = PublicHomePageData & {
   storyRail?: StoryRailData
 }
 
-const HOME_QUERY_BUDGET_MS = 2500
+const HOME_QUERY_BUDGET_MS = 7000
 
 async function settleHomeQuery<T>(
   query: PromiseLike<T>,
@@ -211,7 +211,7 @@ export const getPublicHomePageData = unstable_cache(
       activeCount: activeCountResponse?.count ?? latestItems.length,
     }
   },
-  ["home-public-data-v3"],
+  ["home-public-data-v4"],
   {
     revalidate: 60,
     tags: ["home-public-data"],
