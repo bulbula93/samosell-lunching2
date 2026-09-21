@@ -35,6 +35,12 @@ const services = [
     price: "39.90 GEL",
     description: "7 დღით განცხადების განთავსება მთავარი გვერდის დიდ სარეკლამო ბანერში.",
   },
+  {
+    code: "home_brand_ad_7d",
+    name: "Home Brand Ad",
+    price: "49.90 GEL",
+    description: "7 დღით ბრენდის რეკლამა მთავარი გვერდის ერთ-ერთ ორ სპეციალურ სარეკლამო ბლოკში, მომხმარებლის მიერ მითითებულ SamoSell მაღაზიის, სოციალური ქსელის ან ვებგვერდის ბმულით.",
+  },
 ] as const
 
 export default function PaymentTermsPage() {

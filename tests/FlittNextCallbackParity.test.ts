@@ -21,4 +21,12 @@ describe("Flitt Next callback lifecycle parity", () => {
     expect(callback).toContain("await reverseFlittBoostPayment(attempt.boost_order_id)")
     expect(boostBridge).toContain('.rpc("reverse_flitt_boost_payment"')
   })
+
+  it("keeps ad-order approval, reversal, and terminal failure lifecycle parity", () => {
+    expect(callback).toContain("await finalizeFlittAdPayment(attempt.ad_order_id)")
+    expect(callback).toContain("await reverseFlittAdPayment(attempt.ad_order_id)")
+    expect(callback).toContain("await failFlittAdPayment(attempt.ad_order_id)")
+    expect(callback).toContain("readBoundedRequestBody(request, MAX_BODY_BYTES)")
+    expect(callback).toContain('status: 413')
+  })
 })

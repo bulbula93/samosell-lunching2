@@ -75,6 +75,8 @@ function revalidateAdSurfaces() {
   revalidatePath("/")
   revalidatePath("/catalog")
   revalidatePath("/dashboard/listings/new")
+  revalidatePath("/dashboard/ads")
+  revalidatePath("/advertise")
 }
 
 export async function saveAdminAdAction(formData: FormData) {
@@ -97,7 +99,7 @@ export async function saveAdminAdAction(formData: FormData) {
   const admin = createAdminClient()
   const adId = editing ? requestedId : crypto.randomUUID()
   const { data: existing, error: existingError } = editing
-    ? await admin.from("ads").select("id, image_url").eq("id", adId).maybeSingle()
+    ? await admin.from("ads").select("id, image_url, submitted_by, placement_key, priority").eq("id", adId).maybeSingle()
     : { data: null, error: null }
   if (existingError) adminAdsRedirect("save_failed", adId)
   if (editing && !existing) adminAdsRedirect("not_found")
@@ -108,11 +110,11 @@ export async function saveAdminAdAction(formData: FormData) {
   if (upload && !upload.ok) adminAdsRedirect(upload.error, editing ? adId : undefined)
 
   const payload = {
-    placement_key: validation.data.placementKey,
+    placement_key: existing?.submitted_by ? existing.placement_key : validation.data.placementKey,
     title: validation.data.title,
     description: validation.data.description,
     target_url: validation.data.targetUrl,
-    priority: validation.data.priority,
+    priority: existing?.submitted_by ? existing.priority : validation.data.priority,
     advertiser_name: validation.data.advertiserName,
     image_url: upload?.ok ? upload.imageUrl : existing?.image_url ?? null,
   }
@@ -137,19 +139,41 @@ export async function saveAdminAdAction(formData: FormData) {
 }
 
 export async function launchAdminAdAction(formData: FormData) {
-  await requireAdminUser("/dashboard")
+  const { user } = await requireAdminUser("/dashboard")
   const adId = readText(formData, "adId")
   if (!isAdId(adId)) adminAdsRedirect("invalid_id")
 
-  const schedule = createSevenDayAdSchedule()
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient()
+  const { data: ad, error: adError } = await admin
     .from("ads")
-    .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })
+    .select("id, submitted_by")
     .eq("id", adId)
-    .select("id")
     .maybeSingle()
 
-  if (error || !data) adminAdsRedirect("not_found")
+  if (adError || !ad) adminAdsRedirect("not_found")
+
+  if (ad.submitted_by) {
+    const { error } = await admin.rpc("approve_self_service_ad", {
+      p_ad_id: adId,
+      p_reviewed_by: user.id,
+    })
+
+    if (error) {
+      if (error.code === "42501") adminAdsRedirect("unpaid", adId)
+      adminAdsRedirect("launch_failed", adId)
+    }
+  } else {
+    const schedule = createSevenDayAdSchedule()
+    const { data, error } = await admin
+      .from("ads")
+      .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })
+      .eq("id", adId)
+      .select("id")
+      .maybeSingle()
+
+    if (error || !data) adminAdsRedirect("not_found")
+  }
+
   revalidateAdSurfaces()
   adminAdsRedirect("launched")
 }
@@ -159,14 +183,24 @@ export async function stopAdminAdAction(formData: FormData) {
   const adId = readText(formData, "adId")
   if (!isAdId(adId)) adminAdsRedirect("invalid_id")
 
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from("ads")
     .update({ is_active: false })
     .eq("id", adId)
-    .select("id")
+    .select("id, submitted_by")
     .maybeSingle()
 
   if (error || !data) adminAdsRedirect("not_found")
+
+  if (data.submitted_by) {
+    await admin
+      .from("ad_orders")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("ad_id", adId)
+      .in("status", ["paid_pending_review", "scheduled", "active"])
+  }
+
   revalidateAdSurfaces()
   adminAdsRedirect("stopped")
 }

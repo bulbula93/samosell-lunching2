@@ -41,7 +41,7 @@ export default function MarketplaceHeader({
   items: MarketplaceNavItem[]
   userState: MarketplaceUserState
 }) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"

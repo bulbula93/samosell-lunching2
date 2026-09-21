@@ -19,6 +19,7 @@ const config: FlittRuntimeConfig = {
 const baseAttempt: FlittAttempt = {
   orderId: "security-order-1",
   boostOrderId: "11111111-1111-4111-8111-111111111111",
+  adOrderId: null,
   amount: 990,
   currency: "GEL",
   merchantId: fixtureMerchantId,
@@ -69,6 +70,9 @@ function dependencies(fetchImpl: typeof fetch) {
     persist: vi.fn().mockResolvedValue(undefined),
     finalize: vi.fn().mockResolvedValue(undefined),
     reverse: vi.fn().mockResolvedValue(undefined),
+    finalizeAd: vi.fn().mockResolvedValue(undefined),
+    reverseAd: vi.fn().mockResolvedValue(undefined),
+    failAd: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -205,8 +209,46 @@ describe("Flitt Edge callback authoritative verification", () => {
       ...reversedAttempt,
       purpose: "sandbox_test",
       boostOrderId: null,
+      adOrderId: null,
     }, config, sandboxDeps)
     expect(sandboxDeps.reverse).not.toHaveBeenCalled()
+  })
+
+  it("finalizes and reverses ad_order subjects only after authoritative provider status", async () => {
+    const adAttempt: FlittAttempt = {
+      ...baseAttempt,
+      purpose: "ad_order",
+      boostOrderId: null,
+      adOrderId: "22222222-2222-4222-8222-222222222222",
+    }
+    const approvedDeps = dependencies(statusFetch(await signedStatus()))
+    await processFlittCallback(await signedCallback(), adAttempt, config, approvedDeps)
+    expect(approvedDeps.finalizeAd).toHaveBeenCalledWith(adAttempt.adOrderId)
+    expect(approvedDeps.finalize).not.toHaveBeenCalled()
+
+    const reversedDeps = dependencies(statusFetch(await signedStatus({ order_status: "reversed" })))
+    await processFlittCallback(await signedCallback(), { ...adAttempt, status: "approved" }, config, reversedDeps)
+    expect(reversedDeps.reverseAd).toHaveBeenCalledWith(adAttempt.adOrderId)
+    expect(reversedDeps.reverse).not.toHaveBeenCalled()
+  })
+
+  it("reconciles terminal ad_order payment failures after authoritative status verification", async () => {
+    const adAttempt: FlittAttempt = {
+      ...baseAttempt,
+      purpose: "ad_order",
+      boostOrderId: null,
+      adOrderId: "22222222-2222-4222-8222-222222222222",
+    }
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "declined" })))
+
+    await expect(processFlittCallback(await signedCallback(), adAttempt, config, deps)).resolves.toMatchObject({
+      approved: false,
+      nextStatus: "declined",
+    })
+    expect(deps.failAd).toHaveBeenCalledTimes(1)
+    expect(deps.failAd).toHaveBeenCalledWith(adAttempt.adOrderId)
+    expect(deps.finalizeAd).not.toHaveBeenCalled()
+    expect(deps.reverseAd).not.toHaveBeenCalled()
   })
 
   it("keeps reversed status terminal and never reactivates it", async () => {

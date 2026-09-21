@@ -64,7 +64,7 @@ describe("global ad system", () => {
     render(<AdPlacement placementKey="home_hero_left" pagePath="/" />)
 
     expect(screen.getByText("განათავსე რეკლამა ჩვენს გვერდზე")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "დაგვიკავშირდი" })).toHaveAttribute("href", ADVERTISE_WITH_US_HREF)
+    expect(screen.getByRole("link", { name: "რეკლამის შექმნა" })).toHaveAttribute("href", ADVERTISE_WITH_US_HREF)
   })
 
   it("renders active advertiser content with sponsored link semantics", () => {

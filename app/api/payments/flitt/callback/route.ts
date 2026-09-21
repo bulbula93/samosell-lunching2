@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
+import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
 import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
-import { fetchFlittOrderStatus, validateFlittCallback } from "@/lib/flitt"
+import { fetchFlittOrderStatus, getFlittReadiness, validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { BoundedBodyError, readBoundedRequestBody } from "@/lib/bounded-request-body"
 
 export const dynamic = "force-dynamic"
 
@@ -13,6 +15,7 @@ type CallbackParams = Record<string, unknown>
 type AttemptRow = {
   order_id: string
   boost_order_id: string | null
+  ad_order_id: string | null
   amount: number
   currency: string
   merchant_id: string
@@ -26,8 +29,7 @@ type AttemptRow = {
 }
 
 async function parseCallback(request: Request): Promise<CallbackParams> {
-  const text = await request.text()
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) throw new Error("callback_too_large")
+  const text = await readBoundedRequestBody(request, MAX_BODY_BYTES)
 
   const contentType = request.headers.get("content-type") ?? ""
   if (contentType.includes("application/json")) {
@@ -48,7 +50,10 @@ export async function POST(request: Request) {
   let params: CallbackParams
   try {
     params = await parseCallback(request)
-  } catch {
+  } catch (error) {
+    if (error instanceof BoundedBodyError && error.httpStatus === 413) {
+      return NextResponse.json({ error: "callback_too_large" }, { status: 413 })
+    }
     return NextResponse.json({ error: "invalid_callback_body" }, { status: 400 })
   }
 
@@ -60,7 +65,7 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from("flitt_payment_attempts")
-    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
+    .select("order_id, boost_order_id, ad_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
     .eq("order_id", orderId)
     .maybeSingle()
 
@@ -75,8 +80,14 @@ export async function POST(request: Request) {
     return new NextResponse("OK", { status: 200 })
   }
 
-  if (attempt.mode !== "test" || !["sandbox_test", "boost_order"].includes(attempt.purpose)) {
-    console.warn("[flitt] sandbox callback refused unsupported attempt", { orderId, purpose: attempt.purpose, mode: attempt.mode })
+  const readiness = getFlittReadiness()
+  if (attempt.mode !== readiness.mode || !["sandbox_test", "boost_order", "ad_order"].includes(attempt.purpose)) {
+    console.warn("[flitt] callback refused unsupported attempt", {
+      orderId,
+      purpose: attempt.purpose,
+      attemptMode: attempt.mode,
+      configuredMode: readiness.mode,
+    })
     return NextResponse.json({ error: "unsupported_attempt" }, { status: 409 })
   }
 
@@ -127,6 +138,9 @@ export async function POST(request: Request) {
   const independentlyReversed = verified.nextStatus === "reversed"
     && verified.providerStatus.toLowerCase() === "reversed"
     && verified.responseStatus.toLowerCase() === "success"
+  const independentlyFailed = ["declined", "expired", "failed"].includes(verified.nextStatus)
+    && verified.responseStatus.toLowerCase() === "success"
+    && !["", "approved", "reversed"].includes(verified.providerStatus.toLowerCase())
   const now = new Date().toISOString()
   const { error: updateError } = await admin
     .from("flitt_payment_attempts")
@@ -174,6 +188,45 @@ export async function POST(request: Request) {
         message: error instanceof Error ? error.message : "unknown_error",
       })
       return NextResponse.json({ error: "boost_reversal_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "ad_order" && attempt.ad_order_id && independentlyApproved) {
+    try {
+      await finalizeFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] approved ad callback could not be finalized", {
+        orderId,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "ad_payment_finalization_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "ad_order" && attempt.ad_order_id && independentlyReversed) {
+    try {
+      await reverseFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] reversed ad callback could not be reconciled", {
+        orderId,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "ad_reversal_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "ad_order" && attempt.ad_order_id && independentlyFailed) {
+    try {
+      await failFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] failed ad callback could not be reconciled", {
+        orderId,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "ad_payment_failure_reconciliation_failed" }, { status: 500 })
     }
   }
 
