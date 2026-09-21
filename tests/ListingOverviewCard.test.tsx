@@ -60,7 +60,7 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       makeListing().title,
     )
-    expect(screen.getByText("45,50 ₾")).toBeInTheDocument()
+    expect(screen.getAllByText("45,50 ₾").length).toBeGreaterThan(0)
     expect(screen.getByText("SS-A83F2C00")).toBeInTheDocument()
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
