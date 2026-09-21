@@ -943,7 +943,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         </div>
       ) : null}
 
-      <footer className="ui-card sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 p-3 shadow-[0_16px_45px_rgba(7,63,59,0.14)] sm:static sm:p-5">
+      <footer className="ui-card sticky bottom-[calc(var(--mobile-nav-offset)+0.5rem+env(safe-area-inset-bottom))] z-10 flex items-center justify-between gap-3 p-3 shadow-[0_16px_45px_rgba(7,63,59,0.14)] sm:static sm:p-5">
         {step === 1 ? (
           <Link href="/dashboard/listings" className="ui-btn-secondary">გაუქმება</Link>
         ) : (
