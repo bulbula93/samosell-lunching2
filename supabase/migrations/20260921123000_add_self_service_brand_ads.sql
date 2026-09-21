@@ -16,6 +16,13 @@ create index if not exists ads_submitted_by_created_idx
   on public.ads (submitted_by, created_at desc)
   where submitted_by is not null;
 
+drop policy if exists "users can read own submitted ads" on public.ads;
+create policy "users can read own submitted ads"
+on public.ads
+for select
+to authenticated
+using (submitted_by = (select auth.uid()));
+
 create table if not exists public.ad_products (
   id text primary key,
   name text not null,
