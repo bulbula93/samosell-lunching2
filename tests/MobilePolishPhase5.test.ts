@@ -13,6 +13,7 @@ const globals = read("app/globals.css")
 const vitalsClient = read("components/shared/FieldWebVitals.tsx")
 const vitalsRoute = read("app/api/web-vitals/route.ts")
 const vitalsMigration = read("supabase/migrations/20260921090130_add_mobile_dimensions_to_web_vitals.sql")
+const homeData = read("lib/home-page.ts")
 
 describe("Phase 5 mobile QA and app-like polish", () => {
   it("offers contextual installation without repeatedly nagging dismissed users", () => {
@@ -34,6 +35,14 @@ describe("Phase 5 mobile QA and app-like polish", () => {
     expect(globals).toContain("(orientation: landscape)")
     expect(globals).toContain("--mobile-nav-offset: 3.75rem")
     expect(mobileNav).toContain("var(--mobile-nav-offset)")
+  })
+
+  it("keeps the home page responsive when a secondary upstream query times out", () => {
+    expect(homeData).toContain("HOME_QUERY_BUDGET_MS = 2500")
+    expect(homeData).toContain("settleHomeQuery")
+    expect(homeData).toContain("home_public_data_partial")
+    expect(homeData).toContain('["home-public-data-v3"]')
+    expect(homeData).not.toContain("home_public_data_failed:")
   })
 
   it("records viewport dimensions for phone-specific field vitals", () => {
