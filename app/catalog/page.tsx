@@ -28,7 +28,9 @@ import {
   absoluteUrl,
   buildCatalogCanonicalPath,
   buildCatalogDescription,
+  buildCatalogStructuredData,
   buildCatalogTitle,
+  serializeJsonLd,
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
@@ -352,6 +354,44 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
 
+  const legacyCategory =
+    !filters.category && ["women", "men", "kids"].includes(filters.gender)
+      ? filters.gender
+      : ""
+  const canonicalCategory = filters.category || legacyCategory
+  const canonicalFilterKey = legacyCategory ? "gender" : "category"
+  const catalogFilterKeys: Array<keyof CatalogPageParams> = [
+    "q", "category", "item_type", "brand", "size", "color", "city",
+    "condition", "new_only", "gender", "vip", "min_price", "max_price",
+  ]
+  const hasOtherFilters = catalogFilterKeys.some(
+    (key) => key !== canonicalFilterKey && params[key] !== undefined,
+  )
+  const rawPage = typeof params.page === "string" ? params.page : ""
+  const hasInvalidPageParameter =
+    params.page !== undefined && (page <= 1 || rawPage !== String(page))
+  const catalogSeo = buildCatalogCanonicalPath({
+    page,
+    category: canonicalCategory,
+    hasOtherFilters,
+    hasSortParameter: params.sort !== undefined,
+    hasTransientState:
+      params.saved_search_status !== undefined ||
+      Boolean(legacyCategory) ||
+      hasInvalidPageParameter ||
+      Array.isArray(params[canonicalFilterKey]),
+  })
+  const catalogStructuredData = catalogSeo.indexable
+    ? buildCatalogStructuredData({
+        canonicalPath: catalogSeo.canonicalPath,
+        title: buildCatalogTitle(page, catalogSeo.categoryLabel),
+        description: buildCatalogDescription(summarizeFilters(filters)),
+        categoryLabel: catalogSeo.categoryLabel,
+        page,
+        listings,
+      })
+    : null
+
   if (searchId) {
     after(async () => {
       const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
@@ -390,6 +430,12 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
 
   return (
     <>
+      {catalogStructuredData ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(catalogStructuredData) }}
+        />
+      ) : null}
       <SiteHeader authenticatedUser={user} />
       <main className="min-h-screen bg-bg text-text">
         <section className="ui-container py-7 sm:py-10">
