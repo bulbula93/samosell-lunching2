@@ -14,6 +14,11 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#075A53",
     lang: "ka",
     categories: ["shopping", "social"],
+    shortcuts: [
+      { name: "მთავარი", short_name: "მთავარი", url: "/" },
+      { name: "კატალოგი", short_name: "კატალოგი", url: "/catalog" },
+      { name: "განცხადების დამატება", short_name: "გაყიდე", url: "/sell-fast" },
+    ],
     icons: [
       {
         src: "/pwa-icon-192.svg",
