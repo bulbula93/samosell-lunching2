@@ -5,6 +5,7 @@ import { useUnreadNotifications } from "@/lib/use-unread-notifications"
 import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
 import MarketplaceSearch from "@/components/layout/MarketplaceSearch"
+import MobileBottomNavigation from "@/components/layout/MobileBottomNavigation"
 import MobileNavigation, {
   type MarketplaceNavItem,
   type MarketplaceUserState,
@@ -44,14 +45,15 @@ export default function MarketplaceHeader({
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-line bg-white/95">
-      <div className="ui-container flex min-h-[72px] items-center gap-3 py-3 lg:gap-5">
+      <div className="ui-container flex min-h-[60px] items-center gap-2 py-2 sm:min-h-[72px] sm:gap-3 sm:py-3 lg:gap-5">
         <MobileNavigation items={items} userState={userState} />
 
         <Link
           href="/"
           aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
-          className="inline-flex min-h-11 shrink-0 items-center font-logo text-[25px] font-black tracking-[-0.045em] text-brand transition hover:text-brand-hover sm:text-[29px]"
+          className="inline-flex min-h-11 shrink-0 items-center font-logo text-[23px] font-black tracking-[-0.045em] text-brand transition hover:text-brand-hover sm:text-[29px]"
         >
           {ka.brand}
         </Link>
@@ -152,7 +154,7 @@ export default function MarketplaceHeader({
         </div>
 
         {userState.signedIn ? <>
-          <Link href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft">
+          <Link href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft md:inline-flex">
             <span aria-hidden="true">✉</span>
             {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}
           </Link>
@@ -168,7 +170,7 @@ export default function MarketplaceHeader({
         </div>
       </div>
 
-      <div className="border-t border-line px-4 pb-3 pt-3 md:hidden">
+      <div className="border-t border-line px-3 pb-2 pt-2 sm:px-4 sm:pb-3 sm:pt-3 md:hidden">
         <MarketplaceSearch compact id="mobile-header-marketplace-search" />
       </div>
 
@@ -186,5 +188,7 @@ export default function MarketplaceHeader({
         </div>
       </nav>
     </header>
+    <MobileBottomNavigation userState={userState} />
+    </>
   )
 }
