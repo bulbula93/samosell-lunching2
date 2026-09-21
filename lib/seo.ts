@@ -47,7 +47,9 @@ export function truncateDescription(value?: string | null, maxLength = 160) {
 }
 
 export function buildCatalogTitle(page = 1, categoryLabel = "") {
-  const base = categoryLabel ? `${categoryLabel} — კატალოგი` : "კატალოგი"
+  const base = categoryLabel
+    ? `${categoryLabel} — კატალოგი`
+    : "მეორადი ტანსაცმლის კატალოგი საქართველოში"
   return page > 1 ? `${base} — გვერდი ${page}` : base
 }
 
