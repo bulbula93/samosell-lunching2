@@ -44,10 +44,10 @@ describe("Phase 5 mobile QA and app-like polish", () => {
   })
 
   it("keeps the home page responsive when a secondary upstream query times out", () => {
-    expect(homeData).toContain("HOME_QUERY_BUDGET_MS = 2500")
+    expect(homeData).toContain("HOME_QUERY_BUDGET_MS = 7000")
     expect(homeData).toContain("settleHomeQuery")
     expect(homeData).toContain("home_public_data_partial")
-    expect(homeData).toContain('["home-public-data-v3"]')
+    expect(homeData).toContain('["home-public-data-v4"]')
     expect(homeData).not.toContain("home_public_data_failed:")
   })
 
