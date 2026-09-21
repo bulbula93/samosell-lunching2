@@ -134,6 +134,10 @@ Deno.serve(async (req: Request) => {
         const { error: reverseError } = await admin.rpc("reverse_flitt_ad_payment", { p_order_id: adOrderId });
         if (reverseError) throw new FlittVerificationError("ad_reversal_failed", 500);
       },
+      failAd: async (adOrderId) => {
+        const { error: failureError } = await admin.rpc("fail_flitt_ad_payment", { p_order_id: adOrderId });
+        if (failureError) throw new FlittVerificationError("ad_payment_failure_reconciliation_failed", 500);
+      },
     });
   } catch (error) {
     const failure = error instanceof FlittVerificationError
