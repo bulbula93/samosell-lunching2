@@ -23,25 +23,31 @@ export default function StartChatButton({
   className?: string
   label?: string
   icon?: ReactNode
-  presentation?: "inline" | "sheet"
+  presentation?: "inline" | "sheet" | "responsive"
 }) {
   const [open, setOpen] = useState(false)
   const [clientRequestId, setClientRequestId] = useState("")
+  const [sheetMode, setSheetMode] = useState(false)
   const [state, formAction, pending] = useActionState(
     startChatAction,
     INITIAL_STATE,
   )
 
   useEffect(() => {
-    if (!open || presentation !== "sheet") return
+    if (!open || !sheetMode) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [open, presentation])
+  }, [open, sheetMode])
 
   function openComposer() {
+    const shouldUseSheet =
+      presentation === "sheet" ||
+      (presentation === "responsive" &&
+        window.matchMedia("(max-width: 767px)").matches)
+    setSheetMode(shouldUseSheet)
     setClientRequestId(crypto.randomUUID())
     setOpen(true)
   }
@@ -64,12 +70,12 @@ export default function StartChatButton({
     <form
       action={formAction}
       className={
-        presentation === "sheet"
+        sheetMode
           ? "relative w-full max-h-[88vh] overflow-y-auto rounded-t-3xl border-t border-line bg-bg p-5 shadow-[0_-24px_60px_rgba(7,63,59,0.2)]"
           : "w-full rounded-2xl border border-brand/20 bg-brand-soft/45 p-4 sm:p-5"
       }
       style={
-        presentation === "sheet"
+        sheetMode
           ? { paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }
           : undefined
       }
@@ -80,7 +86,7 @@ export default function StartChatButton({
       <input type="hidden" name="clientRequestId" value={clientRequestId} />
       <SearchAttributionInput />
 
-      {presentation === "sheet" ? (
+      {sheetMode ? (
         <div aria-hidden="true" className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-line" />
       ) : null}
 
@@ -146,7 +152,7 @@ export default function StartChatButton({
     </form>
   )
 
-  if (presentation === "sheet") {
+  if (sheetMode) {
     return (
       <div className="fixed inset-0 z-[120] flex items-end">
         <button
