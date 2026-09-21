@@ -291,6 +291,86 @@ $$;
 revoke all on function public.reverse_flitt_ad_payment(uuid) from public, anon, authenticated;
 grant execute on function public.reverse_flitt_ad_payment(uuid) to service_role;
 
+create or replace function public.fail_flitt_ad_payment(p_order_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_attempt public.flitt_payment_attempts%rowtype;
+  v_order public.ad_orders%rowtype;
+begin
+  select * into v_attempt
+  from public.flitt_payment_attempts
+  where ad_order_id = p_order_id
+    and purpose = 'ad_order'
+  for update;
+
+  if not found
+    or v_attempt.status not in ('declined', 'expired', 'failed')
+    or lower(coalesce(v_attempt.response_status, '')) <> 'success'
+    or lower(coalesce(v_attempt.provider_status, '')) in ('', 'approved', 'reversed') then
+    raise exception 'Flitt ad payment failure is not independently verified.' using errcode = '42501';
+  end if;
+
+  select * into v_order
+  from public.ad_orders
+  where id = p_order_id
+  for update;
+
+  if not found then
+    raise exception 'Ad order not found.' using errcode = 'P0002';
+  end if;
+
+  if v_order.user_id is distinct from v_attempt.user_id
+    or upper(v_order.currency) <> upper(v_attempt.currency)
+    or round(v_order.amount * 100)::integer <> v_attempt.amount then
+    raise exception 'Flitt failure does not match the ad order.' using errcode = '42501';
+  end if;
+
+  if v_order.status = 'payment_failed' then
+    return jsonb_build_object(
+      'order_id', v_order.id,
+      'ad_id', v_order.ad_id,
+      'status', v_order.status,
+      'changed', false
+    );
+  end if;
+
+  if v_order.status <> 'pending_payment' then
+    return jsonb_build_object(
+      'order_id', v_order.id,
+      'ad_id', v_order.ad_id,
+      'status', v_order.status,
+      'changed', false
+    );
+  end if;
+
+  update public.ad_orders
+  set
+    status = 'payment_failed',
+    provider_status = v_attempt.provider_status,
+    updated_at = now()
+  where id = p_order_id
+  returning * into v_order;
+
+  update public.ads
+  set is_active = false, updated_at = now()
+  where id = v_order.ad_id;
+
+  return jsonb_build_object(
+    'order_id', v_order.id,
+    'ad_id', v_order.ad_id,
+    'status', v_order.status,
+    'changed', true
+  );
+end;
+$;
+
+revoke all on function public.fail_flitt_ad_payment(uuid) from public, anon, authenticated;
+grant execute on function public.fail_flitt_ad_payment(uuid) to service_role;
+
 create or replace function public.approve_self_service_ad(
   p_ad_id uuid,
   p_reviewed_by uuid
@@ -308,6 +388,8 @@ declare
   v_start timestamptz;
   v_end timestamptz;
   v_placement text;
+  v_duration interval;
+  v_interval record;
   v_now timestamptz := now();
 begin
   if not exists (
@@ -339,29 +421,67 @@ begin
     raise exception 'Self-service ad has not been paid and verified.' using errcode = '42501';
   end if;
 
-  select greatest(
-    v_now,
-    coalesce(max(a.ends_at) filter (
-      where a.is_active = true
-        and a.placement_key = 'home_hero_left'
-        and a.ends_at > v_now
-        and a.id <> p_ad_id
-    ), v_now)
-  )
-  into v_left_until
-  from public.ads a;
+  v_duration := make_interval(days => v_order.duration_days_snapshot);
 
-  select greatest(
-    v_now,
-    coalesce(max(a.ends_at) filter (
-      where a.is_active = true
-        and a.placement_key = 'home_hero_right'
-        and a.ends_at > v_now
-        and a.id <> p_ad_id
-    ), v_now)
-  )
-  into v_right_until
-  from public.ads a;
+  -- Find the earliest non-overlapping seven-day window in each slot. This
+  -- accounts for queued future ads and for manually-created unbounded ads
+  -- (ends_at IS NULL), while the advisory lock prevents concurrent approvals
+  -- from choosing the same window.
+  v_left_until := v_now;
+  for v_interval in
+    select
+      coalesce(a.starts_at, '-infinity'::timestamptz) as starts_at,
+      a.ends_at
+    from public.ads a
+    where a.is_active = true
+      and a.placement_key = 'home_hero_left'
+      and a.id <> p_ad_id
+    order by coalesce(a.starts_at, '-infinity'::timestamptz), a.ends_at nulls last
+  loop
+    if v_interval.ends_at is not null and v_interval.ends_at <= v_left_until then
+      continue;
+    end if;
+    if v_interval.starts_at >= v_left_until + v_duration then
+      exit;
+    end if;
+    if v_interval.ends_at is null then
+      v_left_until := 'infinity'::timestamptz;
+      exit;
+    end if;
+    if v_interval.ends_at > v_left_until then
+      v_left_until := v_interval.ends_at;
+    end if;
+  end loop;
+
+  v_right_until := v_now;
+  for v_interval in
+    select
+      coalesce(a.starts_at, '-infinity'::timestamptz) as starts_at,
+      a.ends_at
+    from public.ads a
+    where a.is_active = true
+      and a.placement_key = 'home_hero_right'
+      and a.id <> p_ad_id
+    order by coalesce(a.starts_at, '-infinity'::timestamptz), a.ends_at nulls last
+  loop
+    if v_interval.ends_at is not null and v_interval.ends_at <= v_right_until then
+      continue;
+    end if;
+    if v_interval.starts_at >= v_right_until + v_duration then
+      exit;
+    end if;
+    if v_interval.ends_at is null then
+      v_right_until := 'infinity'::timestamptz;
+      exit;
+    end if;
+    if v_interval.ends_at > v_right_until then
+      v_right_until := v_interval.ends_at;
+    end if;
+  end loop;
+
+  if v_left_until = 'infinity'::timestamptz and v_right_until = 'infinity'::timestamptz then
+    raise exception 'No finite Brand Ad slot availability.' using errcode = '55000';
+  end if;
 
   if v_left_until <= v_right_until then
     v_placement := 'home_hero_left';
@@ -371,7 +491,7 @@ begin
     v_start := v_right_until;
   end if;
 
-  v_end := v_start + make_interval(days => v_order.duration_days_snapshot);
+  v_end := v_start + v_duration;
 
   update public.ads
   set
@@ -448,6 +568,30 @@ $$;
 
 revoke all on function public.reconcile_self_service_brand_ads() from public, anon, authenticated;
 grant execute on function public.reconcile_self_service_brand_ads() to service_role;
+
+create or replace function public.get_own_ad_event_counts()
+returns table (
+  ad_id uuid,
+  impressions bigint,
+  clicks bigint
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select
+    o.ad_id,
+    count(*) filter (where e.event_type = 'impression')::bigint as impressions,
+    count(*) filter (where e.event_type = 'click')::bigint as clicks
+  from public.ad_orders o
+  left join public.ad_events e on e.ad_id = o.ad_id
+  where o.user_id = (select auth.uid())
+  group by o.ad_id
+$;
+
+revoke all on function public.get_own_ad_event_counts() from public, anon;
+grant execute on function public.get_own_ad_event_counts() to authenticated;
 
 select cron.unschedule(jobid)
 from cron.job
