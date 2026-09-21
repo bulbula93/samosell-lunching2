@@ -4,6 +4,8 @@ import { useReportWebVitals } from "next/web-vitals"
 
 type MetricName = "LCP" | "INP" | "CLS" | "FCP" | "TTFB"
 type RouteGroup = "home" | "catalog" | "search" | "listing" | "other"
+type DeviceClass = "phone" | "tablet" | "desktop"
+type Orientation = "portrait" | "landscape"
 
 function classifyRoute(pathname: string, search: string): RouteGroup {
   if (pathname === "/") return "home"
@@ -16,12 +18,28 @@ function classifyRoute(pathname: string, search: string): RouteGroup {
   return "other"
 }
 
+
+function getViewportContext() {
+  const viewportWidth = Math.max(1, Math.round(window.visualViewport?.width ?? window.innerWidth))
+  const viewportHeight = Math.max(1, Math.round(window.visualViewport?.height ?? window.innerHeight))
+  const shortestSide = Math.min(viewportWidth, viewportHeight)
+  const deviceClass: DeviceClass =
+    shortestSide <= 767 ? "phone" : shortestSide <= 1024 ? "tablet" : "desktop"
+  const orientation: Orientation = viewportWidth > viewportHeight ? "landscape" : "portrait"
+
+  return { deviceClass, viewportWidth, viewportHeight, orientation }
+}
+
 function sendMetric(payload: {
   metricName: MetricName
   metricValue: number
   metricRating?: string
   routeGroup: RouteGroup
   pathname: string
+  deviceClass: DeviceClass
+  viewportWidth: number
+  viewportHeight: number
+  orientation: Orientation
 }) {
   const body = JSON.stringify(payload)
 
@@ -50,12 +68,15 @@ export default function FieldWebVitals() {
 
     if (!["home", "catalog", "search", "listing"].includes(routeGroup)) return
 
+    const viewport = getViewportContext()
+
     sendMetric({
       metricName: metric.name as MetricName,
       metricValue: metric.value,
       metricRating: metric.rating,
       routeGroup,
       pathname,
+      ...viewport,
     })
   })
 

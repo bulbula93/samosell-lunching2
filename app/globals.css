@@ -58,6 +58,7 @@
   --brand-800: #086c62;
   --brand-100: #dceeea;
   --brand-50: #eff8f6;
+  --mobile-nav-offset: 4.75rem;
 }
 
 @theme inline {
@@ -98,6 +99,38 @@ body {
 :focus-visible {
   outline: 3px solid #14a596;
   outline-offset: 3px;
+}
+
+
+@media (orientation: landscape) and (max-height: 540px) and (max-width: 900px) {
+  :root {
+    --mobile-nav-offset: 3.75rem;
+  }
+
+  #mobile-bottom-navigation {
+    padding-top: 0;
+  }
+
+  #mobile-bottom-navigation [data-mobile-nav-item] {
+    min-height: 3.25rem;
+    gap: 0;
+  }
+
+  #mobile-bottom-navigation [data-mobile-nav-label] {
+    display: none;
+  }
+
+  #mobile-bottom-navigation [data-mobile-sell] {
+    top: 0;
+    min-height: 3.25rem;
+    justify-content: center;
+  }
+
+  #mobile-bottom-navigation [data-mobile-sell-icon] {
+    width: 2.75rem;
+    height: 2.75rem;
+    box-shadow: 0 6px 18px rgba(7, 90, 83, 0.22);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

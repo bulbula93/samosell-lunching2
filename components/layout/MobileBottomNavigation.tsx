@@ -39,7 +39,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
     const syncBodyPadding = () => {
       document.body.style.paddingBottom =
         media.matches && !hideForChatThread
-          ? "calc(4.75rem + env(safe-area-inset-bottom))"
+          ? "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))"
           : previousPaddingBottom
     }
 
@@ -72,29 +72,30 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
       style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))" }}
     >
       <div className="mx-auto grid max-w-lg grid-cols-5 items-end">
-        <Link href="/" aria-current={active("home") ? "page" : undefined} className={itemClass("home")}>
+        <Link href="/" data-mobile-nav-item aria-current={active("home") ? "page" : undefined} className={itemClass("home")}>
           <Icon name="home" />
-          <span>მთავარი</span>
+          <span data-mobile-nav-label>მთავარი</span>
         </Link>
 
-        <Link href="/catalog" aria-current={active("catalog") ? "page" : undefined} className={itemClass("catalog")}>
+        <Link href="/catalog" data-mobile-nav-item aria-current={active("catalog") ? "page" : undefined} className={itemClass("catalog")}>
           <Icon name="catalog" />
-          <span>კატალოგი</span>
+          <span data-mobile-nav-label>კატალოგი</span>
         </Link>
 
         <Link
           href={sellHref}
           aria-current={active("sell") ? "page" : undefined}
           aria-label="განცხადების დამატება"
+          data-mobile-sell
           className="relative -top-2 flex min-h-16 flex-col items-center justify-start gap-1 text-[10px] font-black text-brand"
         >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_8px_24px_rgba(7,90,83,0.28)] ring-4 ring-white">
+          <span data-mobile-sell-icon className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_8px_24px_rgba(7,90,83,0.28)] ring-4 ring-white">
             <Icon name="sell" />
           </span>
-          <span>გაყიდე</span>
+          <span data-mobile-nav-label>გაყიდე</span>
         </Link>
 
-        <Link href={messagesHref} aria-current={active("messages") ? "page" : undefined} className={itemClass("messages")}>
+        <Link href={messagesHref} data-mobile-nav-item aria-current={active("messages") ? "page" : undefined} className={itemClass("messages")}>
           <span className="relative">
             <Icon name="messages" />
             {userState.signedIn && unreadChats > 0 ? (
@@ -103,12 +104,12 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
               </span>
             ) : null}
           </span>
-          <span>ჩათი</span>
+          <span data-mobile-nav-label>ჩათი</span>
         </Link>
 
-        <Link href={profileHref} aria-current={active("profile") ? "page" : undefined} className={itemClass("profile")}>
+        <Link href={profileHref} data-mobile-nav-item aria-current={active("profile") ? "page" : undefined} className={itemClass("profile")}>
           <Icon name="profile" />
-          <span>პროფილი</span>
+          <span data-mobile-nav-label>პროფილი</span>
         </Link>
       </div>
     </nav>

@@ -31,7 +31,7 @@ export default function MobileListingActionBar({
   return (
     <div
       className="fixed inset-x-0 z-[65] border-t border-line bg-white/96 px-3 py-2 shadow-[0_-12px_30px_rgba(7,63,59,0.12)] backdrop-blur md:static md:col-span-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none"
-      style={{ bottom: "calc(4.75rem + env(safe-area-inset-bottom))" }}
+      style={{ bottom: "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))" }}
     >
       <div className="mx-auto flex max-w-lg items-center gap-3 md:max-w-none">
         <div className="min-w-0 flex-1 md:hidden">

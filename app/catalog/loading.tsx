@@ -3,7 +3,7 @@ import { MarketplaceProductCardSkeleton } from "@/components/listings/Marketplac
 export default function CatalogLoading() {
   return (
     <main className="min-h-screen bg-bg" aria-busy="true" aria-label="კატალოგი იტვირთება">
-      <div className="h-[72px] border-b border-line bg-white" />
+      <div className="h-[120px] border-b border-line bg-white md:h-[72px]" />
       <div className="ui-container py-8 sm:py-10">
         <div className="ui-skeleton h-4 w-40" />
         <div className="ui-skeleton mt-4 h-10 w-64" />

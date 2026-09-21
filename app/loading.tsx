@@ -3,7 +3,7 @@ import { MarketplaceProductCardSkeleton } from "@/components/listings/Marketplac
 export default function HomeLoading() {
   return (
     <main className="min-h-screen bg-bg" aria-busy="true" aria-label="მთავარი გვერდი იტვირთება">
-      <div className="h-[72px] border-b border-line bg-white" />
+      <div className="h-[120px] border-b border-line bg-white md:h-[72px]" />
       <section className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:grid-cols-2">
         <div>
           <div className="ui-skeleton h-4 w-44" />

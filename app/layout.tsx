@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import Script from "next/script"
 import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
+import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
 import FieldWebVitals from "@/components/shared/FieldWebVitals"
 import { absoluteUrl, getSiteUrl, GOOGLE_SITE_VERIFICATION } from "@/lib/seo"
@@ -12,6 +13,7 @@ import "./globals.css"
 export const viewport: Viewport = {
   themeColor: "#075A53",
   colorScheme: "light",
+  viewportFit: "cover",
 }
 
 export const metadata: Metadata = {
@@ -72,6 +74,7 @@ export default function RootLayout({
           მთავარ კონტენტზე გადასვლა
         </a>
         <PwaRuntime />
+        <PwaInstallPrompt />
         <Script id="vercel-speed-insights-init" strategy="afterInteractive">
           {`window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };`}
         </Script>

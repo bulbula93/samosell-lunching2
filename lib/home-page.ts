@@ -32,17 +32,33 @@ export type HomePageData = PublicHomePageData & {
   storyRail?: StoryRailData
 }
 
-function emptyPublicHomePageData(): PublicHomePageData {
-  return {
-    heroItems: [],
-    vipItems: [],
-    bannerItems: [],
-    latestItems: [],
-    popularItems: [],
-    affordableItems: [],
-    vintageItems: [],
-    popularBrands: [],
-    activeCount: 0,
+const HOME_QUERY_BUDGET_MS = 2500
+
+async function settleHomeQuery<T>(
+  query: PromiseLike<T>,
+  section: string,
+): Promise<T | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    return await Promise.race([
+      Promise.resolve(query).catch((error) => {
+        console.warn(
+          "home_public_data_partial",
+          section,
+          error instanceof Error ? error.message : "query_failed",
+        )
+        return null
+      }),
+      new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => {
+          console.warn("home_public_data_partial", section, "client_timeout")
+          resolve(null)
+        }, HOME_QUERY_BUDGET_MS)
+      }),
+    ])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
   }
 }
 
@@ -61,92 +77,119 @@ export const getPublicHomePageData = unstable_cache(
       popularBrandsResponse,
       activeCountResponse,
     ] = await Promise.all([
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .eq("is_featured", true)
-        .eq("is_promoted", true)
-        .eq("is_vip", true)
-        .not("cover_image_url", "is", null)
-        .order("featured_slot", { ascending: true, nullsFirst: false })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(8),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .eq("is_vip", true)
-        .not("cover_image_url", "is", null)
-        .order("promotion_tier", { ascending: false })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(12),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .eq("is_home_banner", true)
-        .order("home_banner_slot", { ascending: true, nullsFirst: false })
-        .limit(4),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(12),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .order("favorites_count", { ascending: false, nullsFirst: false })
-        .order("views_count", { ascending: false, nullsFirst: false })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(12),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .order("price", { ascending: true })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(12),
-      supabase
-        .from("listings_catalog")
-        .select(baseListingSelect)
-        .eq("status", "active")
-        .eq("category_slug", "vintage")
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(12),
-      supabase.rpc("get_home_popular_brands", { p_limit: 8 }),
-      supabase
-        .from("listings_catalog")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "active"),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .eq("is_featured", true)
+          .eq("is_promoted", true)
+          .eq("is_vip", true)
+          .not("cover_image_url", "is", null)
+          .order("featured_slot", { ascending: true, nullsFirst: false })
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(8),
+        "hero",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .eq("is_vip", true)
+          .not("cover_image_url", "is", null)
+          .order("promotion_tier", { ascending: false })
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(12),
+        "vip",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .eq("is_home_banner", true)
+          .order("home_banner_slot", { ascending: true, nullsFirst: false })
+          .limit(4),
+        "banner",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(12),
+        "latest",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .order("favorites_count", { ascending: false, nullsFirst: false })
+          .order("views_count", { ascending: false, nullsFirst: false })
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(12),
+        "popular",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .order("price", { ascending: true })
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(12),
+        "affordable",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select(baseListingSelect)
+          .eq("status", "active")
+          .eq("category_slug", "vintage")
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(12),
+        "vintage",
+      ),
+      settleHomeQuery(
+        supabase.rpc("get_home_popular_brands", { p_limit: 8 }),
+        "popular_brands",
+      ),
+      settleHomeQuery(
+        supabase
+          .from("listings_catalog")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active"),
+        "active_count",
+      ),
     ])
 
-    const criticalError =
-      heroResponse.error ||
-      vipResponse.error ||
-      bannerResponse.error ||
-      latestResponse.error ||
-      popularResponse.error ||
-      affordableResponse.error ||
-      vintageResponse.error ||
-      popularBrandsResponse.error ||
-      activeCountResponse.error
+    const responses = [
+      ["hero", heroResponse],
+      ["vip", vipResponse],
+      ["banner", bannerResponse],
+      ["latest", latestResponse],
+      ["popular", popularResponse],
+      ["affordable", affordableResponse],
+      ["vintage", vintageResponse],
+      ["popular_brands", popularBrandsResponse],
+      ["active_count", activeCountResponse],
+    ] as const
 
-    if (criticalError) {
-      if (process.env.CI === "true") {
-        return emptyPublicHomePageData()
+    for (const [section, response] of responses) {
+      if (response && "error" in response && response.error) {
+        console.warn("home_public_data_partial", section, response.error.message)
       }
-      throw new Error(`home_public_data_failed:${criticalError.message}`)
     }
 
-    const latestItems = (latestResponse.data ?? []) as CatalogListing[]
-    const popularItems = (popularResponse.data ?? []) as CatalogListing[]
-    const affordableItems = (affordableResponse.data ?? []) as CatalogListing[]
-    const vintageItems = (vintageResponse.data ?? []) as CatalogListing[]
-    const heroItems = (heroResponse.data ?? []) as CatalogListing[]
-    const popularBrands = ((popularBrandsResponse.data ?? []) as Array<{
+    const latestItems = (latestResponse?.data ?? []) as CatalogListing[]
+    const popularItems = (popularResponse?.data ?? []) as CatalogListing[]
+    const affordableItems = (affordableResponse?.data ?? []) as CatalogListing[]
+    const vintageItems = (vintageResponse?.data ?? []) as CatalogListing[]
+    const heroItems = (heroResponse?.data ?? []) as CatalogListing[]
+    const popularBrands = ((popularBrandsResponse?.data ?? []) as Array<{
       name?: string | null
       count?: number | string | null
     }>)
@@ -158,17 +201,17 @@ export const getPublicHomePageData = unstable_cache(
 
     return {
       heroItems,
-      vipItems: (vipResponse.data ?? []) as CatalogListing[],
-      bannerItems: (bannerResponse.data ?? []) as CatalogListing[],
+      vipItems: (vipResponse?.data ?? []) as CatalogListing[],
+      bannerItems: (bannerResponse?.data ?? []) as CatalogListing[],
       latestItems: latestItems.slice(0, 10),
       popularItems: popularItems.slice(0, 10),
       affordableItems: affordableItems.slice(0, 10),
       vintageItems: vintageItems.slice(0, 10),
       popularBrands,
-      activeCount: activeCountResponse.count ?? latestItems.length,
+      activeCount: activeCountResponse?.count ?? latestItems.length,
     }
   },
-  ["home-public-data-v2"],
+  ["home-public-data-v3"],
   {
     revalidate: 60,
     tags: ["home-public-data"],
