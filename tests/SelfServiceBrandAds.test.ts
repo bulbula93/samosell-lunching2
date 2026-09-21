@@ -22,6 +22,11 @@ describe("self-service Brand Ads", () => {
     expect(normalizeAdTargetUrl("/seller/test-shop")).toBe("/seller/test-shop")
   })
 
+  it("keeps migration dollar-quoting syntactically valid", () => {
+    expect(migration).not.toContain("\nas $\n")
+    expect(migration).not.toContain("\n$;\n")
+  })
+
   it("defines the paid 7-day ad product and own-order RLS", () => {
     expect(migration).toContain("'home_brand_ad_7d'")
     expect(migration).toContain("49.90")
