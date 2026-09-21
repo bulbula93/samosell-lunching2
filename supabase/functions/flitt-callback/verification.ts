@@ -229,6 +229,7 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   reverse: (boostOrderId: string) => Promise<void>;
   finalizeAd?: (adOrderId: string) => Promise<void>;
   reverseAd?: (adOrderId: string) => Promise<void>;
+  failAd?: (adOrderId: string) => Promise<void>;
 }) {
   await validateIncomingCallback(params, attempt, config);
   const verified = await fetchAuthoritativeFlittStatus(attempt, config, deps.fetchImpl);
@@ -247,6 +248,12 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   if (verified.nextStatus === "reversed" && attempt.purpose === "ad_order" && attempt.adOrderId) {
     if (!deps.reverseAd) throw new FlittVerificationError("ad_reversal_handler_unavailable", 500);
     await deps.reverseAd(attempt.adOrderId);
+  }
+  if (["declined", "expired", "failed"].includes(verified.nextStatus)
+    && attempt.purpose === "ad_order"
+    && attempt.adOrderId) {
+    if (!deps.failAd) throw new FlittVerificationError("ad_failure_handler_unavailable", 500);
+    await deps.failAd(attempt.adOrderId);
   }
   return verified;
 }
