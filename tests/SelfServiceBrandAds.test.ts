@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
+import { normalizeAdTargetUrl } from "@/lib/ads"
 
 const root = process.cwd()
 const migration = fs.readFileSync(
@@ -10,8 +11,17 @@ const migration = fs.readFileSync(
 const action = fs.readFileSync(path.join(root, "app/advertise/actions.ts"), "utf8")
 const callback = fs.readFileSync(path.join(root, "app/api/payments/flitt/callback/route.ts"), "utf8")
 const edge = fs.readFileSync(path.join(root, "supabase/functions/flitt-callback/index.ts"), "utf8")
+const dashboard = fs.readFileSync(path.join(root, "app/dashboard/ads/page.tsx"), "utf8")
 
 describe("self-service Brand Ads", () => {
+  it("rejects unsafe ad destination schemes", () => {
+    expect(normalizeAdTargetUrl("javascript:alert(1)")).toBeNull()
+    expect(normalizeAdTargetUrl("data:text/html,hello")).toBeNull()
+    expect(normalizeAdTargetUrl("file:///tmp/test")).toBeNull()
+    expect(normalizeAdTargetUrl("https://example.com/shop")).toBe("https://example.com/shop")
+    expect(normalizeAdTargetUrl("/seller/test-shop")).toBe("/seller/test-shop")
+  })
+
   it("defines the paid 7-day ad product and own-order RLS", () => {
     expect(migration).toContain("'home_brand_ad_7d'")
     expect(migration).toContain("49.90")
@@ -28,13 +38,29 @@ describe("self-service Brand Ads", () => {
     expect(migration).toContain("fail_flitt_ad_payment")
     expect(action).toContain('purpose: "ad_order"')
     expect(action).toContain("createFlittCheckout")
+    expect(action).toContain('formData.get("acceptAdTerms")')
     expect(callback).toContain("finalizeFlittAdPayment")
     expect(edge).toContain("finalize_flitt_ad_payment")
+  })
+
+  it("prevents unpaid launch and deactivates reversed payments", () => {
+    expect(migration).toContain("v_order.status <> 'paid_pending_review'")
+    expect(migration).toContain("Self-service ad has not been paid and verified")
+    expect(migration).toContain("status = 'reversed'")
+    expect(migration).toContain("is_active = false")
   })
 
   it("uses owner-scoped aggregated dashboard metrics", () => {
     expect(migration).toContain("get_own_ad_event_counts")
     expect(migration).toContain('create policy "users can read own submitted ads"')
+    expect(dashboard).toContain('supabase.rpc("get_own_ad_event_counts")')
+    expect(dashboard).toContain("(eventCount.clicks / eventCount.impressions) * 100")
+  })
+
+  it("runs exactly the purchased duration from the selected start", () => {
+    expect(migration).toContain("v_duration := make_interval(days => v_order.duration_days_snapshot)")
+    expect(migration).toContain("v_end := v_start + v_duration")
+    expect(migration).toContain("status = case when v_start <= v_now then 'active' else 'scheduled' end")
   })
 
   it("keeps paid ads moderated and auto-schedules the earliest of two homepage slots", () => {
