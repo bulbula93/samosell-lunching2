@@ -46,7 +46,7 @@ export default function MarketplaceHeader({
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const isChatRoute = pathname.startsWith("/dashboard/chats")
-  const isChatThread = /^\\/dashboard\\/chats\\/[^/]+/.test(pathname)
+  const isChatThread = pathname.startsWith("/dashboard/chats/")
 
   return (
     <>
