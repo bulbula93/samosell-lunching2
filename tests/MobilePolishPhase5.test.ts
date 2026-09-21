@@ -20,6 +20,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
     expect(prompt).toContain("beforeinstallprompt")
     expect(prompt).toContain("Add to Home Screen")
     expect(prompt).toContain("DISMISS_FOR_MS")
+    expect(prompt).toContain('pathname === "/" || pathname === "/catalog"')
     expect(prompt).toContain("14 * 24 * 60 * 60 * 1000")
     expect(prompt).toContain('window.matchMedia("(display-mode: standalone)")')
   })
@@ -48,6 +49,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
   it("records viewport dimensions for phone-specific field vitals", () => {
     expect(vitalsClient).toContain('type DeviceClass = "phone" | "tablet" | "desktop"')
     expect(vitalsClient).toContain("visualViewport")
+    expect(vitalsClient).toContain("Math.min(viewportWidth, viewportHeight)")
     expect(vitalsRoute).toContain("device_class: deviceClass")
     expect(vitalsRoute).toContain("viewport_width: viewportWidth")
     expect(vitalsMigration).toContain("web_vitals_events_mobile_rollup_idx")
