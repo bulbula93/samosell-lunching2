@@ -43,6 +43,34 @@ describe("ListingGallery", () => {
     expect(visibleGalleryImage(/ატლასის კაბა.*2/)).toBeInTheDocument()
   })
 
+  it("switches images with a horizontal touch swipe without relying on arrow controls", () => {
+    render(
+      <ListingGallery
+        title="სვაიპის ტესტი"
+        coverImageUrl={firstImage}
+        images={[
+          { id: "1", image_url: firstImage, sort_order: 1 },
+          { id: "2", image_url: secondImage, sort_order: 2 },
+        ]}
+      />,
+    )
+
+    const region = screen.getByRole("region", { name: ka.listingDetail.imageRegion })
+    const surface = region.firstElementChild as HTMLElement
+
+    fireEvent.touchStart(surface, {
+      touches: [{ clientX: 260, clientY: 140 }],
+    })
+    fireEvent.touchEnd(surface, {
+      changedTouches: [{ clientX: 120, clientY: 145 }],
+    })
+
+    expect(visibleGalleryImage(/სვაიპის ტესტი.*2/)).toBeInTheDocument()
+    expect(
+      screen.getByText("ფოტოების სანახავად გადაუსვი მარცხნივ ან მარჯვნივ"),
+    ).toBeInTheDocument()
+  })
+
   it("uses a stable fallback when images are missing or untrusted", () => {
     render(
       <ListingGallery
