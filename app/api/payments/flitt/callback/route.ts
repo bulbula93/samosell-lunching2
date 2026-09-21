@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
+import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
 import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
 import { fetchFlittOrderStatus, getFlittReadiness, validateFlittCallback } from "@/lib/flitt"
@@ -135,6 +135,9 @@ export async function POST(request: Request) {
   const independentlyReversed = verified.nextStatus === "reversed"
     && verified.providerStatus.toLowerCase() === "reversed"
     && verified.responseStatus.toLowerCase() === "success"
+  const independentlyFailed = ["declined", "expired", "failed"].includes(verified.nextStatus)
+    && verified.responseStatus.toLowerCase() === "success"
+    && !["", "approved", "reversed"].includes(verified.providerStatus.toLowerCase())
   const now = new Date().toISOString()
   const { error: updateError } = await admin
     .from("flitt_payment_attempts")
@@ -208,6 +211,19 @@ export async function POST(request: Request) {
         message: error instanceof Error ? error.message : "unknown_error",
       })
       return NextResponse.json({ error: "ad_reversal_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "ad_order" && attempt.ad_order_id && independentlyFailed) {
+    try {
+      await failFlittAdPayment(attempt.ad_order_id)
+    } catch (error) {
+      console.error("[flitt] failed ad callback could not be reconciled", {
+        orderId,
+        adOrderId: attempt.ad_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "ad_payment_failure_reconciliation_failed" }, { status: 500 })
     }
   }
 
