@@ -1,7 +1,7 @@
 import Link from "next/link"
-import StartChatButton from "@/components/chat/StartChatButton"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
+import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
@@ -154,7 +154,7 @@ export default function ListingOverviewCard({
   return (
     <article
       aria-labelledby="listing-title"
-      className="ui-card min-w-0 p-5 sm:p-6 lg:sticky lg:top-28"
+      className="ui-card min-w-0 p-4 sm:p-6 lg:sticky lg:top-28"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span
@@ -167,7 +167,7 @@ export default function ListingOverviewCard({
         ) : null}
       </div>
 
-      <header className="mt-5">
+      <header className="mt-4 sm:mt-5">
         {listing.brand_name ? (
           <p className="text-sm font-bold uppercase tracking-[0.12em] text-brand">
             {listing.brand_name}
@@ -175,11 +175,11 @@ export default function ListingOverviewCard({
         ) : null}
         <h1
           id="listing-title"
-          className="mt-2 break-words text-2xl font-black leading-tight text-text [overflow-wrap:anywhere] sm:text-3xl"
+          className="mt-2 break-words text-[1.35rem] font-black leading-tight text-text [overflow-wrap:anywhere] sm:text-3xl"
         >
           {listing.title}
         </h1>
-        <p className="mt-4 text-3xl font-black tracking-tight text-text sm:text-4xl">
+        <p className="mt-3 text-[1.75rem] font-black tracking-tight text-text sm:mt-4 sm:text-4xl">
           {formatPrice(listing.price, listing.currency)}
         </p>
       </header>
@@ -362,15 +362,6 @@ export default function ListingOverviewCard({
 
       <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
-          {isOwner ? (
-            <Link
-              href={`/dashboard/listings/${listing.id}/edit`}
-              className="ui-btn-primary w-full text-center"
-            >
-              {ka.listingDetail.edit}
-            </Link>
-          ) : null}
-
           {isActive && !isOwner ? (
             <FavoriteToggleForm
               listingId={listing.id}
@@ -389,23 +380,18 @@ export default function ListingOverviewCard({
             className="min-h-11 w-full"
           />
 
-          {isActive && !isOwner && isAuthenticated && canChat ? (
-            <StartChatButton
-              listingId={listing.id}
-              listingSlug={listing.slug}
-              className="ui-btn-primary min-h-12 w-full shadow-md sm:col-span-2"
-              label={ka.listingDetail.messageSeller}
-            />
-          ) : null}
-
-          {isActive && !isOwner && !isAuthenticated ? (
-            <Link
-              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
-              className="ui-btn-primary w-full text-center sm:col-span-2"
-            >
-              {ka.listingDetail.loginToMessage}
-            </Link>
-          ) : null}
+          <MobileListingActionBar
+            listingId={listing.id}
+            listingSlug={listing.slug}
+            price={listing.price}
+            currency={listing.currency}
+            isActive={isActive}
+            isOwner={isOwner}
+            isAuthenticated={isAuthenticated}
+            canChat={canChat}
+            messagingUnavailable={messagingUnavailable}
+            listingReturnPath={listingReturnPath}
+          />
         </div>
 
         {messagingUnavailable ? (

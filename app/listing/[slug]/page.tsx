@@ -142,7 +142,7 @@ export default async function ListingDetailsPage({
         />
       ) : null}
       <SiteHeader authenticatedUser={authenticatedUser} />
-      <main className="min-h-screen bg-bg text-text">
+      <main className="min-h-screen bg-bg pb-20 text-text md:pb-0">
         {listing.status === "active" ? (
           <RecentlyViewedTracker listingId={listing.id} />
         ) : null}
