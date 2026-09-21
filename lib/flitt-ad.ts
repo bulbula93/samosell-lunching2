@@ -17,6 +17,8 @@ export type FlittAdReversalResult = {
   changed: boolean
 }
 
+export type FlittAdFailureResult = FlittAdReversalResult
+
 export async function finalizeFlittAdPayment(orderId: string) {
   const safeOrderId = String(orderId ?? "").trim()
   if (!safeOrderId) throw new Error("Flitt ad order id is required")
@@ -39,4 +41,16 @@ export async function reverseFlittAdPayment(orderId: string) {
 
   if (error) throw error
   return data as FlittAdReversalResult
+}
+
+export async function failFlittAdPayment(orderId: string) {
+  const safeOrderId = String(orderId ?? "").trim()
+  if (!safeOrderId) throw new Error("Flitt ad order id is required")
+
+  const { data, error } = await createAdminClient().rpc("fail_flitt_ad_payment", {
+    p_order_id: safeOrderId,
+  })
+
+  if (error) throw error
+  return data as FlittAdFailureResult
 }
