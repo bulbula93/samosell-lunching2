@@ -33,6 +33,8 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
   const unreadChats = userState.unreadChats ?? 0
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return
+
     const previousPaddingBottom = document.body.style.paddingBottom
     const media = window.matchMedia("(max-width: 767px)")
 
