@@ -78,6 +78,8 @@ export default function ChatWorkspace({
   const [threadUpdates, setThreadUpdates] = useState<Record<string, ThreadUpdate>>({})
   const [filter, setFilter] = useState<InboxFilter>("inbox")
   const [query, setQuery] = useState("")
+  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null)
+  const [mobileViewportTop, setMobileViewportTop] = useState(0)
 
   const threads = useMemo(
     () =>
@@ -92,6 +94,51 @@ export default function ChatWorkspace({
       ),
     [activeChatId, initialThreads, threadUpdates],
   )
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const previousOverflow = document.body.style.overflow
+    const visualViewport = window.visualViewport
+    const header = document.getElementById("marketplace-header")
+    const bottomNavigation = document.getElementById("mobile-bottom-navigation")
+
+    const updateViewport = () => {
+      if (!media.matches) {
+        setMobileViewportHeight(null)
+        setMobileViewportTop(0)
+        document.body.style.overflow = previousOverflow
+        return
+      }
+
+      const viewportHeight = visualViewport?.height ?? window.innerHeight
+      const headerHeight = threadOpen ? 0 : (header?.getBoundingClientRect().height ?? 0)
+      const bottomHeight = threadOpen
+        ? 0
+        : (bottomNavigation?.getBoundingClientRect().height ?? 0)
+
+      setMobileViewportHeight(Math.max(320, viewportHeight - headerHeight - bottomHeight))
+      setMobileViewportTop(threadOpen ? (visualViewport?.offsetTop ?? 0) : 0)
+      document.body.style.overflow = "hidden"
+    }
+
+    updateViewport()
+    const resizeObserver = new ResizeObserver(updateViewport)
+    if (header) resizeObserver.observe(header)
+    if (bottomNavigation) resizeObserver.observe(bottomNavigation)
+    media.addEventListener("change", updateViewport)
+    window.addEventListener("resize", updateViewport)
+    visualViewport?.addEventListener("resize", updateViewport)
+    visualViewport?.addEventListener("scroll", updateViewport)
+
+    return () => {
+      resizeObserver.disconnect()
+      media.removeEventListener("change", updateViewport)
+      window.removeEventListener("resize", updateViewport)
+      visualViewport?.removeEventListener("resize", updateViewport)
+      visualViewport?.removeEventListener("scroll", updateViewport)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [threadOpen])
 
   useEffect(() => {
     const channel = supabase
@@ -197,8 +244,24 @@ export default function ChatWorkspace({
     Boolean(safety) && safety !== "blocked" && safety !== "unblocked"
   )
 
+  const mobileStyle =
+    mobileViewportHeight !== null
+      ? {
+          height: `${mobileViewportHeight}px`,
+          ...(threadOpen ? { top: `${mobileViewportTop}px` } : {}),
+        }
+      : undefined
+
   return (
-    <main className="mx-auto w-full max-w-[1600px] px-3 py-3 sm:px-5 sm:py-5">
+    <main
+      style={mobileStyle}
+      className={[
+        "flex w-full min-h-0 flex-col",
+        threadOpen
+          ? "fixed inset-x-0 z-[60] overflow-hidden bg-white md:static md:z-auto md:mx-auto md:max-w-[1600px] md:bg-transparent md:px-5 md:py-5"
+          : "mx-auto max-w-[1600px] overflow-hidden px-0 py-0 md:px-5 md:py-5",
+      ].join(" ")}
+    >
       {feedbackMessage ? (
         <p
           role={feedbackIsError ? "alert" : "status"}
@@ -212,7 +275,7 @@ export default function ChatWorkspace({
         </p>
       ) : null}
 
-      <div className="flex min-h-[calc(100dvh-8rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-[0_18px_60px_rgba(7,63,59,0.08)] lg:h-[calc(100dvh-8rem)] lg:min-h-[620px]">
+      <div className="flex min-h-0 flex-1 overflow-hidden bg-white md:min-h-[620px] md:rounded-2xl md:border md:border-line md:shadow-[0_18px_60px_rgba(7,63,59,0.08)] lg:h-[calc(100dvh-8rem)]">
         <aside
           aria-label="მიმოწერების სია"
           className={`${threadOpen ? "hidden lg:flex" : "flex"} min-w-0 w-full flex-col border-line bg-white lg:w-[350px] lg:shrink-0 lg:border-r`}
