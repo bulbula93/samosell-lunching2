@@ -72,6 +72,7 @@ function dependencies(fetchImpl: typeof fetch) {
     reverse: vi.fn().mockResolvedValue(undefined),
     finalizeAd: vi.fn().mockResolvedValue(undefined),
     reverseAd: vi.fn().mockResolvedValue(undefined),
+    failAd: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -229,6 +230,25 @@ describe("Flitt Edge callback authoritative verification", () => {
     await processFlittCallback(await signedCallback(), { ...adAttempt, status: "approved" }, config, reversedDeps)
     expect(reversedDeps.reverseAd).toHaveBeenCalledWith(adAttempt.adOrderId)
     expect(reversedDeps.reverse).not.toHaveBeenCalled()
+  })
+
+  it("reconciles terminal ad_order payment failures after authoritative status verification", async () => {
+    const adAttempt: FlittAttempt = {
+      ...baseAttempt,
+      purpose: "ad_order",
+      boostOrderId: null,
+      adOrderId: "22222222-2222-4222-8222-222222222222",
+    }
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "declined" })))
+
+    await expect(processFlittCallback(await signedCallback(), adAttempt, config, deps)).resolves.toMatchObject({
+      approved: false,
+      nextStatus: "declined",
+    })
+    expect(deps.failAd).toHaveBeenCalledTimes(1)
+    expect(deps.failAd).toHaveBeenCalledWith(adAttempt.adOrderId)
+    expect(deps.finalizeAd).not.toHaveBeenCalled()
+    expect(deps.reverseAd).not.toHaveBeenCalled()
   })
 
   it("keeps reversed status terminal and never reactivates it", async () => {
