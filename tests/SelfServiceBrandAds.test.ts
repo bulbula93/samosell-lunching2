@@ -25,10 +25,16 @@ describe("self-service Brand Ads", () => {
     expect(migration).toContain("'ad_order'")
     expect(migration).toContain("finalize_flitt_ad_payment")
     expect(migration).toContain("reverse_flitt_ad_payment")
+    expect(migration).toContain("fail_flitt_ad_payment")
     expect(action).toContain('purpose: "ad_order"')
     expect(action).toContain("createFlittCheckout")
     expect(callback).toContain("finalizeFlittAdPayment")
     expect(edge).toContain("finalize_flitt_ad_payment")
+  })
+
+  it("uses owner-scoped aggregated dashboard metrics", () => {
+    expect(migration).toContain("get_own_ad_event_counts")
+    expect(migration).toContain('create policy "users can read own submitted ads"')
   })
 
   it("keeps paid ads moderated and auto-schedules the earliest of two homepage slots", () => {
@@ -37,5 +43,7 @@ describe("self-service Brand Ads", () => {
     expect(migration).toContain("'home_hero_left'")
     expect(migration).toContain("'home_hero_right'")
     expect(migration).toContain("pg_advisory_xact_lock")
+    expect(migration).toContain("No finite Brand Ad slot availability")
+    expect(migration).toContain("ends_at is null")
   })
 })
