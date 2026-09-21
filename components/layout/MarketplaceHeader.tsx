@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useUnreadNotifications } from "@/lib/use-unread-notifications"
 import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
@@ -40,13 +41,18 @@ export default function MarketplaceHeader({
   items: MarketplaceNavItem[]
   userState: MarketplaceUserState
 }) {
+  const pathname = usePathname() ?? ""
   const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
+  const isChatRoute = pathname.startsWith("/dashboard/chats")
+  const isChatThread = pathname.startsWith("/dashboard/chats/")
+  const isListingCreateRoute = pathname === "/dashboard/listings/new"
+  const hideMobileMarketplaceSearch = isChatRoute || isListingCreateRoute
 
   return (
     <>
-    <header className="sticky top-0 z-50 border-b border-line bg-white/95">
+    <header id="marketplace-header" className={`sticky top-0 z-50 border-b border-line bg-white/95 ${isChatThread ? "hidden md:block" : ""}`}>
       <div className="ui-container flex min-h-[60px] items-center gap-2 py-2 sm:min-h-[72px] sm:gap-3 sm:py-3 lg:gap-5">
         <MobileNavigation items={items} userState={userState} />
 
@@ -170,9 +176,11 @@ export default function MarketplaceHeader({
         </div>
       </div>
 
-      <div className="border-t border-line px-3 pb-2 pt-2 sm:px-4 sm:pb-3 sm:pt-3 md:hidden">
-        <MarketplaceSearch compact id="mobile-header-marketplace-search" />
-      </div>
+      {!hideMobileMarketplaceSearch ? (
+        <div className="border-t border-line px-3 pb-2 pt-2 sm:px-4 sm:pb-3 sm:pt-3 md:hidden">
+          <MarketplaceSearch compact id="mobile-header-marketplace-search" />
+        </div>
+      ) : null}
 
       <nav aria-label="კატეგორიები" className="hidden border-t border-line bg-bg/90 lg:block">
         <div className="ui-container flex min-h-11 items-center gap-1 overflow-x-auto py-1">
