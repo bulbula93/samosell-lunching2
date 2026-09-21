@@ -183,14 +183,24 @@ export async function stopAdminAdAction(formData: FormData) {
   const adId = readText(formData, "adId")
   if (!isAdId(adId)) adminAdsRedirect("invalid_id")
 
-  const { data, error } = await createAdminClient()
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from("ads")
     .update({ is_active: false })
     .eq("id", adId)
-    .select("id")
+    .select("id, submitted_by")
     .maybeSingle()
 
   if (error || !data) adminAdsRedirect("not_found")
+
+  if (data.submitted_by) {
+    await admin
+      .from("ad_orders")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("ad_id", adId)
+      .in("status", ["paid_pending_review", "scheduled", "active"])
+  }
+
   revalidateAdSurfaces()
   adminAdsRedirect("stopped")
 }
