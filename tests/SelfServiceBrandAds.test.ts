@@ -5,7 +5,7 @@ import { normalizeAdTargetUrl } from "@/lib/ads"
 
 const root = process.cwd()
 const migration = fs.readFileSync(
-  path.join(root, "supabase/migrations/20260921123000_add_self_service_brand_ads.sql"),
+  path.join(root, "supabase/migrations/20260928125143_add_self_service_brand_ads.sql"),
   "utf8",
 )
 const action = fs.readFileSync(path.join(root, "app/advertise/actions.ts"), "utf8")
@@ -14,7 +14,7 @@ const edge = fs.readFileSync(path.join(root, "supabase/functions/flitt-callback/
 const dashboard = fs.readFileSync(path.join(root, "app/dashboard/ads/page.tsx"), "utf8")
 const paymentResult = fs.readFileSync(path.join(root, "app/payment/result/page.tsx"), "utf8")
 const hardeningMigration = fs.readFileSync(
-  path.join(root, "supabase/migrations/20260921153000_harden_self_service_brand_ad_finalization.sql"),
+  path.join(root, "supabase/migrations/20260928125159_harden_self_service_brand_ad_finalization.sql"),
   "utf8",
 )
 
