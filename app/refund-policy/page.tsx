@@ -21,7 +21,7 @@ export default function RefundPolicyPage() {
 
           <div className="mt-8 space-y-6 leading-7 text-neutral-700">
             <p>
-              SamoSell-ის checkout გამოიყენება მხოლოდ VIP, TOP, VIP MAX და Home Banner ციფრული სარეკლამო მომსახურებებისთვის.
+              SamoSell-ის checkout გამოიყენება მხოლოდ VIP, TOP, VIP MAX, Home Banner და Home Brand Ad ციფრული სარეკლამო მომსახურებებისთვის.
               მომხმარებლებს შორის ნივთის გაყიდვის თანხა ამ გადახდის სისტემით არ მუშავდება.
             </p>
 
