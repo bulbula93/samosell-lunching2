@@ -12,7 +12,7 @@ export default async function DashboardProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username, full_name, bio, city, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url")
+    .select("username, full_name, bio, city, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
     .eq("id", user!.id)
     .maybeSingle()
 
@@ -68,6 +68,8 @@ export default async function DashboardProfilePage() {
           store_hours: profile?.store_hours ?? "",
           store_address: profile?.store_address ?? "",
           store_map_url: profile?.store_map_url ?? "",
+          tiktok_username: profile?.tiktok_username ?? "",
+          tiktok_live_until: profile?.tiktok_live_until ?? "",
         }}
       />
     </main>

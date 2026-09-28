@@ -7,6 +7,7 @@ import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/li
 import { getSellerVisualAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/client"
 import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
+import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
 
 type ProfileFormProps = {
   userId: string
@@ -28,6 +29,8 @@ type ProfileFormProps = {
     store_hours: string
     store_address: string
     store_map_url: string
+    tiktok_username: string
+    tiktok_live_until: string
   }
 }
 
@@ -103,6 +106,8 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   const [storeHours, setStoreHours] = useState(initialProfile.store_hours)
   const [storeAddress, setStoreAddress] = useState(initialProfile.store_address)
   const [storeMapUrl, setStoreMapUrl] = useState(initialProfile.store_map_url)
+  const [tiktokUsername, setTikTokUsername] = useState(initialProfile.tiktok_username)
+  const [tiktokLiveUntil, setTikTokLiveUntil] = useState(initialProfile.tiktok_live_until)
 
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
@@ -119,6 +124,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+  const [tiktokLoading, setTikTokLoading] = useState(false)
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const logoInputRef = useRef<HTMLInputElement | null>(null)
@@ -204,6 +210,12 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
     setSuccess("")
 
     const normalizedPhone = normalizeSellerPhone(storePhone)
+    const normalizedTikTokUsername = normalizeTikTokUsername(tiktokUsername)
+    if (tiktokUsername.trim() && !normalizedTikTokUsername) {
+      setError("შეიყვანე სწორი TikTok username, მაგალითად @samosell ან tiktok.com/@samosell.")
+      setLoading(false)
+      return
+    }
     if (normalizedPhone && !isValidSellerPhone(normalizedPhone)) {
       setError("შეიყვანე მოქმედი საკონტაქტო ტელეფონი 7–15 ციფრით.")
       setLoading(false)
@@ -262,6 +274,8 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         store_hours: sellerType === "store" ? storeHours.trim() || null : null,
         store_address: sellerType === "store" ? storeAddress.trim() || null : null,
         store_map_url: sellerType === "store" ? storeMapUrl.trim() || null : null,
+        tiktok_username: normalizedTikTokUsername || null,
+        tiktok_live_until: normalizedTikTokUsername ? tiktokLiveUntil || null : null,
       })
       if (saveError) throw saveError
 
@@ -304,6 +318,41 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
     }
 
     setLoading(false)
+  }
+
+  async function updateTikTokLive(nextLive: boolean) {
+    const normalizedUsername = normalizeTikTokUsername(tiktokUsername)
+    if (!normalizedUsername) {
+      setError("TikTok LIVE-ის ჩასართავად ჯერ მიუთითე სწორი TikTok username.")
+      return
+    }
+
+    setTikTokLoading(true)
+    setError("")
+    setSuccess("")
+
+    try {
+      const supabase = createClient()
+      const { data, error: liveError } = await supabase.rpc("set_tiktok_live_status", {
+        p_username: normalizedUsername,
+        p_live: nextLive,
+      })
+      if (liveError) throw liveError
+
+      const result = (data ?? {}) as { username?: string; live_until?: string | null }
+      setTikTokUsername(result.username || normalizedUsername)
+      setTikTokLiveUntil(result.live_until || "")
+      setSuccess(
+        nextLive
+          ? "TikTok LIVE ჩაირთო — საჯარო პროფილსა და პროდუქტის გვერდზე LIVE ნიშანი გამოჩნდება მაქსიმუმ 4 საათით."
+          : "TikTok LIVE სტატუსი გამორთულია.",
+      )
+    } catch (liveError) {
+      const fallbackMessage = liveError instanceof Error ? liveError.message : "TikTok LIVE სტატუსის განახლება ვერ მოხერხდა."
+      setError(humanizeSupabaseError(fallbackMessage))
+    } finally {
+      setTikTokLoading(false)
+    }
   }
 
   return (
@@ -396,6 +445,55 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
           placeholder="მაგ: +995 555 12 34 56"
         />
+      </div>
+
+      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">TikTok</div>
+            <div className="mt-2 text-xl font-black text-neutral-950">TikTok LIVE ნიშანი</div>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-600">
+              მიუთითე TikTok username. როცა LIVE-ში გახვალ, ჩართე სტატუსი — შენს ავატარზე გამოჩნდება LIVE და დაჭერისას გაიხსნება TikTok-ის LIVE გვერდი. სტატუსი 4 საათში ავტომატურად ქრება.
+            </p>
+          </div>
+          <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${isTikTokLiveActive(tiktokLiveUntil) ? "bg-[#ff2d55] text-white" : "bg-neutral-100 text-neutral-600"}`}>
+            {isTikTokLiveActive(tiktokLiveUntil) ? "LIVE" : "OFFLINE"}
+          </span>
+        </div>
+
+        <label htmlFor="tiktok-username" className="mt-4 mb-2 block text-sm font-semibold">TikTok username</label>
+        <input
+          id="tiktok-username"
+          value={tiktokUsername}
+          onChange={(event) => setTikTokUsername(event.target.value)}
+          className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
+          placeholder="მაგ: @samosell ან tiktok.com/@samosell"
+          autoCapitalize="none"
+          autoCorrect="off"
+        />
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => updateTikTokLive(true)}
+            disabled={tiktokLoading}
+            className="h-11 rounded-2xl bg-[#ff2d55] px-5 text-sm font-black text-white disabled:opacity-60"
+          >
+            {tiktokLoading ? "ახლდება..." : "TikTok LIVE ჩართვა"}
+          </button>
+          <button
+            type="button"
+            onClick={() => updateTikTokLive(false)}
+            disabled={tiktokLoading || !isTikTokLiveActive(tiktokLiveUntil)}
+            className="h-11 rounded-2xl border border-neutral-300 px-5 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+          >
+            LIVE გამორთვა
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs leading-5 text-neutral-500">
+          TikTok-ის საჯარო API ამჟამად LIVE სტატუსს არ გვაძლევს, ამიტომ ჩართვა ხელით ხდება. დროის გასვლის შემდეგ SamoSell LIVE ნიშანს ავტომატურად აღარ აჩვენებს.
+        </p>
       </div>
 
       {sellerType === "store" ? (

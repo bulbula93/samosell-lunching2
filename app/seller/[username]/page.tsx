@@ -13,6 +13,7 @@ import FollowButton from "@/components/stories/FollowButton"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
+import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
@@ -39,7 +40,7 @@ async function fetchSeller(username: string) {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url")
+    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
     .eq("username", username)
     .maybeSingle()
   if (!profile || profile.is_suspended) return null
@@ -67,7 +68,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url")
+    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
     .eq("username", username)
     .maybeSingle()
   if (!profile || profile.is_suspended) notFound()
@@ -142,6 +143,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     profile.store_website,
     profile.store_instagram,
     profile.store_facebook,
+    profile.tiktok_username ? `https://www.tiktok.com/@${profile.tiktok_username}` : null,
   ].filter((value): value is string => Boolean(value && /^https?:\/\//i.test(value)))
   const sellerStructuredData = {
     "@context": "https://schema.org",
@@ -224,7 +226,14 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">{profile.seller_type === "store" ? "მაღაზიის პროფილი" : "გამყიდველის პროფილი"}</div>
                 <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
-                    {sellerHasStory ? <StoryRingAvatar owner={storyOwner} currentUserId={user?.id ?? null} /> : <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-20 w-20" textClassName="text-2xl" className="shrink-0" />}
+                    <div className="relative shrink-0">
+                      {sellerHasStory ? <StoryRingAvatar owner={storyOwner} currentUserId={user?.id ?? null} /> : <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-20 w-20" textClassName="text-2xl" className="shrink-0" />}
+                      <TikTokLiveBadge
+                        username={profile.tiktok_username}
+                        liveUntil={profile.tiktok_live_until}
+                        className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2"
+                      />
+                    </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-black tracking-tight text-text sm:text-4xl">{sellerName}</h1>

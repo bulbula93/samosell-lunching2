@@ -6,6 +6,7 @@ import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
+import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import type { StoryOwner } from "@/types/story"
 import ListingSocialShare from "@/components/listings/ListingSocialShare"
@@ -250,32 +251,39 @@ export default function ListingOverviewCard({
         </h2>
 
         <div className="mt-4 flex min-w-0 items-center gap-3">
-          {sellerStoryOwner ? (
-            <StoryRingAvatar owner={sellerStoryOwner} currentUserId={currentUserId} sizeClassName="h-14 w-14" textClassName="text-base" />
-          ) : sellerProfileHref ? (
-            <Link
-              href={sellerProfileHref}
-              aria-label={`${sellerLabel} — ${ka.listingDetail.viewProfile}`}
-              className="shrink-0 rounded-full"
-            >
+          <div className="relative shrink-0">
+            {sellerStoryOwner ? (
+              <StoryRingAvatar owner={sellerStoryOwner} currentUserId={currentUserId} sizeClassName="h-14 w-14" textClassName="text-base" />
+            ) : sellerProfileHref ? (
+              <Link
+                href={sellerProfileHref}
+                aria-label={`${sellerLabel} — ${ka.listingDetail.viewProfile}`}
+                className="shrink-0 rounded-full"
+              >
+                <Avatar
+                  src={sellerAvatarSrc}
+                  alt={sellerLabel}
+                  fallbackText={sellerLabel}
+                  sizeClassName="h-14 w-14"
+                  textClassName="text-base"
+                />
+              </Link>
+            ) : (
               <Avatar
                 src={sellerAvatarSrc}
                 alt={sellerLabel}
                 fallbackText={sellerLabel}
                 sizeClassName="h-14 w-14"
                 textClassName="text-base"
+                className="shrink-0"
               />
-            </Link>
-          ) : (
-            <Avatar
-              src={sellerAvatarSrc}
-              alt={sellerLabel}
-              fallbackText={sellerLabel}
-              sizeClassName="h-14 w-14"
-              textClassName="text-base"
-              className="shrink-0"
+            )}
+            <TikTokLiveBadge
+              username={sellerProfile?.tiktok_username}
+              liveUntil={sellerProfile?.tiktok_live_until}
+              className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2"
             />
-          )}
+          </div>
 
           <div className="min-w-0 flex-1">
             {sellerProfileHref ? (
