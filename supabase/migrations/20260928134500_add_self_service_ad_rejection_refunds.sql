@@ -19,10 +19,6 @@ alter table public.ad_orders
   add constraint ad_orders_refund_status_check
     check (refund_status is null or refund_status in ('pending', 'succeeded', 'failed'));
 
-create index if not exists ad_orders_refund_status_idx
-  on public.ad_orders (refund_status, updated_at desc)
-  where refund_status is not null;
-
 create or replace function public.reject_self_service_ad(
   p_ad_id uuid,
   p_reviewed_by uuid,
