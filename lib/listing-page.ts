@@ -170,11 +170,44 @@ const fetchMetadataListing = cache(async (slug: string) => {
   return data as CatalogListing
 })
 
+function buildListingSeoTitle(listing: CatalogListing) {
+  const baseTitle = listing.title.trim()
+  const normalizedTitle = baseTitle.toLowerCase()
+  const context: string[] = []
+
+  if (baseTitle.length < 24) {
+    if (
+      listing.brand_name &&
+      !normalizedTitle.includes(listing.brand_name.trim().toLowerCase())
+    ) {
+      context.push(listing.brand_name.trim())
+    }
+
+    if (
+      listing.category_name &&
+      !normalizedTitle.includes(listing.category_name.trim().toLowerCase())
+    ) {
+      context.push(listing.category_name.trim())
+    }
+
+    if (listing.size_label) context.push(`ზომა ${listing.size_label}`)
+    if (listing.city) context.push(listing.city.trim())
+  }
+
+  const contextLimit = baseTitle.length < 12 ? 2 : 1
+  const descriptiveTitle =
+    context.length > 0
+      ? `${baseTitle} · ${context.slice(0, contextLimit).join(" · ")}`
+      : baseTitle
+
+  return `${descriptiveTitle} — ${formatPrice(listing.price, listing.currency)}`
+}
+
 export async function generateListingMetadata(slug: string): Promise<Metadata | null> {
   const listing = await fetchMetadataListing(slug)
   if (!listing || !OWNER_VISIBLE_STATUSES.has(String(listing.status ?? ""))) return null
 
-  const title = `${listing.title} — ${formatPrice(listing.price, listing.currency)}`
+  const title = buildListingSeoTitle(listing)
   const description = truncateDescription(
     listing.description || [listing.category_name, listing.brand_name].filter(Boolean).join(" · "),
     155,
