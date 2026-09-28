@@ -115,7 +115,7 @@ beforeAll(async () => {
   `)
 
   await db.exec(migrationFunction(
-    "supabase/migrations/20260921153000_harden_self_service_brand_ad_finalization.sql",
+    "supabase/migrations/20260928125159_harden_self_service_brand_ad_finalization.sql",
     "finalize_flitt_ad_payment",
   ))
   for (const functionName of [
@@ -124,7 +124,7 @@ beforeAll(async () => {
     "reconcile_self_service_brand_ads",
   ]) {
     await db.exec(migrationFunction(
-      "supabase/migrations/20260921123000_add_self_service_brand_ads.sql",
+      "supabase/migrations/20260928125143_add_self_service_brand_ads.sql",
       functionName,
     ))
   }
