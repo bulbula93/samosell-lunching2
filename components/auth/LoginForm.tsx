@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
@@ -13,7 +12,6 @@ export default function LoginForm({
   nextPath?: string
   initialError?: string
 }) {
-  const router = useRouter()
   const supabase = createClient()
 
   const [email, setEmail] = useState("")
@@ -37,8 +35,7 @@ export default function LoginForm({
       return
     }
 
-    router.push(getSafeAuthRedirectPath(nextPath))
-    router.refresh()
+    window.location.replace(getSafeAuthRedirectPath(nextPath))
   }
 
   return (

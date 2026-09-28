@@ -84,6 +84,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
 
         <Link
           href={sellHref}
+          prefetch={userState.signedIn ? false : undefined}
           aria-current={active("sell") ? "page" : undefined}
           aria-label="განცხადების დამატება"
           data-mobile-sell
@@ -95,7 +96,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
           <span data-mobile-nav-label>გაყიდე</span>
         </Link>
 
-        <Link href={messagesHref} data-mobile-nav-item aria-current={active("messages") ? "page" : undefined} className={itemClass("messages")}>
+        <Link href={messagesHref} prefetch={userState.signedIn ? false : undefined} data-mobile-nav-item aria-current={active("messages") ? "page" : undefined} className={itemClass("messages")}>
           <span className="relative">
             <Icon name="messages" />
             {userState.signedIn && unreadChats > 0 ? (
@@ -107,7 +108,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
           <span data-mobile-nav-label>ჩათი</span>
         </Link>
 
-        <Link href={profileHref} data-mobile-nav-item aria-current={active("profile") ? "page" : undefined} className={itemClass("profile")}>
+        <Link href={profileHref} prefetch={userState.signedIn ? false : undefined} data-mobile-nav-item aria-current={active("profile") ? "page" : undefined} className={itemClass("profile")}>
           <Icon name="profile" />
           <span data-mobile-nav-label>პროფილი</span>
         </Link>

@@ -149,12 +149,12 @@ export default function MobileNavigation({
             </nav>
 
             <div className="mt-auto space-y-3 border-t border-line p-5">
-              <Link href="/dashboard/listings/new" onClick={() => setOpen(false)} className="ui-btn-primary w-full">
+              <Link prefetch={false} href="/dashboard/listings/new" onClick={() => setOpen(false)} className="ui-btn-primary w-full">
                 {ka.nav.sell}
               </Link>
               {userState.signedIn ? (
                 <div className="grid grid-cols-2 gap-3">
-                  <Link href="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2 justify-between">
+                  <Link prefetch={false} href="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2 justify-between">
                     <span>შეტყობინებები</span>
                     {userState.unreadNotifications > 0 ? (
                       <span className="rounded-full bg-brand px-2 py-1 text-xs font-black text-white">
@@ -162,29 +162,29 @@ export default function MobileNavigation({
                       </span>
                     ) : null}
                   </Link>
-                  <Link href="/dashboard/saved-searches" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
+                  <Link prefetch={false} href="/dashboard/saved-searches" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                     შენახული ძებნები
                   </Link>
-                  <Link href="/dashboard/chats" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                  <Link prefetch={false} href="/dashboard/chats" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     {ka.nav.messages}
                   </Link>
-                  <Link href="/dashboard/favorites" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                  <Link prefetch={false} href="/dashboard/favorites" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     {ka.nav.favorites}
                   </Link>
-                  <Link href="/dashboard/orders" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                  <Link prefetch={false} href="/dashboard/orders" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     შეკვეთები
                   </Link>
-                  <Link href="/dashboard/profile" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
+                  <Link prefetch={false} href="/dashboard/profile" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                     {userState.profileLabel}
                   </Link>
-                  <Link href="/dashboard/billing" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                  <Link prefetch={false} href="/dashboard/billing" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     VIP განთავსება
                   </Link>
-                  <Link href="/dashboard/reports" onClick={() => setOpen(false)} className="ui-btn-secondary">
+                  <Link prefetch={false} href="/dashboard/reports" onClick={() => setOpen(false)} className="ui-btn-secondary">
                     რეპორტები
                   </Link>
                   {userState.isAdmin ? (
-                    <Link href="/admin" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
+                    <Link prefetch={false} href="/admin" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2">
                       ადმინისტრირება
                     </Link>
                   ) : null}

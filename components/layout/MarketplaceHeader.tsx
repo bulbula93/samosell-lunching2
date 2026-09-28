@@ -73,7 +73,7 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href={sellHref} className="ui-btn-primary">
+          <Link href={sellHref} prefetch={userState.signedIn ? false : undefined} className="ui-btn-primary">
             გაყიდე
           </Link>
           <Link href="/catalog" className="ui-btn-secondary">
@@ -107,10 +107,10 @@ export default function MarketplaceHeader({
                   <span aria-hidden="true" className="text-xs text-text-soft transition group-open:rotate-180">⌄</span>
                 </summary>
                 <nav className="absolute right-0 top-[calc(100%+10px)] w-52 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.14)]">
-                  <Link href="/dashboard" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     კაბინეტი
                   </Link>
-                  <Link href="/dashboard/notifications" className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/notifications" className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     <span>შეტყობინებები</span>
                     {userState.unreadNotifications > 0 ? (
                       <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-black text-white">
@@ -118,26 +118,26 @@ export default function MarketplaceHeader({
                       </span>
                     ) : null}
                   </Link>
-                  <Link href="/dashboard/saved-searches" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/saved-searches" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     შენახული ძებნები
                   </Link>
-                  <Link href="/dashboard/profile" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/profile" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     {ka.nav.profile}
                   </Link>
-                  <Link href="/dashboard/listings" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/listings" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     ჩემი განცხადებები
                   </Link>
-                  <Link href="/dashboard/orders" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/orders" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     შეკვეთები
                   </Link>
-                  <Link href="/dashboard/billing" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/billing" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     VIP განთავსება
                   </Link>
-                  <Link href="/dashboard/reports" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                  <Link prefetch={false} href="/dashboard/reports" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                     რეპორტები
                   </Link>
                   {userState.isAdmin ? (
-                    <Link href="/admin" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
+                    <Link prefetch={false} href="/admin" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
                       ადმინისტრირება
                     </Link>
                   ) : null}
@@ -160,14 +160,14 @@ export default function MarketplaceHeader({
         </div>
 
         {userState.signedIn ? <>
-          <Link href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft md:inline-flex">
+          <Link prefetch={false} href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft md:inline-flex">
             <span aria-hidden="true">✉</span>
             {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}
           </Link>
           <NotificationBell count={userState.unreadNotifications} />
         </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
-          <Link href={sellHref} className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
+          <Link href={sellHref} prefetch={userState.signedIn ? false : undefined} className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
             გაყიდე
           </Link>
           <Link href="/catalog" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
