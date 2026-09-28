@@ -344,7 +344,8 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 variant="sidebar"
                 sellerName={sellerName}
                 primaryListingHref={featuredListingHref}
-                phone={profile.store_phone}
+                phoneAvailable={Boolean(profile.store_phone)}
+                sellerUsername={profile.username}
                 whatsapp={profile.store_whatsapp}
                 telegram={profile.store_telegram}
                 instagram={profile.store_instagram}
