@@ -30,6 +30,10 @@ type FlittStatusResponse = {
   response?: Record<string, unknown>
 }
 
+type FlittReverseResponse = {
+  response?: Record<string, unknown>
+}
+
 function isTrue(value?: string) {
   return String(value ?? "").trim().toLowerCase() === "true"
 }
@@ -225,6 +229,92 @@ export async function createFlittCheckout(params: FlittCheckoutParams) {
 
 export async function createFlittSandboxCheckout(params: FlittCheckoutParams) {
   return createFlittCheckoutWithConfig(params, getFlittConfig())
+}
+
+export async function reverseFlittOrder(params: {
+  orderId: string
+  amount: number
+  currency: string
+  merchantId: string
+  reverseId: string
+  comment: string
+}) {
+  const config = getFlittCallbackConfig()
+  if (params.merchantId !== config.merchantId) {
+    throw new Error("Flitt attempt merchant does not match current configuration")
+  }
+  if (!Number.isInteger(params.amount) || params.amount <= 0) {
+    throw new Error("Flitt reversal amount must be a positive integer")
+  }
+
+  const currency = String(params.currency).trim().toUpperCase()
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Flitt reversal currency is invalid")
+
+  const reverseId = String(params.reverseId).trim()
+  if (!/^[A-Za-z0-9_-]{1,50}$/.test(reverseId)) throw new Error("Flitt reverse_id is invalid")
+
+  const requestData: Record<string, unknown> = {
+    version: "1.0.1",
+    order_id: params.orderId,
+    merchant_id: Number(config.merchantId),
+    amount: params.amount,
+    currency,
+    reverse_id: reverseId,
+    comment: String(params.comment).trim().slice(0, 1024),
+  }
+  requestData.signature = buildFlittSignature(requestData, config.secretKey)
+
+  const response = await fetch(`${config.apiUrl}/api/reverse/order_id`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ request: requestData }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  const text = await response.text()
+  let payload: FlittReverseResponse
+  try {
+    payload = JSON.parse(text) as FlittReverseResponse
+  } catch {
+    throw new Error("Flitt reversal returned invalid JSON")
+  }
+
+  const reversed = payload.response
+  if (!response.ok || !reversed || String(reversed.response_status ?? "").toLowerCase() !== "success") {
+    const code = reversed?.error_code ? ` (${String(reversed.error_code)})` : ""
+    throw new Error(`Flitt reversal request failed${code}`)
+  }
+  if (!verifyFlittSignature(reversed, config.secretKey)) {
+    throw new Error("Flitt reversal response signature is invalid")
+  }
+  if (String(reversed.order_id ?? "") !== params.orderId) {
+    throw new Error("Flitt reversal order mismatch")
+  }
+  if (String(reversed.merchant_id ?? "") !== config.merchantId) {
+    throw new Error("Flitt reversal merchant mismatch")
+  }
+  const returnedReverseId = String(reversed.reverse_id ?? "").trim()
+  if (returnedReverseId && returnedReverseId !== reverseId) {
+    throw new Error("Flitt reversal idempotency key mismatch")
+  }
+
+  const reverseStatus = String(reversed.reverse_status ?? "").trim().toLowerCase()
+  if (!["approved", "reversed"].includes(reverseStatus)) {
+    throw new Error("Flitt reversal was not approved")
+  }
+
+  const reversalAmount = Number(reversed.reversal_amount ?? NaN)
+  if (!Number.isInteger(reversalAmount) || reversalAmount !== params.amount) {
+    throw new Error("Flitt reversal amount mismatch")
+  }
+
+  return {
+    reverseStatus,
+    responseStatus: String(reversed.response_status ?? ""),
+    reversalAmount,
+    reverseId,
+  }
 }
 
 export function mapFlittOrderStatus(value: unknown): FlittAttemptStatus {

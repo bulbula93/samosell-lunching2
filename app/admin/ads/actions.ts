@@ -15,6 +15,7 @@ import {
   imageExtensionForMimeType,
   type ListingImageMimeType,
 } from "@/lib/listing-form"
+import { reverseFlittOrder } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 const ADS_ADMIN_PATH = "/admin/ads"
@@ -176,6 +177,140 @@ export async function launchAdminAdAction(formData: FormData) {
 
   revalidateAdSurfaces()
   adminAdsRedirect("launched")
+}
+
+export async function rejectSelfServiceAdAction(formData: FormData) {
+  const { user } = await requireAdminUser("/dashboard")
+  const adId = readText(formData, "adId")
+  const reason = readText(formData, "reason")
+
+  if (!isAdId(adId)) adminAdsRedirect("invalid_id")
+  if (reason.length < 5 || reason.length > 500) adminAdsRedirect("invalid_rejection_reason", adId)
+
+  const admin = createAdminClient()
+  const { data: rejection, error: rejectionError } = await admin.rpc("reject_self_service_ad", {
+    p_ad_id: adId,
+    p_reviewed_by: user.id,
+    p_reason: reason,
+  })
+
+  if (rejectionError) {
+    if (rejectionError.code === "P0002") adminAdsRedirect("not_found", adId)
+    adminAdsRedirect("reject_failed", adId)
+  }
+
+  const result = rejection as { order_id?: string; needs_refund?: boolean } | null
+  const orderId = String(result?.order_id ?? "")
+  if (!orderId || result?.needs_refund === false) {
+    revalidateAdSurfaces()
+    adminAdsRedirect("rejected_refunded")
+  }
+
+  const [{ data: order, error: orderError }, { data: attempt, error: attemptError }] = await Promise.all([
+    admin
+      .from("ad_orders")
+      .select("id, amount, currency, refund_status")
+      .eq("id", orderId)
+      .maybeSingle(),
+    admin
+      .from("flitt_payment_attempts")
+      .select("order_id, amount, currency, merchant_id, status")
+      .eq("ad_order_id", orderId)
+      .eq("purpose", "ad_order")
+      .maybeSingle(),
+  ])
+
+  if (orderError || attemptError || !order || !attempt) {
+    await admin
+      .from("ad_orders")
+      .update({ refund_status: "failed", refund_error: "refund_context_missing", updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+    revalidateAdSurfaces()
+    adminAdsRedirect("reject_refund_failed", adId)
+  }
+
+  const expectedAmount = Math.round(Number(order.amount) * 100)
+  const attemptAmount = Number(attempt.amount)
+  const orderCurrency = String(order.currency).toUpperCase()
+  const attemptCurrency = String(attempt.currency).toUpperCase()
+  if (
+    !Number.isSafeInteger(expectedAmount)
+    || expectedAmount <= 0
+    || attemptAmount !== expectedAmount
+    || orderCurrency !== attemptCurrency
+    || !["approved", "reversed"].includes(String(attempt.status))
+  ) {
+    await admin
+      .from("ad_orders")
+      .update({
+        refund_status: "failed",
+        refund_error: "refund_payment_identity_mismatch",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId)
+    revalidateAdSurfaces()
+    adminAdsRedirect("reject_refund_failed", adId)
+  }
+
+  try {
+    if (attempt.status !== "reversed") {
+      await reverseFlittOrder({
+        orderId: String(attempt.order_id),
+        amount: Number(attempt.amount),
+        currency: String(attempt.currency),
+        merchantId: String(attempt.merchant_id),
+        reverseId: `adrej-${orderId}`.slice(0, 50),
+        comment: `SamoSell ad rejected: ${reason}`,
+      })
+
+      const now = new Date().toISOString()
+      const { error: attemptUpdateError } = await admin
+        .from("flitt_payment_attempts")
+        .update({
+          status: "reversed",
+          provider_status: "reversed",
+          response_status: "success",
+          updated_at: now,
+        })
+        .eq("ad_order_id", orderId)
+        .eq("purpose", "ad_order")
+
+      if (attemptUpdateError) throw new Error("refund_attempt_persistence_failed")
+    }
+
+    const { error: reverseError } = await admin.rpc("reverse_flitt_ad_payment", { p_order_id: orderId })
+    if (reverseError) throw new Error("refund_reconciliation_failed")
+
+    const { error: refundUpdateError } = await admin
+      .from("ad_orders")
+      .update({
+        refund_status: "succeeded",
+        refund_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId)
+
+    if (refundUpdateError) throw new Error("refund_status_persistence_failed")
+  } catch (error) {
+    console.error("[admin ads] rejection refund failed", {
+      adId,
+      orderId,
+      message: error instanceof Error ? error.message : "unknown_error",
+    })
+    await admin
+      .from("ad_orders")
+      .update({
+        refund_status: "failed",
+        refund_error: "provider_or_reconciliation_failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId)
+    revalidateAdSurfaces()
+    adminAdsRedirect("reject_refund_failed", adId)
+  }
+
+  revalidateAdSurfaces()
+  adminAdsRedirect("rejected_refunded")
 }
 
 export async function stopAdminAdAction(formData: FormData) {
