@@ -2,13 +2,11 @@ import React from "react"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import ListingSocialShare from "@/components/listings/ListingSocialShare"
 
 describe("ListingSocialShare", () => {
-  it("opens social sharing options from the product page share button", async () => {
-    const user = userEvent.setup()
+  it("shows all social sharing actions immediately with recognizable labels", () => {
     render(
       <ListingSocialShare
         url="https://samosell.ge/listing/linen-jacket"
@@ -19,27 +17,23 @@ describe("ListingSocialShare", () => {
       />,
     )
 
-    const shareButton = screen.getByRole("button", { name: "გაზიარება" })
-    expect(shareButton).toHaveAttribute("aria-expanded", "false")
-
-    await user.click(shareButton)
-
-    expect(shareButton).toHaveAttribute("aria-expanded", "true")
-    expect(screen.getByRole("button", { name: /Instagram Story/ })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Facebook" })).toHaveAttribute(
+    expect(screen.getByRole("region", { name: "გაზიარება" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Instagram Story-ზე გაზიარება" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Facebook-ზე გაზიარება" })).toHaveAttribute(
       "href",
       expect.stringContaining("facebook.com/sharer/sharer.php"),
     )
-    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "WhatsApp-ში გაზიარება" })).toHaveAttribute(
       "href",
       expect.stringContaining("wa.me"),
     )
-    expect(screen.getByRole("link", { name: "Telegram" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Telegram-ში გაზიარება" })).toHaveAttribute(
       "href",
       expect.stringContaining("t.me/share/url"),
     )
-    expect(screen.getByRole("button", { name: "ბმულის კოპირება" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "სხვა აპში" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "პროდუქტის ბმულის კოპირება" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "სხვა აპში გაზიარება" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^გაზიარება$/ })).not.toBeInTheDocument()
   })
 
   it("contains the Instagram Story 9:16 file sharing flow", () => {
@@ -52,6 +46,10 @@ describe("ListingSocialShare", () => {
     expect(source).toContain("canvas.height = 1920")
     expect(source).toContain("navigator.canShare({ files: [file] })")
     expect(source).toContain("new File([blob], \"samosell-instagram-story.png\"")
-    expect(source).toContain("Link sticker")
+    expect(source).toContain("InstagramIcon")
+    expect(source).toContain("FacebookIcon")
+    expect(source).toContain("WhatsAppIcon")
+    expect(source).toContain("TelegramIcon")
+    expect(source).toContain("LinkIcon")
   })
 })
