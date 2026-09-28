@@ -64,7 +64,7 @@ describe("global ad system", () => {
     render(<AdPlacement placementKey="home_hero_left" pagePath="/" />)
 
     expect(screen.getByText("განათავსე რეკლამა ჩვენს გვერდზე")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "დაგვიკავშირდი" })).toHaveAttribute("href", ADVERTISE_WITH_US_HREF)
+    expect(screen.getByRole("link", { name: "რეკლამის შექმნა" })).toHaveAttribute("href", ADVERTISE_WITH_US_HREF)
   })
 
   it("renders active advertiser content with sponsored link semantics", () => {
@@ -91,8 +91,8 @@ describe("global ad system", () => {
 
   it("queries only the placement keys supplied by the row", () => {
     const source = readFileSync(join(process.cwd(), "lib", "ad-data.ts"), "utf8")
-    expect(source).toContain('.in("placement_key", [...placementKeys])')
-    expect(source).toContain('.eq("is_active", true)')
+    expect(source).toContain('.in("placement_key",[...placementKeys])')
+    expect(source).toContain('.eq("is_active",true)')
     expect(source).toContain("unstable_rethrow(error)")
   })
 })

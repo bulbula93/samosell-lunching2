@@ -25,7 +25,7 @@ function Icon({ name }: { name: NavKey }) {
 }
 
 export default function MobileBottomNavigation({ userState }: { userState: MarketplaceUserState }) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const hideForChatThread = pathname.startsWith("/dashboard/chats/")
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const messagesHref = userState.signedIn ? "/dashboard/chats" : "/login"
@@ -34,19 +34,19 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
 
   useEffect(() => {
     const previousPaddingBottom = document.body.style.paddingBottom
-    const media = window.matchMedia("(max-width: 767px)")
+    const media = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 767px)") : null
 
     const syncBodyPadding = () => {
       document.body.style.paddingBottom =
-        media.matches && !hideForChatThread
+        media?.matches && !hideForChatThread
           ? "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))"
           : previousPaddingBottom
     }
 
     syncBodyPadding()
-    media.addEventListener("change", syncBodyPadding)
+    media?.addEventListener("change", syncBodyPadding)
     return () => {
-      media.removeEventListener("change", syncBodyPadding)
+      media?.removeEventListener("change", syncBodyPadding)
       document.body.style.paddingBottom = previousPaddingBottom
     }
   }, [hideForChatThread])
