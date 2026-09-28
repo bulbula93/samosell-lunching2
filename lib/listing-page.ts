@@ -22,7 +22,7 @@ const relatedListingSelect =
   "id, public_id, seller_id, slug, title, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
-  "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone"
+  "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone, tiktok_username, tiktok_live_until"
 
 export type ListingPageQueryParams = {
   chatError?: string | string[]
@@ -54,6 +54,8 @@ export type ListingSellerProfile = {
   store_hours?: string | null
   store_address?: string | null
   store_map_url?: string | null
+  tiktok_username?: string | null
+  tiktok_live_until?: string | null
 }
 
 export type ListingPageData = {
