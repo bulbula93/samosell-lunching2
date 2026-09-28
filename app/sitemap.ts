@@ -23,12 +23,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categoryCountPromises = INDEXABLE_CATALOG_CATEGORIES.map(async (category) => {
       const baseQuery = supabase
         .from("listings_catalog")
-        .select("id", { count: "exact", head: true })
+        .select("published_at", { count: "exact" })
         .eq("status", "active")
       const response = await applyCatalogFilters(baseQuery, {
         category: category.value,
       })
-      return { category, count: response.count ?? 0, error: response.error }
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(1)
+      return {
+        category,
+        count: response.count ?? 0,
+        latestPublishedAt: response.data?.[0]?.published_at ?? null,
+        error: response.error,
+      }
     })
 
     const [listingsResponse, sellersResponse, categoryCounts] = await Promise.all([
@@ -40,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .limit(1_000),
       supabase
         .from("listings_catalog")
-        .select("seller_username")
+        .select("seller_username, published_at")
         .eq("status", "active")
         .limit(1_000),
       Promise.all(categoryCountPromises),
@@ -55,8 +62,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const categoryEntries: MetadataRoute.Sitemap = categoryCounts
       .filter(({ count, error }) => !error && count > 0)
-      .map(({ category }) => ({
+      .map(({ category, latestPublishedAt }) => ({
         url: `${siteUrl}/catalog?category=${category.value}`,
+        ...(latestPublishedAt ? { lastModified: new Date(latestPublishedAt) } : {}),
         changeFrequency: "daily",
         priority: 0.7,
       }))
@@ -70,6 +78,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       }))
 
+    const sellerLatestPublishedAt = new Map<string, string>()
+    for (const item of sellers) {
+      const username = item.seller_username?.trim()
+      if (!username || !item.published_at) continue
+      const previous = sellerLatestPublishedAt.get(username)
+      if (!previous || item.published_at > previous) {
+        sellerLatestPublishedAt.set(username, item.published_at)
+      }
+    }
+
     const sellerEntries: MetadataRoute.Sitemap = Array.from(
       new Set(
         sellers
@@ -78,6 +96,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ),
     ).map((username) => ({
       url: `${siteUrl}/seller/${encodeURIComponent(username)}`,
+      ...(sellerLatestPublishedAt.get(username)
+        ? { lastModified: new Date(sellerLatestPublishedAt.get(username)!) }
+        : {}),
       changeFrequency: "weekly",
       priority: 0.6,
     }))
