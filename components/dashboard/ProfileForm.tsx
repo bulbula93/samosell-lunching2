@@ -17,6 +17,8 @@ type ProfileFormProps = {
     city: string
     avatar_url: string
     seller_type: string
+    store_name: string
+    store_slug: string
     store_logo_url: string
     store_banner_url: string
     store_phone: string
@@ -92,6 +94,8 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   const [city, setCity] = useState(initialProfile.city)
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatar_url)
   const [sellerType, setSellerType] = useState(initialProfile.seller_type || "individual")
+  const [storeName, setStoreName] = useState(initialProfile.store_name)
+  const [storeSlug, setStoreSlug] = useState(initialProfile.store_slug)
   const [storeLogoUrl, setStoreLogoUrl] = useState(initialProfile.store_logo_url)
   const [storeBannerUrl, setStoreBannerUrl] = useState(initialProfile.store_banner_url)
   const [storePhone, setStorePhone] = useState(initialProfile.store_phone)
@@ -204,6 +208,12 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
     setSuccess("")
 
     const normalizedPhone = normalizeSellerPhone(storePhone)
+    const normalizedStoreSlug = storeSlug.trim().toLowerCase()
+    if (sellerType === "store" && (!storeName.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedStoreSlug))) {
+      setError("მაღაზიისთვის მიუთითე სახელი და URL slug მხოლოდ პატარა ლათინური ასოებით, ციფრებითა და დეფისით.")
+      setLoading(false)
+      return
+    }
     if (normalizedPhone && !isValidSellerPhone(normalizedPhone)) {
       setError("შეიყვანე მოქმედი საკონტაქტო ტელეფონი 7–15 ციფრით.")
       setLoading(false)
@@ -251,6 +261,8 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         city,
         avatar_url: nextAvatarUrl || null,
         seller_type: sellerType,
+        store_name: sellerType === "store" ? storeName.trim() : null,
+        store_slug: sellerType === "store" ? normalizedStoreSlug : null,
         store_logo_url: sellerType === "store" ? nextStoreLogoUrl || null : null,
         store_banner_url: sellerType === "store" ? nextStoreBannerUrl || null : null,
         store_phone: normalizedPhone || null,
@@ -400,6 +412,14 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
 
       {sellerType === "store" ? (
         <>
+          <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5">
+            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">მაღაზიის იდენტობა</div>
+            <div className="mt-4 grid gap-5 md:grid-cols-2">
+              <div><label className="mb-2 block text-sm font-semibold">მაღაზიის სახელი</label><input value={storeName} onChange={(e) => setStoreName(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: Vintage Room" /></div>
+              <div><label className="mb-2 block text-sm font-semibold">Store URL</label><div className="flex h-12 overflow-hidden rounded-2xl border border-neutral-300 bg-white"><span className="flex items-center border-r border-neutral-200 px-3 text-sm text-neutral-500">/store/</span><input value={storeSlug} onChange={(e) => setStoreSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} className="min-w-0 flex-1 px-3 outline-none" placeholder="vintage-room" /></div></div>
+            </div>
+          </div>
+
           <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5">
             <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">მაღაზიის ბრენდინგი</div>
             <div className="mt-2 text-xl font-black text-neutral-950">დაამატე მაღაზიის ცალკე ლოგო და cover / banner</div>
