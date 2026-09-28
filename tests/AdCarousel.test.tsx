@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest"
 describe("AdCarousel", () => {
   it("keeps the responsive rotating carousel contract", () => {
     const source = readFileSync(join(process.cwd(), "components", "ads", "AdCarousel.tsx"), "utf8")
-    expect(source).toContain("ROTATION_MS=6000")
+    expect(source).toMatch(/ROTATION_MS\s*=\s*6000/)
     expect(source).toContain("md:grid-cols-2")
     expect(source).toContain("onTouchStart")
     expect(source).toContain("onTouchEnd")
