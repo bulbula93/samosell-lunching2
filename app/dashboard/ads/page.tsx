@@ -18,6 +18,9 @@ type AdOrderRow = {
   starts_at: string | null
   ends_at: string | null
   selected_placement: string | null
+  rejection_reason: string | null
+  rejected_at: string | null
+  refund_status: "pending" | "succeeded" | "failed" | null
   created_at: string
 }
 
@@ -44,6 +47,10 @@ function formatDate(value?: string | null) {
 }
 
 function statusLabel(order: AdOrderRow) {
+  if (order.refund_status === "pending") return "უარყოფილია · თანხა ბრუნდება"
+  if (order.refund_status === "failed") return "უარყოფილია · დაბრუნება მოწმდება"
+  if (order.refund_status === "succeeded" || order.status === "reversed") return "უარყოფილია · თანხა დაბრუნებულია"
+
   const now = Date.now()
   const starts = order.starts_at ? Date.parse(order.starts_at) : null
   const ends = order.ends_at ? Date.parse(order.ends_at) : null
@@ -65,6 +72,9 @@ function statusLabel(order: AdOrderRow) {
 }
 
 function statusClass(order: AdOrderRow) {
+  if (order.refund_status === "succeeded" || order.status === "reversed") return "border-emerald-200 bg-emerald-50 text-emerald-800"
+  if (order.refund_status === "pending") return "border-amber-200 bg-amber-50 text-amber-900"
+  if (order.refund_status === "failed") return "border-red-200 bg-red-50 text-red-800"
   if (order.status === "active") return "border-emerald-200 bg-emerald-50 text-emerald-800"
   if (order.status === "paid_pending_review" || order.status === "scheduled") return "border-sky-200 bg-sky-50 text-sky-800"
   if (order.status === "payment_failed" || order.status === "cancelled") return "border-red-200 bg-red-50 text-red-800"
@@ -75,7 +85,7 @@ export default async function DashboardAdsPage() {
   const { supabase, user } = await requireAuthenticatedUser("/dashboard/ads")
   const { data: orderData, error } = await supabase
     .from("ad_orders")
-    .select("id, ad_id, status, amount, currency, product_name_snapshot, duration_days_snapshot, paid_at, starts_at, ends_at, selected_placement, created_at")
+    .select("id, ad_id, status, amount, currency, product_name_snapshot, duration_days_snapshot, paid_at, starts_at, ends_at, selected_placement, rejection_reason, rejected_at, refund_status, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
@@ -155,6 +165,25 @@ export default async function DashboardAdsPage() {
                     <h2 className="mt-3 text-xl font-black text-text">{ad?.title || order.product_name_snapshot}</h2>
                     <p className="mt-1 text-sm font-semibold text-brand">{ad?.advertiser_name || "SamoSell Brand Ad"}</p>
                     {ad?.target_url ? <p className="mt-2 break-all text-xs text-text-soft">{ad.target_url}</p> : null}
+
+                    {order.rejection_reason ? (
+                      <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-900">
+                        <div className="font-bold">მოდერაციის გადაწყვეტილება</div>
+                        <p className="mt-1 whitespace-pre-wrap">{order.rejection_reason}</p>
+                        {order.rejected_at ? (
+                          <p className="mt-1 text-xs text-red-700">უარყოფილია: {formatDate(order.rejected_at)}</p>
+                        ) : null}
+                        {order.refund_status === "pending" ? (
+                          <p className="mt-2 text-xs text-red-700">სრული თანხის დაბრუნება ინიცირებულია იმავე გადახდის არხზე.</p>
+                        ) : null}
+                        {order.refund_status === "succeeded" || order.status === "reversed" ? (
+                          <p className="mt-2 text-xs font-semibold text-emerald-800">სრული თანხის დაბრუნება provider-ში დადასტურებულია.</p>
+                        ) : null}
+                        {order.refund_status === "failed" ? (
+                          <p className="mt-2 text-xs font-semibold text-red-800">დაბრუნების ავტომატური ოპერაცია ვერ დასრულდა და ადმინისტრატორის გადამოწმებას ელოდება.</p>
+                        ) : null}
+                      </div>
+                    ) : null}
 
                     <dl className="mt-4 grid gap-2 text-xs text-text-soft sm:grid-cols-2 lg:grid-cols-4">
                       <div className="rounded-xl bg-surface-alt px-3 py-2">
