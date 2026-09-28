@@ -304,10 +304,15 @@ export async function reverseFlittOrder(params: {
     throw new Error("Flitt reversal was not approved")
   }
 
+  const reversalAmount = Number(reversed.reversal_amount ?? NaN)
+  if (!Number.isInteger(reversalAmount) || reversalAmount !== params.amount) {
+    throw new Error("Flitt reversal amount mismatch")
+  }
+
   return {
     reverseStatus,
     responseStatus: String(reversed.response_status ?? ""),
-    reversalAmount: Number(reversed.reversal_amount ?? params.amount),
+    reversalAmount,
     reverseId,
   }
 }
