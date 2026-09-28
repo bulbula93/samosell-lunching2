@@ -12,10 +12,10 @@ export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacem
           განათავსე რეკლამა ჩვენს გვერდზე
         </h2>
         <p className="mt-2 text-sm leading-6 text-text-soft">
-          აჩვენე შენი ბრენდი SamoSell-ის მომხმარებლებს
+          შექმენი რეკლამა თვითონ და მიაბი შენი მაღაზია ან სოციალური გვერდი
         </p>
         <Link href={ADVERTISE_WITH_US_HREF} className="mt-4 inline-flex min-h-11 w-fit items-center justify-center rounded-xl border border-brand/20 bg-white px-5 text-sm font-black text-brand transition hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-          დაგვიკავშირდი
+          რეკლამის შექმნა
         </Link>
       </div>
       <div aria-hidden="true" className="absolute -right-10 -top-10 h-40 w-40 rounded-full border border-brand/10 bg-brand-soft/45" />

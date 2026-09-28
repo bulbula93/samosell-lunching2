@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: attempt, error: lookupError } = await admin
     .from("flitt_payment_attempts")
-    .select("order_id, boost_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
+    .select("order_id, boost_order_id, ad_order_id, amount, currency, merchant_id, provider_payment_id, provider_verified_at, provider_verification_source, status, callback_count, mode, purpose")
     .eq("order_id", orderId)
     .maybeSingle();
 
@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
     return new Response("OK", { status: 200 });
   }
 
-  if (attempt.mode !== config.mode || !["sandbox_test", "boost_order"].includes(attempt.purpose)) {
+  if (attempt.mode !== config.mode || !["sandbox_test", "boost_order", "ad_order"].includes(attempt.purpose)) {
     return json({ error: "unsupported_attempt" }, 409);
   }
 
@@ -89,6 +89,7 @@ Deno.serve(async (req: Request) => {
     await processFlittCallback(params, {
       orderId: String(attempt.order_id),
       boostOrderId: attempt.boost_order_id ? String(attempt.boost_order_id) : null,
+      adOrderId: attempt.ad_order_id ? String(attempt.ad_order_id) : null,
       amount: Number(attempt.amount),
       currency: String(attempt.currency),
       merchantId: String(attempt.merchant_id),
@@ -124,6 +125,18 @@ Deno.serve(async (req: Request) => {
       reverse: async (boostOrderId) => {
         const { error: reverseError } = await admin.rpc("reverse_flitt_boost_payment", { p_order_id: boostOrderId });
         if (reverseError) throw new FlittVerificationError("boost_reversal_failed", 500);
+      },
+      finalizeAd: async (adOrderId) => {
+        const { error: finalizeError } = await admin.rpc("finalize_flitt_ad_payment", { p_order_id: adOrderId });
+        if (finalizeError) throw new FlittVerificationError("ad_payment_finalization_failed", 500);
+      },
+      reverseAd: async (adOrderId) => {
+        const { error: reverseError } = await admin.rpc("reverse_flitt_ad_payment", { p_order_id: adOrderId });
+        if (reverseError) throw new FlittVerificationError("ad_reversal_failed", 500);
+      },
+      failAd: async (adOrderId) => {
+        const { error: failureError } = await admin.rpc("fail_flitt_ad_payment", { p_order_id: adOrderId });
+        if (failureError) throw new FlittVerificationError("ad_payment_failure_reconciliation_failed", 500);
       },
     });
   } catch (error) {
