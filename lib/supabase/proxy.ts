@@ -45,7 +45,20 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  const { data: claimsData } = await supabase.auth.getClaims()
+  let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>["data"] | null = null
+  let claimsCheckFailed = false
+
+  try {
+    const claimsResult = await supabase.auth.getClaims()
+    claimsData = claimsResult.data
+    claimsCheckFailed = Boolean(claimsResult.error)
+  } catch (error) {
+    claimsCheckFailed = true
+    console.warn("[auth proxy] claims refresh failed; deferring auth enforcement to route layout", {
+      pathname: request.nextUrl.pathname,
+      message: error instanceof Error ? error.message : "unknown_error",
+    })
+  }
 
   const listingSlug = getListingSlugFromPathname(request.nextUrl.pathname)
   if (listingSlug !== null) {
@@ -70,7 +83,11 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !claimsData?.claims?.sub) {
+  if (
+    request.nextUrl.pathname.startsWith("/dashboard")
+    && !claimsCheckFailed
+    && !claimsData?.claims?.sub
+  ) {
     const returnPath = getSafeAuthRedirectPath(
       `${request.nextUrl.pathname}${request.nextUrl.search}`,
       "/dashboard"
