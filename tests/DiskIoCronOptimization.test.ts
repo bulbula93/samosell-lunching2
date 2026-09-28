@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 
 describe("Disk I/O cron optimization", () => {
   const migration = readFileSync(
-    join(process.cwd(), "supabase", "migrations", "20260928134000_optimize_disk_io_cron_cadence.sql"),
+    join(process.cwd(), "supabase", "migrations", "20260928133755_optimize_disk_io_cron_cadence.sql"),
     "utf8",
   )
 
