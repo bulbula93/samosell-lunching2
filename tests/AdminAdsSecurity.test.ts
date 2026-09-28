@@ -9,7 +9,7 @@ const migration = fs.readFileSync(path.join(root, "supabase/migrations/202609040
 
 describe("admin ads security boundaries", () => {
   it("rechecks admin authorization in every mutation", () => {
-    expect(actions.match(/requireAdminUser\("\/dashboard"\)/g)).toHaveLength(3)
+    expect(actions.match(/requireAdminUser\("\/dashboard"\)/g)).toHaveLength(4)
     expect(page).toContain('requireAdminUser("/dashboard")')
   })
 
