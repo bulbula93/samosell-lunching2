@@ -72,7 +72,7 @@ describe("ListingOverviewCard", () => {
     expect(
       screen.getByRole("button", { name: /რჩეულებში დამატება/ }),
     ).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: ka.listingDetail.share })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: ka.listingDetail.share })).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /ნინო-ს ტელეფონის ნომრის ნახვა/ }),
     ).toBeInTheDocument()
