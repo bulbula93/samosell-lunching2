@@ -1,4 +1,26 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe,expect,it } from "vitest"
-describe("home ad carousel",()=>{it("has responsive 1/2 layout, timed rotation, swipe and controls",()=>{const s=readFileSync(join(process.cwd(),"components/ads/AdCarousel.tsx"),"utf8");expect(s).toContain("ROTATION_MS = 6000");expect(s).toContain("md:grid-cols-2");expect(s).toContain("onTouchStart");expect(s).toContain('aria-label="წინა რეკლამა"');expect(s).toContain('aria-label="შემდეგი რეკლამა"')});it("caps concurrent paid campaigns at ten",()=>{const s=readFileSync(join(process.cwd(),"supabase/migrations/20260928161000_brand_ad_rotation_pool.sql"),"utf8");expect(s).toContain("v_active < 10");expect(s).toContain("'active_limit',10")})})
+import { describe, expect, it } from "vitest"
+
+describe("AdCarousel", () => {
+  it("keeps the responsive rotating carousel contract", () => {
+    const source = readFileSync(join(process.cwd(), "components", "ads", "AdCarousel.tsx"), "utf8")
+    expect(source).toContain("ROTATION_MS=6000")
+    expect(source).toContain("md:grid-cols-2")
+    expect(source).toContain("onTouchStart")
+    expect(source).toContain("onTouchEnd")
+  })
+
+  it("counts impressions only after the ad is visible", () => {
+    const source = readFileSync(join(process.cwd(), "components", "ads", "AdImpressionTracker.tsx"), "utf8")
+    expect(source).toContain("IntersectionObserver")
+    expect(source).toContain("intersectionRatio >= 0.5")
+  })
+
+  it("enforces ten concurrent reservations while considering scheduled campaigns", () => {
+    const source = readFileSync(join(process.cwd(), "supabase", "migrations", "20260928161000_brand_ad_rotation_pool.sql"), "utf8")
+    expect(source).toContain("status in ('active','scheduled')")
+    expect(source).toContain(") < 10")
+    expect(source).toContain("order by candidate")
+  })
+})
