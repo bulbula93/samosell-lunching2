@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import SiteHeader from "@/components/layout/SiteHeader"
-import { SITE_NAME, getSupportConfig } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME, getSupportConfig } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "თანხის დაბრუნების პოლიტიკა",
@@ -23,6 +23,9 @@ export default function RefundPolicyPage() {
             <p>
               SamoSell-ის checkout გამოიყენება მხოლოდ VIP, TOP, VIP MAX, Home Banner და Home Brand Ad ციფრული სარეკლამო მომსახურებებისთვის.
               მომხმარებლებს შორის ნივთის გაყიდვის თანხა ამ გადახდის სისტემით არ მუშავდება.
+            </p>
+            <p>
+              მომსახურების მიმწოდებელი და პლატფორმის ოპერატორია {LEGAL_OPERATOR_NAME}.
             </p>
 
             <section>
