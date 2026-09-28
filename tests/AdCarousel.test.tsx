@@ -1,0 +1,4 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe,expect,it } from "vitest"
+describe("home ad carousel",()=>{it("has responsive 1/2 layout, timed rotation, swipe and controls",()=>{const s=readFileSync(join(process.cwd(),"components/ads/AdCarousel.tsx"),"utf8");expect(s).toContain("ROTATION_MS = 6000");expect(s).toContain("md:grid-cols-2");expect(s).toContain("onTouchStart");expect(s).toContain('aria-label="წინა რეკლამა"');expect(s).toContain('aria-label="შემდეგი რეკლამა"')});it("caps concurrent paid campaigns at ten",()=>{const s=readFileSync(join(process.cwd(),"supabase/migrations/20260928161000_brand_ad_rotation_pool.sql"),"utf8");expect(s).toContain("v_active < 10");expect(s).toContain("'active_limit',10")})})
