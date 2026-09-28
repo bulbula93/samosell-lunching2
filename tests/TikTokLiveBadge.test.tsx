@@ -34,7 +34,7 @@ describe("TikTok LIVE integration", () => {
 
   it("uses a four-hour authenticated LIVE window without a cleanup cron", () => {
     const migration = readFileSync(
-      join(process.cwd(), "supabase", "migrations", "20260928143500_add_tiktok_live_badge.sql"),
+      join(process.cwd(), "supabase", "migrations", "20260928144455_add_tiktok_live_badge.sql"),
       "utf8",
     )
 
