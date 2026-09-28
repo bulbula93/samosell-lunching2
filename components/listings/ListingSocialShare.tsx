@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { getSafeImageSource } from "@/lib/media"
 
 type ShareStatus =
@@ -278,6 +278,45 @@ export default function ListingSocialShare({
   className = "",
 }: ListingSocialShareProps) {
   const [status, setStatus] = useState<ShareStatus>("idle")
+  const storyFileRef = useRef<{ key: string; file: File } | null>(null)
+  const storyFilePromiseRef = useRef<{ key: string; promise: Promise<File> } | null>(null)
+  const storyKey = `${url}|${title}|${priceText}|${imageUrl ?? ""}`
+
+  const prepareStoryFile = useCallback(() => {
+    if (storyFileRef.current?.key === storyKey) {
+      return Promise.resolve(storyFileRef.current.file)
+    }
+    if (storyFilePromiseRef.current?.key === storyKey) {
+      return storyFilePromiseRef.current.promise
+    }
+
+    const promise = createInstagramStoryFile({ title, priceText, imageUrl, url })
+      .then((file) => {
+        if (storyFilePromiseRef.current?.key === storyKey) {
+          storyFileRef.current = { key: storyKey, file }
+        }
+        return file
+      })
+      .finally(() => {
+        if (storyFilePromiseRef.current?.key === storyKey) {
+          storyFilePromiseRef.current = null
+        }
+      })
+
+    storyFilePromiseRef.current = { key: storyKey, promise }
+    return promise
+  }, [imageUrl, priceText, storyKey, title, url])
+
+  useEffect(() => {
+    storyFileRef.current = null
+    storyFilePromiseRef.current = null
+
+    const timer = window.setTimeout(() => {
+      void prepareStoryFile().catch(() => undefined)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [prepareStoryFile])
 
   const encodedUrl = encodeURIComponent(url)
   const encodedText = encodeURIComponent(text)
@@ -318,14 +357,44 @@ export default function ListingSocialShare({
 
   async function shareInstagramStory() {
     if (status === "storyPreparing") return
-    setStatus("storyPreparing")
 
     const clipboardPromise = navigator.clipboard?.writeText
       ? navigator.clipboard.writeText(url).then(() => true).catch(() => false)
       : Promise.resolve(false)
 
+    const cachedFile = storyFileRef.current?.key === storyKey
+      ? storyFileRef.current.file
+      : null
+
+    if (cachedFile && typeof navigator.share === "function") {
+      const canShareFile =
+        typeof navigator.canShare !== "function" || navigator.canShare({ files: [cachedFile] })
+
+      if (canShareFile) {
+        try {
+          const sharePromise = navigator.share({
+            files: [cachedFile],
+            title: `${title} — SamoSell`,
+            text: "Instagram-ში აირჩიე Story. Link sticker-ისთვის პროდუქტის ბმულიც დაკოპირებულია.",
+          })
+          await sharePromise
+          await clipboardPromise
+          setStatus("storyReady")
+          resetStatus()
+          return
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            setStatus("idle")
+            return
+          }
+        }
+      }
+    }
+
+    setStatus("storyPreparing")
+
     try {
-      const file = await createInstagramStoryFile({ title, priceText, imageUrl, url })
+      const file = cachedFile ?? await prepareStoryFile()
       const copied = await clipboardPromise
       const canShareFile =
         typeof navigator.share === "function" &&
@@ -337,7 +406,7 @@ export default function ListingSocialShare({
             files: [file],
             title: `${title} — SamoSell`,
             text: copied
-              ? "Instagram-ში აირჩიე Story. ნივთის ბმული უკვე დაკოპირებულია — ჩასვი Link sticker-ში."
+              ? "Instagram-ში აირჩიე Story. პროდუქტის ბმული უკვე დაკოპირებულია — ჩასვი Link sticker-ში."
               : "Instagram-ში აირჩიე Story.",
           })
           setStatus("storyReady")
@@ -391,6 +460,9 @@ export default function ListingSocialShare({
       <div className="grid grid-cols-6 gap-1 sm:gap-2">
         <button
           type="button"
+          onPointerEnter={() => void prepareStoryFile().catch(() => undefined)}
+          onFocus={() => void prepareStoryFile().catch(() => undefined)}
+          onTouchStart={() => void prepareStoryFile().catch(() => undefined)}
           onClick={shareInstagramStory}
           disabled={status === "storyPreparing"}
           className={itemClass}
