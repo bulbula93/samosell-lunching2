@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import type { MarketplaceUserState } from "@/components/layout/MobileNavigation"
 import type { StoryRailData } from "@/types/story"
 
@@ -27,6 +28,7 @@ type HomePersonalizationContextValue = HomePersonalizationPayload & {
 const HomePersonalizationContext = createContext<HomePersonalizationContextValue | null>(null)
 
 export function HomePersonalizationProvider({ children }: { children: React.ReactNode }) {
+  const supabase = useMemo(() => createClient(), [])
   const [payload, setPayload] = useState<HomePersonalizationPayload>({
     userState: guestMarketplaceUserState,
     favoriteIds: [],
@@ -36,6 +38,7 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
 
   useEffect(() => {
     let active = true
+    let refreshTimer: number | null = null
 
     async function loadPersonalization() {
       try {
@@ -55,12 +58,43 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
       }
     }
 
+    function schedulePersonalizationRefresh() {
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer)
+      refreshTimer = window.setTimeout(() => {
+        if (active) void loadPersonalization()
+      }, 0)
+    }
+
     void loadPersonalization()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setPayload({
+          userState: guestMarketplaceUserState,
+          favoriteIds: [],
+          storyRail: null,
+        })
+        setLoaded(true)
+        return
+      }
+
+      if (
+        event === "SIGNED_IN"
+        || event === "TOKEN_REFRESHED"
+        || event === "USER_UPDATED"
+      ) {
+        schedulePersonalizationRefresh()
+      }
+    })
 
     return () => {
       active = false
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer)
+      subscription.unsubscribe()
     }
-  }, [])
+  }, [supabase])
 
   const value = useMemo<HomePersonalizationContextValue>(
     () => ({ ...payload, loaded }),
