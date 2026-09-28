@@ -8,7 +8,7 @@ function source(...parts: string[]) {
 
 describe("Self-service ad moderation", () => {
   it("persists rejection reason and refund state in the database", () => {
-    const migration = source("supabase", "migrations", "20260928134500_add_self_service_ad_rejection_refunds.sql")
+    const migration = source("supabase", "migrations", "20260928132311_add_self_service_ad_rejection_refunds.sql")
     expect(migration).toContain("reject_self_service_ad")
     expect(migration).toContain("review_status = 'rejected'")
     expect(migration).toContain("refund_status = 'pending'")
