@@ -1,4 +1,6 @@
 import React from "react"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
@@ -41,8 +43,8 @@ describe("ListingSocialShare", () => {
   })
 
   it("contains the Instagram Story 9:16 file sharing flow", () => {
-    const source = require("node:fs").readFileSync(
-      require("node:path").join(process.cwd(), "components", "listings", "ListingSocialShare.tsx"),
+    const source = readFileSync(
+      join(process.cwd(), "components", "listings", "ListingSocialShare.tsx"),
       "utf8",
     )
 
