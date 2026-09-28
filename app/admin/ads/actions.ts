@@ -229,6 +229,29 @@ export async function rejectSelfServiceAdAction(formData: FormData) {
     adminAdsRedirect("reject_refund_failed", adId)
   }
 
+  const expectedAmount = Math.round(Number(order.amount) * 100)
+  const attemptAmount = Number(attempt.amount)
+  const orderCurrency = String(order.currency).toUpperCase()
+  const attemptCurrency = String(attempt.currency).toUpperCase()
+  if (
+    !Number.isSafeInteger(expectedAmount)
+    || expectedAmount <= 0
+    || attemptAmount !== expectedAmount
+    || orderCurrency !== attemptCurrency
+    || !["approved", "reversed"].includes(String(attempt.status))
+  ) {
+    await admin
+      .from("ad_orders")
+      .update({
+        refund_status: "failed",
+        refund_error: "refund_payment_identity_mismatch",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId)
+    revalidateAdSurfaces()
+    adminAdsRedirect("reject_refund_failed", adId)
+  }
+
   try {
     if (attempt.status !== "reversed") {
       await reverseFlittOrder({
