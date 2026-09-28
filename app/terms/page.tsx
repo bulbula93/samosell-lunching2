@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import SiteHeader from "@/components/layout/SiteHeader"
-import { SITE_NAME } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "წესები და პირობები",
@@ -20,6 +20,9 @@ export default function TermsPage() {
           <h1 className="mt-3 text-3xl font-black sm:text-4xl">წესები და პირობები</h1>
           <div className="mt-8 space-y-6 leading-7 text-neutral-700">
             <p>{SITE_NAME}-ზე ანგარიშის შექმნითა და პლატფორმის გამოყენებით ეთანხმები ამ პირობებს.</p>
+            <p>
+              {SITE_NAME}-ის პლატფორმის ოპერატორია {LEGAL_OPERATOR_NAME}.
+            </p>
             <section>
               <h2 className="text-xl font-black text-neutral-900">ანგარიში და პასუხისმგებლობა</h2>
               <p className="mt-2">

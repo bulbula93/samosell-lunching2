@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
 import PaymentMethodMarks from "@/components/payments/PaymentMethodMarks"
-import { SITE_NAME, getSupportConfig } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME, getSupportConfig } from "@/lib/site"
 
 export const metadata: Metadata = {
   title: "გადახდის პირობები",
@@ -56,6 +56,9 @@ export default function PaymentTermsPage() {
           <p className="mt-4 max-w-3xl leading-7 text-neutral-700">
             {SITE_NAME}-ის checkout გამოიყენება მხოლოდ პლატფორმის ფასიანი ციფრული სარეკლამო მომსახურებებისთვის.
             მომხმარებლებს შორის ნივთის ყიდვა-გაყიდვის თანხას SamoSell არ იღებს და ამ checkout-ით არ ამუშავებს.
+          </p>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-neutral-700">
+            მომსახურების მიმწოდებელი და პლატფორმის ოპერატორი: {LEGAL_OPERATOR_NAME}
           </p>
 
           <section className="mt-8">

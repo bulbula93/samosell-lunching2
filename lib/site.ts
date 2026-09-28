@@ -1,4 +1,5 @@
 export const SITE_NAME = "SamoSell"
+export const LEGAL_OPERATOR_NAME = "ინდივიდუალური მეწარმე „დაგდაგანი“"
 export const SITE_TAGLINE = "ტანსაცმლისა და აქსესუარების ონლაინ ბაზარი"
 export const SITE_DESCRIPTION_EN = "Fashion-first marketplace for clothing, accessories and vintage finds."
 export const SITE_DESCRIPTION_KA = "SamoSell-ზე მოძებნე ახალი, ვინტაჟური და უნიკალური ნივთები მთელ საქართველოში."
