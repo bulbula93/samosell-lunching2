@@ -76,7 +76,9 @@ export default function ListingSellerCard({
         <div className="mt-5 rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-4">
           <StorefrontPanels
             compact
-            phone={sellerProfile?.store_phone}
+            phoneAvailable={Boolean(sellerProfile?.store_phone)}
+            sellerUsername={sellerProfile?.username}
+            listingId={listing.id}
             whatsapp={sellerProfile?.store_whatsapp}
             telegram={sellerProfile?.store_telegram}
             instagram={sellerProfile?.store_instagram}
