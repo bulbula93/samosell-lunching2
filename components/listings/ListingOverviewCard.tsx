@@ -8,7 +8,7 @@ import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import type { StoryOwner } from "@/types/story"
-import ShareButton from "@/components/shared/ShareButton"
+import ListingSocialShare from "@/components/listings/ListingSocialShare"
 import { ka } from "@/lib/i18n/ka"
 import {
   conditionLabel,
@@ -370,11 +370,13 @@ export default function ListingOverviewCard({
             />
           ) : null}
 
-          <ShareButton
+          <ListingSocialShare
             url={shareUrl}
             title={listing.title}
             text={`${listing.title} — ${formatPrice(listing.price, listing.currency)}`}
-            className="min-h-11 w-full"
+            imageUrl={listing.cover_image_url}
+            priceText={formatPrice(listing.price, listing.currency)}
+            className="sm:col-span-2"
           />
 
           <MobileListingActionBar
