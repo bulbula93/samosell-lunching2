@@ -25,7 +25,7 @@ function Icon({ name }: { name: NavKey }) {
 }
 
 export default function MobileBottomNavigation({ userState }: { userState: MarketplaceUserState }) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const hideForChatThread = pathname.startsWith("/dashboard/chats/")
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const messagesHref = userState.signedIn ? "/dashboard/chats" : "/login"
