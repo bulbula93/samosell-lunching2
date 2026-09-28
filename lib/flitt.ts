@@ -102,9 +102,21 @@ export function getFlittConfig() {
   return config
 }
 
+export function getFlittCheckoutConfig() {
+  const config = readBaseConfig()
+  if (config.mode === "test") {
+    if (!config.readiness.sandboxEnabled) throw new Error("Flitt sandbox checkout is disabled")
+    return config
+  }
+  if (!config.readiness.liveEnabled) throw new Error("Flitt live checkout is disabled")
+  return config
+}
+
 export function getFlittCallbackConfig() {
   const config = readBaseConfig()
-  if (config.mode !== "test") throw new Error("Flitt live callbacks are not enabled")
+  if (config.mode === "live" && !config.readiness.liveEnabled) {
+    throw new Error("Flitt live callbacks are disabled")
+  }
   return config
 }
 
@@ -143,14 +155,17 @@ function safeCheckoutUrl(value: unknown) {
   }
 }
 
-export async function createFlittSandboxCheckout(params: {
+type FlittCheckoutParams = {
   orderId: string
   amount: number
   currency?: string
   description?: string
-}) {
-  const config = getFlittConfig()
+}
 
+async function createFlittCheckoutWithConfig(
+  params: FlittCheckoutParams,
+  config: ReturnType<typeof readBaseConfig>,
+) {
   if (!Number.isInteger(params.amount) || params.amount <= 0) throw new Error("Flitt amount must be a positive integer")
   const currency = String(params.currency ?? "GEL").trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Flitt currency is invalid")
@@ -166,7 +181,7 @@ export async function createFlittSandboxCheckout(params: {
     order_id: params.orderId,
     currency,
     merchant_id: Number(config.merchantId),
-    order_desc: String(params.description ?? "SamoSell test payment").trim().slice(0, 1024),
+    order_desc: String(params.description ?? "SamoSell payment").trim().slice(0, 1024),
     amount: params.amount,
     response_url: responseUrl.toString(),
     server_callback_url: config.callbackUrl,
@@ -202,6 +217,14 @@ export async function createFlittSandboxCheckout(params: {
 
   if (!checkoutUrl || !paymentId) throw new Error("Flitt checkout response is missing checkout_url or payment_id")
   return { checkoutUrl, paymentId }
+}
+
+export async function createFlittCheckout(params: FlittCheckoutParams) {
+  return createFlittCheckoutWithConfig(params, getFlittCheckoutConfig())
+}
+
+export async function createFlittSandboxCheckout(params: FlittCheckoutParams) {
+  return createFlittCheckoutWithConfig(params, getFlittConfig())
 }
 
 export function mapFlittOrderStatus(value: unknown): FlittAttemptStatus {
