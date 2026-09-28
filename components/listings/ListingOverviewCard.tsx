@@ -3,6 +3,7 @@ import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
+import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
 import Avatar from "@/components/shared/Avatar"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
@@ -20,7 +21,6 @@ import {
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
-import { getSellerPhoneHref } from "@/lib/phone"
 import { getSellerTrustSignals } from "@/lib/seller-trust"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
@@ -134,7 +134,6 @@ export default function ListingOverviewCard({
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
-  const sellerPhoneHref = getSellerPhoneHref(sellerProfile?.store_phone)
   const listingReturnPath = searchId
     ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}`
     : `/listing/${listing.slug}`
@@ -318,14 +317,12 @@ export default function ListingOverviewCard({
           </p>
         ) : null}
 
-        {sellerPhoneHref ? (
-          <a
-            href={sellerPhoneHref}
-            className="ui-btn-secondary mt-4 min-h-11 w-full text-center"
-            aria-label={`${sellerLabel}-სთან ტელეფონით დაკავშირება: ${sellerProfile?.store_phone}`}
-          >
-            დარეკვა · {sellerProfile?.store_phone}
-          </a>
+        {sellerProfile?.store_phone ? (
+          <SellerPhoneReveal
+            listingId={listing.id}
+            sellerLabel={sellerLabel}
+            className="mt-4"
+          />
         ) : null}
       </section>
 
