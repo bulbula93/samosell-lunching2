@@ -52,4 +52,17 @@ describe("ListingSocialShare", () => {
     expect(source).toContain("TelegramIcon")
     expect(source).toContain("LinkIcon")
   })
+
+  it("prebuilds the Story file and opens native file sharing directly when ready", () => {
+    const source = readFileSync(
+      join(process.cwd(), "components", "listings", "ListingSocialShare.tsx"),
+      "utf8",
+    )
+
+    expect(source).toContain("storyFileRef")
+    expect(source).toContain("storyFilePromiseRef")
+    expect(source).toContain("void prepareStoryFile().catch")
+    expect(source).toContain("const sharePromise = navigator.share")
+    expect(source).toContain("files: [cachedFile]")
+  })
 })
