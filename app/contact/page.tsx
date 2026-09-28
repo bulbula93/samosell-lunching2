@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
 import SupportContactCard from "@/components/support/SupportContactCard"
-import { SITE_NAME, getSupportConfig } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME, getSupportConfig } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
@@ -34,6 +34,11 @@ export default async function ContactPage() {
           </p>
 
           <SupportContactCard userEmail={userEmail} supportEmail={support.supportEmail} />
+
+          <div className="mt-6 rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
+            <div className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-500">პლატფორმის ოპერატორი</div>
+            <div className="mt-2 text-lg font-black text-neutral-900">{LEGAL_OPERATOR_NAME}</div>
+          </div>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5">
