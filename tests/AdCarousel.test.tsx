@@ -18,7 +18,7 @@ describe("AdCarousel", () => {
   })
 
   it("enforces ten concurrent reservations while considering scheduled campaigns", () => {
-    const source = readFileSync(join(process.cwd(), "supabase", "migrations", "20260928161000_brand_ad_rotation_pool.sql"), "utf8")
+    const source = readFileSync(join(process.cwd(), "supabase", "migrations", "20260928125204_brand_ad_rotation_pool.sql"), "utf8")
     expect(source).toContain("status in ('active','scheduled')")
     expect(source).toContain(") < 10")
     expect(source).toContain("order by candidate")
