@@ -4,7 +4,7 @@ export const revalidate = 0
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import AdminAdSubmitButton from "@/components/admin/AdminAdSubmitButton"
-import { launchAdminAdAction, saveAdminAdAction, stopAdminAdAction } from "@/app/admin/ads/actions"
+import { launchAdminAdAction, rejectSelfServiceAdAction, saveAdminAdAction, stopAdminAdAction } from "@/app/admin/ads/actions"
 import {
   ADMIN_AD_PLACEMENTS,
   AD_PLACEMENT_LABELS,
@@ -45,6 +45,10 @@ type AdminAdOrderRow = {
   paid_at: string | null
   starts_at: string | null
   ends_at: string | null
+  rejection_reason: string | null
+  rejected_at: string | null
+  refund_status: "pending" | "succeeded" | "failed" | null
+  refund_error: string | null
 }
 
 const statusLabels: Record<AdminAdStatus, string> = {
@@ -71,6 +75,10 @@ function flashMessage(value: string) {
     case "stopped": return "რეკლამის ჩვენება შეჩერებულია"
     case "unpaid": return "მომხმარებლის რეკლამა ჯერ გადახდილი და server-side დადასტურებული არ არის"
     case "launch_failed": return "რეკლამის დამტკიცება/დაგეგმვა ვერ დასრულდა"
+    case "rejected_refunded": return "რეკლამა უარყოფილია და სრული თანხის დაბრუნება provider-ში წარმატებით ინიცირდა"
+    case "reject_refund_failed": return "რეკლამა უარყოფილია, მაგრამ თანხის ავტომატური დაბრუნება ვერ დასრულდა. მონაცემები შენახულია და დაბრუნება შეგიძლია ხელახლა სცადო"
+    case "reject_failed": return "რეკლამის უარყოფა ვერ დასრულდა"
+    case "invalid_rejection_reason": return "უარყოფის მიზეზი უნდა იყოს 5-დან 500 სიმბოლომდე"
     case "invalid_advertiser": return "შეავსე რეკლამის დამკვეთის სახელი (მაქსიმუმ 120 სიმბოლო)"
     case "invalid_title": return "შეავსე სწორი სათაური (მაქსიმუმ 120 სიმბოლო)"
     case "invalid_description": return "აღწერა არ უნდა აღემატებოდეს 280 სიმბოლოს"
@@ -118,7 +126,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
     admin.rpc("get_admin_ad_event_counts_service", { p_actor_id: user.id }),
     admin
       .from("ad_orders")
-      .select("ad_id, status, amount, currency, paid_at, starts_at, ends_at")
+      .select("ad_id, status, amount, currency, paid_at, starts_at, ends_at, rejection_reason, rejected_at, refund_status, refund_error")
       .order("created_at", { ascending: false }),
   ])
 
@@ -231,7 +239,9 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
               const eventCount = eventCountMap.get(ad.id) ?? { impressions: 0, clicks: 0 }
               const adOrder = orderMap.get(ad.id)
               const selfService = Boolean(ad.submitted_by)
-              const paidAndReady = adOrder?.status === "paid_pending_review"
+              const paidAndReady = adOrder?.status === "paid_pending_review" && ad.review_status === "pending"
+              const rejected = ad.review_status === "rejected"
+              const refundFailed = rejected && adOrder?.refund_status === "failed"
               return (
                 <article key={ad.id} className="ui-card overflow-hidden p-5 sm:p-6">
                   <div className="grid gap-5 sm:grid-cols-[9rem_minmax(0,1fr)]">
@@ -247,13 +257,21 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                         ) : null}
                         {adOrder ? (
                           <span className={`rounded-full border px-3 py-1 text-xs font-bold ${paidAndReady || ["active", "scheduled"].includes(adOrder.status) ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
-                            {adOrder.status === "paid_pending_review"
-                              ? "გადახდილია · დასამტკიცებელია"
-                              : adOrder.status === "pending_payment"
-                                ? "გადახდა მოლოდინშია"
-                                : adOrder.status === "payment_failed"
-                                  ? "გადახდა ვერ დაიწყო"
-                                  : adOrder.status}
+                            {rejected
+                              ? adOrder.refund_status === "succeeded" || adOrder.status === "reversed"
+                                ? "უარყოფილია · თანხა დაბრუნებულია"
+                                : adOrder.refund_status === "pending"
+                                  ? "უარყოფილია · თანხა ბრუნდება"
+                                  : adOrder.refund_status === "failed"
+                                    ? "უარყოფილია · დაბრუნება ვერ დასრულდა"
+                                    : "უარყოფილია"
+                              : adOrder.status === "paid_pending_review"
+                                ? "გადახდილია · დასამტკიცებელია"
+                                : adOrder.status === "pending_payment"
+                                  ? "გადახდა მოლოდინშია"
+                                  : adOrder.status === "payment_failed"
+                                    ? "გადახდა ვერ დაიწყო"
+                                    : adOrder.status}
                           </span>
                         ) : null}
                       </div>
@@ -266,6 +284,14 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                         <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">ჩვენება</dt><dd className="mt-1 text-base font-black text-brand">{eventCount.impressions}</dd></div>
                         <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">დაჭერა</dt><dd className="mt-1 text-base font-black text-brand">{eventCount.clicks}</dd></div>
                       </dl>
+                      {rejected && adOrder?.rejection_reason ? (
+                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-900">
+                          <div className="font-bold">უარყოფის მიზეზი</div>
+                          <p className="mt-1 whitespace-pre-wrap">{adOrder.rejection_reason}</p>
+                          {adOrder.rejected_at ? <p className="mt-1 text-xs text-red-700">{formatDateTime(adOrder.rejected_at)}</p> : null}
+                        </div>
+                      ) : null}
+
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Link href={`/admin/ads?edit=${encodeURIComponent(ad.id)}`} className="ui-btn-secondary">რედაქტირება</Link>
                         {status === "active" || status === "scheduled" ? (
@@ -275,10 +301,42 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                           </form>
                         ) : selfService ? (
                           paidAndReady ? (
-                            <form action={launchAdminAdAction}>
+                            <>
+                              <form action={launchAdminAdAction}>
+                                <input type="hidden" name="adId" value={ad.id} />
+                                <button className="ui-btn-primary">დამტკიცება და ავტომატური დაგეგმვა</button>
+                              </form>
+                              <form action={rejectSelfServiceAdAction} className="w-full rounded-[1rem] border border-red-200 bg-red-50 p-3">
+                                <input type="hidden" name="adId" value={ad.id} />
+                                <label htmlFor={`reject-reason-${ad.id}`} className="mb-2 block text-xs font-bold text-red-900">
+                                  უარყოფის მიზეზი — მომხმარებელი ამას საკუთარ კაბინეტში ნახავს
+                                </label>
+                                <textarea
+                                  id={`reject-reason-${ad.id}`}
+                                  name="reason"
+                                  required
+                                  minLength={5}
+                                  maxLength={500}
+                                  className="min-h-20 w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-sm outline-none focus:border-red-400"
+                                  placeholder="მაგ: რეკლამის ტექსტი ან ბმული არ აკმაყოფილებს განთავსების პირობებს."
+                                />
+                                <button className="mt-2 inline-flex min-h-11 items-center justify-center rounded-full border border-red-300 bg-white px-5 text-sm font-bold text-red-800 transition hover:bg-red-100">
+                                  უარყოფა და სრული თანხის დაბრუნება
+                                </button>
+                              </form>
+                            </>
+                          ) : refundFailed ? (
+                            <form action={rejectSelfServiceAdAction}>
                               <input type="hidden" name="adId" value={ad.id} />
-                              <button className="ui-btn-primary">დამტკიცება და ავტომატური დაგეგმვა</button>
+                              <input type="hidden" name="reason" value={adOrder?.rejection_reason ?? "რეკლამა უარყოფილია მოდერაციის შედეგად"} />
+                              <button className="inline-flex min-h-11 items-center justify-center rounded-full border border-red-300 bg-red-50 px-5 text-sm font-bold text-red-900 transition hover:bg-red-100">
+                                თანხის დაბრუნების ხელახლა ცდა
+                              </button>
                             </form>
+                          ) : rejected ? (
+                            <span className="inline-flex min-h-11 items-center rounded-full border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-800">
+                              {adOrder?.refund_status === "succeeded" || adOrder?.status === "reversed" ? "უარყოფილია · თანხა დაბრუნებულია" : "უარყოფილია"}
+                            </span>
                           ) : (
                             <span className="inline-flex min-h-11 items-center rounded-full border border-line bg-surface-alt px-5 text-sm font-semibold text-text-soft">
                               {adOrder?.status === "expired" ? "ვადა დასრულდა" : "გადახდას/დადასტურებას ელოდება"}
