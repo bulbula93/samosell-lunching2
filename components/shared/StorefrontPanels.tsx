@@ -1,4 +1,5 @@
 import Link from "next/link"
+import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
 import type { ReactNode } from "react"
 import {
   buildMapEmbedUrl,
@@ -9,12 +10,13 @@ import {
   parseWeeklyHours,
   toInstagramUrl,
   toTelegramUrl,
-  toTelHref,
   toWhatsAppUrl,
 } from "@/lib/profiles"
 
 type StorefrontPanelsProps = {
-  phone?: string | null
+  phoneAvailable?: boolean
+  sellerUsername?: string | null
+  listingId?: string | null
   whatsapp?: string | null
   telegram?: string | null
   instagram?: string | null
@@ -138,7 +140,9 @@ function isClosedLabel(value: string) {
 }
 
 export default function StorefrontPanels({
-  phone,
+  phoneAvailable = false,
+  sellerUsername,
+  listingId,
   whatsapp,
   telegram,
   instagram,
@@ -156,15 +160,25 @@ export default function StorefrontPanels({
   const instagramUrl = toInstagramUrl(instagram)
   const facebookUrl = normalizeUrl(facebook)
   const websiteUrl = normalizeUrl(website)
-  const phoneHref = toTelHref(phone)
-  const whatsappUrl = toWhatsAppUrl(whatsapp || phone)
+  const whatsappUrl = toWhatsAppUrl(whatsapp)
   const telegramHandle = normalizeTelegramHandle(telegram)
   const telegramUrl = toTelegramUrl(telegram)
   const directMapUrl = buildMapUrl(address, mapUrl)
   const embeddedMapUrl = buildMapEmbedUrl(address, mapUrl)
   const weeklyHours = parseWeeklyHours(hours).sort((a, b) => dayOrder(a.label) - dayOrder(b.label))
 
-  const hasAny = Boolean(phone || whatsappUrl || telegramUrl || instagramUrl || facebookUrl || websiteUrl || weeklyHours.length || address || directMapUrl || embeddedMapUrl)
+  const hasAny = Boolean(
+    phoneAvailable ||
+      whatsappUrl ||
+      telegramUrl ||
+      instagramUrl ||
+      facebookUrl ||
+      websiteUrl ||
+      weeklyHours.length ||
+      address ||
+      directMapUrl ||
+      embeddedMapUrl,
+  )
   if (!hasAny) return null
 
   const ctaTitle = sellerName ? `ესაუბრე ${sellerName}` : "ესაუბრე მაღაზიას"
@@ -174,14 +188,12 @@ export default function StorefrontPanels({
       ? { href: telegramUrl, label: "Telegram-ზე მიწერა", external: true }
       : instagramUrl
         ? { href: instagramUrl, label: "Instagram-ზე გადასვლა", external: true }
-        : phoneHref
-          ? { href: phoneHref, label: "დარეკვა", external: true }
-          : primaryListingHref
-            ? { href: primaryListingHref, label: "აირჩიე ნივთი და მისწერე", external: false }
-            : null
+        : primaryListingHref
+          ? { href: primaryListingHref, label: "აირჩიე ნივთი და მისწერე", external: false }
+          : null
 
   const secondaryAction = primaryListingHref ? { href: primaryListingHref, label: "აქტიური განცხადებების ნახვა", external: false } : null
-  const quickChannels = [instagramUrl, whatsappUrl, telegramUrl, facebookUrl, websiteUrl, directMapUrl].filter(Boolean).length
+  const quickChannels = [instagramUrl, whatsappUrl, telegramUrl, facebookUrl, websiteUrl, directMapUrl].filter(Boolean).length + (phoneAvailable ? 1 : 0)
 
   if (variant === "sidebar") {
     return (
@@ -200,11 +212,12 @@ export default function StorefrontPanels({
             {primaryAction ? <ActionButton href={primaryAction.href} label={primaryAction.label} external={primaryAction.external} primary /> : null}
             {secondaryAction ? <ActionButton href={secondaryAction.href} label={secondaryAction.label} external={secondaryAction.external} /> : null}
             <div className="grid gap-2 pt-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {phone ? (
-                <a href={phoneHref || undefined} className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm transition hover:border-neutral-300 hover:bg-white">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500">ტელეფონი</div>
-                  <div className="mt-1 font-black text-neutral-950">{phone}</div>
-                </a>
+              {phoneAvailable ? (
+                <SellerPhoneReveal
+                  sellerUsername={sellerUsername || undefined}
+                  listingId={listingId || undefined}
+                  sellerLabel={sellerName}
+                />
               ) : null}
               {telegram ? (
                 <a href={telegramUrl || undefined} target="_blank" rel="noreferrer" className="rounded-[1.25rem] border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm transition hover:border-neutral-300 hover:bg-white">
@@ -301,11 +314,12 @@ export default function StorefrontPanels({
       ) : null}
 
       <div className={`mt-4 grid gap-3 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
-        {phone ? (
-          <a href={phoneHref || undefined} className="rounded-[1.25rem] border border-neutral-200 bg-white px-4 py-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300">
-            <div className="text-xs uppercase tracking-[0.16em] text-neutral-500">ტელეფონი</div>
-            <div className="mt-2 text-base font-black">{phone}</div>
-          </a>
+        {phoneAvailable ? (
+          <SellerPhoneReveal
+            sellerUsername={sellerUsername || undefined}
+            listingId={listingId || undefined}
+            sellerLabel={sellerName}
+          />
         ) : null}
         {whatsapp ? (
           <a href={whatsappUrl || undefined} target="_blank" rel="noreferrer" className="rounded-[1.25rem] border border-neutral-200 bg-white px-4 py-4 text-sm font-semibold text-neutral-800 transition hover:border-neutral-300">
