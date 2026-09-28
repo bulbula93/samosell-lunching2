@@ -2,7 +2,7 @@ import Link from "next/link"
 import Script from "next/script"
 import { ka } from "@/lib/i18n/ka"
 import PaymentMethodMarks from "@/components/payments/PaymentMethodMarks"
-import { SITE_NAME } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME } from "@/lib/site"
 
 const footerGroups = [
   {
@@ -93,7 +93,10 @@ export default function SiteFooter() {
         </div>
 
         <div className="flex flex-col gap-3 pt-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} {SITE_NAME} ყველა უფლება დაცულია</p>
+          <div>
+            <p>© {new Date().getFullYear()} {SITE_NAME} ყველა უფლება დაცულია</p>
+            <p className="mt-1">პლატფორმის ოპერატორი: {LEGAL_OPERATOR_NAME}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <div id="top-ge-counter-container" data-site-id="118968" />
             <p>იყიდე და გაყიდე პასუხისმგებლობით</p>
