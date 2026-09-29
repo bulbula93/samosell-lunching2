@@ -56,6 +56,11 @@ function safeNote(formData: FormData) {
   return String(formData.get("adminNote") || "").trim()
 }
 
+function adminUserReturnPath(formData: FormData) {
+  const requested = String(formData.get("nextPath") || "")
+  return requested === "/admin/stores" ? "/admin/stores" : "/admin/users"
+}
+
 export async function adminListingAction(formData: FormData) {
   const listingId = String(formData.get("listingId") || "")
   const action = String(formData.get("decision") || "")
@@ -95,7 +100,7 @@ export async function adminUserAction(formData: FormData) {
   const userId = String(formData.get("userId") || "")
   const action = String(formData.get("decision") || "")
   const note = safeNote(formData)
-  const adminPath = "/admin/users"
+  const adminPath = adminUserReturnPath(formData)
 
   if (
     !isUuid(userId) ||
@@ -120,6 +125,7 @@ export async function adminUserAction(formData: FormData) {
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/users")
+  revalidatePath("/admin/stores")
   revalidatePath("/admin/listings")
   revalidatePath("/admin/audit")
 

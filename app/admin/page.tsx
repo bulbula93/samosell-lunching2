@@ -50,6 +50,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/users" className="ui-btn-primary">
               მომხმარებლები
             </Link>
+            <Link href="/admin/stores" className="ui-btn-primary">
+              მაღაზიები
+            </Link>
             <Link href="/admin/categories" className="ui-btn-primary">
               კატეგორიები
             </Link>
