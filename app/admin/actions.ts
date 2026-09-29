@@ -29,6 +29,8 @@ function adminErrorMessage(message: string) {
       return "საკუთარი ადმინისტრატორის ანგარიშის შეზღუდვა შეუძლებელია."
     case "cannot_suspend_admin":
       return "სხვა ადმინისტრატორის შეზღუდვა ამ პანელიდან დაბლოკილია."
+    case "cannot_change_self_verification":
+      return "საკუთარი seller verification-ის შეცვლა ამ პანელიდან დაბლოკილია."
     case "user_already_suspended":
       return "მომხმარებელი უკვე შეზღუდულია."
     case "user_not_suspended":
