@@ -20,6 +20,7 @@ import {
 } from "@/lib/listing-form"
 import { enforceRateLimit } from "@/lib/rate-limit"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { notifyAdminNewAd } from "@/lib/admin-activity-email"
 
 const ADVERTISE_PATH = "/advertise"
 const PRODUCT_ID = "home_brand_ad_7d"
@@ -221,6 +222,18 @@ export async function submitSelfServiceAdAction(formData: FormData) {
     })
     redirect(withFlash("payment_failed"))
   }
+
+  await notifyAdminNewAd({
+    adId,
+    orderId,
+    title: validation.data.title,
+    advertiserName: validation.data.advertiserName,
+    targetUrl: validation.data.targetUrl,
+    amount: price,
+    currency: product.currency,
+    userId: user.id,
+    userEmail: user.email,
+  })
 
   redirect(checkoutUrl)
 }
