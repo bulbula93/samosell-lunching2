@@ -43,12 +43,13 @@ describe("Phase 5 mobile QA and app-like polish", () => {
     expect(mobileNav).toContain("var(--mobile-nav-offset)")
   })
 
-  it("keeps the home page responsive when a secondary upstream query times out", () => {
+  it("keeps homepage reads bounded and avoids caching a false empty marketplace", () => {
     expect(homeData).toContain("HOME_QUERY_BUDGET_MS = 7000")
     expect(homeData).toContain("settleHomeQuery")
-    expect(homeData).toContain("home_public_data_partial")
-    expect(homeData).toContain('["home-public-data-v4"]')
-    expect(homeData).not.toContain("home_public_data_failed:")
+    expect(homeData).toContain("HOME_POOL_LIMIT = 500")
+    expect(homeData).toContain('["home-public-data-v5"]')
+    expect(homeData).toContain('select(HOME_LISTING_SELECT, { count: "exact" })')
+    expect(homeData).toContain("home_public_data_unavailable")
   })
 
   it("records viewport dimensions for phone-specific field vitals", () => {
