@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { refreshFlittPaymentAttemptAction } from "@/app/admin/payments/actions"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
 import { getFlittReadiness } from "@/lib/flitt"
@@ -7,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 type Params = {
   status?: string | string[]
   q?: string | string[]
+  flash?: string | string[]
 }
 
 type FlittAttempt = {
@@ -81,6 +83,73 @@ function purposeLabel(value: string) {
   }
 }
 
+
+function flashLabel(value?: string) {
+  switch (value) {
+    case "flitt_check_approved": return "Flitt API-მ დაადასტურა: გადახდა approved არის."
+    case "flitt_check_processing": return "Flitt API-მ გადაამოწმა ტრანზაქცია: სტატუსი ჯერ ისევ processing-ია."
+    case "flitt_check_declined": return "Flitt API-მ დაადასტურა: გადახდა declined არის."
+    case "flitt_check_expired": return "Flitt API-მ დაადასტურა: checkout ვადაგასულია."
+    case "flitt_check_reversed": return "Flitt API-მ დაადასტურა: თანხა დაბრუნებულია."
+    case "flitt_check_failed_status": return "Flitt API-მ დააბრუნა საბოლოო წარუმატებელი სტატუსი."
+    case "flitt_check_invalid": return "ტრანზაქციის ID არასწორია."
+    case "flitt_check_missing": return "ტრანზაქცია ვერ მოიძებნა."
+    case "flitt_check_unsupported": return "ამ ჩანაწერზე provider check დაუშვებელია."
+    case "flitt_check_error": return "Flitt provider status-ის გადამოწმება ვერ შესრულდა. Runtime logs-ში ჩაიწერა ტექნიკური მიზეზი."
+    default: return ""
+  }
+}
+
+function diagnoseAttempt(attempt: FlittAttempt) {
+  const provider = String(attempt.provider_status ?? "").trim().toLowerCase()
+
+  if (attempt.status === "approved") {
+    return {
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-900",
+      title: "გადახდა დადასტურებულია",
+      detail: "SamoSell-ს აქვს საბოლოო approved სტატუსი. Approved verification ველში ჩანს როდის და რომელი server-side შემოწმებით დადასტურდა.",
+    }
+  }
+
+  if (attempt.status === "reversed") {
+    return {
+      tone: "border-sky-200 bg-sky-50 text-sky-900",
+      title: "თანხა დაბრუნებულია",
+      detail: "Provider-ის საბოლოო მდგომარეობა reversed არის.",
+    }
+  }
+
+  if (["declined", "expired", "failed"].includes(attempt.status)) {
+    return {
+      tone: "border-red-200 bg-red-50 text-red-900",
+      title: "გადახდა საბოლოოდ ვერ დასრულდა",
+      detail: `Provider status: ${attempt.provider_status || attempt.status}. ეს აღარ არის pending ტრანზაქცია.`,
+    }
+  }
+
+  if (provider === "processing" && attempt.callback_count > 0) {
+    return {
+      tone: "border-amber-200 bg-amber-50 text-amber-950",
+      title: "Callback მოვიდა, მაგრამ Flitt ჯერ processing-ს აბრუნებს",
+      detail: "Response status = success ნიშნავს, რომ Flitt-ის პასუხი ტექნიკურად წარმატებით მივიღეთ — არა იმას, რომ თანხა approved გახდა. დააჭირე provider check-ს, რომ ახლანდელი საბოლოო სტატუსი პირდაპირ Flitt API-დან წამოვიღოთ.",
+    }
+  }
+
+  if (attempt.callback_count === 0) {
+    return {
+      tone: "border-amber-200 bg-amber-50 text-amber-950",
+      title: "Callback ჯერ არ მიგვიღია",
+      detail: "ტრანზაქცია pending არის და server callback არ ჩანს. Provider check პირდაპირ Flitt-ის status API-ს ჰკითხავს მიმდინარე მდგომარეობას.",
+    }
+  }
+
+  return {
+    tone: "border-amber-200 bg-amber-50 text-amber-950",
+    title: "ტრანზაქცია ჯერ pending არის",
+    detail: "საბოლოო სტატუსი ჯერ არ არის დადასტურებული. გამოიყენე provider check, რათა Flitt API-დან ხელახლა გადამოწმდეს.",
+  }
+}
+
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
@@ -96,6 +165,8 @@ export default async function AdminPaymentsPage({
     : "all"
   const rawSearch = typeof params.q === "string" ? params.q : ""
   const search = rawSearch.trim().toLowerCase().slice(0, 120)
+  const rawFlash = typeof params.flash === "string" ? params.flash : ""
+  const flash = flashLabel(rawFlash)
 
   await requireAdminUser("/dashboard")
   const supabase = createAdminClient()
@@ -194,6 +265,13 @@ export default async function AdminPaymentsPage({
     Boolean(readiness.liveEnabled) &&
     Boolean(readiness.productionDeployment)
 
+  const currentQuery = new URLSearchParams()
+  if (activeStatus !== "all") currentQuery.set("status", activeStatus)
+  if (rawSearch) currentQuery.set("q", rawSearch)
+  const currentPath = currentQuery.toString()
+    ? `/admin/payments?${currentQuery.toString()}`
+    : "/admin/payments"
+
   return (
     <main className="ui-container ui-section">
       <section className="ui-card p-6 sm:p-7">
@@ -233,6 +311,12 @@ export default async function AdminPaymentsPage({
               : "CHECK — configuration invalid"}
         </div>
       </section>
+
+      {flash ? (
+        <div className="mt-6 rounded-[1.2rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-900">
+          {flash}
+        </div>
+      ) : null}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard label="Live სულ" value={totalResult.count ?? 0} />
@@ -310,6 +394,15 @@ export default async function AdminPaymentsPage({
               </div>
 
               <div className="flex flex-wrap gap-2">
+                {attempt.status === "pending" ? (
+                  <form action={refreshFlittPaymentAttemptAction}>
+                    <input type="hidden" name="attemptId" value={attempt.id} />
+                    <input type="hidden" name="nextPath" value={currentPath} />
+                    <button className="ui-btn-primary">
+                      Flitt-ში სტატუსის გადამოწმება
+                    </button>
+                  </form>
+                ) : null}
                 {attempt.boost_order_id ? (
                   <Link href="/admin/boosts" className="ui-btn-secondary">
                     Boost-ების მართვა
@@ -321,6 +414,16 @@ export default async function AdminPaymentsPage({
                   </Link>
                 ) : null}
               </div>
+            </div>
+
+            <div className={`mt-4 rounded-[1.2rem] border px-4 py-3 text-sm ${diagnoseAttempt(attempt).tone}`}>
+              <div className="font-black">{diagnoseAttempt(attempt).title}</div>
+              <p className="mt-1 leading-6">{diagnoseAttempt(attempt).detail}</p>
+              {attempt.purpose === "sandbox_test" ? (
+                <p className="mt-2 text-xs font-semibold">
+                  ეს არის production validation ტრანზაქცია — VIP/რეკლამის შეკვეთას არ უკავშირდება.
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
@@ -349,13 +452,13 @@ export default async function AdminPaymentsPage({
                 </div>
               </div>
               <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
-                <strong>Provider verified</strong>
+                <strong>Approved verification</strong>
                 <div className="mt-1 text-text-soft">
                   {formatDate(attempt.provider_verified_at)}
                 </div>
               </div>
               <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
-                <strong>Verification source</strong>
+                <strong>Approval verification source</strong>
                 <div className="mt-1 text-text-soft">
                   {attempt.provider_verification_source || "—"}
                 </div>
@@ -370,6 +473,12 @@ export default async function AdminPaymentsPage({
                 <strong>Created</strong>
                 <div className="mt-1 text-text-soft">
                   {formatDate(attempt.created_at)}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Last provider/DB sync</strong>
+                <div className="mt-1 text-text-soft">
+                  {formatDate(attempt.updated_at)}
                 </div>
               </div>
             </div>
