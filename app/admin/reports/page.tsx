@@ -293,35 +293,37 @@ export default async function AdminReportsPage({
 
   if (q) {
     queue = queue.filter((entry) => {
-      const item = entry.item
-      const fields =
-        entry.kind === "listing"
-          ? [
-              item.listing_title,
-              item.listing_slug,
-              item.reporter_username,
-              item.reporter_full_name,
-              item.seller_username,
-              item.seller_full_name,
-              item.reason,
-              item.details,
-            ]
-          : entry.kind === "user"
-            ? [
-                item.reported_username,
-                item.reported_full_name,
-                item.reporter_username,
-                item.reporter_full_name,
-                item.context_listing_title,
-                item.reason,
-                item.details,
-              ]
-            : [
-                item.owner_username,
-                item.caption,
-                item.reason,
-                item.details,
-              ]
+      let fields: Array<string | null | undefined>
+
+      if (entry.kind === "listing") {
+        fields = [
+          entry.item.listing_title,
+          entry.item.listing_slug,
+          entry.item.reporter_username,
+          entry.item.reporter_full_name,
+          entry.item.seller_username,
+          entry.item.seller_full_name,
+          entry.item.reason,
+          entry.item.details,
+        ]
+      } else if (entry.kind === "user") {
+        fields = [
+          entry.item.reported_username,
+          entry.item.reported_full_name,
+          entry.item.reporter_username,
+          entry.item.reporter_full_name,
+          entry.item.context_listing_title,
+          entry.item.reason,
+          entry.item.details,
+        ]
+      } else {
+        fields = [
+          entry.item.owner_username,
+          entry.item.caption,
+          entry.item.reason,
+          entry.item.details,
+        ]
+      }
 
       return fields
         .filter(Boolean)
