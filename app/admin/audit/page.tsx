@@ -13,6 +13,25 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value))
 }
 
+function adminActionLabel(value: string) {
+  switch (value) {
+    case "listing.hide":
+      return "განცხადების დამალვა"
+    case "listing.restore":
+      return "განცხადების აღდგენა"
+    case "user.suspend":
+      return "მომხმარებლის შეზღუდვა"
+    case "user.restore":
+      return "მომხმარებლის აღდგენა"
+    case "seller.verify":
+      return "Seller verification"
+    case "seller.unverify":
+      return "Seller verification-ის მოხსნა"
+    default:
+      return value
+  }
+}
+
 function moderationActionLabel(value: string) {
   switch (value) {
     case "mark_reviewing":
@@ -37,7 +56,14 @@ function moderationActionLabel(value: string) {
 export default async function AdminAuditPage() {
   const { supabase } = await requireAdminUser("/dashboard")
 
-  const [moderationResponse, paymentEventsResponse] = await Promise.all([
+  const [adminResponse, moderationResponse, paymentEventsResponse] = await Promise.all([
+    supabase
+      .from("admin_audit_log")
+      .select(
+        "id, actor_id, action, target_listing_id, target_user_id, note, metadata, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
     supabase
       .from("moderation_audit_log")
       .select(
@@ -54,30 +80,55 @@ export default async function AdminAuditPage() {
       .limit(50),
   ])
 
+  const adminEntries = adminResponse.data ?? []
   const moderationEntries = moderationResponse.data ?? []
   const paymentEvents = paymentEventsResponse.data ?? []
+
   const profileIds = [
     ...new Set(
       [
+        ...adminEntries.map((entry) => entry.actor_id),
+        ...adminEntries.map((entry) => entry.target_user_id),
         ...moderationEntries.map((entry) => entry.actor_id),
         ...moderationEntries.map((entry) => entry.target_user_id),
         ...paymentEvents.map((event) => event.seller_id),
-      ].filter(Boolean),
+      ].filter((value): value is string => Boolean(value)),
     ),
   ]
 
-  const profilesResponse = profileIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, username, full_name")
-        .in("id", profileIds)
-    : { data: [], error: null }
+  const listingIds = [
+    ...new Set(
+      [
+        ...adminEntries.map((entry) => entry.target_listing_id),
+        ...moderationEntries.map((entry) => entry.target_listing_id),
+      ].filter((value): value is string => Boolean(value)),
+    ),
+  ]
+
+  const [profilesResponse, listingsResponse] = await Promise.all([
+    profileIds.length
+      ? supabase
+          .from("profiles")
+          .select("id, username, full_name")
+          .in("id", profileIds)
+      : Promise.resolve({ data: [], error: null }),
+    listingIds.length
+      ? supabase
+          .from("listings")
+          .select("id, slug, title")
+          .in("id", listingIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
 
   const profiles = new Map(
     (profilesResponse.data ?? []).map((profile) => [profile.id, profile]),
   )
+  const listings = new Map(
+    (listingsResponse.data ?? []).map((listing) => [listing.id, listing]),
+  )
 
-  const moderationError = moderationResponse.error || profilesResponse.error
+  const adminError = adminResponse.error || profilesResponse.error || listingsResponse.error
+  const moderationError = moderationResponse.error
   const paymentEventsError = paymentEventsResponse.error
 
   return (
@@ -90,36 +141,116 @@ export default async function AdminAuditPage() {
               Audit Log
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              ადმინისტრაციული მოდერაციის ისტორია და VIP/TBC payment lifecycle-ის ბოლო მოვლენები ერთ სივრცეში.
+              პირდაპირი admin control-ები, რეპორტებზე დაფუძნებული მოდერაცია და VIP/TBC payment lifecycle-ის მოვლენები ერთ სივრცეში.
             </p>
           </div>
-          <Link href="/admin" className="ui-btn-secondary">
-            ადმინისტრირების მთავარი
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/listings" className="ui-btn-secondary">
+              განცხადებები
+            </Link>
+            <Link href="/admin/users" className="ui-btn-secondary">
+              მომხმარებლები
+            </Link>
+            <Link href="/admin" className="ui-btn-secondary">
+              ადმინისტრირების მთავარი
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2">
-        <StatCard label="მოდერაციის ბოლო ჩანაწერები" value={moderationEntries.length} />
+      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+        <StatCard label="Admin control events" value={adminEntries.length} />
+        <StatCard label="მოდერაციის ჩანაწერები" value={moderationEntries.length} />
         <StatCard label="VIP payment events" value={paymentEvents.length} />
       </section>
 
-      {moderationError ? (
+      {adminError ? (
         <div className="mt-6 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          Audit მონაცემების ჩატვირთვა ვერ მოხერხდა: {moderationError.message}
+          Admin Audit მონაცემების ჩატვირთვა ვერ მოხერხდა: {adminError.message}
         </div>
       ) : null}
 
       <section className="mt-6">
+        <div className="mb-3">
+          <div className="ui-eyebrow">Direct admin controls</div>
+          <h2 className="mt-2 text-2xl font-black text-text">Admin Audit Log</h2>
+        </div>
+
+        <div className="space-y-3">
+          {adminEntries.length ? (
+            adminEntries.map((entry) => {
+              const actor = profiles.get(entry.actor_id)
+              const targetUser = entry.target_user_id
+                ? profiles.get(entry.target_user_id)
+                : null
+              const targetListing = entry.target_listing_id
+                ? listings.get(entry.target_listing_id)
+                : null
+
+              return (
+                <article key={entry.id} className="ui-card p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-text">
+                        {adminActionLabel(entry.action)}
+                      </div>
+                      <div className="mt-1 text-sm text-text-soft">
+                        ადმინისტრატორი: {actor?.full_name || actor?.username || entry.actor_id}
+                      </div>
+                    </div>
+                    <div className="text-xs text-text-soft">{formatDateTime(entry.created_at)}</div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
+                      <span className="font-semibold text-text">მომხმარებელი:</span>{" "}
+                      {targetUser?.full_name || targetUser?.username || entry.target_user_id || "—"}
+                    </div>
+                    <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
+                      <span className="font-semibold text-text">განცხადება:</span>{" "}
+                      {targetListing?.title || entry.target_listing_id || "—"}
+                    </div>
+                    <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
+                      <span className="font-semibold text-text">შენიშვნა:</span>{" "}
+                      {entry.note || "—"}
+                    </div>
+                  </div>
+
+                  {targetListing?.slug ? (
+                    <Link
+                      href={`/listing/${targetListing.slug}`}
+                      className="ui-btn-secondary mt-4"
+                    >
+                      განცხადების გახსნა
+                    </Link>
+                  ) : null}
+                </article>
+              )
+            })
+          ) : (
+            <div className="ui-card border-dashed px-6 py-10 text-sm text-text-soft">
+              პირდაპირი admin მოქმედებები ჯერ არ დაფიქსირებულა.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-8">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <div className="ui-eyebrow">Moderation</div>
-            <h2 className="mt-2 text-2xl font-black text-text">ადმინისტრატორის მოქმედებები</h2>
+            <div className="ui-eyebrow">Moderation reports</div>
+            <h2 className="mt-2 text-2xl font-black text-text">რეპორტებზე დაფუძნებული მოქმედებები</h2>
           </div>
           <Link href="/admin/reports" className="ui-btn-secondary">
             რეპორტები
           </Link>
         </div>
+
+        {moderationError ? (
+          <div className="mb-3 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            Moderation Audit მონაცემების ჩატვირთვა ვერ მოხერხდა: {moderationError.message}
+          </div>
+        ) : null}
 
         <div className="space-y-3">
           {moderationEntries.length ? (
@@ -127,6 +258,9 @@ export default async function AdminAuditPage() {
               const actor = profiles.get(entry.actor_id)
               const targetUser = entry.target_user_id
                 ? profiles.get(entry.target_user_id)
+                : null
+              const targetListing = entry.target_listing_id
+                ? listings.get(entry.target_listing_id)
                 : null
 
               return (
@@ -151,8 +285,8 @@ export default async function AdminAuditPage() {
                       {targetUser?.full_name || targetUser?.username || entry.target_user_id || "—"}
                     </div>
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
-                      <span className="font-semibold text-text">Listing ID:</span>{" "}
-                      {entry.target_listing_id || "—"}
+                      <span className="font-semibold text-text">განცხადება:</span>{" "}
+                      {targetListing?.title || entry.target_listing_id || "—"}
                     </div>
                   </div>
                 </article>
