@@ -30,12 +30,13 @@ describe("admin phase 2 operations", () => {
 
   it("adds a system status route without exposing secret values", () => {
     expect(adminSource).toContain('href="/admin/system"')
-    expect(systemSource).toContain("getTbcCheckoutReadiness")
     expect(systemSource).toContain("getFlittReadiness")
+    expect(systemSource).toContain("Flitt production payments")
+    expect(systemSource).not.toContain("getTbcCheckoutReadiness")
     expect(systemSource).toContain("envPresent")
     expect(systemSource).not.toContain("process.env.RESEND_API_KEY")
-    expect(systemSource).not.toContain("process.env.TBC_API_KEY")
     expect(systemSource).not.toContain("process.env.FLITT_SECRET_KEY")
+    expect(systemSource).not.toContain("TBC Checkout")
   })
 
   it("keeps support architecture visible in system status as it evolves", () => {
