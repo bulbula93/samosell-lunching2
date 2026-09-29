@@ -266,11 +266,21 @@ export default async function AdminUsersPage({
                         )}
 
                         {profile.is_seller_verified ? (
-                          <button name="decision" value="unverify" className="ui-btn-secondary">
+                          <button
+                            name="decision"
+                            value="unverify"
+                            disabled={isSelf}
+                            className="ui-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                          >
                             ვერიფიკაციის მოხსნა
                           </button>
                         ) : (
-                          <button name="decision" value="verify" className="ui-btn-primary">
+                          <button
+                            name="decision"
+                            value="verify"
+                            disabled={isSelf}
+                            className="ui-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                          >
                             seller-ის ვერიფიკაცია
                           </button>
                         )}
@@ -278,7 +288,7 @@ export default async function AdminUsersPage({
 
                       {profile.is_admin || isSelf ? (
                         <p className="mt-2 text-xs leading-5 text-text-soft">
-                          Admin ანგარიშის ან საკუთარი ანგარიშის suspend ამ პანელიდან დაბლოკილია.
+                          Admin ანგარიშის ან საკუთარი ანგარიშის suspend დაბლოკილია; საკუთარ ანგარიშზე seller verification-ის შეცვლაც არ არის ნებადართული.
                         </p>
                       ) : null}
 
