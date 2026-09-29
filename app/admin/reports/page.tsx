@@ -28,6 +28,8 @@ const USER_REPORT_SELECT =
 type QueueKind = "all" | "listing" | "user" | "story"
 type StoryReport = { id: string; story_id: string; story_owner_id: string; reason: string; details: string; status: string; media_path: string; media_type: string; caption: string | null; owner_username: string | null; created_at: string }
 type PriorityFilter = "all" | "high"
+type AgeFilter = "all" | "overdue"
+type SortMode = "priority" | "newest" | "oldest"
 type QueueEntry =
   | { kind: "listing"; item: AdminListingReport; priority: ModerationPriority }
   | { kind: "user"; item: AdminUserReport; priority: ModerationPriority }
@@ -75,13 +77,22 @@ function reportsHref({
   kind,
   status,
   priority,
+  age,
+  sort,
+  q,
 }: {
   kind: QueueKind
   status: string
   priority: PriorityFilter
+  age: AgeFilter
+  sort: SortMode
+  q: string
 }) {
   const params = new URLSearchParams({ kind, status })
   if (priority === "high") params.set("priority", "high")
+  if (age === "overdue") params.set("age", "overdue")
+  if (sort !== "priority") params.set("sort", sort)
+  if (q) params.set("q", q)
   return `/admin/reports?${params.toString()}`
 }
 
@@ -112,6 +123,9 @@ export default async function AdminReportsPage({
     status?: string | string[]
     kind?: string | string[]
     priority?: string | string[]
+    age?: string | string[]
+    sort?: string | string[]
+    q?: string | string[]
     flash?: string | string[]
   }>
 }) {
@@ -126,9 +140,16 @@ export default async function AdminReportsPage({
   const kind: QueueKind =
     requestedKind === "listing" || requestedKind === "user" || requestedKind === "story" ? requestedKind : "all"
   const priority: PriorityFilter = params.priority === "high" ? "high" : "all"
+  const age: AgeFilter = params.age === "overdue" ? "overdue" : "all"
+  const requestedSort = typeof params.sort === "string" ? params.sort : "priority"
+  const sort: SortMode =
+    requestedSort === "newest" || requestedSort === "oldest" ? requestedSort : "priority"
+  const rawQuery = typeof params.q === "string" ? params.q : ""
+  const q = rawQuery.trim().toLocaleLowerCase("ka-GE").slice(0, 100)
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
   const referenceTime = new Date().toISOString()
+  const overdueCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   let storyReportsQuery = supabase.from("admin_story_reports")
     .select("id, story_id, story_owner_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at")
     .in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status])
@@ -167,6 +188,7 @@ export default async function AdminReportsPage({
     storyReportsResponse,
     storyCountsResponse,
     storyOpen, storyReviewing, storyResolved, storyDismissed,
+    listingOverdue, userOverdue, storyOverdue,
   ] = await Promise.all([
     listingReportsQuery,
     userReportsQuery,
@@ -201,6 +223,9 @@ export default async function AdminReportsPage({
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "resolved"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
 
   ])
 
@@ -218,7 +243,8 @@ export default async function AdminReportsPage({
     listingActiveSignals.error ||
     userActiveSignals.error ||
     storyReportsResponse.error ||
-    storyCountsResponse.error || storyOpen.error || storyReviewing.error || storyResolved.error || storyDismissed.error
+    storyCountsResponse.error || storyOpen.error || storyReviewing.error || storyResolved.error || storyDismissed.error ||
+    listingOverdue.error || userOverdue.error || storyOverdue.error
 
   const storyReports = (storyReportsResponse.data ?? []) as StoryReport[]
   const storyCounts = storyCountsResponse.data ?? []
@@ -229,6 +255,9 @@ export default async function AdminReportsPage({
 
   for (const row of listingActiveSignals.data ?? []) incrementCount(listingTargetCounts, row.seller_id)
   for (const row of userActiveSignals.data ?? []) incrementCount(userTargetCounts, row.reported_user_id)
+
+  const overdueActiveCount =
+    (listingOverdue.count ?? 0) + (userOverdue.count ?? 0) + (storyOverdue.count ?? 0)
 
   const highPriorityActiveCount =
     (listingActiveSignals.data ?? []).filter(
@@ -254,15 +283,65 @@ export default async function AdminReportsPage({
 
   if (kind !== "all") queue = queue.filter((entry) => entry.kind === kind)
   if (priority === "high") queue = queue.filter((entry) => entry.priority === "high")
+  if (age === "overdue") {
+    queue = queue.filter(
+      (entry) =>
+        ["open", "reviewing"].includes(entry.item.status) &&
+        new Date(entry.item.created_at).getTime() <= new Date(overdueCutoff).getTime(),
+    )
+  }
+
+  if (q) {
+    queue = queue.filter((entry) => {
+      const item = entry.item
+      const fields =
+        entry.kind === "listing"
+          ? [
+              item.listing_title,
+              item.listing_slug,
+              item.reporter_username,
+              item.reporter_full_name,
+              item.seller_username,
+              item.seller_full_name,
+              item.reason,
+              item.details,
+            ]
+          : entry.kind === "user"
+            ? [
+                item.reported_username,
+                item.reported_full_name,
+                item.reporter_username,
+                item.reporter_full_name,
+                item.context_listing_title,
+                item.reason,
+                item.details,
+              ]
+            : [
+                item.owner_username,
+                item.caption,
+                item.reason,
+                item.details,
+              ]
+
+      return fields
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("ka-GE")
+        .includes(q)
+    })
+  }
 
   queue.sort((left, right) => {
+    const leftTime = new Date(left.item.created_at).getTime()
+    const rightTime = new Date(right.item.created_at).getTime()
+
+    if (sort === "newest") return rightTime - leftTime
+    if (sort === "oldest") return leftTime - rightTime
+
     const priorityDelta =
       reportPriorityScore(right.priority) - reportPriorityScore(left.priority)
     if (priorityDelta !== 0) return priorityDelta
-    return (
-      new Date(right.item.created_at).getTime() -
-      new Date(left.item.created_at).getTime()
-    )
+    return rightTime - leftTime
   })
   queue = queue.slice(0, PAGE_SIZE)
 
@@ -319,7 +398,7 @@ export default async function AdminReportsPage({
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           label="ახალი რეპორტები"
           value={(listingOpen.count ?? 0) + (userOpen.count ?? 0) + (storyOpen.count ?? 0)}
@@ -329,6 +408,7 @@ export default async function AdminReportsPage({
           value={(listingReviewing.count ?? 0) + (userReviewing.count ?? 0) + (storyReviewing.count ?? 0)}
         />
         <StatCard label="მაღალი რისკის აქტიური" value={highPriorityActiveCount} />
+        <StatCard label="24სთ+ backlog" value={overdueActiveCount} />
         <StatCard
           label="მოგვარებული"
           value={(listingResolved.count ?? 0) + (userResolved.count ?? 0) + (storyResolved.count ?? 0)}
@@ -342,11 +422,33 @@ export default async function AdminReportsPage({
       <section className="mt-6 rounded-2xl border border-line bg-white p-4 sm:p-5">
         <div className="text-sm font-black text-text">Queue ფილტრები</div>
 
-        <nav aria-label="რეპორტის ტიპი" className="mt-3 flex flex-wrap gap-3">
+        <form className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="status" value={status} />
+          <input type="hidden" name="priority" value={priority} />
+          <input
+            name="q"
+            defaultValue={rawQuery}
+            className="ui-input"
+            placeholder="ძებნა seller, reporter, listing ან მიზეზით"
+          />
+          <select name="age" defaultValue={age} className="ui-input">
+            <option value="all">ყველა ასაკი</option>
+            <option value="overdue">მხოლოდ 24სთ+</option>
+          </select>
+          <select name="sort" defaultValue={sort} className="ui-input">
+            <option value="priority">პრიორიტეტით</option>
+            <option value="newest">უახლესი ჯერ</option>
+            <option value="oldest">უძველესი ჯერ</option>
+          </select>
+          <button className="ui-btn-primary">გამოყენება</button>
+        </form>
+
+        <nav aria-label="რეპორტის ტიპი" className="mt-4 flex flex-wrap gap-3">
           {kindTabs.map((tab) => (
             <Link
               key={tab.key}
-              href={reportsHref({ kind: tab.key, status, priority })}
+              href={reportsHref({ kind: tab.key, status, priority, age, sort, q: rawQuery })}
               aria-current={kind === tab.key ? "page" : undefined}
               className={kind === tab.key ? "ui-pill-soft" : "ui-pill"}
             >
@@ -359,7 +461,7 @@ export default async function AdminReportsPage({
           {statusTabs.map((tab) => (
             <Link
               key={tab.key}
-              href={reportsHref({ kind, status: tab.key, priority })}
+              href={reportsHref({ kind, status: tab.key, priority, age, sort, q: rawQuery })}
               aria-current={status === tab.key ? "page" : undefined}
               className={status === tab.key ? "ui-pill-soft" : "ui-pill"}
             >
@@ -370,14 +472,14 @@ export default async function AdminReportsPage({
 
         <nav aria-label="რისკის პრიორიტეტი" className="mt-3 flex flex-wrap gap-3">
           <Link
-            href={reportsHref({ kind, status, priority: "all" })}
+            href={reportsHref({ kind, status, priority: "all", age, sort, q: rawQuery })}
             aria-current={priority === "all" ? "page" : undefined}
             className={priority === "all" ? "ui-pill-soft" : "ui-pill"}
           >
             ყველა პრიორიტეტი
           </Link>
           <Link
-            href={reportsHref({ kind, status, priority: "high" })}
+            href={reportsHref({ kind, status, priority: "high", age, sort, q: rawQuery })}
             aria-current={priority === "high" ? "page" : undefined}
             className={priority === "high" ? "ui-pill-soft" : "ui-pill"}
           >
