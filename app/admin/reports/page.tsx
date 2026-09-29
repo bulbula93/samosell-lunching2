@@ -18,7 +18,7 @@ import type {
 } from "@/types/moderation"
 
 const PAGE_SIZE = 30
-const TRIAGE_SCAN_LIMIT = 500
+const TRIAGE_SCAN_LIMIT = 5000
 
 const LISTING_REPORT_SELECT =
   "id, listing_id, reporter_id, seller_id, reason, details, status, moderation_note, reviewed_by, reviewed_at, created_at, updated_at, listing_slug, listing_title, listing_status, price, currency, cover_image_url, reporter_username, reporter_full_name, seller_username, seller_full_name, seller_is_suspended"
@@ -190,7 +190,6 @@ export default async function AdminReportsPage({
     storyReportsResponse,
     storyCountsResponse,
     storyOpen, storyReviewing, storyResolved, storyDismissed,
-    listingOverdue, userOverdue, storyOverdue,
   ] = await Promise.all([
     listingReportsQuery,
     userReportsQuery,
@@ -204,12 +203,12 @@ export default async function AdminReportsPage({
     supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
     supabase
       .from("admin_listing_reports")
-      .select("seller_id, reason, status")
+      .select("seller_id, reason, status, created_at")
       .in("status", ["open", "reviewing"])
       .limit(TRIAGE_SCAN_LIMIT),
     supabase
       .from("admin_user_reports")
-      .select("reported_user_id, reason, status")
+      .select("reported_user_id, reason, status, created_at")
       .in("status", ["open", "reviewing"])
       .limit(TRIAGE_SCAN_LIMIT),
     supabase
@@ -220,14 +219,11 @@ export default async function AdminReportsPage({
       .order("created_at", { ascending: false })
       .limit(10),
     storyReportsQuery.order("created_at", { ascending: false }).limit(PAGE_SIZE * 2),
-    supabase.from("story_reports").select("status, reason, story_owner_id").in("status", ["open", "reviewing"]).limit(TRIAGE_SCAN_LIMIT),
+    supabase.from("story_reports").select("status, reason, story_owner_id, created_at").in("status", ["open", "reviewing"]).limit(TRIAGE_SCAN_LIMIT),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "resolved"),
     supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "dismissed"),
-    supabase.from("listing_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
-    supabase.from("user_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
-    supabase.from("story_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
 
   ])
 
@@ -245,8 +241,7 @@ export default async function AdminReportsPage({
     listingActiveSignals.error ||
     userActiveSignals.error ||
     storyReportsResponse.error ||
-    storyCountsResponse.error || storyOpen.error || storyReviewing.error || storyResolved.error || storyDismissed.error ||
-    listingOverdue.error || userOverdue.error || storyOverdue.error
+    storyCountsResponse.error || storyOpen.error || storyReviewing.error || storyResolved.error || storyDismissed.error
 
   const storyReports = (storyReportsResponse.data ?? []) as StoryReport[]
   const storyCounts = storyCountsResponse.data ?? []
@@ -258,8 +253,17 @@ export default async function AdminReportsPage({
   for (const row of listingActiveSignals.data ?? []) incrementCount(listingTargetCounts, row.seller_id)
   for (const row of userActiveSignals.data ?? []) incrementCount(userTargetCounts, row.reported_user_id)
 
+  const overdueCutoffTime = new Date(overdueCutoff).getTime()
   const overdueActiveCount =
-    (listingOverdue.count ?? 0) + (userOverdue.count ?? 0) + (storyOverdue.count ?? 0)
+    (listingActiveSignals.data ?? []).filter(
+      (row) => row.created_at && new Date(row.created_at).getTime() <= overdueCutoffTime,
+    ).length +
+    (userActiveSignals.data ?? []).filter(
+      (row) => row.created_at && new Date(row.created_at).getTime() <= overdueCutoffTime,
+    ).length +
+    storyCounts.filter(
+      (row) => row.created_at && new Date(row.created_at).getTime() <= overdueCutoffTime,
+    ).length
 
   const highPriorityActiveCount =
     (listingActiveSignals.data ?? []).filter(
