@@ -49,7 +49,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_suspended", true),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("seller_type", "store"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").in("status", ["pending_payment", "under_review", "approved"]),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
     supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").in("status", ["declined", "expired", "failed"]),
     supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").eq("status", "pending"),
