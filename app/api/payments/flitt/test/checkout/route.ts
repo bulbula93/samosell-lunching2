@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
-import { createFlittSandboxCheckout, getFlittConfig, getFlittReadiness } from "@/lib/flitt"
+import { createFlittCheckout, getFlittCheckoutConfig, getFlittReadiness } from "@/lib/flitt"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 
-const MIN_TEST_AMOUNT = 100
-const MAX_TEST_AMOUNT = 10_000
+const MIN_SANDBOX_AMOUNT = 100
+const MAX_SANDBOX_AMOUNT = 10_000
+const LIVE_VALIDATION_AMOUNT = 10
 
 async function requireAdmin() {
   const supabase = await createClient()
@@ -24,30 +25,40 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error
 
   const readiness = getFlittReadiness()
-  if (!readiness.sandboxEnabled) {
+  const liveValidation = readiness.mode === "live"
+
+  if (liveValidation) {
+    if (!readiness.liveEnabled || !readiness.productionDeployment) {
+      return NextResponse.json({ error: "flitt_live_validation_disabled" }, { status: 503 })
+    }
+  } else if (!readiness.sandboxEnabled) {
     return NextResponse.json({ error: "flitt_sandbox_disabled" }, { status: 503 })
   }
 
-  let amount = MIN_TEST_AMOUNT
-  try {
-    const body = await request.json() as { amount?: unknown }
-    if (body.amount !== undefined) amount = Number(body.amount)
-  } catch {
-    // Empty body is valid; use the fixed default test amount.
+  let amount = liveValidation ? LIVE_VALIDATION_AMOUNT : MIN_SANDBOX_AMOUNT
+
+  if (!liveValidation) {
+    try {
+      const body = await request.json() as { amount?: unknown }
+      if (body.amount !== undefined) amount = Number(body.amount)
+    } catch {
+      // Empty body is valid; use the fixed sandbox default.
+    }
+
+    if (!Number.isInteger(amount) || amount < MIN_SANDBOX_AMOUNT || amount > MAX_SANDBOX_AMOUNT) {
+      return NextResponse.json({ error: "invalid_test_amount" }, { status: 400 })
+    }
   }
 
-  if (!Number.isInteger(amount) || amount < MIN_TEST_AMOUNT || amount > MAX_TEST_AMOUNT) {
-    return NextResponse.json({ error: "invalid_test_amount" }, { status: 400 })
-  }
-
-  const config = getFlittConfig()
+  const config = getFlittCheckoutConfig()
   const admin = createAdminClient()
-  const orderId = `samosell_test_${randomUUID().replaceAll("-", "")}`
+  const prefix = liveValidation ? "samosell_livecheck" : "samosell_test"
+  const orderId = `${prefix}_${randomUUID().replaceAll("-", "")}`
 
   const { error: insertError } = await admin.from("flitt_payment_attempts").insert({
     order_id: orderId,
     user_id: auth.user.id,
-    mode: "test",
+    mode: config.mode,
     purpose: "sandbox_test",
     amount,
     currency: "GEL",
@@ -56,16 +67,16 @@ export async function POST(request: Request) {
   })
 
   if (insertError) {
-    console.error("[flitt] failed to create sandbox payment attempt", { code: insertError.code })
+    console.error("[flitt] failed to create validation payment attempt", { code: insertError.code, mode: config.mode })
     return NextResponse.json({ error: "payment_attempt_create_failed" }, { status: 500 })
   }
 
   try {
-    const checkout = await createFlittSandboxCheckout({
+    const checkout = await createFlittCheckout({
       orderId,
       amount,
       currency: "GEL",
-      description: "SamoSell sandbox payment",
+      description: liveValidation ? "SamoSell live verification 0.10 GEL" : "SamoSell sandbox payment",
     })
 
     const { error: updateError } = await admin
@@ -78,15 +89,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "payment_attempt_update_failed" }, { status: 500 })
     }
 
-    return NextResponse.json({ orderId, checkoutUrl: checkout.checkoutUrl })
+    return NextResponse.json({
+      orderId,
+      checkoutUrl: checkout.checkoutUrl,
+      mode: config.mode,
+      amount,
+      currency: "GEL",
+    })
   } catch (error) {
     await admin
       .from("flitt_payment_attempts")
       .update({ status: "failed", updated_at: new Date().toISOString() })
       .eq("order_id", orderId)
 
-    console.error("[flitt] sandbox checkout creation failed", {
+    console.error("[flitt] validation checkout creation failed", {
       orderId,
+      mode: config.mode,
       message: error instanceof Error ? error.message : "unknown_error",
     })
     return NextResponse.json({ error: "flitt_checkout_failed" }, { status: 502 })
