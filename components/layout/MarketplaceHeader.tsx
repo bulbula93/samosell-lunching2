@@ -62,7 +62,7 @@ export default function MarketplaceHeader({
           className="inline-flex min-h-11 shrink-0 items-center font-logo text-[23px] font-black tracking-[-0.045em] transition sm:text-[29px]"
         >
           <span className="text-[#073F3B]">Samo</span>
-          <span className="text-[#F6D98E]">$ell</span>
+          <span className="text-[#D4A72C]">$ell</span>
         </Link>
 
         <Link href="/catalog" className="ui-btn-secondary hidden shrink-0 lg:inline-flex">
