@@ -47,17 +47,27 @@ export async function updateSession(request: NextRequest) {
 
   let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>["data"] | null = null
   let claimsCheckFailed = false
+  const pathname = request.nextUrl.pathname
+  const hasSupabaseAuthCookie = request.cookies
+    .getAll()
+    .some(({ name }) => name.startsWith("sb-") && name.includes("-auth-token"))
+  const needsAuthCheck =
+    hasSupabaseAuthCookie ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/admin")
 
-  try {
-    const claimsResult = await supabase.auth.getClaims()
-    claimsData = claimsResult.data
-    claimsCheckFailed = Boolean(claimsResult.error)
-  } catch (error) {
-    claimsCheckFailed = true
-    console.warn("[auth proxy] claims refresh failed; deferring auth enforcement to route layout", {
-      pathname: request.nextUrl.pathname,
-      message: error instanceof Error ? error.message : "unknown_error",
-    })
+  if (needsAuthCheck) {
+    try {
+      const claimsResult = await supabase.auth.getClaims()
+      claimsData = claimsResult.data
+      claimsCheckFailed = Boolean(claimsResult.error)
+    } catch (error) {
+      claimsCheckFailed = true
+      console.warn("[auth proxy] claims refresh failed; deferring auth enforcement to route layout", {
+        pathname,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+    }
   }
 
   const listingSlug = getListingSlugFromPathname(request.nextUrl.pathname)
