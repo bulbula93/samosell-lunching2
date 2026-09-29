@@ -2,6 +2,7 @@ import "server-only"
 
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getTbcPaymentDetails, isTbcCheckoutEnabled, isTbcFinalStatus } from "@/lib/tbc"
+import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
 
 export type BoostPaymentSyncSource = "callback" | "return" | "manual_sync" | "manual_admin_sync" | "reconciliation" | "system"
 type SyncOrder = { id: string; status: string; provider_status?: string | null }
@@ -36,11 +37,17 @@ export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostP
   })
   if (applyError) throw applyError
   const applied = appliedData as Applied
+
+  if (applied.outcome === "applied" && applied.activated) {
+    await notifyAdminBoostPurchase(claim.id, "TBC")
+  }
+
   return {
     order: applied.order,
     payment: applied.outcome === "applied" ? payment : null,
     isFinal: isTbcFinalStatus(applied.order.provider_status),
     outcome: applied.outcome,
+    activated: Boolean(applied.activated),
   }
 }
 
