@@ -99,9 +99,13 @@ describe("TBC admin one-lari live test", () => {
   })
 
   it("lets known live-test callbacks sync while public TBC checkout remains gated", () => {
-    const liveTestAt = callback.indexOf("syncTbcAdminLiveTestByPayId")
+    const liveTestAt = callback.indexOf(
+      "const liveTestResult = await syncTbcAdminLiveTestByPayId",
+    )
     const publicGateAt = callback.indexOf("!isTbcCheckoutEnabled()")
-    const boostSyncAt = callback.indexOf("syncBoostOrderFromTbcByPayId")
+    const boostSyncAt = callback.indexOf(
+      "const result = await syncBoostOrderFromTbcByPayId",
+    )
 
     expect(liveTestAt).toBeGreaterThan(-1)
     expect(publicGateAt).toBeGreaterThan(liveTestAt)
