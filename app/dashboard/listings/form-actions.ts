@@ -152,10 +152,11 @@ async function validateLookupValues(
   categoryId: number,
   brandId: string | null,
   sizeId: string | null,
-  allowedInactiveBrandId?: string | null
+  allowedInactiveBrandId?: string | null,
+  allowedInactiveCategoryId?: number | null
 ) {
   const [categoryResult, brandResult, sizeResult] = await Promise.all([
-    supabase.from("categories").select("id").eq("id", categoryId).maybeSingle(),
+    supabase.from("categories").select("id, is_active").eq("id", categoryId).maybeSingle(),
     brandId
       ? supabase.from("brands").select("id, is_active").eq("id", brandId).maybeSingle()
       : Promise.resolve({ data: { id: null, is_active: true }, error: null }),
@@ -169,7 +170,12 @@ async function validateLookupValues(
   }
 
   const fieldErrors: ListingFieldErrors = {}
-  if (!categoryResult.data) fieldErrors.categoryId = "არჩეული კატეგორია აღარ არის ხელმისაწვდომი."
+  if (
+    !categoryResult.data ||
+    (!categoryResult.data.is_active && categoryId !== allowedInactiveCategoryId)
+  ) {
+    fieldErrors.categoryId = "არჩეული კატეგორია აღარ არის ხელმისაწვდომი."
+  }
   if (
     brandId &&
     (!brandResult.data ||
@@ -399,7 +405,8 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       validation.data.categoryId,
       validation.data.brandId,
       validation.data.sizeId,
-      ownedListing?.brand_id
+      ownedListing?.brand_id,
+      ownedListing?.category_id
     )
     if (Object.keys(lookupErrors).length > 0) {
       await removeUploadedPaths(supabase, uploadedPaths)
