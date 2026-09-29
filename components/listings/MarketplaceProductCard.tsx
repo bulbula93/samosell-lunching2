@@ -39,16 +39,12 @@ export default function MarketplaceProductCard({
   const listingHref = searchListingHref(item.slug, searchId)
 
   return (
-    <article className="group relative flex h-full min-w-0 flex-col [contain-intrinsic-size:auto_360px] [content-visibility:auto]">
-      <Link
-        href={listingHref}
-        aria-label={`${item.title} — ${formatPrice(item.price, item.currency)}`}
-        className="absolute inset-0 z-10 rounded-2xl"
-      >
+    <article className="group relative flex h-full min-w-0 flex-col rounded-[22px] border border-[#e7ebe8] bg-white p-2.5 shadow-[0_8px_24px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] [contain-intrinsic-size:auto_360px] [content-visibility:auto]">
+      <Link href={listingHref} aria-label={`${item.title} — ${formatPrice(item.price, item.currency)}`} className="absolute inset-0 z-10 rounded-[22px]">
         <span className="sr-only">{item.title}</span>
       </Link>
 
-      <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[16px] bg-[#f1f2ef]">
         <SmartImage
           src={item.cover_image_url}
           alt={item.title}
@@ -61,26 +57,10 @@ export default function MarketplaceProductCard({
 
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-2.5">
           <div className="flex flex-wrap gap-1.5">
-            {badge ? (
-              <span className="rounded-lg bg-text px-2.5 py-1 text-[11px] font-bold text-white">
-                {badge}
-              </span>
-            ) : null}
-            {!badge && item.is_featured ? (
-              <span className="rounded-lg bg-[#073f3b] px-2.5 py-1 text-[11px] font-black text-[#f6d98e]">
-                VIP MAX
-              </span>
-            ) : null}
-            {!badge && !item.is_featured && item.is_promoted ? (
-              <span className="rounded-lg bg-brand px-2.5 py-1 text-[11px] font-bold text-white">
-                TOP
-              </span>
-            ) : null}
-            {!badge && !item.is_featured && !item.is_promoted && item.is_vip ? (
-              <span className="rounded-lg bg-[#F1C75B] px-2.5 py-1 text-[11px] font-black text-[#3D3108]">
-                {ka.product.vip}
-              </span>
-            ) : null}
+            {badge ? <span className="rounded-lg bg-text px-2.5 py-1 text-[11px] font-bold text-white">{badge}</span> : null}
+            {!badge && item.is_featured ? <span className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-black text-brand">VIP MAX</span> : null}
+            {!badge && !item.is_featured && item.is_promoted ? <span className="rounded-lg bg-brand px-2.5 py-1 text-[11px] font-bold text-white">TOP</span> : null}
+            {!badge && !item.is_featured && !item.is_promoted && item.is_vip ? <span className="rounded-lg bg-accent-soft px-2.5 py-1 text-[11px] font-black text-brand">{ka.product.vip}</span> : null}
           </div>
         </div>
 
@@ -93,13 +73,13 @@ export default function MarketplaceProductCard({
               isFavorited={isFavorited}
               searchId={searchId}
               compact
-              className="shadow-[0_6px_18px_rgba(7,63,59,0.16)]"
+              className="shadow-[0_6px_18px_rgba(7,63,59,0.14)]"
             />
           </div>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col pt-3">
+      <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
         <div className="flex items-center gap-2 text-xs text-text-soft">
           {sellerAvatar ? (
             <Avatar
@@ -112,15 +92,11 @@ export default function MarketplaceProductCard({
             />
           ) : null}
           <span className="min-w-0 truncate">{sellerLabel}</span>
-          {item.seller_is_verified ? (
-            <span title="დადასტურებული გამყიდველი" aria-label="დადასტურებული გამყიდველი" className="font-bold text-brand">
-              ✓
-            </span>
-          ) : null}
+          {item.seller_is_verified ? <span title="დადასტურებული გამყიდველი" aria-label="დადასტურებული გამყიდველი" className="font-bold text-brand">✓</span> : null}
         </div>
 
         <div className="mt-2">
-          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-5 text-text transition group-hover:text-brand">
+          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-5 text-text transition group-hover:text-accent">
             {item.brand_name ? `${item.brand_name} · ${item.title}` : item.title}
           </h3>
         </div>
@@ -132,10 +108,8 @@ export default function MarketplaceProductCard({
         </div>
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-          <span className="text-base font-black text-text">{formatPrice(item.price, item.currency)}</span>
-          <span className="max-w-[46%] truncate text-right text-xs text-text-soft">
-            {item.city || ka.product.locationUnknown}
-          </span>
+          <span className="text-base font-black text-brand">{formatPrice(item.price, item.currency)}</span>
+          <span className="max-w-[46%] truncate text-right text-xs text-text-soft">{item.city || ka.product.locationUnknown}</span>
         </div>
       </div>
     </article>
@@ -144,8 +118,8 @@ export default function MarketplaceProductCard({
 
 export function MarketplaceProductCardSkeleton() {
   return (
-    <div aria-hidden="true" className="min-w-0">
-      <div className="ui-skeleton aspect-[4/5] w-full rounded-2xl" />
+    <div aria-hidden="true" className="min-w-0 rounded-[22px] border border-line bg-white p-2.5">
+      <div className="ui-skeleton aspect-[4/5] w-full rounded-[16px]" />
       <div className="ui-skeleton mt-3 h-4 w-2/5" />
       <div className="ui-skeleton mt-3 h-5 w-4/5" />
       <div className="ui-skeleton mt-2 h-4 w-3/5" />
