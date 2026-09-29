@@ -10,28 +10,115 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const { supabase } = await requireAdminUser("/dashboard")
   await reconcileExpiredBoostOrders()
   const nowIso = new Date().toISOString()
+  const overdueCutoff = new Date(
+    new Date(nowIso).getTime() - 24 * 60 * 60 * 1000,
+  ).toISOString()
 
   const [
     { count: openListingReports },
     { count: openUserReports },
     { count: reviewingListingReports },
     { count: reviewingUserReports },
+    { count: openStoryReports },
+    { count: reviewingStoryReports },
+    { count: overdueListingReports },
+    { count: overdueUserReports },
+    { count: overdueStoryReports },
     { count: suspendedUsers },
     { count: storeCount },
     { count: activeListings },
     { count: pendingBoosts },
     { count: activeBoosts },
+    { count: failedPayments },
+    { count: openRefunds },
+    { count: pendingAds },
+    { count: failedAdRefunds },
+    { data: storeProfiles },
   ] = await Promise.all([
     supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
     supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
+    supabase.from("listing_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
+    supabase.from("user_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
+    supabase.from("story_reports").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"]).lte("created_at", overdueCutoff),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_suspended", true),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("seller_type", "store"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("provider_status", "Failed"),
+    supabase.from("listing_boost_refund_requests").select("id", { count: "exact", head: true }).in("status", ["requested", "under_review", "approved", "provider_processing"]),
+    supabase.from("ads").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
+    supabase.from("ad_orders").select("id", { count: "exact", head: true }).eq("refund_status", "failed"),
+    supabase
+      .from("profiles")
+      .select("id, username, full_name, store_logo_url, store_phone, store_address, store_hours")
+      .eq("seller_type", "store")
+      .limit(500),
   ])
+
+  const overdueReports =
+    (overdueListingReports ?? 0) +
+    (overdueUserReports ?? 0) +
+    (overdueStoryReports ?? 0)
+
+  const incompleteStores = (storeProfiles ?? []).filter((profile) =>
+    [
+      profile.username,
+      profile.full_name,
+      profile.store_logo_url,
+      profile.store_phone,
+      profile.store_address,
+      profile.store_hours,
+    ].some((value) => !String(value ?? "").trim()),
+  ).length
+
+  const operationalAlerts = [
+    {
+      label: "24სთ+ მოდერაციის backlog",
+      count: overdueReports,
+      href: "/admin/reports?status=all&age=overdue&sort=oldest",
+      detail: "ღია ან განხილვაში მყოფი რეპორტები, რომლებიც 24 საათზე ძველია.",
+    },
+    {
+      label: "წარუმატებელი გადახდები",
+      count: failedPayments ?? 0,
+      href: "/admin/payments?status=failed",
+      detail: "Provider-ის Failed სტატუსის მქონე boost/payment ჩანაწერები.",
+    },
+    {
+      label: "ღია refund მოთხოვნები",
+      count: openRefunds ?? 0,
+      href: "/admin/payments?status=refund",
+      detail: "Refund-ები, რომლებიც ჯერ საბოლოო მდგომარეობაში არ არის.",
+    },
+    {
+      label: "რეკლამები განხილვისთვის",
+      count: pendingAds ?? 0,
+      href: "/admin/ads",
+      detail: "Pending review სტატუსის მქონე სარეკლამო მასალები.",
+    },
+    {
+      label: "რეკლამის refund შეცდომები",
+      count: failedAdRefunds ?? 0,
+      href: "/admin/ads",
+      detail: "რეკლამის შეკვეთები, სადაც ავტომატური refund ჩავარდა.",
+    },
+    {
+      label: "არასრულად შევსებული მაღაზიები",
+      count: incompleteStores,
+      href: "/admin/stores?filter=incomplete",
+      detail: "Store პროფილები, რომლებსაც ძირითადი საჯარო ინფორმაცია აკლიათ.",
+    },
+  ]
+
+  const attentionCount = operationalAlerts.reduce(
+    (sum, item) => sum + item.count,
+    0,
+  )
 
   return (
     <main className="ui-container ui-section">
@@ -79,6 +166,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/search" className="ui-btn-secondary">
               Search Analytics
             </Link>
+            <Link href="/admin/system" className="ui-btn-secondary">
+              System Status
+            </Link>
           </div>
         </div>
       </section>
@@ -90,13 +180,52 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       ) : null}
 
       <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="ღია რეპორტები" value={(openListingReports ?? 0) + (openUserReports ?? 0)} />
-        <StatCard label="დამუშავებაში" value={(reviewingListingReports ?? 0) + (reviewingUserReports ?? 0)} />
+        <StatCard label="ღია რეპორტები" value={(openListingReports ?? 0) + (openUserReports ?? 0) + (openStoryReports ?? 0)} />
+        <StatCard label="დამუშავებაში" value={(reviewingListingReports ?? 0) + (reviewingUserReports ?? 0) + (reviewingStoryReports ?? 0)} />
         <StatCard label="შეზღუდული მომხმარებლები" value={suspendedUsers ?? 0} />
         <StatCard label="მაღაზიები" value={storeCount ?? 0} />
         <StatCard label="აქტიური განცხადებები" value={activeListings ?? 0} />
         <StatCard label="მოლოდინში მყოფი მოთხოვნები" value={pendingBoosts ?? 0} />
         <StatCard label="აქტიური VIP" value={activeBoosts ?? 0} />
+      </section>
+
+      <section className="ui-card mt-6 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="ui-eyebrow">Operations</div>
+            <h2 className="mt-2 text-2xl font-black text-text">
+              ოპერაციული გაფრთხილებები
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-text-soft">
+              ყურადღების მომთხოვნი moderation, payment, ads და store სიგნალები ერთ სივრცეში.
+            </p>
+          </div>
+          <div className={attentionCount > 0
+            ? "rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900"
+            : "rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800"}>
+            {attentionCount > 0 ? `${attentionCount} საკითხი` : "ყველაფერი სუფთაა"}
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {operationalAlerts.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="rounded-[1.2rem] border border-line bg-surface-alt p-4 transition hover:border-brand/40 hover:bg-white"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="font-bold text-text">{item.label}</div>
+                <span className={item.count > 0
+                  ? "rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-900"
+                  : "rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-800"}>
+                  {item.count}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-text-soft">{item.detail}</p>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-3">

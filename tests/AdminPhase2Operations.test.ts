@@ -1,0 +1,45 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { describe, expect, it } from "vitest"
+
+const adminSource = readFileSync(
+  join(process.cwd(), "app", "admin", "page.tsx"),
+  "utf8",
+)
+
+const systemSource = readFileSync(
+  join(process.cwd(), "app", "admin", "system", "page.tsx"),
+  "utf8",
+)
+
+describe("admin phase 2 operations", () => {
+  it("adds actionable operational alerts to the dashboard", () => {
+    expect(adminSource).toContain("operationalAlerts")
+    expect(adminSource).toContain("24სთ+ მოდერაციის backlog")
+    expect(adminSource).toContain("წარუმატებელი გადახდები")
+    expect(adminSource).toContain("ღია refund მოთხოვნები")
+    expect(adminSource).toContain("რეკლამები განხილვისთვის")
+    expect(adminSource).toContain("არასრულად შევსებული მაღაზიები")
+  })
+
+  it("includes Story reports in dashboard moderation totals", () => {
+    expect(adminSource).toContain('from("story_reports")')
+    expect(adminSource).toContain("openStoryReports")
+    expect(adminSource).toContain("reviewingStoryReports")
+  })
+
+  it("adds a system status route without exposing secret values", () => {
+    expect(adminSource).toContain('href="/admin/system"')
+    expect(systemSource).toContain("getTbcCheckoutReadiness")
+    expect(systemSource).toContain("getFlittReadiness")
+    expect(systemSource).toContain("envPresent")
+    expect(systemSource).not.toContain("process.env.RESEND_API_KEY")
+    expect(systemSource).not.toContain("process.env.TBC_API_KEY")
+    expect(systemSource).not.toContain("process.env.FLITT_SECRET_KEY")
+  })
+
+  it("documents email-only support architecture rather than inventing a ticket inbox", () => {
+    expect(systemSource).toContain("ticket history DB-ში არ ინახება")
+    expect(systemSource).toContain("Support flow email-ზე აგზავნის მოთხოვნას")
+  })
+})
