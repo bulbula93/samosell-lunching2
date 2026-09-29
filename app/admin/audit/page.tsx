@@ -27,6 +27,8 @@ function adminActionLabel(value: string) {
       return "Seller verification"
     case "seller.unverify":
       return "Seller verification-ის მოხსნა"
+    case "category.update":
+      return "კატეგორიის განახლება"
     default:
       return value
   }
@@ -60,7 +62,7 @@ export default async function AdminAuditPage() {
     supabase
       .from("admin_audit_log")
       .select(
-        "id, actor_id, action, target_listing_id, target_user_id, note, metadata, created_at",
+        "id, actor_id, action, target_listing_id, target_user_id, target_category_id, note, metadata, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(100),
@@ -105,7 +107,15 @@ export default async function AdminAuditPage() {
     ),
   ]
 
-  const [profilesResponse, listingsResponse] = await Promise.all([
+  const categoryIds = [
+    ...new Set(
+      adminEntries
+        .map((entry) => entry.target_category_id)
+        .filter((value): value is number => typeof value === "number"),
+    ),
+  ]
+
+  const [profilesResponse, listingsResponse, categoriesResponse] = await Promise.all([
     profileIds.length
       ? supabase
           .from("profiles")
@@ -118,6 +128,12 @@ export default async function AdminAuditPage() {
           .select("id, slug, title")
           .in("id", listingIds)
       : Promise.resolve({ data: [], error: null }),
+    categoryIds.length
+      ? supabase
+          .from("categories")
+          .select("id, name, slug")
+          .in("id", categoryIds)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   const profiles = new Map(
@@ -126,8 +142,15 @@ export default async function AdminAuditPage() {
   const listings = new Map(
     (listingsResponse.data ?? []).map((listing) => [listing.id, listing]),
   )
+  const categories = new Map(
+    (categoriesResponse.data ?? []).map((category) => [category.id, category]),
+  )
 
-  const adminError = adminResponse.error || profilesResponse.error || listingsResponse.error
+  const adminError =
+    adminResponse.error ||
+    profilesResponse.error ||
+    listingsResponse.error ||
+    categoriesResponse.error
   const moderationError = moderationResponse.error
   const paymentEventsError = paymentEventsResponse.error
 
@@ -150,6 +173,9 @@ export default async function AdminAuditPage() {
             </Link>
             <Link href="/admin/users" className="ui-btn-secondary">
               მომხმარებლები
+            </Link>
+            <Link href="/admin/categories" className="ui-btn-secondary">
+              კატეგორიები
             </Link>
             <Link href="/admin" className="ui-btn-secondary">
               ადმინისტრირების მთავარი
@@ -186,6 +212,10 @@ export default async function AdminAuditPage() {
               const targetListing = entry.target_listing_id
                 ? listings.get(entry.target_listing_id)
                 : null
+              const targetCategory =
+                typeof entry.target_category_id === "number"
+                  ? categories.get(entry.target_category_id)
+                  : null
 
               return (
                 <article key={entry.id} className="ui-card p-5">
@@ -201,7 +231,7 @@ export default async function AdminAuditPage() {
                     <div className="text-xs text-text-soft">{formatDateTime(entry.created_at)}</div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
                       <span className="font-semibold text-text">მომხმარებელი:</span>{" "}
                       {targetUser?.full_name || targetUser?.username || entry.target_user_id || "—"}
@@ -209,6 +239,10 @@ export default async function AdminAuditPage() {
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
                       <span className="font-semibold text-text">განცხადება:</span>{" "}
                       {targetListing?.title || entry.target_listing_id || "—"}
+                    </div>
+                    <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
+                      <span className="font-semibold text-text">კატეგორია:</span>{" "}
+                      {targetCategory?.name || targetCategory?.slug || entry.target_category_id || "—"}
                     </div>
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
                       <span className="font-semibold text-text">შენიშვნა:</span>{" "}
