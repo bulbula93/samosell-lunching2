@@ -5,7 +5,6 @@ import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
 import { getFlittReadiness } from "@/lib/flitt"
 import { getSupportConfig } from "@/lib/site"
-import { getTbcCheckoutReadiness } from "@/lib/tbc"
 
 type ReadinessItem = {
   label: string
@@ -21,7 +20,6 @@ function envPresent(name: string) {
 export default async function AdminSystemPage() {
   const { supabase } = await requireAdminUser("/dashboard")
   const support = getSupportConfig()
-  const tbc = getTbcCheckoutReadiness()
 
   let flitt: ReturnType<typeof getFlittReadiness> | null = null
   let flittConfigValid = true
@@ -40,7 +38,7 @@ export default async function AdminSystemPage() {
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("listings").select("id", { count: "exact", head: true }),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }),
+    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }),
     supabase.from("ads").select("id", { count: "exact", head: true }),
     supabase.from("support_tickets").select("id", { count: "exact", head: true }),
   ])
@@ -56,12 +54,18 @@ export default async function AdminSystemPage() {
     !adsHealth.error &&
     !supportHealth.error
 
+  const flittProductionReady =
+    flittConfigValid &&
+    Boolean(flitt?.productionDeployment) &&
+    Boolean(flitt?.liveEnabled) &&
+    flitt?.mode === "live"
+
   const items: ReadinessItem[] = [
     {
       label: "Database",
       ok: databaseReady,
       detail: databaseReady
-        ? "profiles, listings, payments და ads ხელმისაწვდომია"
+        ? "profiles, listings, Flitt payments, ads და support ხელმისაწვდომია"
         : "ერთი ან მეტი ძირითადი table query ვერ შესრულდა",
     },
     {
@@ -95,23 +99,13 @@ export default async function AdminSystemPage() {
       href: "/admin/support",
     },
     {
-      label: "TBC Checkout",
-      ok: tbc.enabled,
-      detail: tbc.enabled
-        ? "Feature flag და საჭირო credentials მზადაა"
-        : "Checkout სრულ readiness-ში არ არის",
-      href: "/admin/payments/readiness",
-    },
-    {
-      label: "Flitt",
-      ok: flittConfigValid && Boolean(flitt?.liveEnabled || flitt?.sandboxEnabled),
+      label: "Flitt production payments",
+      ok: flittProductionReady,
       detail: !flittConfigValid
         ? "Flitt configuration invalid"
-        : flitt?.liveEnabled
-          ? "Live checkout enabled"
-          : flitt?.sandboxEnabled
-            ? "Sandbox checkout enabled"
-            : `Mode: ${flitt?.mode ?? "unknown"} · checkout disabled`,
+        : flittProductionReady
+          ? "Flitt live checkout ჩართულია production deployment-ზე"
+          : `Mode: ${flitt?.mode ?? "unknown"} · production live checkout მზად არ არის`,
       href: "/admin/flitt-sandbox",
     },
   ]
@@ -131,9 +125,14 @@ export default async function AdminSystemPage() {
               Production readiness-ის უსაფრთხო ხედვა. Secret/API key მნიშვნელობები აქ არასოდეს ჩანს — მხოლოდ configuration-ის არსებობა და ოპერაციული სტატუსი.
             </p>
           </div>
-          <Link href="/admin" className="ui-btn-secondary">
-            ადმინისტრირების მთავარი
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/payments" className="ui-btn-primary">
+              Flitt გადახდები
+            </Link>
+            <Link href="/admin" className="ui-btn-secondary">
+              ადმინისტრირების მთავარი
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -145,10 +144,10 @@ export default async function AdminSystemPage() {
           </div>
         </div>
         <div className="ui-card p-5">
-          <div className="text-sm font-semibold text-text-soft">Support architecture</div>
-          <div className="mt-2 text-lg font-black text-text">DB ticketing + email</div>
+          <div className="text-sm font-semibold text-text-soft">Payment provider</div>
+          <div className="mt-2 text-lg font-black text-text">Flitt</div>
           <p className="mt-2 text-sm leading-6 text-text-soft">
-            Support მოთხოვნა ჯერ durable ticket-ად ინახება, შემდეგ კი email notification იგზავნება. Email-ის ჩავარდნა ticket-ს არ კარგავს.
+            SamoSell-ის აქტიური production payment provider არის Flitt. Admin status და payment monitoring მხოლოდ Flitt live flow-ს აჩვენებს.
           </p>
         </div>
       </section>
@@ -190,8 +189,7 @@ export default async function AdminSystemPage() {
             <span className="font-semibold text-text">Business hours:</span> {support.businessHours}
           </div>
           <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
-            <span className="font-semibold text-text">TBC site:</span>{" "}
-            {tbc.siteUrlIsProduction ? "production URL" : "non-production URL"}
+            <span className="font-semibold text-text">Payment provider:</span> Flitt
           </div>
           <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
             <span className="font-semibold text-text">Flitt mode:</span>{" "}
