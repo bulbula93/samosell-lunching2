@@ -185,12 +185,18 @@ export default async function AdminUsersPage({
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <Link
-                      href={`/seller/${profile.username || profile.id}`}
-                      className="ui-btn-primary text-center"
-                    >
-                      საჯარო პროფილის გახსნა
-                    </Link>
+                    {profile.username ? (
+                      <Link
+                        href={`/seller/${encodeURIComponent(profile.username)}`}
+                        className="ui-btn-primary text-center"
+                      >
+                        საჯარო პროფილის გახსნა
+                      </Link>
+                    ) : (
+                      <div className="rounded-full border border-line bg-surface-alt px-5 py-3 text-center text-sm font-semibold text-text-soft">
+                        საჯარო პროფილი მიუწვდომელია — username არ აქვს
+                      </div>
+                    )}
                     <Link
                       href="/admin/reports?kind=user&status=all"
                       className="ui-btn-secondary text-center"
