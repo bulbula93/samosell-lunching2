@@ -76,7 +76,7 @@ describe("admin phase 3 support ticketing", () => {
 
   it("persists the support ticket before attempting email notification", () => {
     const persistAt = contactAction.indexOf('"submit_support_ticket"')
-    const emailAt = contactAction.indexOf("sendTransactionalEmail")
+    const emailAt = contactAction.indexOf("const delivery = await sendTransactionalEmail")
     expect(persistAt).toBeGreaterThan(-1)
     expect(emailAt).toBeGreaterThan(persistAt)
     expect(contactAction).toContain("ticket stored but email notification failed")
