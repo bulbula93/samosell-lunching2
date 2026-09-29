@@ -82,6 +82,25 @@ export async function sendSupportMessageAction(
     }
   }
 
+  const { data: createdTicketId, error: ticketError } = await supabase.rpc(
+    "submit_support_ticket",
+    {
+      p_category: input.category,
+      p_subject: subject,
+      p_message: message,
+    },
+  )
+
+  const ticketId = typeof createdTicketId === "string" ? createdTicketId : ""
+  if (ticketError || !ticketId) {
+    console.error("[support] ticket persistence failed")
+    return {
+      ok: false,
+      message: "მოთხოვნა ახლა ვერ შეინახა. სცადე ცოტა მოგვიანებით.",
+    }
+  }
+
+  const ticketReference = ticketId.slice(0, 8).toUpperCase()
   const support = getSupportConfig()
   const safeCategory = escapeHtml(categoryLabel)
   const safeSubject = escapeHtml(subject)
@@ -96,6 +115,7 @@ export async function sendSupportMessageAction(
     text: [
       "SamoSell მხარდაჭერის მოთხოვნა",
       "",
+      `Ticket: ${ticketReference}`,
       `კატეგორია: ${categoryLabel}`,
       `ანგარიშის ელფოსტა: ${accountEmail}`,
       `User ID: ${user.id}`,
@@ -107,6 +127,7 @@ export async function sendSupportMessageAction(
       <div style="font-family:Arial,Helvetica,sans-serif;color:#202124;line-height:1.6;max-width:680px">
         <div style="font-size:22px;font-weight:800;color:#0b6f63">SAMOSELL</div>
         <h2 style="margin:14px 0 6px;font-size:18px">ახალი მხარდაჭერის მოთხოვნა</h2>
+        <div style="margin:8px 0 12px;font-size:13px;color:#6b7280">Ticket: <strong>${ticketReference}</strong></div>
         <table cellpadding="0" cellspacing="0" border="0" style="font-size:14px;margin:12px 0 18px">
           <tr><td style="padding:3px 14px 3px 0;color:#6b7280">კატეგორია</td><td><strong>${safeCategory}</strong></td></tr>
           <tr><td style="padding:3px 14px 3px 0;color:#6b7280">ელფოსტა</td><td><a href="mailto:${safeEmail}">${safeEmail}</a></td></tr>
@@ -120,9 +141,10 @@ export async function sendSupportMessageAction(
   })
 
   if (!delivery.ok) {
+    console.error("[support] ticket stored but email notification failed")
     return {
-      ok: false,
-      message: "შეტყობინება ახლა ვერ გაიგზავნა. სცადე ცოტა მოგვიანებით.",
+      ok: true,
+      message: `მოთხოვნა მიღებულია (Ticket ${ticketReference}). Email შეტყობინება ვერ გაიგზავნა, მაგრამ მოთხოვნა Support Inbox-ში შენახულია.`,
     }
   }
 
@@ -132,6 +154,6 @@ export async function sendSupportMessageAction(
 
   return {
     ok: true,
-    message: `მოთხოვნა მიღებულია გასაგზავნად. პასუხს მიიღებ ${accountEmail}-ზე.`,
+    message: `მოთხოვნა მიღებულია (Ticket ${ticketReference}). პასუხს მიიღებ ${accountEmail}-ზე.`,
   }
 }

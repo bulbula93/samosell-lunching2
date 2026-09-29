@@ -38,8 +38,9 @@ describe("admin phase 2 operations", () => {
     expect(systemSource).not.toContain("process.env.FLITT_SECRET_KEY")
   })
 
-  it("documents email-only support architecture rather than inventing a ticket inbox", () => {
-    expect(systemSource).toContain("ticket history DB-ში არ ინახება")
-    expect(systemSource).toContain("Support flow email-ზე აგზავნის მოთხოვნას")
+  it("keeps support architecture visible in system status as it evolves", () => {
+    expect(systemSource).toContain("Support ticketing")
+    expect(systemSource).toContain("DB ticketing + email")
+    expect(systemSource).toContain("email notification")
   })
 })

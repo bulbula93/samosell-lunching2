@@ -36,11 +36,13 @@ export default async function AdminSystemPage() {
     listingsHealth,
     paymentsHealth,
     adsHealth,
+    supportHealth,
   ] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("listings").select("id", { count: "exact", head: true }),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }),
     supabase.from("ads").select("id", { count: "exact", head: true }),
+    supabase.from("support_tickets").select("id", { count: "exact", head: true }),
   ])
 
   const emailReady =
@@ -51,7 +53,8 @@ export default async function AdminSystemPage() {
     !profilesHealth.error &&
     !listingsHealth.error &&
     !paymentsHealth.error &&
-    !adsHealth.error
+    !adsHealth.error &&
+    !supportHealth.error
 
   const items: ReadinessItem[] = [
     {
@@ -76,11 +79,20 @@ export default async function AdminSystemPage() {
         : "ADMIN_ACTIVITY_EMAIL არ არის configured",
     },
     {
-      label: "Support delivery",
+      label: "Support ticketing",
+      ok: !supportHealth.error,
+      detail: !supportHealth.error
+        ? "Support მოთხოვნები DB-ში ინახება; email დამატებითი notification არხია"
+        : "Support ticket storage query ვერ შესრულდა",
+      href: "/admin/support",
+    },
+    {
+      label: "Support email notification",
       ok: emailReady && Boolean(support.supportEmail),
       detail: emailReady
-        ? "Support მოთხოვნები email-ით იგზავნება; ticket history DB-ში არ ინახება"
-        : "Support ფორმა email configuration-ზეა დამოკიდებული",
+        ? "ახალი ticket-ის შესახებ support email notification მზადაა"
+        : "Support email notification configuration არასრულია",
+      href: "/admin/support",
     },
     {
       label: "TBC Checkout",
@@ -134,9 +146,9 @@ export default async function AdminSystemPage() {
         </div>
         <div className="ui-card p-5">
           <div className="text-sm font-semibold text-text-soft">Support architecture</div>
-          <div className="mt-2 text-lg font-black text-text">Email delivery</div>
+          <div className="mt-2 text-lg font-black text-text">DB ticketing + email</div>
           <p className="mt-2 text-sm leading-6 text-text-soft">
-            მიმდინარე Support flow email-ზე აგზავნის მოთხოვნას. ცალკე searchable ticket database ამ ეტაპზე არ არსებობს.
+            Support მოთხოვნა ჯერ durable ticket-ად ინახება, შემდეგ კი email notification იგზავნება. Email-ის ჩავარდნა ticket-ს არ კარგავს.
           </p>
         </div>
       </section>
