@@ -21,6 +21,7 @@ export default async function TbcReadinessPage() {
           {flagEnabled ? "Live TBC checkout ჩართულია" : "Prepared — live TBC checkout disabled"}
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
+          <Link href="/admin/payments/tbc-live-test" className="ui-btn-primary">1 ₾ Live test</Link>
           <Link href="/admin/payments" className="ui-btn-secondary">გადახდები</Link>
           <Link href="/admin" className="ui-btn-secondary">ადმინის მთავარი</Link>
         </div>

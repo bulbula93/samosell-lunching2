@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { syncBoostOrderFromTbcByPayId } from "@/lib/tbc-sync"
 import { isTbcCheckoutEnabled } from "@/lib/tbc"
+import { syncTbcAdminLiveTestByPayId } from "@/lib/tbc-admin-live-test"
 
 const MAX_CALLBACK_BYTES = 16_384
 const PAYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/
@@ -58,12 +59,20 @@ async function readPaymentId(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isTbcCheckoutEnabled()) return NextResponse.json({ ok: false, error: "Checkout disabled" }, { status: 503 })
   try {
     const paymentId = await readPaymentId(request)
 
     if (!PAYMENT_ID_PATTERN.test(paymentId)) {
       return NextResponse.json({ ok: false, error: "Invalid callback payload" }, { status: 400 })
+    }
+
+    const liveTestResult = await syncTbcAdminLiveTestByPayId(paymentId, "callback")
+    if (liveTestResult.matched) {
+      return NextResponse.json({ ok: true, liveTest: true })
+    }
+
+    if (!isTbcCheckoutEnabled()) {
+      return NextResponse.json({ ok: false, error: "Checkout disabled" }, { status: 503 })
     }
 
     const result = await syncBoostOrderFromTbcByPayId(paymentId, "callback")
