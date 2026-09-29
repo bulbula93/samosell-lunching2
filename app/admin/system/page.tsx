@@ -47,6 +47,7 @@ export default async function AdminSystemPage() {
     envPresent("RESEND_API_KEY") &&
     (envPresent("NOTIFICATION_EMAIL_FROM") || envPresent("EMAIL_FROM"))
   const adminActivityEmailReady = envPresent("ADMIN_ACTIVITY_EMAIL")
+  const adminAiReady = envPresent("OPENAI_API_KEY")
   const databaseReady =
     !profilesHealth.error &&
     !listingsHealth.error &&
@@ -81,6 +82,14 @@ export default async function AdminSystemPage() {
       detail: adminActivityEmailReady
         ? "Admin activity recipient configured"
         : "ADMIN_ACTIVITY_EMAIL არ არის configured",
+    },
+    {
+      label: "Admin AI Copilot",
+      ok: adminAiReady,
+      detail: adminAiReady
+        ? "OpenAI Responses API configured; Copilot Phase 1 remains strictly read-only"
+        : "Deterministic fallback მუშაობს; AI answers-ისთვის OPENAI_API_KEY საჭიროა",
+      href: "/admin/agent",
     },
     {
       label: "Support ticketing",
