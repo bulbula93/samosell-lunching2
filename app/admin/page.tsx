@@ -13,6 +13,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const overdueCutoff = new Date(
     new Date(nowIso).getTime() - 24 * 60 * 60 * 1000,
   ).toISOString()
+  const stalePaymentCutoff = new Date(
+    new Date(nowIso).getTime() - 30 * 60 * 1000,
+  ).toISOString()
 
   const [
     { count: openListingReports },
@@ -30,7 +33,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     { count: pendingBoosts },
     { count: activeBoosts },
     { count: failedPayments },
-    { count: pendingFlittPayments },
+    { count: staleFlittPayments },
     { count: pendingAds },
     { count: failedAdRefunds },
     { count: openSupportTickets },
@@ -51,8 +54,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").in("status", ["pending_payment", "under_review", "approved"]),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
-    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").in("status", ["declined", "expired", "failed"]),
-    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").eq("status", "pending"),
+    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").neq("purpose", "sandbox_test").in("status", ["declined", "expired", "failed"]),
+    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").neq("purpose", "sandbox_test").eq("status", "pending").lte("created_at", stalePaymentCutoff),
     supabase.from("ads").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
     supabase.from("ad_orders").select("id", { count: "exact", head: true }).eq("refund_status", "failed"),
     supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
@@ -94,10 +97,10 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       detail: "Flitt live ტრანზაქციები, რომლებიც declined, expired ან failed მდგომარეობაშია.",
     },
     {
-      label: "Flitt გადახდები მოლოდინში",
-      count: pendingFlittPayments ?? 0,
+      label: "Flitt stale გადახდები",
+      count: staleFlittPayments ?? 0,
       href: "/admin/payments?status=pending",
-      detail: "Flitt live ტრანზაქციები, რომლებიც provider-ის საბოლოო სტატუსს ჯერ ელოდება.",
+      detail: "მხოლოდ რეალური VIP/რეკლამის Flitt გადახდები, რომლებიც 30 წუთზე მეტია pending მდგომარეობაშია. Validation ტესტები აქ არ ითვლება.",
     },
     {
       label: "რეკლამები განხილვისთვის",

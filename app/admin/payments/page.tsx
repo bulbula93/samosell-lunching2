@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 
 type Params = {
   status?: string | string[]
+  scope?: string | string[]
   q?: string | string[]
   flash?: string | string[]
 }
@@ -40,6 +41,14 @@ const tabs = [
   ["failed", "წარუმატებელი"],
   ["reversed", "დაბრუნებული"],
 ] as const
+
+const scopeTabs = [
+  ["payments", "რეალური გადახდები"],
+  ["validation", "Validation"],
+  ["all", "ყველა LIVE"],
+] as const
+
+const STALE_PAYMENT_MINUTES = 30
 
 function formatDate(value?: string | null) {
   if (!value) return "—"
@@ -163,10 +172,18 @@ export default async function AdminPaymentsPage({
   const activeStatus = tabs.some(([key]) => key === requestedStatus)
     ? requestedStatus
     : "all"
+  const requestedScope = typeof params.scope === "string" ? params.scope : "payments"
+  const activeScope = scopeTabs.some(([key]) => key === requestedScope)
+    ? requestedScope
+    : "payments"
   const rawSearch = typeof params.q === "string" ? params.q : ""
   const search = rawSearch.trim().toLowerCase().slice(0, 120)
   const rawFlash = typeof params.flash === "string" ? params.flash : ""
   const flash = flashLabel(rawFlash)
+  const referenceTime = new Date()
+  const staleCutoff = new Date(
+    referenceTime.getTime() - STALE_PAYMENT_MINUTES * 60 * 1000,
+  ).toISOString()
 
   await requireAdminUser("/dashboard")
   const supabase = createAdminClient()
@@ -183,9 +200,11 @@ export default async function AdminPaymentsPage({
     attemptsResponse,
     totalResult,
     pendingResult,
+    stalePendingResult,
     approvedResult,
     failedResult,
     reversedResult,
+    validationResult,
   ] = await Promise.all([
     supabase
       .from("flitt_payment_attempts")
@@ -198,38 +217,63 @@ export default async function AdminPaymentsPage({
     supabase
       .from("flitt_payment_attempts")
       .select("id", { count: "exact", head: true })
-      .eq("mode", "live"),
+      .eq("mode", "live")
+      .neq("purpose", "sandbox_test"),
     supabase
       .from("flitt_payment_attempts")
       .select("id", { count: "exact", head: true })
       .eq("mode", "live")
+      .neq("purpose", "sandbox_test")
       .eq("status", "pending"),
     supabase
       .from("flitt_payment_attempts")
       .select("id", { count: "exact", head: true })
       .eq("mode", "live")
+      .neq("purpose", "sandbox_test")
+      .eq("status", "pending")
+      .lte("created_at", staleCutoff),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .neq("purpose", "sandbox_test")
       .eq("status", "approved"),
     supabase
       .from("flitt_payment_attempts")
       .select("id", { count: "exact", head: true })
       .eq("mode", "live")
+      .neq("purpose", "sandbox_test")
       .in("status", ["declined", "expired", "failed"]),
     supabase
       .from("flitt_payment_attempts")
       .select("id", { count: "exact", head: true })
       .eq("mode", "live")
+      .neq("purpose", "sandbox_test")
       .eq("status", "reversed"),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .eq("purpose", "sandbox_test"),
   ])
 
   const queryError =
     attemptsResponse.error ||
     totalResult.error ||
     pendingResult.error ||
+    stalePendingResult.error ||
     approvedResult.error ||
     failedResult.error ||
-    reversedResult.error
+    reversedResult.error ||
+    validationResult.error
 
   let attempts = (attemptsResponse.data ?? []) as FlittAttempt[]
+
+  if (activeScope === "payments") {
+    attempts = attempts.filter((attempt) => attempt.purpose !== "sandbox_test")
+  } else if (activeScope === "validation") {
+    attempts = attempts.filter((attempt) => attempt.purpose === "sandbox_test")
+  }
 
   if (activeStatus === "failed") {
     attempts = attempts.filter((attempt) =>
@@ -267,6 +311,7 @@ export default async function AdminPaymentsPage({
 
   const currentQuery = new URLSearchParams()
   if (activeStatus !== "all") currentQuery.set("status", activeStatus)
+  if (activeScope !== "payments") currentQuery.set("scope", activeScope)
   if (rawSearch) currentQuery.set("q", rawSearch)
   const currentPath = currentQuery.toString()
     ? `/admin/payments?${currentQuery.toString()}`
@@ -318,16 +363,17 @@ export default async function AdminPaymentsPage({
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Live სულ" value={totalResult.count ?? 0} />
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <StatCard label="რეალური LIVE" value={totalResult.count ?? 0} />
         <StatCard label="მოლოდინში" value={pendingResult.count ?? 0} />
+        <StatCard label="30წთ+ stale" value={stalePendingResult.count ?? 0} />
         <StatCard label="წარმატებული" value={approvedResult.count ?? 0} />
         <StatCard label="წარუმატებელი" value={failedResult.count ?? 0} />
-        <StatCard label="დაბრუნებული" value={reversedResult.count ?? 0} />
+        <StatCard label="Validation" value={validationResult.count ?? 0} />
       </section>
 
       <section className="ui-card mt-6 p-5 sm:p-6">
-        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px_auto]">
+        <form className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_auto]">
           <input
             name="q"
             defaultValue={rawSearch}
@@ -339,13 +385,40 @@ export default async function AdminPaymentsPage({
               <option key={key} value={key}>{label}</option>
             ))}
           </select>
+          <select name="scope" defaultValue={activeScope} className="ui-input">
+            {scopeTabs.map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
           <button className="ui-btn-primary">გაფილტვრა</button>
         </form>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          {scopeTabs.map(([key, label]) => {
+            const query = new URLSearchParams()
+            if (activeStatus !== "all") query.set("status", activeStatus)
+            if (key !== "payments") query.set("scope", key)
+            if (rawSearch) query.set("q", rawSearch)
+            const href = query.toString()
+              ? `/admin/payments?${query.toString()}`
+              : "/admin/payments"
+            return (
+              <Link
+                key={key}
+                href={href}
+                className={activeScope === key ? "ui-pill-soft" : "ui-pill"}
+              >
+                {label}
+              </Link>
+            )
+          })}
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
           {tabs.map(([key, label]) => {
             const query = new URLSearchParams()
             if (key !== "all") query.set("status", key)
+            if (activeScope !== "payments") query.set("scope", activeScope)
             if (rawSearch) query.set("q", rawSearch)
             const href = query.toString()
               ? `/admin/payments?${query.toString()}`
@@ -370,7 +443,13 @@ export default async function AdminPaymentsPage({
       ) : null}
 
       <section className="mt-6 space-y-4">
-        {attempts.length ? attempts.map((attempt) => (
+        {attempts.length ? attempts.map((attempt) => {
+          const isStaleRealPayment =
+            attempt.purpose !== "sandbox_test" &&
+            attempt.status === "pending" &&
+            new Date(attempt.created_at).getTime() <= new Date(staleCutoff).getTime()
+
+          return (
           <article key={attempt.id} className="ui-card p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -482,8 +561,17 @@ export default async function AdminPaymentsPage({
                 </div>
               </div>
             </div>
+            {isStaleRealPayment ? (
+              <div className="mt-4 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+                <div className="font-black">30 წუთზე მეტი pending</div>
+                <p className="mt-1 leading-6">
+                  ეს უკვე ოპერაციული გაფრთხილებაა. ჯერ გამოიყენე „Flitt-ში სტატუსის გადამოწმება“. თუ provider კვლავ processing-ს აბრუნებს და მომხმარებელს თანხა ჩამოეჭრა, Payment ID-ით Flitt support/merchant portal-ში გადაამოწმე.
+                </p>
+              </div>
+            ) : null}
           </article>
-        )) : (
+          )
+        }) : (
           <div className="ui-card border-dashed p-8 text-sm leading-7 text-text-soft">
             ამ ფილტრებით Flitt live ტრანზაქცია ვერ მოიძებნა.
           </div>
