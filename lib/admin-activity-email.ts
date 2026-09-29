@@ -34,7 +34,8 @@ async function sendAdminActivityEmail(input: {
   hrefLabel?: string
   idempotencyKey: string
 }) {
-  const url = input.href ? absoluteSiteUrl(input.href) : null
+  try {
+    const url = input.href ? absoluteSiteUrl(input.href) : null
   const text = [
     input.heading,
     "",
@@ -61,18 +62,24 @@ async function sendAdminActivityEmail(input: {
   </body>
 </html>`
 
-  const result = await sendTransactionalEmail({
-    to: adminActivityEmail(),
-    subject: input.subject,
-    text,
-    html,
-    idempotencyKey: input.idempotencyKey,
-  })
-
-  if (!result.ok && !result.skipped) {
-    console.error("[admin activity email] delivery failed", {
+    const result = await sendTransactionalEmail({
+      to: adminActivityEmail(),
       subject: input.subject,
-      status: result.status,
+      text,
+      html,
+      idempotencyKey: input.idempotencyKey,
+    })
+
+    if (!result.ok && !result.skipped) {
+      console.error("[admin activity email] delivery failed", {
+        subject: input.subject,
+        status: result.status,
+      })
+    }
+  } catch (error) {
+    console.error("[admin activity email] notification failed safely", {
+      subject: input.subject,
+      message: error instanceof Error ? error.message : "unknown_error",
     })
   }
 }
@@ -122,6 +129,7 @@ export async function notifyAdminNewAd(input: {
       ["თანხა", formatMoney(input.amount, input.currency)],
       ["სტატუსი", "გადახდას ელოდება"],
       ["მომხმარებლის ელფოსტა", input.userEmail || "—"],
+      ["მომხმარებლის ID", input.userId],
       ["Target URL", input.targetUrl],
       ["რეკლამის ID", input.adId],
       ["შეკვეთის ID", input.orderId],
