@@ -149,7 +149,9 @@ export default async function AdminReportsPage({
   const flashRaw = typeof params.flash === "string" ? params.flash : ""
   const { supabase } = await requireAdminUser("/dashboard")
   const referenceTime = new Date().toISOString()
-  const overdueCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const overdueCutoff = new Date(
+    new Date(referenceTime).getTime() - 24 * 60 * 60 * 1000,
+  ).toISOString()
   let storyReportsQuery = supabase.from("admin_story_reports")
     .select("id, story_id, story_owner_id, reason, details, status, media_path, media_type, caption, owner_username, owner_full_name, created_at")
     .in("status", status === "all" ? ["open", "reviewing", "resolved", "dismissed"] : [status])
