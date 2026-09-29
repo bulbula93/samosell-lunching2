@@ -50,7 +50,7 @@ export default function SupportContactCard({
           </div>
           <h2 className="mt-2 text-2xl font-black text-neutral-900">მოგვწერე პირდაპირ საიტიდან</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">
-            წერილისთვის ცალკე ელფოსტის აპი არ გაიხსნება. მოთხოვნა პირდაპირ {supportEmail}-ზე გაიგზავნება.
+            წერილისთვის ცალკე ელფოსტის აპი არ გაიხსნება. მოთხოვნა Support Inbox-ში შეინახება და {supportEmail}-ზე notification-იც გაიგზავნება.
           </p>
         </div>
       </div>
