@@ -17,6 +17,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     { count: reviewingListingReports },
     { count: reviewingUserReports },
     { count: suspendedUsers },
+    { count: storeCount },
     { count: activeListings },
     { count: pendingBoosts },
     { count: activeBoosts },
@@ -26,6 +27,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase.from("user_reports").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_suspended", true),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("seller_type", "store"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
@@ -49,6 +51,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             </Link>
             <Link href="/admin/users" className="ui-btn-primary">
               მომხმარებლები
+            </Link>
+            <Link href="/admin/stores" className="ui-btn-primary">
+              მაღაზიები
             </Link>
             <Link href="/admin/categories" className="ui-btn-primary">
               კატეგორიები
@@ -84,10 +89,11 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         </div>
       ) : null}
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="ღია რეპორტები" value={(openListingReports ?? 0) + (openUserReports ?? 0)} />
         <StatCard label="დამუშავებაში" value={(reviewingListingReports ?? 0) + (reviewingUserReports ?? 0)} />
         <StatCard label="შეზღუდული მომხმარებლები" value={suspendedUsers ?? 0} />
+        <StatCard label="მაღაზიები" value={storeCount ?? 0} />
         <StatCard label="აქტიური განცხადებები" value={activeListings ?? 0} />
         <StatCard label="მოლოდინში მყოფი მოთხოვნები" value={pendingBoosts ?? 0} />
         <StatCard label="აქტიური VIP" value={activeBoosts ?? 0} />
