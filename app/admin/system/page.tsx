@@ -144,10 +144,10 @@ export default async function AdminSystemPage() {
           </div>
         </div>
         <div className="ui-card p-5">
-          <div className="text-sm font-semibold text-text-soft">Payment provider</div>
-          <div className="mt-2 text-lg font-black text-text">Flitt</div>
+          <div className="text-sm font-semibold text-text-soft">Support architecture</div>
+          <div className="mt-2 text-lg font-black text-text">DB ticketing + email</div>
           <p className="mt-2 text-sm leading-6 text-text-soft">
-            SamoSell-ის აქტიური production payment provider არის Flitt. Admin status და payment monitoring მხოლოდ Flitt live flow-ს აჩვენებს.
+            Support მოთხოვნა ჯერ durable ticket-ად ინახება, შემდეგ კი email notification იგზავნება. Email-ის ჩავარდნა ticket-ს არ კარგავს.
           </p>
         </div>
       </section>
