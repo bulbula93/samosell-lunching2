@@ -24,7 +24,7 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
   if (!listing) notFound()
 
   const [categoriesResult, brandsResult, sizesResult, imagesResult, currentBrandResult, profileResult] = await Promise.all([
-    supabase.from("categories").select("id, name, slug").order("id", { ascending: true }),
+    supabase.from("categories").select("id, name, slug, is_active, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }),
     supabase.from("brands").select("id, name").eq("is_active", true).order("name", { ascending: true }),
     supabase.from("sizes").select("id, label, group_name, sort_order").order("group_name", { ascending: true }).order("sort_order", { ascending: true }),
     supabase
@@ -53,6 +53,10 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
   if (currentBrandResult.data && !brands.some((brand) => brand.id === currentBrandResult.data?.id)) {
     brands.push(currentBrandResult.data)
   }
+
+  const categories = (categoriesResult.data ?? []).filter(
+    (category) => category.is_active || category.id === listing.category_id,
+  )
 
   const initialData: ListingFormInitialData = {
     id: listing.id,
@@ -85,7 +89,7 @@ export default async function DashboardEditListingPage({ params }: { params: Pro
             <style>{`section[aria-labelledby$="-contact-heading"] { display: none; }`}</style>
             <CreateListingForm
               mode="edit"
-              categories={categoriesResult.data ?? []}
+              categories={categories}
               brands={brands}
               sizes={sizesResult.data ?? []}
               initialData={initialData}
