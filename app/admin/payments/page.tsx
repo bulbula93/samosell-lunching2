@@ -99,7 +99,8 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
             <p className="mt-3 text-sm leading-7 text-text-soft">TBC და ხელით გადახდის შეკვეთები, provider სტატუსები, reconciliation და refund მოთხოვნები</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/admin/payments/readiness" className="ui-btn-primary">TBC მზადყოფნა</Link>
+            <Link href="/admin/payments/tbc-live-test" className="ui-btn-primary">1 ₾ TBC Live Test</Link>
+            <Link href="/admin/payments/readiness" className="ui-btn-secondary">TBC მზადყოფნა</Link>
             <Link href="/admin" className="ui-btn-secondary">ადმინის მთავარი</Link>
           </div>
         </div>
