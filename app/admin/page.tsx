@@ -33,6 +33,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     { count: openRefunds },
     { count: pendingAds },
     { count: failedAdRefunds },
+    { count: openSupportTickets },
+    { count: reviewingSupportTickets },
     { data: storeProfiles },
   ] = await Promise.all([
     supabase.from("listing_reports").select("id", { count: "exact", head: true }).eq("status", "open"),
@@ -53,6 +55,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("listing_boost_refund_requests").select("id", { count: "exact", head: true }).in("status", ["requested", "under_review", "approved", "provider_processing"]),
     supabase.from("ads").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
     supabase.from("ad_orders").select("id", { count: "exact", head: true }).eq("refund_status", "failed"),
+    supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
+    supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "reviewing"),
     supabase
       .from("profiles")
       .select("id, username, full_name, store_logo_url, store_phone, store_address, store_hours")
@@ -106,6 +110,12 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       count: failedAdRefunds ?? 0,
       href: "/admin/ads",
       detail: "რეკლამის შეკვეთები, სადაც ავტომატური refund ჩავარდა.",
+    },
+    {
+      label: "Support მოთხოვნები",
+      count: (openSupportTickets ?? 0) + (reviewingSupportTickets ?? 0),
+      href: "/admin/support",
+      detail: "ახალი ან დამუშავებაში მყოფი მომხმარებლის მხარდაჭერის მოთხოვნები.",
     },
     {
       label: "არასრულად შევსებული მაღაზიები",
@@ -166,6 +176,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/search" className="ui-btn-secondary">
               Search Analytics
             </Link>
+            <Link href="/admin/support" className="ui-btn-secondary">
+              Support Inbox
+            </Link>
             <Link href="/admin/system" className="ui-btn-secondary">
               System Status
             </Link>
@@ -187,6 +200,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         <StatCard label="აქტიური განცხადებები" value={activeListings ?? 0} />
         <StatCard label="მოლოდინში მყოფი მოთხოვნები" value={pendingBoosts ?? 0} />
         <StatCard label="აქტიური VIP" value={activeBoosts ?? 0} />
+        <StatCard label="ღია Support" value={(openSupportTickets ?? 0) + (reviewingSupportTickets ?? 0)} />
       </section>
 
       <section className="ui-card mt-6 p-5 sm:p-6">
