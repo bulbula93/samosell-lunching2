@@ -59,10 +59,11 @@ export default function MarketplaceHeader({
         <Link
           href="/"
           aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
-          className="inline-flex min-h-11 shrink-0 items-center font-logo text-[23px] font-black tracking-[-0.045em] transition sm:text-[29px]"
+          className="inline-flex min-h-11 shrink-0 items-center text-[23px] font-black tracking-[-0.055em] transition sm:text-[29px]"
+          style={{ fontFamily: '"Arial Rounded MT Bold", "Plus Jakarta Sans", "FiraGO", sans-serif' }}
         >
           <span className="text-[#073F3B]">Samo</span>
-          <span className="text-[#D4A72C]">$ell</span>
+          <span className="text-[#FF7A00]">$ell</span>
         </Link>
 
         <Link href="/catalog" className="ui-btn-secondary hidden shrink-0 lg:inline-flex">
