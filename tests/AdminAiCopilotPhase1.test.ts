@@ -53,7 +53,8 @@ describe("Admin AI Copilot Phase 1", () => {
     )
     expect(agentRoute).toContain("buildAdminAgentModelContext(snapshot)")
     expect(agentRoute).not.toContain("JSON.stringify(snapshot")
-    expect(agentRoute).not.toContain("snapshot,")
+    expect(agentRoute).not.toContain("reply, snapshot")
+    expect(agentRoute).not.toContain("snapshot, generatedAt")
   })
 
   it("keeps the AI route admin-only and strictly read-only", () => {
@@ -92,6 +93,6 @@ describe("Admin AI Copilot Phase 1", () => {
     expect(agentClient).toContain("JSON.stringify({ message: clean, history })")
     expect(agentClient).toContain("AI CONNECTED")
     expect(agentClient).toContain("DETERMINISTIC FALLBACK")
-    expect(agentClient).toContain("private content")
+    expect(agentClient).toContain("secret/private message content")
   })
 })
