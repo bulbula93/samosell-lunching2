@@ -29,6 +29,14 @@ function adminActionLabel(value: string) {
       return "Seller verification-ის მოხსნა"
     case "category.update":
       return "კატეგორიის განახლება"
+    case "support.review":
+      return "Support მოთხოვნის დამუშავება"
+    case "support.resolve":
+      return "Support მოთხოვნის მოგვარება"
+    case "support.close":
+      return "Support მოთხოვნის დახურვა"
+    case "support.reopen":
+      return "Support მოთხოვნის ხელახლა გახსნა"
     default:
       return value
   }
@@ -62,7 +70,7 @@ export default async function AdminAuditPage() {
     supabase
       .from("admin_audit_log")
       .select(
-        "id, actor_id, action, target_listing_id, target_user_id, target_category_id, note, metadata, created_at",
+        "id, actor_id, action, target_listing_id, target_user_id, target_category_id, target_support_ticket_id, note, metadata, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(100),
@@ -115,7 +123,15 @@ export default async function AdminAuditPage() {
     ),
   ]
 
-  const [profilesResponse, listingsResponse, categoriesResponse] = await Promise.all([
+  const supportTicketIds = [
+    ...new Set(
+      adminEntries
+        .map((entry) => entry.target_support_ticket_id)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ]
+
+  const [profilesResponse, listingsResponse, categoriesResponse, supportTicketsResponse] = await Promise.all([
     profileIds.length
       ? supabase
           .from("profiles")
@@ -134,6 +150,12 @@ export default async function AdminAuditPage() {
           .select("id, name, slug")
           .in("id", categoryIds)
       : Promise.resolve({ data: [], error: null }),
+    supportTicketIds.length
+      ? supabase
+          .from("support_tickets")
+          .select("id, subject, status, account_email")
+          .in("id", supportTicketIds)
+      : Promise.resolve({ data: [], error: null }),
   ])
 
   const profiles = new Map(
@@ -145,12 +167,16 @@ export default async function AdminAuditPage() {
   const categories = new Map(
     (categoriesResponse.data ?? []).map((category) => [category.id, category]),
   )
+  const supportTickets = new Map(
+    (supportTicketsResponse.data ?? []).map((ticket) => [ticket.id, ticket]),
+  )
 
   const adminError =
     adminResponse.error ||
     profilesResponse.error ||
     listingsResponse.error ||
-    categoriesResponse.error
+    categoriesResponse.error ||
+    supportTicketsResponse.error
   const moderationError = moderationResponse.error
   const paymentEventsError = paymentEventsResponse.error
 
@@ -176,6 +202,9 @@ export default async function AdminAuditPage() {
             </Link>
             <Link href="/admin/categories" className="ui-btn-secondary">
               კატეგორიები
+            </Link>
+            <Link href="/admin/support" className="ui-btn-secondary">
+              Support
             </Link>
             <Link href="/admin" className="ui-btn-secondary">
               ადმინისტრირების მთავარი
@@ -216,6 +245,9 @@ export default async function AdminAuditPage() {
                 typeof entry.target_category_id === "number"
                   ? categories.get(entry.target_category_id)
                   : null
+              const targetSupportTicket = entry.target_support_ticket_id
+                ? supportTickets.get(entry.target_support_ticket_id)
+                : null
 
               return (
                 <article key={entry.id} className="ui-card p-5">
@@ -231,7 +263,7 @@ export default async function AdminAuditPage() {
                     <div className="text-xs text-text-soft">{formatDateTime(entry.created_at)}</div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
                       <span className="font-semibold text-text">მომხმარებელი:</span>{" "}
                       {targetUser?.full_name || targetUser?.username || entry.target_user_id || "—"}
@@ -245,19 +277,30 @@ export default async function AdminAuditPage() {
                       {targetCategory?.name || targetCategory?.slug || entry.target_category_id || "—"}
                     </div>
                     <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
+                      <span className="font-semibold text-text">Support:</span>{" "}
+                      {targetSupportTicket?.subject || entry.target_support_ticket_id || "—"}
+                    </div>
+                    <div className="rounded-[1rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">
                       <span className="font-semibold text-text">შენიშვნა:</span>{" "}
                       {entry.note || "—"}
                     </div>
                   </div>
 
-                  {targetListing?.slug ? (
-                    <Link
-                      href={`/listing/${targetListing.slug}`}
-                      className="ui-btn-secondary mt-4"
-                    >
-                      განცხადების გახსნა
-                    </Link>
-                  ) : null}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {targetListing?.slug ? (
+                      <Link
+                        href={`/listing/${targetListing.slug}`}
+                        className="ui-btn-secondary"
+                      >
+                        განცხადების გახსნა
+                      </Link>
+                    ) : null}
+                    {targetSupportTicket ? (
+                      <Link href="/admin/support" className="ui-btn-secondary">
+                        Support Inbox
+                      </Link>
+                    ) : null}
+                  </div>
                 </article>
               )
             })
