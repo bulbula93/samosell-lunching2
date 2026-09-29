@@ -12,6 +12,13 @@ describe("Supabase outage resilience", () => {
     expect(page).toContain('export const dynamic = "force-dynamic"')
   })
 
+  it("server-renders the homepage auth header instead of a guest-first client shell", () => {
+    const page = source("app", "page.tsx")
+    expect(page).toContain('import SiteHeader from "@/components/layout/SiteHeader"')
+    expect(page).toContain("<SiteHeader />")
+    expect(page).not.toContain("HomeSiteHeader")
+  })
+
   it("uses one bounded catalog pool read for homepage product sections", () => {
     const home = source("lib", "home-page.ts")
     expect(home).toContain("HOME_POOL_LIMIT = 500")
@@ -24,5 +31,11 @@ describe("Supabase outage resilience", () => {
     expect(proxy).toContain("hasSupabaseAuthCookie")
     expect(proxy).toContain("needsAuthCheck")
     expect(proxy).toContain("if (needsAuthCheck)")
+  })
+
+  it("lets the root route participate in session refresh when an auth cookie exists", () => {
+    const rootProxy = source("proxy.ts")
+    expect(rootProxy).toContain("(?!_next/static")
+    expect(rootProxy).not.toContain("(?!$|_next/static")
   })
 })
