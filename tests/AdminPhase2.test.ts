@@ -44,7 +44,8 @@ describe("admin panel phase 2", () => {
     expect(reportsSource).toContain('name="q"')
     expect(reportsSource).toContain('name="age"')
     expect(reportsSource).toContain('name="sort"')
-    expect(reportsSource).toContain('.lte("created_at", overdueCutoff)')
+    expect(reportsSource).toContain("overdueCutoffTime")
+    expect(reportsSource).toContain('select("seller_id, reason, status, created_at")')
   })
 
   it("surfaces stores from the admin dashboard", () => {
