@@ -1,170 +1,385 @@
 import Link from "next/link"
-import { reconcilePendingPaymentsAction } from "@/app/admin/payments/actions"
 import StatCard from "@/components/shared/StatCard"
 import { requireAdminUser } from "@/lib/auth"
-import { formatDateOnly } from "@/lib/boosts"
-import { refundStatusLabel } from "@/lib/payment-status"
+import { getFlittReadiness } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { tbcProviderStatusLabel } from "@/lib/tbc"
 
-type Params = { page?: string | string[]; status?: string | string[]; q?: string | string[]; flash?: string | string[] }
-
-type PaymentRow = {
-  id: string; listing_id: string; seller_id: string; product_id: string; status: string
-  amount: number; currency: string; payment_method: string; payment_provider: string | null
-  provider_payment_id: string | null; provider_status: string | null; provider_result_code: string | null
-  created_at: string; paid_at: string | null; last_payment_sync_at: string | null; cancelled_at: string | null
-  failure_reason: string | null
-  listings?: { title?: string | null; slug?: string | null } | null
-  listing_boost_products?: { name?: string | null } | null
+type Params = {
+  status?: string | string[]
+  q?: string | string[]
 }
 
-type RefundRow = { id: string; order_id: string; status: string; created_at: string }
-type SellerRow = { id: string; username: string | null; full_name: string | null }
+type FlittAttempt = {
+  id: string
+  order_id: string
+  user_id: string
+  mode: string
+  purpose: string
+  amount: number
+  currency: string
+  provider_payment_id: string | null
+  status: string
+  provider_status: string | null
+  response_status: string | null
+  callback_count: number
+  last_callback_at: string | null
+  provider_verified_at: string | null
+  provider_verification_source: string | null
+  boost_order_id: string | null
+  ad_order_id: string | null
+  created_at: string
+  updated_at: string
+}
 
 const tabs = [
-  ["all", "ყველა"], ["pending", "მოლოდინში"], ["succeeded", "წარმატებული"], ["failed", "წარუმატებელი"],
-  ["expired", "ვადაგასული"], ["returned", "დაბრუნებული"], ["partially_returned", "ნაწილობრივ დაბრუნებული"], ["refund", "Refund მოთხოვნა"],
+  ["all", "ყველა"],
+  ["pending", "მოლოდინში"],
+  ["approved", "წარმატებული"],
+  ["failed", "წარუმატებელი"],
+  ["reversed", "დაბრუნებული"],
 ] as const
 
-function flashMessage(value: string) {
-  const messages: Record<string, string> = {
-    reconciled: "მოლოდინში მყოფი გადახდების გადამოწმება დასრულდა",
-    reconcile_partial: "გადამოწმება დასრულდა, თუმცა რამდენიმე ჩანაწერი ხელით შემოწმებას საჭიროებს",
-    reconcile_failed: "გადამოწმება ვერ შესრულდა",
-    checkout_disabled: "TBC Checkout გამორთულია — ბანკის API-ზე მოთხოვნა არ გაგზავნილა",
-    refund_approved: "შიდა refund მოთხოვნა დამტკიცდა; ბანკში თანხის დაბრუნება ავტომატურად არ დაწყებულა",
-    refund_rejected: "Refund მოთხოვნა უარყოფილია",
-    refund_reviewing: "Refund მოთხოვნა განხილვაშია",
-    refund_unchanged: "Refund მოთხოვნის სტატუსი უკვე ასეთია",
-    refund_invalid_state: "ამ refund სტატუსიდან მოქმედება დაუშვებელია",
-  }
-  return messages[value] ?? (value ? "ოპერაცია ვერ დასრულდა — გადაამოწმე მონაცემები" : "")
+function formatDate(value?: string | null) {
+  if (!value) return "—"
+  return new Intl.DateTimeFormat("ka-GE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Tbilisi",
+  }).format(new Date(value))
 }
 
-export default async function AdminPaymentsPage({ searchParams }: { searchParams?: Promise<Params> }) {
+function formatAmount(minor: number, currency: string) {
+  const value = Number(minor) / 100
+  return `${value.toFixed(2)} ${currency === "GEL" ? "₾" : currency}`
+}
+
+function statusLabel(value: string) {
+  switch (value) {
+    case "pending": return "მოლოდინში"
+    case "approved": return "წარმატებული"
+    case "declined": return "უარყოფილი"
+    case "expired": return "ვადაგასული"
+    case "reversed": return "დაბრუნებული"
+    case "failed": return "შეცდომა"
+    default: return value || "უცნობი"
+  }
+}
+
+function statusClass(value: string) {
+  if (value === "approved") return "border-emerald-200 bg-emerald-50 text-emerald-800"
+  if (value === "reversed") return "border-sky-200 bg-sky-50 text-sky-800"
+  if (["declined", "expired", "failed"].includes(value)) return "border-red-200 bg-red-50 text-red-800"
+  return "border-amber-200 bg-amber-50 text-amber-900"
+}
+
+function purposeLabel(value: string) {
+  switch (value) {
+    case "boost_order": return "VIP / Boost"
+    case "ad_order": return "რეკლამა"
+    case "sandbox_test": return "Validation"
+    default: return value
+  }
+}
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Params>
+}) {
   const params = (await searchParams) ?? {}
-  const activeStatus = typeof params.status === "string" && tabs.some(([key]) => key === params.status) ? params.status : "all"
-  const page = Math.floor(Math.max(1, Math.min(10000, Number(params.page) || 1)))
-  const search = typeof params.q === "string" ? params.q.trim().toLowerCase().slice(0, 100) : ""
-  const flash = typeof params.flash === "string" ? flashMessage(params.flash) : ""
+  const requestedStatus = typeof params.status === "string" ? params.status : "all"
+  const activeStatus = tabs.some(([key]) => key === requestedStatus)
+    ? requestedStatus
+    : "all"
+  const rawSearch = typeof params.q === "string" ? params.q : ""
+  const search = rawSearch.trim().toLowerCase().slice(0, 120)
+
   await requireAdminUser("/dashboard")
   const supabase = createAdminClient()
 
-  const { data: rawOrders, error, count: total } = await supabase.rpc("search_admin_payment_orders", { p_query: search, p_status: activeStatus }, { count: "exact" }).select(`
-      id, listing_id, seller_id, product_id, status, amount, currency, payment_method, payment_provider,
-      provider_payment_id, provider_status, provider_result_code, created_at, paid_at, last_payment_sync_at,
-      cancelled_at, failure_reason, listings(title, slug), listing_boost_products(name)
-    `).range((page - 1) * 50, page * 50 - 1).returns<PaymentRow[]>()
-  if (error) throw error
-  if (rawOrders !== null && !Array.isArray(rawOrders)) throw new Error("Invalid payment search response")
-  const { data: rawRefunds, error: refundError } = rawOrders?.length
-    ? await supabase.from("listing_boost_refund_requests").select("id, order_id, status, created_at")
-      .in("order_id", rawOrders.map((order: { id: string }) => order.id)).order("created_at", { ascending: false })
-    : { data: [], error: null }
-  if (refundError) throw refundError
-  const orders = (rawOrders ?? []) as unknown as PaymentRow[]
-  const refunds = (rawRefunds ?? []) as RefundRow[]
-  const sellerIds = [...new Set(orders.map((order) => order.seller_id))]
-  const { data: sellers, error: sellerError } = sellerIds.length
-    ? await supabase.from("profiles").select("id, username, full_name").in("id", sellerIds)
-    : { data: [] as SellerRow[], error: null }
-  if (sellerError) throw sellerError
-  const sellerMap = new Map((sellers ?? []).map((seller) => [seller.id, seller as SellerRow]))
-  const refundMap = new Map<string, RefundRow>()
-  for (const refund of refunds) if (!refundMap.has(refund.order_id)) refundMap.set(refund.order_id, refund)
+  let readiness: ReturnType<typeof getFlittReadiness> | null = null
+  let flittConfigValid = true
+  try {
+    readiness = getFlittReadiness()
+  } catch {
+    flittConfigValid = false
+  }
 
-  const visible = orders
-  const [pendingResult, succeededResult, failedResult, returnedResult, refundResult, staleResult, lastSyncResult] = await Promise.all([
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment","under_review","approved"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("provider_status.eq.Succeeded,status.eq.active"),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("provider_status", "Failed"),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("provider_status", ["Returned","PartialReturned"]),
-    supabase.from("listing_boost_refund_requests").select("id", { count: "exact", head: true }).in("status", ["requested","under_review","approved","provider_processing"]),
-    supabase.rpc("search_admin_payment_orders", { p_query: "", p_status: "stale" }, { count: "exact", head: true }),
-    supabase.from("listing_boost_orders").select("last_payment_sync_at").not("last_payment_sync_at","is",null).order("last_payment_sync_at",{ascending:false}).limit(1),
+  const [
+    attemptsResponse,
+    totalResult,
+    pendingResult,
+    approvedResult,
+    failedResult,
+    reversedResult,
+  ] = await Promise.all([
+    supabase
+      .from("flitt_payment_attempts")
+      .select(
+        "id, order_id, user_id, mode, purpose, amount, currency, provider_payment_id, status, provider_status, response_status, callback_count, last_callback_at, provider_verified_at, provider_verification_source, boost_order_id, ad_order_id, created_at, updated_at",
+      )
+      .eq("mode", "live")
+      .order("created_at", { ascending: false })
+      .limit(250),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live"),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .eq("status", "pending"),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .eq("status", "approved"),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .in("status", ["declined", "expired", "failed"]),
+    supabase
+      .from("flitt_payment_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("mode", "live")
+      .eq("status", "reversed"),
   ])
-  for (const result of [pendingResult,succeededResult,failedResult,returnedResult,refundResult,staleResult,lastSyncResult]) if (result.error) throw result.error
-  const pending=pendingResult.count ?? 0, succeeded=succeededResult.count ?? 0, failed=failedResult.count ?? 0
-  const returned=returnedResult.count ?? 0, openRefunds=refundResult.count ?? 0
-  const pageHref = (value: number) => "/admin/payments?" + new URLSearchParams({ q: search, status: activeStatus, page: String(value) })
+
+  const queryError =
+    attemptsResponse.error ||
+    totalResult.error ||
+    pendingResult.error ||
+    approvedResult.error ||
+    failedResult.error ||
+    reversedResult.error
+
+  let attempts = (attemptsResponse.data ?? []) as FlittAttempt[]
+
+  if (activeStatus === "failed") {
+    attempts = attempts.filter((attempt) =>
+      ["declined", "expired", "failed"].includes(attempt.status),
+    )
+  } else if (activeStatus !== "all") {
+    attempts = attempts.filter((attempt) => attempt.status === activeStatus)
+  }
+
+  if (search) {
+    attempts = attempts.filter((attempt) =>
+      [
+        attempt.id,
+        attempt.order_id,
+        attempt.provider_payment_id,
+        attempt.user_id,
+        attempt.purpose,
+        purposeLabel(attempt.purpose),
+        attempt.status,
+        attempt.provider_status,
+        attempt.response_status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search),
+    )
+  }
+
+  const productionReady =
+    flittConfigValid &&
+    readiness?.mode === "live" &&
+    Boolean(readiness.liveEnabled) &&
+    Boolean(readiness.productionDeployment)
 
   return (
     <main className="ui-container ui-section">
       <section className="ui-card p-6 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
-          <div>
-            <div className="ui-eyebrow">Payments operations</div>
-            <h1 className="mt-3 text-3xl font-black text-text sm:text-4xl">გადახდების მართვა</h1>
-            <p className="mt-3 text-sm leading-7 text-text-soft">TBC და ხელით გადახდის შეკვეთები, provider სტატუსები, reconciliation და refund მოთხოვნები</p>
+          <div className="max-w-3xl">
+            <div className="ui-eyebrow">Admin / Payments</div>
+            <h1 className="mt-3 text-3xl font-black text-text sm:text-4xl">
+              Flitt production გადახდები
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-text-soft">
+              აქ ჩანს მხოლოდ Flitt-ის live ტრანზაქციები — VIP/Boost, რეკლამები და production validation. ძველი provider-ების ისტორია DB-ში ინახება, მაგრამ აქტიურ payment flow-ში აღარ მონაწილეობს.
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/admin/payments/tbc-live-test" className="ui-btn-primary">1 ₾ TBC Live Test</Link>
-            <Link href="/admin/payments/readiness" className="ui-btn-secondary">TBC მზადყოფნა</Link>
-            <Link href="/admin" className="ui-btn-secondary">ადმინის მთავარი</Link>
+            <Link href="/admin/flitt-sandbox" className="ui-btn-primary">
+              Flitt validation
+            </Link>
+            <Link href="/admin/system" className="ui-btn-secondary">
+              System Status
+            </Link>
+            <Link href="/admin" className="ui-btn-secondary">
+              ადმინის მთავარი
+            </Link>
           </div>
         </div>
-        <form action={reconcilePendingPaymentsAction} className="mt-5">
-          <input type="hidden" name="nextPath" value="/admin/payments" />
-          <button className="ui-btn-secondary">მოლოდინში მყოფი TBC გადახდების გადამოწმება</button>
-        </form>
-      </section>
 
-      {flash ? <div className="mt-6 rounded-[1.2rem] border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">{flash}</div> : null}
+        <div className={
+          productionReady
+            ? "mt-5 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+            : "mt-5 rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        }>
+          <strong>Flitt production:</strong>{" "}
+          {productionReady
+            ? "LIVE / READY"
+            : flittConfigValid
+              ? `CHECK — mode: ${readiness?.mode ?? "unknown"}`
+              : "CHECK — configuration invalid"}
+        </div>
+      </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="მოლოდინში" value={pending} /><StatCard label="წარმატებული" value={succeeded} />
-        <StatCard label="წარუმატებელი" value={failed} /><StatCard label="დაბრუნებული" value={returned} />
-        <StatCard label="ღია refund" value={openRefunds} />
+        <StatCard label="Live სულ" value={totalResult.count ?? 0} />
+        <StatCard label="მოლოდინში" value={pendingResult.count ?? 0} />
+        <StatCard label="წარმატებული" value={approvedResult.count ?? 0} />
+        <StatCard label="წარუმატებელი" value={failedResult.count ?? 0} />
+        <StatCard label="დაბრუნებული" value={reversedResult.count ?? 0} />
       </section>
 
-      <p className="mt-5 text-sm text-text-soft">30 წუთზე მეტი ხნის მოლოდინში: {staleResult.count ?? 0} · ბოლო სინქრონიზაცია: {lastSyncResult.data?.[0]?.last_payment_sync_at ? formatDateOnly(lastSyncResult.data[0].last_payment_sync_at) : "ჯერ არ ჩატარებულა"}</p>
-      <form className="mt-6 flex flex-col gap-3 rounded-[1.5rem] border border-line bg-white p-4 sm:flex-row">
-        <input name="q" defaultValue={search} className="ui-input" placeholder="Order ID, TBC Payment ID, განცხადება ან მომხმარებელი" />
-        {activeStatus !== "all" ? <input type="hidden" name="status" value={activeStatus} /> : null}
-        <button className="ui-btn-primary">მოძებნა</button>
-      </form>
+      <section className="ui-card mt-6 p-5 sm:p-6">
+        <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px_auto]">
+          <input
+            name="q"
+            defaultValue={rawSearch}
+            className="ui-input"
+            placeholder="Order ID, Payment ID, user, purpose…"
+          />
+          <select name="status" defaultValue={activeStatus} className="ui-input">
+            {tabs.map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <button className="ui-btn-primary">გაფილტვრა</button>
+        </form>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {tabs.map(([key, label]) => <Link key={key} href={key === "all" ? "/admin/payments" : `/admin/payments?status=${key}`} className={activeStatus === key ? "ui-pill-soft" : "ui-pill"}>{label}</Link>)}
-      </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tabs.map(([key, label]) => {
+            const query = new URLSearchParams()
+            if (key !== "all") query.set("status", key)
+            if (rawSearch) query.set("q", rawSearch)
+            const href = query.toString()
+              ? `/admin/payments?${query.toString()}`
+              : "/admin/payments"
+            return (
+              <Link
+                key={key}
+                href={href}
+                className={activeStatus === key ? "ui-pill-soft" : "ui-pill"}
+              >
+                {label}
+              </Link>
+            )
+          })}
+        </div>
+      </section>
+
+      {queryError ? (
+        <div className="mt-6 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          Flitt payment data სრულად ვერ ჩაიტვირთა: {queryError.message}
+        </div>
+      ) : null}
 
       <section className="mt-6 space-y-4">
-        {visible.length ? visible.map((order) => {
-          const seller = sellerMap.get(order.seller_id)
-          const refund = refundMap.get(order.id)
-          return (
-            <article key={order.id} className="ui-card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="text-lg font-black text-text">{order.listing_boost_products?.name ?? order.product_id}</div>
-                  <div className="mt-1 text-sm text-text-soft">{order.listings?.title ?? order.listing_id} · {order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
+        {attempts.length ? attempts.map((attempt) => (
+          <article key={attempt.id} className="ui-card p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClass(attempt.status)}`}>
+                    {statusLabel(attempt.status)}
+                  </span>
+                  <span className="ui-pill !px-3 !py-1 text-xs">
+                    {purposeLabel(attempt.purpose)}
+                  </span>
+                  <span className="ui-pill !px-3 !py-1 text-xs">
+                    LIVE
+                  </span>
                 </div>
-                <Link href={`/admin/payments/${order.id}`} className="ui-btn-secondary">დეტალები</Link>
+                <div className="mt-3 text-xl font-black text-text">
+                  {formatAmount(attempt.amount, attempt.currency)}
+                </div>
+                <div className="mt-1 break-all font-mono text-xs text-text-soft">
+                  Order: {attempt.order_id}
+                </div>
               </div>
-              <div className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
-                <div><strong>Order:</strong> <span className="break-all font-mono text-xs">{order.id}</span></div>
-                <div><strong>Seller:</strong> {seller?.full_name || seller?.username || order.seller_id.slice(0, 8)}</div>
-                <div><strong>Provider:</strong> {order.payment_provider ?? order.payment_method}</div>
-                <div><strong>Internal:</strong> {order.status}</div>
-                <div><strong>TBC Payment ID:</strong> <span className="break-all">{order.provider_payment_id || "—"}</span></div>
-                <div><strong>სტატუსი:</strong> {tbcProviderStatusLabel(order.provider_status)}</div>
-                <div><strong>შეიქმნა:</strong> {formatDateOnly(order.created_at)}</div>
-                <div><strong>გადახდილია:</strong> {order.paid_at ? formatDateOnly(order.paid_at) : "—"}</div>
-                <div><strong>ბოლო sync:</strong> {order.last_payment_sync_at ? formatDateOnly(order.last_payment_sync_at) : "—"}</div>
-                <div><strong>Refund:</strong> {refundStatusLabel(refund?.status)}</div>
-                {order.cancelled_at ? <div><strong>გაუქმდა:</strong> {formatDateOnly(order.cancelled_at)}</div> : null}
-                {order.failure_reason ? <div className="text-red-800">{order.failure_reason}</div> : null}
+
+              <div className="flex flex-wrap gap-2">
+                {attempt.boost_order_id ? (
+                  <Link href="/admin/boosts" className="ui-btn-secondary">
+                    Boost-ების მართვა
+                  </Link>
+                ) : null}
+                {attempt.ad_order_id ? (
+                  <Link href="/admin/ads" className="ui-btn-secondary">
+                    რეკლამების მართვა
+                  </Link>
+                ) : null}
               </div>
-            </article>
-          )
-        }) : <div className="ui-card border-dashed p-8 text-sm text-text-soft">შესაბამისი გადახდა ვერ მოიძებნა</div>}
+            </div>
+
+            <div className="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Flitt Payment ID</strong>
+                <div className="mt-1 break-all text-text-soft">
+                  {attempt.provider_payment_id || "—"}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Provider status</strong>
+                <div className="mt-1 text-text-soft">
+                  {attempt.provider_status || "—"}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Response status</strong>
+                <div className="mt-1 text-text-soft">
+                  {attempt.response_status || "—"}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Callbacks</strong>
+                <div className="mt-1 text-text-soft">
+                  {attempt.callback_count ?? 0}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Provider verified</strong>
+                <div className="mt-1 text-text-soft">
+                  {formatDate(attempt.provider_verified_at)}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Verification source</strong>
+                <div className="mt-1 text-text-soft">
+                  {attempt.provider_verification_source || "—"}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Last callback</strong>
+                <div className="mt-1 text-text-soft">
+                  {formatDate(attempt.last_callback_at)}
+                </div>
+              </div>
+              <div className="rounded-[1rem] bg-surface-alt px-4 py-3">
+                <strong>Created</strong>
+                <div className="mt-1 text-text-soft">
+                  {formatDate(attempt.created_at)}
+                </div>
+              </div>
+            </div>
+          </article>
+        )) : (
+          <div className="ui-card border-dashed p-8 text-sm leading-7 text-text-soft">
+            ამ ფილტრებით Flitt live ტრანზაქცია ვერ მოიძებნა.
+          </div>
+        )}
       </section>
-      <nav className="mt-6 flex items-center gap-4" aria-label="გადახდების გვერდები">
-        {page > 1 ? <Link className="ui-btn-secondary" href={pageHref(page-1)}>წინა</Link> : null}
-        <span className="text-sm text-text-soft">გვერდი {page} · {total ?? 0} ჩანაწერი</span>
-        {(total ?? 0) > page * 50 ? <Link className="ui-btn-secondary" href={pageHref(page+1)}>შემდეგი</Link> : null}
-      </nav>
     </main>
   )
 }

@@ -30,7 +30,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     { count: pendingBoosts },
     { count: activeBoosts },
     { count: failedPayments },
-    { count: openRefunds },
+    { count: pendingFlittPayments },
     { count: pendingAds },
     { count: failedAdRefunds },
     { count: openSupportTickets },
@@ -49,10 +49,10 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_suspended", true),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("seller_type", "store"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").in("status", ["pending_payment", "under_review", "approved"]),
     supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("provider_status", "Failed"),
-    supabase.from("listing_boost_refund_requests").select("id", { count: "exact", head: true }).in("status", ["requested", "under_review", "approved", "provider_processing"]),
+    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").in("status", ["declined", "expired", "failed"]),
+    supabase.from("flitt_payment_attempts").select("id", { count: "exact", head: true }).eq("mode", "live").eq("status", "pending"),
     supabase.from("ads").select("id", { count: "exact", head: true }).eq("review_status", "pending"),
     supabase.from("ad_orders").select("id", { count: "exact", head: true }).eq("refund_status", "failed"),
     supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
@@ -91,13 +91,13 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
       label: "წარუმატებელი გადახდები",
       count: failedPayments ?? 0,
       href: "/admin/payments?status=failed",
-      detail: "Provider-ის Failed სტატუსის მქონე boost/payment ჩანაწერები.",
+      detail: "Flitt live ტრანზაქციები, რომლებიც declined, expired ან failed მდგომარეობაშია.",
     },
     {
-      label: "ღია refund მოთხოვნები",
-      count: openRefunds ?? 0,
-      href: "/admin/payments?status=refund",
-      detail: "Refund-ები, რომლებიც ჯერ საბოლოო მდგომარეობაში არ არის.",
+      label: "Flitt გადახდები მოლოდინში",
+      count: pendingFlittPayments ?? 0,
+      href: "/admin/payments?status=pending",
+      detail: "Flitt live ტრანზაქციები, რომლებიც provider-ის საბოლოო სტატუსს ჯერ ელოდება.",
     },
     {
       label: "რეკლამები განხილვისთვის",
@@ -268,7 +268,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           <div className="ui-eyebrow">VIP განთავსება</div>
           <h2 className="mt-3 text-2xl font-black text-text">გადახდისა და boost მოთხოვნების კონტროლი</h2>
           <div className="mt-4 space-y-3 text-sm leading-7 text-text-soft">
-            <p>• TBC Checkout სტატუსის ხელით გადამოწმება callback-ის დაგვიანების შემთხვევაში.</p>
+            <p>• Flitt live payment სტატუსების, callback-ებისა და provider verification-ის კონტროლი.</p>
             <p>• მოთხოვნის გააქტიურება, უარყოფა ან reviewing რეჟიმში გადატანა.</p>
             <p>• მთავარ ბლოკში featured პოზიციის მინიჭება კონკრეტულ განცხადებაზე.</p>
           </div>

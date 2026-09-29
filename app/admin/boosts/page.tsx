@@ -4,7 +4,7 @@ export const revalidate = 0
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import StatCard from "@/components/shared/StatCard"
-import { adminReviewBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
+import { adminReviewBoostOrderAction } from "@/app/dashboard/boosts/actions"
 import { boostProductName, boostStatusLabel, formatDateOnly, paymentMethodLabel } from "@/lib/boosts"
 import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { requireAdminUser } from "@/lib/auth"
@@ -40,11 +40,6 @@ function flashLabel(value?: string) {
     case "missing": return "აუცილებელი ველები აკლია."
     case "bad_product": return "არასწორი პროდუქტის კონფიგურაცია."
     case "invalid_status": return "ამ სტატუსის მქონე შეკვეთაზე მოქმედება აღარ შეიძლება."
-    case "tbc_sync_active": return "TBC სტატუსი განახლდა და boost უკვე აქტიურია."
-    case "tbc_sync_pending": return "TBC სტატუსი განახლდა, მაგრამ გადახდა ჯერ ისევ პროცესშია."
-    case "tbc_sync_failed": return "TBC სტატუსი განახლდა: გადახდა ვერ დასრულდა ან გაუქმდა."
-    case "tbc_sync_missing": return "TBC შეკვეთა ვერ მოიძებნა."
-    case "tbc_sync_unavailable": return "ამ ჩანაწერზე TBC სტატუსის გადამოწმება ხელმისაწვდომი არ არის."
     default: return value ? decodeURIComponent(value) : ""
   }
 }
@@ -95,7 +90,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
       updated_at,
       listings!inner(title, slug, cover_image_url, featured_slot),
       listing_boost_products!inner(name, placement, duration_days)
-    `).order("created_at", { ascending: false })
+    `).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").order("created_at", { ascending: false })
 
   const statusFilter = mapStatusFilter(activeTab)
   if (statusFilter) query = query.in("status", statusFilter)
@@ -103,11 +98,11 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
   const nowIso = new Date().toISOString()
   const [{ data: orders }, { count: totalCount }, { count: pendingCount }, { count: activeCount }, { count: completedCount }, { count: rejectedCount }] = await Promise.all([
     query,
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["pending_payment", "under_review", "approved"]),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "active").gt("ends_at", nowIso),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).eq("status", "expired"),
-    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).in("status", ["rejected", "cancelled"]),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").in("status", ["pending_payment", "under_review", "approved"]),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").eq("status", "active").gt("ends_at", nowIso),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").eq("status", "expired"),
+    supabase.from("listing_boost_orders").select("id", { count: "exact", head: true }).or("payment_provider.neq.tbc_checkout,payment_provider.is.null").in("status", ["rejected", "cancelled"]),
   ])
 
   const orderRows = (orders ?? []) as AdminBoostOrderRow[]
@@ -138,7 +133,7 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
             <div className="ui-eyebrow">ადმინისტრირება</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გაძლიერებების მართვა</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აქედან ამოწმებ VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის გადახდებს, ააქტიურებ ხელით მოთხოვნებს და სინქრონიზებ TBC სტატუსს.
+              აქედან ამოწმებ VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის მოთხოვნებს. Flitt გადახდები provider callback-ით ავტომატურად დასტურდება, ხელით მეთოდები კი admin review-ით იმართება.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -197,30 +192,19 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">დაწყება:</span> {order.starts_at ? formatDateOnly(order.starts_at) : "—"}</div>
                   <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">დასრულება:</span> {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
                   {order.payment_provider ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">არხი:</span> {order.payment_provider}</div> : null}
-                  {order.provider_status ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">TBC სტატუსი:</span> {order.provider_status}</div> : null}
+                  {order.provider_status ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">Provider სტატუსი:</span> {order.provider_status}</div> : null}
                   {order.checkout_session_started_at ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">Checkout დაიწყო:</span> {formatDateOnly(order.checkout_session_started_at)}</div> : null}
                   {order.last_payment_sync_at ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">ბოლო სინქი:</span> {formatDateOnly(order.last_payment_sync_at)}</div> : null}
                   {order.paid_at ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">გადახდილია:</span> {formatDateOnly(order.paid_at)}</div> : null}
                   {order.cancelled_at ? <div className="rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft"><span className="font-semibold text-text">გაუქმდა:</span> {formatDateOnly(order.cancelled_at)}</div> : null}
                 </div>
 
-                {order.failure_reason ? <div className="mt-3 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">TBC მიზეზი: {order.failure_reason}</div> : null}
+                {order.failure_reason ? <div className="mt-3 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">Payment მიზეზი: {order.failure_reason}</div> : null}
                 {order.notes ? <div className="mt-3 rounded-[1.2rem] bg-surface-alt px-4 py-3 text-sm text-text-soft">გამყიდველის შენიშვნა: {order.notes}</div> : null}
                 {order.admin_note ? <div className="mt-3 rounded-[1.2rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">ადმინის შენიშვნა: {order.admin_note}</div> : null}
               </div>
 
               <div className="space-y-3">
-                {order.payment_provider === "tbc_checkout" ? (
-                  <form action={refreshBoostOrderStatusAction} className="rounded-[1.25rem] border border-sky-200 bg-sky-50 p-4">
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <input type="hidden" name="nextPath" value={activeTab === "all" ? "/admin/boosts" : `/admin/boosts?status=${activeTab}`} />
-                    <input type="hidden" name="mode" value="admin" />
-                    <div className="text-sm font-semibold text-sky-900">TBC status sync</div>
-                    <p className="mt-2 text-sm leading-6 text-sky-900/80">თუ callback დაგვიანდა ან seller ამბობს რომ უკვე გადაიხადა, აქედან გადაამოწმე provider სტატუსი ხელით.</p>
-                    <button className="mt-3 ui-btn-secondary border-sky-300 text-sky-900 hover:bg-white">სტატუსის გადამოწმება</button>
-                  </form>
-                ) : null}
-
                 <form action={adminReviewBoostOrderAction} className="rounded-[1.25rem] border border-line bg-surface-alt p-4">
                   <input type="hidden" name="orderId" value={order.id} />
                   <input type="hidden" name="nextPath" value={activeTab === "all" ? "/admin/boosts" : `/admin/boosts?status=${activeTab}`} />
@@ -236,7 +220,13 @@ export default async function AdminBoostsPage({ searchParams }: { searchParams?:
                   <div className="mt-5 grid gap-2 sm:grid-cols-3">
                     <button name="decision" value="review" className="ui-btn-secondary">შემოწმება</button>
                     <button name="decision" value="reject" className="inline-flex items-center justify-center rounded-full border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50">უარყოფა</button>
-                    {order.payment_provider !== "tbc_checkout" ? <button name="decision" value="activate" className="ui-btn-primary">გააქტიურება</button> : <Link href={`/admin/payments/${order.id}`} className="ui-btn-secondary">გადახდის დეტალები</Link>}
+                    {order.payment_provider === "flitt" ? (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-xs font-bold text-emerald-800">
+                        Flitt ავტომატური დადასტურება
+                      </span>
+                    ) : (
+                      <button name="decision" value="activate" className="ui-btn-primary">გააქტიურება</button>
+                    )}
                   </div>
                 </form>
               </div>

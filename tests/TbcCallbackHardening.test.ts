@@ -4,13 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   enabled: vi.fn(() => true),
   sync: vi.fn(),
-  liveTestSync: vi.fn(),
 }))
 vi.mock("@/lib/tbc", () => ({ isTbcCheckoutEnabled: mocks.enabled }))
 vi.mock("@/lib/tbc-sync", () => ({ syncBoostOrderFromTbcByPayId: mocks.sync }))
-vi.mock("@/lib/tbc-admin-live-test", () => ({
-  syncTbcAdminLiveTestByPayId: mocks.liveTestSync,
-}))
 
 const route = readFileSync("app/api/tbc/checkout/callback/route.ts", "utf8")
 
@@ -18,7 +14,6 @@ describe("TBC callback boundary", () => {
   beforeEach(() => {
     mocks.enabled.mockReturnValue(true)
     mocks.sync.mockReset().mockResolvedValue({ outcome: "applied" })
-    mocks.liveTestSync.mockReset().mockResolvedValue({ matched: false })
   })
 
   it("bounds and validates the provider payload", () => {
@@ -29,45 +24,29 @@ describe("TBC callback boundary", () => {
 
   it("does not return internal exception details to the caller", () => {
     expect(route).toContain('error: "Callback processing failed"')
-    expect(route).not.toContain('error: message')
+    expect(route).not.toContain("error: message")
   })
 
-  it("checks only the isolated live-test registry while public checkout is disabled", async () => {
+  it("does not parse or sync callbacks while checkout is disabled", async () => {
     mocks.enabled.mockReturnValue(false)
     const { POST } = await import("@/app/api/tbc/checkout/callback/route")
     const response = await POST(new Request("https://samosell.ge/api/tbc/checkout/callback", {
-      method: "POST", body: JSON.stringify({ PaymentId: "payment-1" }),
+      method: "POST",
+      body: JSON.stringify({ PaymentId: "payment-1" }),
       headers: { "content-type": "application/json" },
     }))
     expect(response.status).toBe(503)
-    expect(mocks.liveTestSync).toHaveBeenCalledWith("payment-1", "callback")
-    expect(mocks.sync).not.toHaveBeenCalled()
-  })
-
-  it("accepts a known admin live-test callback while public checkout is disabled", async () => {
-    mocks.enabled.mockReturnValue(false)
-    mocks.liveTestSync.mockResolvedValue({
-      matched: true,
-      status: "succeeded",
-      providerStatus: "Succeeded",
-    })
-    const { POST } = await import("@/app/api/tbc/checkout/callback/route")
-    const response = await POST(new Request("https://samosell.ge/api/tbc/checkout/callback", {
-      method: "POST", body: JSON.stringify({ PaymentId: "payment-1" }),
-      headers: { "content-type": "application/json" },
-    }))
-    expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({ ok: true, liveTest: true })
     expect(mocks.sync).not.toHaveBeenCalled()
   })
 
   it("rejects malformed callback payloads without provider access", async () => {
     const { POST } = await import("@/app/api/tbc/checkout/callback/route")
     const response = await POST(new Request("https://samosell.ge/api/tbc/checkout/callback", {
-      method: "POST", body: "not-json", headers: { "content-type": "application/json" },
+      method: "POST",
+      body: "not-json",
+      headers: { "content-type": "application/json" },
     }))
     expect(response.status).toBe(400)
-    expect(mocks.liveTestSync).not.toHaveBeenCalled()
     expect(mocks.sync).not.toHaveBeenCalled()
   })
 
@@ -81,22 +60,23 @@ describe("TBC callback boundary", () => {
       },
     })
     const response = await POST(new Request("https://samosell.ge/api/tbc/checkout/callback", {
-      method: "POST", body, duplex: "half",
+      method: "POST",
+      body,
+      duplex: "half",
     } as RequestInit & { duplex: "half" }))
     expect(response.status).toBe(413)
-    expect(mocks.liveTestSync).not.toHaveBeenCalled()
     expect(mocks.sync).not.toHaveBeenCalled()
   })
 
   it("accepts a valid payment id and returns no provider details", async () => {
     const { POST } = await import("@/app/api/tbc/checkout/callback/route")
     const response = await POST(new Request("https://samosell.ge/api/tbc/checkout/callback", {
-      method: "POST", body: "PaymentId=payment-1",
+      method: "POST",
+      body: "PaymentId=payment-1",
       headers: { "content-type": "application/x-www-form-urlencoded" },
     }))
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ ok: true })
-    expect(mocks.liveTestSync).toHaveBeenCalledWith("payment-1", "callback")
     expect(mocks.sync).toHaveBeenCalledWith("payment-1", "callback")
   })
 })
