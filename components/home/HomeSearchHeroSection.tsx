@@ -25,7 +25,7 @@ export default function HomeSearchHeroSection({
   }))
 
   return (
-    <section className="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_15%,rgba(40,170,153,0.22),transparent_32%),linear-gradient(135deg,#eff8f6_0%,#f9fbfa_54%,#e5f1ee_100%)]">
+    <section className="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_84%_14%,rgba(255,122,0,0.10),transparent_27%),radial-gradient(circle_at_15%_82%,rgba(40,170,153,0.15),transparent_30%),linear-gradient(135deg,#eff8f6_0%,#fbfcfb_54%,#e9f3f0_100%)]">
       <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:py-16 lg:min-h-[590px] lg:grid-cols-[0.7fr_1.3fr] lg:gap-12">
         <div className="max-w-2xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">{ka.home.eyebrow}</p>
@@ -44,9 +44,9 @@ export default function HomeSearchHeroSection({
           {carouselItems.length > 0 ? (
             <HeroListingCarousel items={carouselItems} />
           ) : (
-            <div className="relative mx-auto flex h-full max-w-[620px] overflow-hidden rounded-[32px] border border-[#e8c778]/55 bg-[radial-gradient(circle_at_85%_15%,rgba(246,217,142,0.2),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
+            <div className="relative mx-auto flex h-full max-w-[620px] overflow-hidden rounded-[32px] border border-[#ff7a00]/20 bg-[radial-gradient(circle_at_85%_15%,rgba(255,122,0,0.12),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
               <div className="relative z-10 flex max-w-sm flex-col justify-end">
-                <span className="w-fit rounded-full border border-[#f6d98e]/55 bg-white/5 px-4 py-2 text-xs font-black tracking-[0.18em] text-[#f6d98e]">
+                <span className="w-fit rounded-full border border-[#ff7a00]/45 bg-white/5 px-4 py-2 text-xs font-black tracking-[0.18em] text-[#ffb066]">
                   VIP MAX სივრცე
                 </span>
                 <h2 className="mt-5 text-3xl font-black leading-tight tracking-[-0.035em] sm:text-4xl">
@@ -57,13 +57,13 @@ export default function HomeSearchHeroSection({
                 </p>
                 <Link
                   href="/dashboard/listings"
-                  className="mt-7 inline-flex min-h-12 w-fit items-center justify-center rounded-xl bg-[#f6d98e] px-6 text-sm font-black text-[#073f3b] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="mt-7 inline-flex min-h-12 w-fit items-center justify-center rounded-xl bg-[#ff7a00] px-6 text-sm font-black text-[#073f3b] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
                   გააქტიურე VIP MAX
                 </Link>
               </div>
-              <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#f6d98e]/20" />
-              <div aria-hidden="true" className="absolute -right-3 top-16 h-32 w-32 rounded-full border border-[#f6d98e]/15" />
+              <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#ff7a00]/20" />
+              <div aria-hidden="true" className="absolute -right-3 top-16 h-32 w-32 rounded-full border border-[#ff7a00]/15" />
             </div>
           )}
         </div>
