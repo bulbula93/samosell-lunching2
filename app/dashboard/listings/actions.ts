@@ -13,6 +13,7 @@ import {
 } from "@/lib/my-listings"
 import { enforceRateLimit } from "@/lib/rate-limit"
 import { isValidSellerPhone } from "@/lib/phone"
+import { notifyAdminNewListing } from "@/lib/admin-activity-email"
 
 function buildRedirect(filter: string, result: string) {
   const search = new URLSearchParams()
@@ -266,7 +267,7 @@ export async function updateListingStatusAction(
 
   const { data: ownedListing, error: lookupError } = await supabase
     .from("listings")
-    .select("id, slug, status, updated_at, published_at")
+    .select("id, slug, title, price, currency, status, updated_at, published_at")
     .eq("id", listingId)
     .eq("seller_id", user.id)
     .maybeSingle()
@@ -392,6 +393,22 @@ export async function updateListingStatusAction(
       code: "conflict",
       message: "განცხადება უკვე შეიცვალა. განაახლე გვერდი და სცადე ხელახლა.",
     }
+  }
+
+  if (
+    updatedListing.status === "active" &&
+    !ownedListing.published_at &&
+    ownedListing.slug
+  ) {
+    await notifyAdminNewListing({
+      listingId,
+      slug: ownedListing.slug,
+      title: ownedListing.title,
+      price: ownedListing.price,
+      currency: ownedListing.currency,
+      sellerId: user.id,
+      sellerEmail: user.email,
+    })
   }
 
   revalidatePath("/")
