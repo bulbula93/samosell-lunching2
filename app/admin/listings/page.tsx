@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { adminListingAction } from "@/app/admin/actions"
 import { requireAdminUser } from "@/lib/auth"
 import StatCard from "@/components/shared/StatCard"
 
@@ -19,8 +20,14 @@ function statusLabel(status: string) {
       return "აქტიური"
     case "draft":
       return "დრაფტი"
+    case "pending_review":
+      return "შემოწმებაში"
+    case "reserved":
+      return "დაჯავშნილი"
     case "archived":
       return "არქივი"
+    case "rejected":
+      return "უარყოფილი"
     case "sold":
       return "გაყიდული"
     default:
@@ -31,11 +38,18 @@ function statusLabel(status: string) {
 export default async function AdminListingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string | string[]; status?: string | string[] }>
+  searchParams?: Promise<{
+    q?: string | string[]
+    status?: string | string[]
+    ok?: string | string[]
+    error?: string | string[]
+  }>
 }) {
   const params = (await searchParams) ?? {}
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 80) : ""
   const status = typeof params.status === "string" ? params.status : "all"
+  const ok = typeof params.ok === "string" ? params.ok : ""
+  const error = typeof params.error === "string" ? params.error : ""
   const { supabase } = await requireAdminUser("/dashboard")
 
   let listingsQuery = supabase
@@ -93,14 +107,31 @@ export default async function AdminListingsPage({
               განცხადებების მართვა
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              ყველა განცხადების ერთიანი ხედვა სტატუსით, გამყიდველით, VIP ნიშნით და ჩართულობის ძირითადი მაჩვენებლებით.
+              ყველა განცხადების ერთიანი ხედვა და კონტროლი. დამალვა/აღდგენა სრულდება ატომურად და ავტომატურად იწერება Admin Audit Log-ში.
             </p>
           </div>
-          <Link href="/admin" className="ui-btn-secondary">
-            ადმინისტრირების მთავარი
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/audit" className="ui-btn-secondary">
+              Audit Log
+            </Link>
+            <Link href="/admin" className="ui-btn-secondary">
+              ადმინისტრირების მთავარი
+            </Link>
+          </div>
         </div>
       </section>
+
+      {ok ? (
+        <div className="mt-6 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {ok}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mt-6 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      ) : null}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="სულ განცხადებები" value={allCount.count ?? 0} />
@@ -121,7 +152,10 @@ export default async function AdminListingsPage({
             <option value="all">ყველა სტატუსი</option>
             <option value="active">აქტიური</option>
             <option value="draft">დრაფტი</option>
+            <option value="pending_review">შემოწმებაში</option>
+            <option value="reserved">დაჯავშნილი</option>
             <option value="archived">არქივი</option>
+            <option value="rejected">უარყოფილი</option>
             <option value="sold">გაყიდული</option>
           </select>
           <button className="ui-btn-primary">გაფილტვრა</button>
@@ -141,10 +175,12 @@ export default async function AdminListingsPage({
             const sellerName =
               seller?.full_name || seller?.username || "უცნობი გამყიდველი"
             const currency = listing.currency === "GEL" ? "₾" : listing.currency
+            const canHide = listing.status === "active" || listing.status === "reserved"
+            const canRestore = listing.status === "archived"
 
             return (
               <article key={listing.id} className="ui-card p-5 sm:p-6">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="ui-pill !px-3 !py-1 text-xs">
@@ -183,19 +219,60 @@ export default async function AdminListingsPage({
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3">
-                    <Link
-                      href={`/listing/${listing.slug}`}
-                      className="ui-btn-primary text-center"
-                    >
-                      განცხადების გახსნა
-                    </Link>
-                    <Link
-                      href={`/admin/reports?kind=listing&status=all`}
-                      className="ui-btn-secondary text-center"
-                    >
-                      რეპორტების გადამოწმება
-                    </Link>
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      <Link
+                        href={`/listing/${listing.slug}`}
+                        className="ui-btn-primary text-center"
+                      >
+                        განცხადების გახსნა
+                      </Link>
+                      <Link
+                        href="/admin/reports?kind=listing&status=all"
+                        className="ui-btn-secondary text-center"
+                      >
+                        რეპორტები
+                      </Link>
+                    </div>
+
+                    {(canHide || canRestore) ? (
+                      <form action={adminListingAction} className="rounded-[1.2rem] border border-line bg-surface-alt p-4">
+                        <input type="hidden" name="listingId" value={listing.id} />
+                        <label className="mb-2 block text-sm font-semibold text-text">
+                          Admin შენიშვნა
+                        </label>
+                        <textarea
+                          name="adminNote"
+                          maxLength={2000}
+                          className="min-h-20 w-full rounded-[1rem] border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                          placeholder="რატომ იცვლება სტატუსი? (არასავალდებულო)"
+                        />
+                        {canHide ? (
+                          <button
+                            name="decision"
+                            value="hide"
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                          >
+                            განცხადების დამალვა
+                          </button>
+                        ) : (
+                          <button
+                            name="decision"
+                            value="restore"
+                            disabled={seller?.is_suspended}
+                            className="ui-btn-secondary mt-3 w-full disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            განცხადების აღდგენა
+                          </button>
+                        )}
+                        {canRestore ? (
+                          <p className="mt-2 text-xs leading-5 text-text-soft">
+                            აღდგენა მუშაობს მხოლოდ იმ განცხადებაზე, რომელიც ამ Admin Panel-იდან იყო დამალული. შეზღუდული seller-ის განცხადება არ აღდგება.
+                          </p>
+                        ) : null}
+                      </form>
+                    ) : null}
+
                     <div className="rounded-[1rem] border border-line px-4 py-3 text-xs leading-5 text-text-soft">
                       ID: {listing.public_id || listing.id}
                     </div>
