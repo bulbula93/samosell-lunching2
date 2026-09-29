@@ -88,7 +88,7 @@ describe("TBC admin one-lari live test", () => {
   })
 
   it("requires admin auth for creation, sync and refund actions", () => {
-    expect(actions.match(/requireAdminUser\("/dashboard"\)/g)?.length).toBe(
+    expect(actions.split('requireAdminUser("/dashboard")').length - 1).toBe(
       3,
     )
     expect(actions).toContain("createTbcAdminLiveTestPayment")
