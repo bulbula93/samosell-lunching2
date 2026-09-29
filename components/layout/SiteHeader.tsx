@@ -7,13 +7,6 @@ import { getUserAvatar } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/server"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 
-const categoryLabelOverrides: Record<string, string> = {
-  women: "ქალებისთვის",
-  men: "მამაკაცებისთვის",
-  accessories: "აქსესუარები",
-  vintage: "ვინტაჟი",
-}
-
 const supportingItems: MarketplaceNavItem[] = [
   { label: "ბავშვებისთვის", href: "/catalog?category=kids" },
   { label: getCatalogItemLabel("footwear"), href: "/catalog?category=footwear" },
@@ -25,13 +18,15 @@ export const getMarketplaceNavigationItems = unstable_cache(
     const supabase = createPublicServerClient()
     const { data } = await supabase
       .from("categories")
-      .select("slug, name")
+      .select("slug, name, navigation_label, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
       .order("id", { ascending: true })
 
     const databaseItems = (data ?? [])
       .filter((item) => item.slug && item.name)
       .map((item) => ({
-        label: categoryLabelOverrides[item.slug] || item.name,
+        label: item.navigation_label || item.name,
         href: `/catalog?category=${encodeURIComponent(item.slug)}`,
       }))
 
