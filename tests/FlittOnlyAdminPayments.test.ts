@@ -47,13 +47,27 @@ describe("Flitt-only admin payment operations", () => {
     expect(system).not.toContain("TBC site")
   })
 
-  it("drives payment alerts from live Flitt attempts", () => {
+  it("drives operational payment alerts only from real Flitt attempts", () => {
     expect(dashboard).toContain('from("flitt_payment_attempts")')
     expect(dashboard).toContain('.eq("mode", "live")')
-    expect(dashboard).toContain("Flitt გადახდები მოლოდინში")
+    expect(dashboard).toContain('.neq("purpose", "sandbox_test")')
+    expect(dashboard).toContain("Flitt stale გადახდები")
+    expect(dashboard).toContain("stalePaymentCutoff")
+    expect(dashboard).toContain('.lte("created_at", stalePaymentCutoff)')
     expect(dashboard).toContain(
       '.or("payment_provider.neq.tbc_checkout,payment_provider.is.null")',
     )
+  })
+
+  it("separates validation from real payments and marks stale real pending attempts", () => {
+    expect(payments).toContain('["payments", "რეალური გადახდები"]')
+    expect(payments).toContain('["validation", "Validation"]')
+    expect(payments).toContain('attempt.purpose !== "sandbox_test"')
+    expect(payments).toContain('attempt.purpose === "sandbox_test"')
+    expect(payments).toContain("STALE_PAYMENT_MINUTES = 30")
+    expect(payments).toContain("30 წუთზე მეტი pending")
+    expect(payments).toContain('.neq("purpose", "sandbox_test")')
+    expect(payments).toContain('.eq("purpose", "sandbox_test")')
   })
 
   it("removes active TBC operations from boost management", () => {
