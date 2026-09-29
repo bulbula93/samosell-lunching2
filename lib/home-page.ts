@@ -136,7 +136,7 @@ export const getPublicHomePageData = unstable_cache(
       throw new Error(`home_public_data_unavailable:${message}`)
     }
 
-    const rows = (response.data ?? []) as HomeListingRow[]
+    const rows = (response.data ?? []) as unknown as HomeListingRow[]
     const newestFirst = [...rows].sort(
       (a, b) => dateValue(b.published_at) - dateValue(a.published_at),
     )
