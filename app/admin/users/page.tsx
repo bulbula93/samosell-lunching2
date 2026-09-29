@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { adminUserAction } from "@/app/admin/actions"
 import { requireAdminUser } from "@/lib/auth"
 import StatCard from "@/components/shared/StatCard"
 
@@ -18,11 +19,18 @@ type UserFilter = "all" | "suspended" | "stores" | "admins"
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string | string[]; filter?: string | string[] }>
+  searchParams?: Promise<{
+    q?: string | string[]
+    filter?: string | string[]
+    ok?: string | string[]
+    error?: string | string[]
+  }>
 }) {
   const params = (await searchParams) ?? {}
   const q = typeof params.q === "string" ? params.q.trim().toLocaleLowerCase("ka-GE").slice(0, 80) : ""
   const requestedFilter = typeof params.filter === "string" ? params.filter : "all"
+  const ok = typeof params.ok === "string" ? params.ok : ""
+  const error = typeof params.error === "string" ? params.error : ""
   const filter: UserFilter =
     requestedFilter === "suspended" ||
     requestedFilter === "stores" ||
@@ -30,7 +38,7 @@ export default async function AdminUsersPage({
       ? requestedFilter
       : "all"
 
-  const { supabase } = await requireAdminUser("/dashboard")
+  const { supabase, user } = await requireAdminUser("/dashboard")
 
   const [
     profilesResponse,
@@ -93,14 +101,31 @@ export default async function AdminUsersPage({
               მომხმარებლების მართვა
             </h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              მომხმარებლების, მაღაზიების, ადმინისტრატორებისა და შეზღუდული ანგარიშების ერთიანი ოპერაციული ხედვა.
+              მომხმარებლის შეზღუდვა/აღდგენა და seller verification სრულდება ატომურად და თითოეული მოქმედება Admin Audit Log-ში იწერება.
             </p>
           </div>
-          <Link href="/admin" className="ui-btn-secondary">
-            ადმინისტრირების მთავარი
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/audit" className="ui-btn-secondary">
+              Audit Log
+            </Link>
+            <Link href="/admin" className="ui-btn-secondary">
+              ადმინისტრირების მთავარი
+            </Link>
+          </div>
         </div>
       </section>
+
+      {ok ? (
+        <div className="mt-6 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {ok}
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mt-6 rounded-[1.2rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+        </div>
+      ) : null}
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="სულ მომხმარებლები" value={allCount.count ?? 0} />
@@ -139,10 +164,11 @@ export default async function AdminUsersPage({
             const stats = listingStats.get(profile.id) ?? { all: 0, active: 0 }
             const displayName =
               profile.full_name || profile.username || "სახელი მითითებული არ არის"
+            const isSelf = profile.id === user.id
 
             return (
               <article key={profile.id} className="ui-card p-5 sm:p-6">
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="ui-pill !px-3 !py-1 text-xs">
@@ -159,6 +185,11 @@ export default async function AdminUsersPage({
                       {profile.is_suspended ? (
                         <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
                           შეზღუდული
+                        </span>
+                      ) : null}
+                      {isSelf ? (
+                        <span className="rounded-full border border-line bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft">
+                          შენი ანგარიში
                         </span>
                       ) : null}
                     </div>
@@ -184,25 +215,80 @@ export default async function AdminUsersPage({
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3">
-                    {profile.username ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                      {profile.username ? (
+                        <Link
+                          href={`/seller/${encodeURIComponent(profile.username)}`}
+                          className="ui-btn-primary text-center"
+                        >
+                          საჯარო პროფილის გახსნა
+                        </Link>
+                      ) : (
+                        <div className="rounded-full border border-line bg-surface-alt px-5 py-3 text-center text-sm font-semibold text-text-soft">
+                          საჯარო პროფილი მიუწვდომელია — username არ აქვს
+                        </div>
+                      )}
                       <Link
-                        href={`/seller/${encodeURIComponent(profile.username)}`}
-                        className="ui-btn-primary text-center"
+                        href="/admin/reports?kind=user&status=all"
+                        className="ui-btn-secondary text-center"
                       >
-                        საჯარო პროფილის გახსნა
+                        მომხმარებლის რეპორტები
                       </Link>
-                    ) : (
-                      <div className="rounded-full border border-line bg-surface-alt px-5 py-3 text-center text-sm font-semibold text-text-soft">
-                        საჯარო პროფილი მიუწვდომელია — username არ აქვს
+                    </div>
+
+                    <form action={adminUserAction} className="rounded-[1.2rem] border border-line bg-surface-alt p-4">
+                      <input type="hidden" name="userId" value={profile.id} />
+                      <label className="mb-2 block text-sm font-semibold text-text">
+                        Admin შენიშვნა
+                      </label>
+                      <textarea
+                        name="adminNote"
+                        maxLength={2000}
+                        className="min-h-20 w-full rounded-[1rem] border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                        placeholder="მოქმედების მიზეზი (არასავალდებულო)"
+                      />
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {profile.is_suspended ? (
+                          <button name="decision" value="restore" className="ui-btn-secondary">
+                            შეზღუდვის მოხსნა
+                          </button>
+                        ) : (
+                          <button
+                            name="decision"
+                            value="suspend"
+                            disabled={profile.is_admin || isSelf}
+                            className="inline-flex items-center justify-center rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            მომხმარებლის შეზღუდვა
+                          </button>
+                        )}
+
+                        {profile.is_seller_verified ? (
+                          <button name="decision" value="unverify" className="ui-btn-secondary">
+                            ვერიფიკაციის მოხსნა
+                          </button>
+                        ) : (
+                          <button name="decision" value="verify" className="ui-btn-primary">
+                            seller-ის ვერიფიკაცია
+                          </button>
+                        )}
                       </div>
-                    )}
-                    <Link
-                      href="/admin/reports?kind=user&status=all"
-                      className="ui-btn-secondary text-center"
-                    >
-                      მომხმარებლის რეპორტები
-                    </Link>
+
+                      {profile.is_admin || isSelf ? (
+                        <p className="mt-2 text-xs leading-5 text-text-soft">
+                          Admin ანგარიშის ან საკუთარი ანგარიშის suspend ამ პანელიდან დაბლოკილია.
+                        </p>
+                      ) : null}
+
+                      {profile.is_suspended ? (
+                        <p className="mt-2 text-xs leading-5 text-text-soft">
+                          შეზღუდვის მოხსნა ანგარიშს აღადგენს, მაგრამ suspend-ის დროს დაარქივებული განცხადებები ავტომატურად არ გამოქვეყნდება.
+                        </p>
+                      ) : null}
+                    </form>
+
                     <div className="rounded-[1rem] border border-line px-4 py-3 text-xs leading-5 text-text-soft">
                       User ID: {profile.id}
                     </div>
