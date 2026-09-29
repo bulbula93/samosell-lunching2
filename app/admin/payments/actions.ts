@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { redirect, unstable_rethrow } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
+import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
+import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
+import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { isTbcCheckoutEnabled } from "@/lib/tbc"
 import { requestProviderRefund } from "@/lib/tbc-refunds"
@@ -35,6 +38,128 @@ function revalidatePaymentViews() {
   revalidatePath("/admin/payments")
   revalidatePath("/admin/payments/[orderId]", "page")
   revalidatePath("/dashboard/billing")
+}
+
+
+type FlittAttemptRow = {
+  id: string
+  order_id: string
+  boost_order_id: string | null
+  ad_order_id: string | null
+  amount: number
+  currency: string
+  merchant_id: string
+  provider_payment_id: string | null
+  status: FlittAttemptStatus
+  mode: string
+  purpose: string
+  provider_verified_at: string | null
+  provider_verification_source: string | null
+}
+
+export async function refreshFlittPaymentAttemptAction(formData: FormData) {
+  await requireAdminUser("/dashboard")
+
+  const attemptId = String(formData.get("attemptId") ?? "").trim()
+  const nextPath = String(formData.get("nextPath") ?? "/admin/payments")
+  if (!UUID_PATTERN.test(attemptId)) paymentsRedirect(nextPath, "flitt_check_invalid")
+
+  const trustedClient = createAdminClient()
+  const { data, error } = await trustedClient
+    .from("flitt_payment_attempts")
+    .select(
+      "id, order_id, boost_order_id, ad_order_id, amount, currency, merchant_id, provider_payment_id, status, mode, purpose, provider_verified_at, provider_verification_source",
+    )
+    .eq("id", attemptId)
+    .maybeSingle()
+
+  if (error || !data) paymentsRedirect(nextPath, "flitt_check_missing")
+
+  const attempt = data as FlittAttemptRow
+  if (attempt.mode !== "live" || !["sandbox_test", "boost_order", "ad_order"].includes(attempt.purpose)) {
+    paymentsRedirect(nextPath, "flitt_check_unsupported")
+  }
+
+  try {
+    const verified = await fetchFlittOrderStatus({
+      orderId: attempt.order_id,
+      amount: attempt.amount,
+      currency: attempt.currency,
+      merchantId: attempt.merchant_id,
+      providerPaymentId: attempt.provider_payment_id,
+      status: attempt.status,
+    })
+
+    const now = new Date().toISOString()
+    const approved = verified.nextStatus === "approved"
+      && verified.providerStatus.toLowerCase() === "approved"
+      && verified.responseStatus.toLowerCase() === "success"
+
+    const { error: updateError } = await trustedClient
+      .from("flitt_payment_attempts")
+      .update({
+        provider_payment_id: attempt.provider_payment_id ?? verified.paymentId,
+        status: verified.nextStatus,
+        provider_status: verified.providerStatus || null,
+        response_status: verified.responseStatus || null,
+        provider_verified_at: approved ? now : attempt.provider_verified_at,
+        provider_verification_source: approved
+          ? "admin_status_api"
+          : attempt.provider_verification_source,
+        updated_at: now,
+      })
+      .eq("id", attempt.id)
+      .eq("order_id", attempt.order_id)
+
+    if (updateError) throw updateError
+
+    if (attempt.purpose === "boost_order" && attempt.boost_order_id) {
+      if (verified.nextStatus === "approved") {
+        await finalizeFlittBoostPayment(attempt.boost_order_id)
+      } else if (verified.nextStatus === "reversed") {
+        await reverseFlittBoostPayment(attempt.boost_order_id)
+      }
+    }
+
+    if (attempt.purpose === "ad_order" && attempt.ad_order_id) {
+      if (verified.nextStatus === "approved") {
+        await finalizeFlittAdPayment(attempt.ad_order_id)
+      } else if (verified.nextStatus === "reversed") {
+        await reverseFlittAdPayment(attempt.ad_order_id)
+      } else if (["declined", "expired", "failed"].includes(verified.nextStatus)) {
+        await failFlittAdPayment(attempt.ad_order_id)
+      }
+    }
+
+    revalidatePath("/admin/payments")
+    revalidatePath("/admin")
+    revalidatePath("/admin/boosts")
+    revalidatePath("/admin/ads")
+    revalidatePath("/dashboard/billing")
+    revalidatePath("/dashboard/ads")
+
+    const status = verified.nextStatus
+    const flash = status === "approved"
+      ? "flitt_check_approved"
+      : status === "reversed"
+        ? "flitt_check_reversed"
+        : status === "declined"
+          ? "flitt_check_declined"
+          : status === "expired"
+            ? "flitt_check_expired"
+            : status === "failed"
+              ? "flitt_check_failed_status"
+              : "flitt_check_processing"
+
+    paymentsRedirect(nextPath, flash)
+  } catch (error) {
+    unstable_rethrow(error)
+    console.error("[flitt] admin status check failed", {
+      attemptId,
+      message: error instanceof Error ? error.message : "unknown_error",
+    })
+    paymentsRedirect(nextPath, "flitt_check_error")
+  }
 }
 
 export async function reconcilePendingPaymentsAction(formData: FormData) {
