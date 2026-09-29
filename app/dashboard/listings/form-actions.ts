@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { enforceRateLimit } from "@/lib/rate-limit"
+import { notifyAdminNewListing } from "@/lib/admin-activity-email"
 import {
   detectListingImageMimeType,
   EDITABLE_LISTING_STATUSES,
@@ -587,6 +588,22 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
             )
         : []
     const cleanupWarning = await removeUploadedPaths(supabase, removedStoragePaths)
+
+    const firstPublication =
+      status === "active" &&
+      (input.mode === "create" || !ownedListing?.published_at)
+
+    if (firstPublication) {
+      await notifyAdminNewListing({
+        listingId: input.listingId,
+        slug,
+        title: data.title,
+        price: data.price,
+        currency: "GEL",
+        sellerId: user.id,
+        sellerEmail: user.email,
+      })
+    }
 
     revalidatePath("/")
     revalidatePath("/catalog")

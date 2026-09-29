@@ -1,6 +1,7 @@
 import "server-only"
 
 import { createAdminClient } from "@/lib/supabase/admin"
+import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
 
 export type FlittBoostFinalizeResult = {
   order_id: string
@@ -28,7 +29,13 @@ export async function finalizeFlittBoostPayment(orderId: string) {
   })
 
   if (error) throw error
-  return data as FlittBoostFinalizeResult
+  const result = data as FlittBoostFinalizeResult
+
+  if (result.activated) {
+    await notifyAdminBoostPurchase(safeOrderId, "Flitt")
+  }
+
+  return result
 }
 
 export async function reverseFlittBoostPayment(orderId: string) {
