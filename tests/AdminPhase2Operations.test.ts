@@ -17,7 +17,7 @@ describe("admin phase 2 operations", () => {
     expect(adminSource).toContain("operationalAlerts")
     expect(adminSource).toContain("24სთ+ მოდერაციის backlog")
     expect(adminSource).toContain("წარუმატებელი გადახდები")
-    expect(adminSource).toContain("ღია refund მოთხოვნები")
+    expect(adminSource).toContain("Flitt გადახდები მოლოდინში")
     expect(adminSource).toContain("რეკლამები განხილვისთვის")
     expect(adminSource).toContain("არასრულად შევსებული მაღაზიები")
   })
