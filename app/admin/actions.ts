@@ -95,7 +95,8 @@ export async function adminUserAction(formData: FormData) {
   const userId = String(formData.get("userId") || "")
   const action = String(formData.get("decision") || "")
   const note = safeNote(formData)
-  const adminPath = "/admin/users"
+  const requestedReturnPath = String(formData.get("returnPath") || "")
+  const adminPath = requestedReturnPath === "/admin/stores" ? "/admin/stores" : "/admin/users"
 
   if (
     !isUuid(userId) ||
@@ -120,6 +121,7 @@ export async function adminUserAction(formData: FormData) {
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/users")
+  revalidatePath("/admin/stores")
   revalidatePath("/admin/listings")
   revalidatePath("/admin/audit")
 
