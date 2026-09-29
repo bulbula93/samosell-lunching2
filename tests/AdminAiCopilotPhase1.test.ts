@@ -92,8 +92,6 @@ describe("Admin AI Copilot Phase 1", () => {
     expect(agentClient).toContain("JSON.stringify({ message: clean, history })")
     expect(agentClient).toContain("AI CONNECTED")
     expect(agentClient).toContain("DETERMINISTIC FALLBACK")
-    expect(agentClient).toContain("Sensitive")
-      .not
-      .toBeUndefined()
+    expect(agentClient).toContain("private content")
   })
 })
