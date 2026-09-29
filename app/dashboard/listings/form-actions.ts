@@ -172,7 +172,7 @@ async function validateLookupValues(
   const fieldErrors: ListingFieldErrors = {}
   if (
     !categoryResult.data ||
-    (!categoryResult.data.is_active && categoryId !== allowedInactiveCategoryId)
+    (categoryResult.data.is_active === false && categoryId !== allowedInactiveCategoryId)
   ) {
     fieldErrors.categoryId = "არჩეული კატეგორია აღარ არის ხელმისაწვდომი."
   }
