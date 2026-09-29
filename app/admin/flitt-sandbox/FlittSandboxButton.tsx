@@ -2,7 +2,13 @@
 
 import { useState } from "react"
 
-export default function FlittSandboxButton() {
+export default function FlittSandboxButton({
+  mode,
+  amountMinor,
+}: {
+  mode: "test" | "live"
+  amountMinor: number
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -13,7 +19,7 @@ export default function FlittSandboxButton() {
       const response = await fetch("/api/payments/flitt/test/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 100 }),
+        body: JSON.stringify({ amount: amountMinor }),
       })
       const payload = await response.json() as { checkoutUrl?: string; error?: string }
       if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error || "checkout_failed")
@@ -24,6 +30,11 @@ export default function FlittSandboxButton() {
     }
   }
 
+  const amountGel = (amountMinor / 100).toFixed(2)
+  const label = mode === "live"
+    ? `რეალური Flitt ტრანზაქცია — ${amountGel} GEL`
+    : `Flitt test გადახდა — ${amountGel} GEL`
+
   return (
     <div className="space-y-3">
       <button
@@ -32,7 +43,7 @@ export default function FlittSandboxButton() {
         disabled={loading}
         className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {loading ? "იტვირთება…" : "Flitt test გადახდა — 1.00 GEL"}
+        {loading ? "იტვირთება…" : label}
       </button>
       {error ? <p className="text-sm text-red-700">შეცდომა: {error}</p> : null}
     </div>
