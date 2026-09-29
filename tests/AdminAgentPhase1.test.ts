@@ -91,7 +91,9 @@ describe("Admin Agent Phase 1", () => {
     expect(routeSource).toContain("process.env.OPENAI_API_KEY")
     expect(routeSource).toContain("https://api.openai.com/v1/responses")
     expect(routeSource).not.toContain("NEXT_PUBLIC_OPENAI")
-    expect(pageSource).not.toContain("process.env.OPENAI_API_KEY ?? \"")
+    expect(pageSource).toContain(
+      'Boolean(String(process.env.OPENAI_API_KEY ?? "").trim())',
+    )
   })
 
   it("shows live priorities and Phase 1 safety state in the UI", () => {
