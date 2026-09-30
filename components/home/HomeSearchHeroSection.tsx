@@ -1,6 +1,7 @@
 import Link from "next/link"
 import HeroListingCarousel from "@/components/home/HeroListingCarousel"
 import type { HeroListingItem } from "@/components/home/HeroListingCarousel"
+import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
 export default function HomeSearchHeroSection({ featuredItems }: { featuredItems: CatalogListing[] }) {
@@ -29,13 +30,15 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
 
           <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
             <div className="relative z-10 max-w-2xl">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-accent">Samo$ell marketplace</p>
-              <h1 className="mt-5 text-balance text-[clamp(2.5rem,5vw,4.8rem)] font-black leading-[0.98] tracking-[-0.055em]">
-                <span className="block text-brand">შენი სტილი</span>
-                <span className="mt-2 block text-accent">ახალ ისტორიებს ქმნის</span>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">{ka.home.eyebrow}</p>
+              <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.45rem,5vw,4.65rem)] font-normal leading-[1.06] tracking-[-0.04em] text-[#172321]">
+                {ka.home.title}
               </h1>
               <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
-                იყიდე და გაყიდე მოდური ნივთები მარტივად, პირდაპირ დაუკავშირდი გამყიდველს და აღმოაჩინე განსხვავებული სტილი ერთ სივრცეში.
+                {ka.home.description}
+              </p>
+              <p className="mt-5 text-sm font-semibold text-text-soft">
+                რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
