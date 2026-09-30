@@ -25,7 +25,7 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
       <div className="ui-container !px-0">
         <div
           className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
-          style={{ backgroundImage: "url('https://lh7-us.googleusercontent.com/docsdf/AFQj2d6PICpPDqBLaHJ6RSA3mKx6pxdifb7jM9XjWdRF5K1SmZmyVLDgw2HdaIQfZ2lZfFJvxrZG1ZuMLE9B2HIK-K0DI2VBTh9g3DO7-xHGbbg8WSGXHiaE_czU_H0ha4N5rpWa8MRghE8u8t5kLeA_FFTLCARa6YeQVzl-FSJb_VXpHF2N=s1600')" }}
+          style={{ backgroundImage: "url('/brand/samosell-hero-bg.jpg')" }}
         >
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
