@@ -10,10 +10,10 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
       <section className="border-b border-line bg-white py-10">
         <div className="ui-container">
           <div
-            className="relative overflow-hidden rounded-3xl border border-brand/15 bg-[#073f3b] bg-cover bg-center bg-no-repeat px-6 py-9 text-white shadow-[0_18px_50px_rgba(7,63,59,0.12)] sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10"
+            className="relative overflow-hidden rounded-3xl border border-brand/15 bg-[#073f3b] bg-no-repeat [background-position:58%_50%] [background-size:auto_170%] px-6 py-9 text-white shadow-[0_18px_50px_rgba(7,63,59,0.12)] sm:bg-cover sm:bg-center sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10"
             style={{ backgroundImage: "url('/brand/samosell-promo-bg.jpg')" }}
           >
-            <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,63,58,0.96)_0%,rgba(5,63,58,0.86)_42%,rgba(5,63,58,0.20)_72%,rgba(5,63,58,0.02)_100%)]" />
+            <div aria-hidden="true" className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(5,63,58,0.96)_0%,rgba(5,63,58,0.86)_42%,rgba(5,63,58,0.20)_72%,rgba(5,63,58,0.02)_100%)] sm:block" />
             <div className="relative z-10 max-w-2xl rounded-2xl bg-[#073f3b]/72 p-4 backdrop-blur-[4px] sm:rounded-none sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9EE3DA]">მთავარი გვერდის ბანერი</p>
               <h2 className="mt-3 text-2xl font-black tracking-[-0.025em] sm:text-3xl">გამოაჩინე განცხადება დიდ სარეკლამო სივრცეში</h2>
