@@ -38,7 +38,15 @@ export default function MobileNavigation({
 
     const trigger = triggerRef.current
     const previousOverflow = document.body.style.overflow
+    const bottomNavigation = document.getElementById("mobile-bottom-navigation")
+    const previousBottomNavVisibility = bottomNavigation?.style.visibility ?? ""
+    const previousBottomNavPointerEvents = bottomNavigation?.style.pointerEvents ?? ""
+
     document.body.style.overflow = "hidden"
+    if (bottomNavigation) {
+      bottomNavigation.style.visibility = "hidden"
+      bottomNavigation.style.pointerEvents = "none"
+    }
     closeButtonRef.current?.focus()
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -69,6 +77,10 @@ export default function MobileNavigation({
     document.addEventListener("keydown", handleKeyDown)
     return () => {
       document.body.style.overflow = previousOverflow
+      if (bottomNavigation) {
+        bottomNavigation.style.visibility = previousBottomNavVisibility
+        bottomNavigation.style.pointerEvents = previousBottomNavPointerEvents
+      }
       document.removeEventListener("keydown", handleKeyDown)
       trigger?.focus()
     }
@@ -107,9 +119,9 @@ export default function MobileNavigation({
             role="dialog"
             aria-modal="true"
             aria-label="მობილური ნავიგაცია"
-            className="absolute inset-y-0 right-0 flex w-[min(92vw,390px)] flex-col overflow-y-auto bg-bg shadow-[-24px_0_60px_rgba(7,63,59,0.18)]"
+            className="absolute inset-y-0 right-0 flex h-[100dvh] w-[min(92vw,390px)] flex-col overflow-y-auto overscroll-contain bg-bg shadow-[-24px_0_60px_rgba(7,63,59,0.18)]"
           >
-            <div className="flex items-center justify-between border-b border-line px-5 py-4">
+            <div className="sticky top-0 z-20 flex items-center justify-between border-b border-line bg-bg/95 px-5 py-4 backdrop-blur">
               <Link href="/" onClick={() => setOpen(false)} className="font-logo text-2xl font-black tracking-[-0.04em] text-brand">
                 {ka.brand}
               </Link>
@@ -148,7 +160,10 @@ export default function MobileNavigation({
               ))}
             </nav>
 
-            <div className="mt-auto space-y-3 border-t border-line p-5">
+            <div
+              className="mt-auto space-y-3 border-t border-line p-5"
+              style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+            >
               <Link prefetch={false} href="/dashboard/listings/new" onClick={() => setOpen(false)} className="ui-btn-primary w-full">
                 {ka.nav.sell}
               </Link>
