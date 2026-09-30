@@ -24,8 +24,8 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div
-          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-[position:72%_center] sm:bg-[position:68%_center] lg:bg-center shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
-          style={{ backgroundImage: "url('https://media.canva.com/v2/image-resize/format:PNG/height:941/quality:100/uri:ifs%3A%2F%2FM%2Fd2113539-e1a0-4a7a-a9f0-fba8c9850364/watermark:F/width:1672?csig=AAAAAAAAAAAAAAAAAAAAAIEeunC6XIeXtYpwCT08wToswR3wAA8j7qCKujXewwAv&exp=1790771797&osig=AAAAAAAAAAAAAAAAAAAAAFfXKxPyiKjsbRsV1UJwiyfYPR_DZegp-eEC-t6ieqxk&signer=media-rpc&x-canva-quality=thumbnail')" }}
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          style={{ backgroundImage: "url('https://media.canva.com/v2/image-resize/format:PNG/height:112/quality:100/uri:ifs%3A%2F%2FM%2Fd2113539-e1a0-4a7a-a9f0-fba8c9850364/watermark:F/width:200?csig=AAAAAAAAAAAAAAAAAAAAAIEeunC6XIeXtYpwCT08wToswR3wAA8j7qCKujXewwAv&exp=1790771797&osig=AAAAAAAAAAAAAAAAAAAAAFfXKxPyiKjsbRsV1UJwiyfYPR_DZegp-eEC-t6ieqxk&signer=media-rpc&x-canva-quality=thumbnail')" }}
         >
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.96)_0%,rgba(255,251,246,0.82)_34%,rgba(255,251,246,0.12)_58%,rgba(255,251,246,0.00)_100%)]" />
 
