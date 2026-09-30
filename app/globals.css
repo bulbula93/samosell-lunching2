@@ -58,10 +58,10 @@
   --brand-800: #086c62;
   --brand-100: #dceeea;
   --brand-50: #eff8f6;
-  --accent-700: #e56e00;
-  --accent-600: #ff7a00;
-  --accent-100: #ffe0c2;
-  --accent-50: #fff3e8;
+  --accent-700: #e9964f;
+  --accent-600: #f7b26a;
+  --accent-100: #ffe5cc;
+  --accent-50: #fff6ed;
   --mobile-nav-offset: 4.75rem;
 }
 
@@ -77,9 +77,9 @@
   --color-brand: #075a53;
   --color-brand-hover: #064a45;
   --color-brand-soft: #dceeea;
-  --color-accent: #ff7a00;
-  --color-accent-hover: #e56e00;
-  --color-accent-soft: #fff3e8;
+  --color-accent: #f7b26a;
+  --color-accent-hover: #e9964f;
+  --color-accent-soft: #fff6ed;
   --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
 }
@@ -99,12 +99,12 @@ body {
 }
 
 ::selection {
-  background: rgba(255, 122, 0, 0.18);
+  background: rgba(247, 178, 106, 0.22);
   color: #172321;
 }
 
 :focus-visible {
-  outline: 3px solid #ff7a00;
+  outline: 3px solid #f7b26a;
   outline-offset: 3px;
 }
 
@@ -181,7 +181,7 @@ body {
   }
 
   .ui-pill-vip {
-    @apply inline-flex items-center justify-center rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-brand shadow-[0_8px_18px_rgba(255,122,0,0.10)] transition;
+    @apply inline-flex items-center justify-center rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-brand shadow-[0_8px_18px_rgba(247,178,106,0.12)] transition;
   }
 
   .ui-pill-vip-soft {
