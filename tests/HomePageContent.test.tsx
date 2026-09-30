@@ -126,6 +126,21 @@ describe("HomePageContent", () => {
     expect(description.textContent?.endsWith(".")).toBe(false)
   })
 
+  it("renders the verified SamoSell social links with accessible names and safe new tabs", () => {
+    render(<SiteFooter />)
+
+    const instagram = screen.getByRole("link", { name: "Instagram — SamoSell-ის ოფიციალური პროფილი" })
+    const facebook = screen.getByRole("link", { name: "Facebook — SamoSell-ის ოფიციალური გვერდი" })
+
+    expect(instagram).toHaveAttribute("href", "https://www.instagram.com/samo.sell/")
+    expect(facebook).toHaveAttribute("href", "https://www.facebook.com/samosell.ge/")
+    expect(instagram).toHaveAttribute("target", "_blank")
+    expect(facebook).toHaveAttribute("target", "_blank")
+    expect(instagram).toHaveAttribute("rel", "noopener noreferrer")
+    expect(facebook).toHaveAttribute("rel", "noopener noreferrer")
+    expect(screen.queryByText(/ოფიციალური არხები გამოქვეყნდება/i)).not.toBeInTheDocument()
+  })
+
   it("does not invent product sections when their data source is empty", () => {
     const data = makeHomeData()
     data.vipItems = []

@@ -5,6 +5,21 @@ export const SITE_DESCRIPTION_EN = "Fashion-first marketplace for clothing, acce
 export const SITE_DESCRIPTION_KA = "SamoSell-ზე მოძებნე ახალი, ვინტაჟური და უნიკალური ნივთები მთელ საქართველოში."
 export const SITE_STORAGE_NAMESPACE = "samosell"
 
+export const SOCIAL_LINKS = [
+  {
+    name: "Instagram",
+    href: "https://www.instagram.com/samo.sell/",
+    ariaLabel: "Instagram — SamoSell-ის ოფიციალური პროფილი",
+    icon: "instagram",
+  },
+  {
+    name: "Facebook",
+    href: "https://www.facebook.com/samosell.ge/",
+    ariaLabel: "Facebook — SamoSell-ის ოფიციალური გვერდი",
+    icon: "facebook",
+  },
+] as const
+
 function readOptionalEnv(name: string, fallback: string) {
   const safe = String(process.env[name] ?? "").trim()
   return safe || fallback

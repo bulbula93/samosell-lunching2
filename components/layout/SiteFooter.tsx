@@ -2,7 +2,7 @@ import Link from "next/link"
 import Script from "next/script"
 import { ka } from "@/lib/i18n/ka"
 import PaymentMethodMarks from "@/components/payments/PaymentMethodMarks"
-import { LEGAL_OPERATOR_NAME, SITE_NAME } from "@/lib/site"
+import { LEGAL_OPERATOR_NAME, SITE_NAME, SOCIAL_LINKS } from "@/lib/site"
 
 const footerGroups = [
   {
@@ -88,7 +88,30 @@ export default function SiteFooter() {
           </div>
           <div>
             <h2 className="text-sm font-black">სოციალური ქსელები</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">ოფიციალური არხები გამოქვეყნდება მათი დადასტურების შემდეგ</p>
+            <nav aria-label="SamoSell-ის სოციალური ქსელები" className="mt-3 flex flex-col items-start gap-1">
+              {SOCIAL_LINKS.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={link.ariaLabel}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9EE3DA]"
+                >
+                  <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="h-5 w-5 shrink-0 fill-current">
+                    {link.icon === "instagram" ? (
+                      <>
+                        <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2Zm0 2A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4h-9Z" />
+                        <path d="M12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm5.25-3.25a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z" />
+                      </>
+                    ) : (
+                      <path d="M13.4 22v-8.9h3l.45-3.48H13.4V7.4c0-1.01.28-1.7 1.73-1.7H17V2.59A23.4 23.4 0 0 0 14.28 2c-2.7 0-4.55 1.65-4.55 4.68v2.94H6.67v3.48h3.06V22h3.67Z" />
+                    )}
+                  </svg>
+                  <span>{link.name}</span>
+                </a>
+              ))}
+            </nav>
           </div>
         </div>
 
