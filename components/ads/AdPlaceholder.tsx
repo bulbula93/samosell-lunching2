@@ -9,7 +9,7 @@ export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacem
       style={{ backgroundImage: "url('/brand/samosell-ad-bg.jpg')" }}
     >
       <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,247,0.97)_0%,rgba(255,252,247,0.86)_38%,rgba(255,252,247,0.18)_64%,rgba(255,252,247,0)_100%)]" />
-      <div className="relative z-10 flex max-w-md flex-col justify-center">
+      <div className="relative z-10 flex max-w-md flex-col justify-center rounded-2xl bg-[#fffaf3]/82 p-4 backdrop-blur-[4px] sm:rounded-none sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
         <span className="w-fit rounded-full border border-brand/15 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-brand">
           რეკლამა
         </span>
