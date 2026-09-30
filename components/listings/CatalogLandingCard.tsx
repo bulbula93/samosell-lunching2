@@ -23,7 +23,7 @@ function sellerLabel(item: CatalogListing) {
 
 function StarRow() {
   return (
-    <div className="flex items-center gap-0.5 text-[#F88A51]" aria-hidden="true">
+    <div className="flex items-center gap-0.5 text-[#FF7A00]" aria-hidden="true">
       {Array.from({ length: 5 }).map((_, index) => (
         <svg key={index} viewBox="0 0 24 24" fill={index < 4 ? "currentColor" : "none"} className="h-[11px] w-[11px] stroke-current stroke-[1.6]">
           <path d="M12 3.75L14.6238 8.77735L20.1737 9.53896L16.0868 13.3864L17.0517 18.846L12 16.3375L6.94835 18.846L7.91325 13.3864L3.82631 9.53896L9.37618 8.77735L12 3.75Z" />
@@ -40,7 +40,7 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
 
   return (
     <article className="group flex h-full flex-col gap-2.5">
-      <div className="relative overflow-hidden rounded-[8px] bg-[#E8E8E8] transition duration-200 group-hover:border-[2px] group-hover:border-[#F88A51] group-hover:shadow-[0_4px_4px_rgba(0,0,0,0.32)]">
+      <div className="relative overflow-hidden rounded-[8px] bg-[#E8E8E8] transition duration-200 group-hover:border-[2px] group-hover:border-[#FF7A00] group-hover:shadow-[0_4px_4px_rgba(0,0,0,0.32)]">
         <Link href={`/listing/${item.slug}`} className="block aspect-[0.95] bg-[#E8E8E8]">
           <SmartImage
             src={item.cover_image_url}
@@ -67,18 +67,18 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
         <div className="flex items-center justify-between gap-2 text-[14px] leading-5">
           <div className="min-w-0 truncate text-[14px] font-medium leading-5 text-[#2D2D2D]">{sellerLabel(item)}</div>
           {sellerHref ? (
-            <Link href={sellerHref} className="shrink-0 text-[12px] font-bold leading-5 text-[#F88A51] underline underline-offset-2">
+            <Link href={sellerHref} className="shrink-0 text-[12px] font-bold leading-5 text-[#FF7A00] underline underline-offset-2">
               {sellerItemCount > 0 ? `${sellerItemCount} ნივთი` : "პროფილი"}
             </Link>
           ) : (
-            <span className="shrink-0 text-[12px] font-bold leading-5 text-[#F88A51] underline underline-offset-2">{publishedLabel || "ახალი"}</span>
+            <span className="shrink-0 text-[12px] font-bold leading-5 text-[#FF7A00] underline underline-offset-2">{publishedLabel || "ახალი"}</span>
           )}
         </div>
 
         <StarRow />
 
         <Link href={`/listing/${item.slug}`} className="block">
-          <h3 className="line-clamp-1 text-[14px] font-normal uppercase leading-5 text-[#2D2D2D] transition group-hover:text-[#F88A51]">
+          <h3 className="line-clamp-1 text-[14px] font-normal uppercase leading-5 text-[#2D2D2D] transition group-hover:text-[#FF7A00]">
             {item.title}
           </h3>
         </Link>

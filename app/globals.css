@@ -58,6 +58,10 @@
   --brand-800: #086c62;
   --brand-100: #dceeea;
   --brand-50: #eff8f6;
+  --accent-700: #e9964f;
+  --accent-600: #f7b26a;
+  --accent-100: #ffe5cc;
+  --accent-50: #fff6ed;
   --mobile-nav-offset: 4.75rem;
 }
 
@@ -73,6 +77,9 @@
   --color-brand: #075a53;
   --color-brand-hover: #064a45;
   --color-brand-soft: #dceeea;
+  --color-accent: #f7b26a;
+  --color-accent-hover: #e9964f;
+  --color-accent-soft: #fff6ed;
   --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
 }
@@ -92,12 +99,12 @@ body {
 }
 
 ::selection {
-  background: rgba(7, 90, 83, 0.2);
+  background: rgba(247, 178, 106, 0.22);
   color: #172321;
 }
 
 :focus-visible {
-  outline: 3px solid #14a596;
+  outline: 3px solid #f7b26a;
   outline-offset: 3px;
 }
 
@@ -174,7 +181,7 @@ body {
   }
 
   .ui-pill-vip {
-    @apply inline-flex items-center justify-center rounded-full border border-brand/10 bg-brand px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-white shadow-[0_8px_18px_rgba(45,95,79,0.16)] transition;
+    @apply inline-flex items-center justify-center rounded-full border border-accent/25 bg-accent-soft px-3.5 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-brand shadow-[0_8px_18px_rgba(247,178,106,0.12)] transition;
   }
 
   .ui-pill-vip-soft {

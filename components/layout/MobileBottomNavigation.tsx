@@ -90,7 +90,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
           data-mobile-sell
           className="relative -top-2 flex min-h-16 flex-col items-center justify-start gap-1 text-[10px] font-black text-brand"
         >
-          <span data-mobile-sell-icon className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_8px_24px_rgba(7,90,83,0.28)] ring-4 ring-white">
+          <span data-mobile-sell-icon className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-brand shadow-[0_8px_24px_rgba(255,122,0,0.22)] ring-4 ring-white">
             <Icon name="sell" />
           </span>
           <span data-mobile-nav-label>გაყიდე</span>

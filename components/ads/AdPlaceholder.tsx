@@ -3,7 +3,12 @@ import { ADVERTISE_WITH_US_HREF, type AdPlacementKey } from "@/lib/ads"
 
 export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacementKey }) {
   return (
-    <article data-placement-key={placementKey} className="relative flex min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#faf5e9] p-5 shadow-[0_12px_34px_rgba(31,74,67,0.07)] sm:p-6">
+    <article
+      data-placement-key={placementKey}
+      className="relative flex min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#f7eadc] bg-cover bg-center bg-no-repeat p-5 shadow-[0_12px_34px_rgba(31,74,67,0.07)] sm:p-6"
+      style={{ backgroundImage: "url('/brand/samosell-ad-bg.jpg')" }}
+    >
+      <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,247,0.97)_0%,rgba(255,252,247,0.86)_38%,rgba(255,252,247,0.18)_64%,rgba(255,252,247,0)_100%)]" />
       <div className="relative z-10 flex max-w-md flex-col justify-center">
         <span className="w-fit rounded-full border border-brand/15 bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-brand">
           რეკლამა
@@ -18,8 +23,7 @@ export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacem
           რეკლამის შექმნა
         </Link>
       </div>
-      <div aria-hidden="true" className="absolute -right-10 -top-10 h-40 w-40 rounded-full border border-brand/10 bg-brand-soft/45" />
-      <div aria-hidden="true" className="absolute -bottom-8 right-16 h-20 w-20 rounded-[1.5rem] bg-[#ead8ab]/45 rotate-12" />
+
     </article>
   )
 }

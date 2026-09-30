@@ -11,7 +11,7 @@ import type { PublicHomePageData } from "@/lib/home-page"
 import type { AdRecord } from "@/lib/ads"
 
 export default function HomePageContent({data,heroAds=[]}:{data:PublicHomePageData;heroAds?:AdRecord[]}) {
- return <><HomeStoriesSlot/><HomeSearchHeroSection featuredItems={data.heroItems}/>
+ return <><HomeSearchHeroSection featuredItems={data.heroItems}/><HomeStoriesSlot/>
  <HomeProductsSection title="VIP განცხადებები" description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში." href="/catalog?vip=1&sort=vip" items={data.vipItems} favoriteIds={[]} layout="horizontal"/>
  {data.latestItems.length===0?<HomeMarketplaceEmptyState/>:null}
  <HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>

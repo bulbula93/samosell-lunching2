@@ -4,11 +4,7 @@ import type { HeroListingItem } from "@/components/home/HeroListingCarousel"
 import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
-export default function HomeSearchHeroSection({
-  featuredItems,
-}: {
-  featuredItems: CatalogListing[]
-}) {
+export default function HomeSearchHeroSection({ featuredItems }: { featuredItems: CatalogListing[] }) {
   const activeVipMaxItems = featuredItems
     .filter((item) => item.is_featured && item.is_promoted && item.is_vip)
     .slice(0, 8)
@@ -25,47 +21,58 @@ export default function HomeSearchHeroSection({
   }))
 
   return (
-    <section className="overflow-hidden border-b border-line bg-[radial-gradient(circle_at_85%_15%,rgba(40,170,153,0.22),transparent_32%),linear-gradient(135deg,#eff8f6_0%,#f9fbfa_54%,#e5f1ee_100%)]">
-      <div className="ui-container grid min-h-[500px] items-center gap-10 py-12 md:py-16 lg:min-h-[590px] lg:grid-cols-[0.7fr_1.3fr] lg:gap-12">
-        <div className="max-w-2xl">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand">{ka.home.eyebrow}</p>
-          <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.35rem,5.5vw,4.7rem)] font-normal leading-[1.09] tracking-[-0.025em] text-text">
-            {ka.home.title}
-          </h1>
-          <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
-            {ka.home.description}
-          </p>
-          <p className="mt-6 text-sm font-semibold text-text-soft">
-            რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
-          </p>
-        </div>
+    <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
+      <div className="ui-container !px-0">
+        <div
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          style={{ backgroundImage: "url('/brand/samosell-hero-bg.jpg')" }}
+        >
+          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
-        <div className="relative mx-auto mb-8 h-[360px] w-full max-w-[860px] sm:h-[430px] lg:mb-0 lg:h-[450px]">
-          {carouselItems.length > 0 ? (
-            <HeroListingCarousel items={carouselItems} />
-          ) : (
-            <div className="relative mx-auto flex h-full max-w-[620px] overflow-hidden rounded-[32px] border border-[#e8c778]/55 bg-[radial-gradient(circle_at_85%_15%,rgba(246,217,142,0.2),transparent_30%),linear-gradient(145deg,#073f3b_0%,#052c29_100%)] p-7 text-white shadow-[0_28px_80px_rgba(7,63,59,0.2)] sm:p-10">
-              <div className="relative z-10 flex max-w-sm flex-col justify-end">
-                <span className="w-fit rounded-full border border-[#f6d98e]/55 bg-white/5 px-4 py-2 text-xs font-black tracking-[0.18em] text-[#f6d98e]">
-                  VIP MAX სივრცე
-                </span>
-                <h2 className="mt-5 text-3xl font-black leading-tight tracking-[-0.035em] sm:text-4xl">
-                  შენი ნივთი გამოაჩინე პირველივე ეკრანზე
-                </h2>
-                <p className="mt-4 text-sm leading-7 text-white/70">
-                  აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები
-                </p>
+          <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
+            <div className="relative z-10 max-w-2xl">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">{ka.home.eyebrow}</p>
+              <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.45rem,5vw,4.65rem)] font-normal leading-[1.06] tracking-[-0.04em] text-[#172321]">
+                {ka.home.title}
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
+                {ka.home.description}
+              </p>
+              <p className="mt-5 text-sm font-semibold text-text-soft">
+                რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
+              </p>
+
+              <div className="mt-7 flex flex-wrap gap-3">
                 <Link
-                  href="/dashboard/listings"
-                  className="mt-7 inline-flex min-h-12 w-fit items-center justify-center rounded-xl bg-[#f6d98e] px-6 text-sm font-black text-[#073f3b] transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  href="/catalog"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/85 px-6 text-sm font-black text-brand transition hover:border-brand/30 hover:bg-white"
                 >
-                  გააქტიურე VIP MAX
+                  ნახე კატალოგი
                 </Link>
               </div>
-              <div aria-hidden="true" className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#f6d98e]/20" />
-              <div aria-hidden="true" className="absolute -right-3 top-16 h-32 w-32 rounded-full border border-[#f6d98e]/15" />
+
             </div>
-          )}
+
+            <div className="relative z-10 mx-auto h-[360px] w-full max-w-[760px] sm:h-[420px] lg:h-[440px]">
+              {carouselItems.length > 0 ? (
+                <HeroListingCarousel items={carouselItems} />
+              ) : (
+                <div className="flex h-full items-end justify-end p-3 sm:p-5 lg:p-6">
+                  <div className="w-full max-w-[460px] rounded-[28px] border border-white/70 bg-white/90 p-7 text-center shadow-[0_22px_58px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-8">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl text-accent">★</div>
+                    <h2 className="mt-4 text-2xl font-black text-brand sm:text-[28px]">VIP MAX სივრცე</h2>
+                    <p className="mx-auto mt-3 max-w-[360px] text-sm leading-7 text-text-soft sm:text-[15px]">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
+                    <Link
+                      href="/dashboard/listings"
+                      className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-7 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
+                    >
+                      გააქტიურე VIP MAX
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>

@@ -17,7 +17,7 @@ export default function HomeSellIntroSection({ signedIn, showcaseImage }: { sign
           </h1>
 
           <p className="mt-6 max-w-[365px] text-[14px] leading-[22px] text-[#5B5B5B]">
-            შექმენი შენი პირადი სივრცე და დაიწყე საკუთარი ბიზნესის განვითარება, ჩვენი პლატფორმა <span className="text-[#F88A51]">Samosell</span> დაგეხმარება ამაში.
+            შექმენი შენი პირადი სივრცე და დაიწყე საკუთარი ბიზნესის განვითარება, ჩვენი პლატფორმა <span className="text-[#FF7A00]">Samosell</span> დაგეხმარება ამაში.
           </p>
 
           <div className="mt-5 space-y-2.5">
@@ -31,14 +31,14 @@ export default function HomeSellIntroSection({ signedIn, showcaseImage }: { sign
 
           <Link
             href={signedIn ? "/dashboard/listings/new" : "/register"}
-            className="mt-5 inline-flex h-[46px] items-center justify-center rounded-[6px] border border-[#9C5D30] bg-[#F88A51] px-5 text-[14px] font-medium leading-6 text-white transition hover:bg-[#ef7b3f]"
+            className="mt-5 inline-flex h-[46px] items-center justify-center rounded-[6px] border border-[#E56E00] bg-[#FF7A00] px-5 text-[14px] font-medium leading-6 text-white transition hover:bg-[#E56E00]"
           >
             შექმენი განცხადება
           </Link>
         </div>
 
         <div className="relative mx-auto h-[258px] w-full max-w-[485px] sm:h-[312px] lg:h-[310px] lg:max-w-[590px]">
-          <div className="absolute bottom-0 left-0 right-7 top-0 rounded-[16px] bg-[#F29A57]" />
+          <div className="absolute bottom-0 left-0 right-7 top-0 rounded-[16px] bg-[#FF7A00]/80" />
           <div className="absolute bottom-7 left-7 right-0 top-7 overflow-hidden rounded-[16px] border-4 border-white bg-white shadow-[0_18px_38px_rgba(0,0,0,0.08)]">
             <SmartImage
               src={showcaseImage}
