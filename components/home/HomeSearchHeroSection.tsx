@@ -51,11 +51,6 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
                 </Link>
               </div>
 
-              <div className="mt-8 grid max-w-2xl gap-3 text-xs font-semibold text-brand sm:grid-cols-3">
-                <div className="flex items-center gap-2 rounded-2xl bg-white/72 px-3 py-3"><span className="text-accent">✓</span><span>პირდაპირი ჩათი</span></div>
-                <div className="flex items-center gap-2 rounded-2xl bg-white/72 px-3 py-3"><span className="text-accent">♡</span><span>რჩეულებში შენახვა</span></div>
-                <div className="flex items-center gap-2 rounded-2xl bg-white/72 px-3 py-3"><span className="text-accent">↗</span><span>მარტივი გამოქვეყნება</span></div>
-              </div>
             </div>
 
             <div className="relative z-10 mx-auto h-[360px] w-full max-w-[760px] sm:h-[420px] lg:h-[440px]">
