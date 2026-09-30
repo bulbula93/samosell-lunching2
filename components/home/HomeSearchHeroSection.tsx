@@ -24,48 +24,10 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div
-          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          style={{ backgroundImage: "url('https://lh7-us.googleusercontent.com/docsdf/AFQj2d6PICpPDqBLaHJ6RSA3mKx6pxdifb7jM9XjWdRF5K1SmZmyVLDgw2HdaIQfZ2lZfFJvxrZG1ZuMLE9B2HIK-K0DI2VBTh9g3DO7-xHGbbg8WSGXHiaE_czU_H0ha4N5rpWa8MRghE8u8t5kLeA_FFTLCARa6YeQVzl-FSJb_VXpHF2N=s1600')" }}
         >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 1600 900"
-            preserveAspectRatio="xMidYMid slice"
-            className="pointer-events-none absolute inset-0 h-full w-full"
-          >
-            <rect width="1600" height="900" fill="#ead0bd" />
-            <g opacity="0.98">
-              <line x1="870" y1="250" x2="1470" y2="250" stroke="#17120f" strokeWidth="14" strokeLinecap="round" />
-              <line x1="905" y1="245" x2="905" y2="790" stroke="#17120f" strokeWidth="14" strokeLinecap="round" />
-              <line x1="1435" y1="245" x2="1435" y2="790" stroke="#17120f" strokeWidth="14" strokeLinecap="round" />
-              <line x1="888" y1="236" x2="922" y2="236" stroke="#17120f" strokeWidth="8" strokeLinecap="round" />
-              <line x1="1418" y1="236" x2="1452" y2="236" stroke="#17120f" strokeWidth="8" strokeLinecap="round" />
-            </g>
-
-            <g stroke="#f5f0eb" strokeWidth="5" fill="none" strokeLinecap="round">
-              <path d="M1000 246 C1000 225 1024 225 1024 245 L1024 292" />
-              <path d="M1110 246 C1110 225 1134 225 1134 245 L1134 292" />
-              <path d="M1215 246 C1215 225 1239 225 1239 245 L1239 292" />
-              <path d="M1330 246 C1330 225 1354 225 1354 245 L1354 292" />
-            </g>
-
-            <g>
-              <path d="M970 322 L1013 287 L1052 323 L1030 366 L1028 630 L974 646 L956 490 Z" fill="#c16f35" />
-              <path d="M1004 300 L1013 287 L1022 301 L1019 330 L1008 330 Z" fill="#8a4f2c" />
-              <path d="M1070 332 L1123 290 L1170 333 L1145 380 L1140 610 L1085 626 L1054 448 Z" fill="#d9ad98" />
-              <path d="M1110 313 L1123 290 L1138 313 L1131 341 L1115 341 Z" fill="#ae765f" />
-              <path d="M1175 336 L1224 294 L1272 336 L1245 375 L1240 566 L1188 566 L1166 425 Z" fill="#8f624c" />
-              <path d="M1210 312 L1224 294 L1238 312 L1234 338 L1215 338 Z" fill="#6e4838" />
-              <path d="M1260 328 L1326 295 L1384 330 L1360 372 L1364 640 L1285 656 L1250 438 Z" fill="#f4eee8" />
-              <path d="M1310 310 L1326 295 L1342 310 L1338 338 L1316 338 Z" fill="#b98965" />
-              <path d="M1286 350 C1308 335 1333 332 1360 346" stroke="#fffaf5" strokeWidth="18" strokeLinecap="round" opacity="0.75" />
-              <path d="M1304 390 L1322 600" stroke="#fffaf5" strokeWidth="16" strokeLinecap="round" opacity="0.68" />
-              <path d="M1086 368 L1098 584" stroke="#f3ded1" strokeWidth="13" strokeLinecap="round" opacity="0.68" />
-              <path d="M985 373 L996 606" stroke="#e9a56e" strokeWidth="12" strokeLinecap="round" opacity="0.52" />
-            </g>
-
-            <ellipse cx="1170" cy="808" rx="330" ry="30" fill="#9f6b4e" opacity="0.10" />
-          </svg>
-          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.96)_0%,rgba(255,251,246,0.80)_34%,rgba(255,251,246,0.10)_58%,rgba(255,251,246,0.00)_100%)]" />
+          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
           <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
             <div className="relative z-10 max-w-2xl">
