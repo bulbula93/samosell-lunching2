@@ -63,13 +63,13 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
                 <HeroListingCarousel items={carouselItems} />
               ) : (
                 <div className="flex h-full items-end justify-end p-3 sm:p-5 lg:p-6">
-                  <div className="w-full max-w-[360px] rounded-[24px] border border-white/70 bg-white/88 p-5 text-center shadow-[0_18px_50px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-6">
-                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-lg text-accent">★</div>
-                    <h2 className="mt-3 text-xl font-black text-brand">VIP MAX სივრცე</h2>
-                    <p className="mt-2 text-sm leading-6 text-text-soft">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
+                  <div className="w-full max-w-[460px] rounded-[28px] border border-white/70 bg-white/90 p-7 text-center shadow-[0_22px_58px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-8">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl text-accent">★</div>
+                    <h2 className="mt-4 text-2xl font-black text-brand sm:text-[28px]">VIP MAX სივრცე</h2>
+                    <p className="mx-auto mt-3 max-w-[360px] text-sm leading-7 text-text-soft sm:text-[15px]">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
                     <Link
                       href="/dashboard/listings"
-                      className="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl bg-accent px-5 text-sm font-black text-brand shadow-[0_10px_24px_rgba(233,150,79,0.16)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
+                      className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-7 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
                     >
                       გააქტიურე VIP MAX
                     </Link>
