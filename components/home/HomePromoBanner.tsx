@@ -9,15 +9,19 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
     return (
       <section className="border-b border-line bg-white py-10">
         <div className="ui-container">
-          <div className="overflow-hidden rounded-3xl border border-brand/15 bg-[radial-gradient(circle_at_90%_10%,rgba(158,227,218,0.4),transparent_34%),linear-gradient(125deg,#073f3b,#075a53)] px-6 py-9 text-white sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
-            <div className="max-w-2xl">
+          <div
+            className="relative overflow-hidden rounded-3xl border border-brand/15 bg-[#073f3b] bg-cover bg-center bg-no-repeat px-6 py-9 text-white shadow-[0_18px_50px_rgba(7,63,59,0.12)] sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10"
+            style={{ backgroundImage: "url('https://lh7-rt.googleusercontent.com/slidesz/AGV_vUf_UlGJTaI4LsUWpYYdG6iabNGtDs8F3VXIGGgfPweyz-dQQ5hkb5HEmdmPxf7OvEJS80NozsdhrPAC2_TeuRd6nJHFekXfXg9-OtjqIfFEpEqGvdsrR2xYTH1thPrYbJIxLW4kdp1ff5Eu-1To-WaytbibYdUenq4LhyyZ5Wyx4Gk=s2048?key=idC21Gecd2rKf2QYO5Pl0g')" }}
+          >
+            <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,63,58,0.96)_0%,rgba(5,63,58,0.86)_42%,rgba(5,63,58,0.20)_72%,rgba(5,63,58,0.02)_100%)]" />
+            <div className="relative z-10 max-w-2xl">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#9EE3DA]">მთავარი გვერდის ბანერი</p>
               <h2 className="mt-3 text-2xl font-black tracking-[-0.025em] sm:text-3xl">გამოაჩინე განცხადება დიდ სარეკლამო სივრცეში</h2>
               <p className="mt-3 text-sm leading-7 text-white/75">
                 ბანერის პაკეტი განცხადებას 7 დღით ათავსებს მთავარ გვერდზე დიდ ვიზუალურ ბლოკში და პირდაპირ აკავშირებს მის დეტალურ გვერდთან.
               </p>
             </div>
-            <Link href="/dashboard/listings" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft lg:mt-0">
+            <Link href="/dashboard/listings" className="relative z-10 mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft lg:mt-0">
               აირჩიე განცხადება
             </Link>
           </div>
