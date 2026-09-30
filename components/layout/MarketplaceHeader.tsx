@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useUnreadNotifications } from "@/lib/use-unread-notifications"
 import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
@@ -42,6 +42,7 @@ export default function MarketplaceHeader({
   userState: MarketplaceUserState
 }) {
   const pathname = usePathname() ?? ""
+  const searchParams = useSearchParams()
   const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
@@ -190,15 +191,29 @@ export default function MarketplaceHeader({
 
       <nav aria-label="კატეგორიები" className="hidden border-t border-line bg-bg/90 lg:block">
         <div className="ui-container flex min-h-11 items-center gap-1 overflow-x-auto py-1">
-          {items.map((item) => (
-            <Link
-              key={`${item.label}-${item.href}`}
-              href={item.href}
-              className="shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-text-soft transition hover:bg-brand-soft hover:text-brand"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {items.map((item) => {
+            const target = new URL(item.href, "https://samosell.local")
+            const pathMatches = pathname === target.pathname
+            const queryMatches = Array.from(target.searchParams.entries()).every(
+              ([key, value]) => searchParams.get(key) === value,
+            )
+            const active = pathMatches && queryMatches && target.searchParams.size > 0
+
+            return (
+              <Link
+                key={`${item.label}-${item.href}`}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  active
+                    ? "bg-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(7,63,59,0.06)]"
+                    : "text-text-soft hover:bg-brand-soft/70 hover:text-brand"
+                }`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
         </div>
       </nav>
     </header>
