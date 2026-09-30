@@ -24,9 +24,9 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div className="relative overflow-hidden rounded-[30px] border border-[#ece7de] bg-[#fbf8f2] shadow-[0_18px_60px_rgba(7,63,59,0.06)]">
-          <div aria-hidden="true" className="absolute -left-24 top-24 h-56 w-56 rounded-full bg-[#ff7a00]/10" />
+          <div aria-hidden="true" className="absolute -left-24 top-24 h-56 w-56 rounded-full bg-[#f7b26a]/14" />
           <div aria-hidden="true" className="absolute right-[-7rem] top-20 h-[360px] w-[420px] rounded-[48%_52%_56%_44%] bg-[#dceeea]/80" />
-          <div aria-hidden="true" className="absolute bottom-[-8rem] right-[22%] h-64 w-64 rounded-full bg-[#ff7a00]/10" />
+          <div aria-hidden="true" className="absolute bottom-[-8rem] right-[22%] h-64 w-64 rounded-full bg-[#f7b26a]/14" />
 
           <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
             <div className="relative z-10 max-w-2xl">
@@ -42,12 +42,6 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
-                <Link
-                  href="/catalog?vip=1&sort=vip"
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-6 text-sm font-black text-brand shadow-[0_12px_28px_rgba(255,122,0,0.16)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
-                >
-                  გააქტიურე VIP MAX
-                </Link>
                 <Link
                   href="/catalog"
                   className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/85 px-6 text-sm font-black text-brand transition hover:border-brand/30 hover:bg-white"
@@ -72,6 +66,12 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-2xl text-accent">★</div>
                     <h2 className="mt-5 text-2xl font-black text-brand">VIP MAX სივრცე</h2>
                     <p className="mt-3 max-w-sm text-sm leading-7 text-text-soft">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
+                    <Link
+                      href="/dashboard/listings"
+                      className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-6 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
+                    >
+                      გააქტიურე VIP MAX
+                    </Link>
                   </div>
                 </div>
               )}
