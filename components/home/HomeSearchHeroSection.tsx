@@ -24,8 +24,8 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div
-          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
-          style={{ backgroundImage: "url('/brand/samosell-hero-wardrobe.jpg')" }}
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-[position:68%_center] sm:bg-center shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          style={{ backgroundImage: "url('/brand/samosell-hero-clothing-studio.jpg')" }}
         >
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.97)_0%,rgba(255,251,246,0.88)_38%,rgba(255,251,246,0.30)_66%,rgba(255,251,246,0.06)_100%)]" />
 
