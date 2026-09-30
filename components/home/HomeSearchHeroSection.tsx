@@ -24,10 +24,10 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div
-          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-[position:68%_center] sm:bg-center shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
-          style={{ backgroundImage: "url('/brand/samosell-hero-clothing-studio.jpg')" }}
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-[position:72%_center] sm:bg-[position:68%_center] lg:bg-center shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
+          style={{ backgroundImage: "url('https://media.canva.com/v2/image-resize/format:PNG/height:941/quality:100/uri:ifs%3A%2F%2FM%2Fd2113539-e1a0-4a7a-a9f0-fba8c9850364/watermark:F/width:1672?csig=AAAAAAAAAAAAAAAAAAAAAIEeunC6XIeXtYpwCT08wToswR3wAA8j7qCKujXewwAv&exp=1790771797&osig=AAAAAAAAAAAAAAAAAAAAAFfXKxPyiKjsbRsV1UJwiyfYPR_DZegp-eEC-t6ieqxk&signer=media-rpc&x-canva-quality=thumbnail')" }}
         >
-          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.97)_0%,rgba(255,251,246,0.88)_38%,rgba(255,251,246,0.30)_66%,rgba(255,251,246,0.06)_100%)]" />
+          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.96)_0%,rgba(255,251,246,0.82)_34%,rgba(255,251,246,0.12)_58%,rgba(255,251,246,0.00)_100%)]" />
 
           <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
             <div className="relative z-10 max-w-2xl">
@@ -62,14 +62,14 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
               {carouselItems.length > 0 ? (
                 <HeroListingCarousel items={carouselItems} />
               ) : (
-                <div className="flex h-full items-center justify-center rounded-[28px] border border-brand/10 bg-white/70 p-8 text-center shadow-[0_20px_60px_rgba(7,63,59,0.08)]">
-                  <div>
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-2xl text-accent">★</div>
-                    <h2 className="mt-5 text-2xl font-black text-brand">VIP MAX სივრცე</h2>
-                    <p className="mt-3 max-w-sm text-sm leading-7 text-text-soft">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
+                <div className="flex h-full items-end justify-end p-3 sm:p-5 lg:p-6">
+                  <div className="w-full max-w-[360px] rounded-[24px] border border-white/70 bg-white/88 p-5 text-center shadow-[0_18px_50px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-6">
+                    <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-lg text-accent">★</div>
+                    <h2 className="mt-3 text-xl font-black text-brand">VIP MAX სივრცე</h2>
+                    <p className="mt-2 text-sm leading-6 text-text-soft">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
                     <Link
                       href="/dashboard/listings"
-                      className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-6 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
+                      className="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl bg-accent px-5 text-sm font-black text-brand shadow-[0_10px_24px_rgba(233,150,79,0.16)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
                     >
                       გააქტიურე VIP MAX
                     </Link>
