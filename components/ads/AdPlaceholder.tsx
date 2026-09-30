@@ -6,7 +6,7 @@ export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacem
     <article
       data-placement-key={placementKey}
       className="relative flex min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#f7eadc] bg-cover bg-center bg-no-repeat p-5 shadow-[0_12px_34px_rgba(31,74,67,0.07)] sm:p-6"
-      style={{ backgroundImage: "url('https://lh7-rt.googleusercontent.com/slidesz/AGV_vUctkcRHBVbomfpOvMkIWXsAiVbgyIlPr9Eaje1mv329rxHeOiol8gwG_Z1hSwP_35yAl42jYBUmoMv9G6FNuRp9S64QcyWAvL5XVSD0sr2g8iYi3DtyfcBA-JvgfiDHLsHOQYwTrjyD6HzioicwL1JZe3BPHyndnMJ3XxXwy15zuB0=s2048?key=idC21Gecd2rKf2QYO5Pl0g')" }}
+      style={{ backgroundImage: "url('https://lh7-us.googleusercontent.com/docsdf/AFQj2d7l9ZcdIfDlgsPXlieRHHQTMhbMqJPoUY9Pn_UJWrHeBQrIkx3TsuC1gm-y0B7NRNebXqtYyAbTKZ8JrmSLBttMXj5YYX6cZB8Z0PI-_Sjc2wLWESejLyWitkg-ANcoMFtEL9oLH-2Th7CEItd4IBBSWGIeCa0RiFh2XILuDxGclezJ=s1600')" }}
     >
       <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,252,247,0.97)_0%,rgba(255,252,247,0.86)_38%,rgba(255,252,247,0.18)_64%,rgba(255,252,247,0)_100%)]" />
       <div className="relative z-10 flex max-w-md flex-col justify-center">
