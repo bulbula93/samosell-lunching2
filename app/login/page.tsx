@@ -13,11 +13,16 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ next?: string | string[]; error?: string | string[] }>
+  searchParams?: Promise<{
+    next?: string | string[]
+    error?: string | string[]
+    password_reset?: string | string[]
+  }>
 }) {
   const params = (await searchParams) ?? {}
   const next = getSafeAuthRedirectPath(Array.isArray(params.next) ? params.next[0] : params.next)
   const authError = Array.isArray(params.error) ? params.error[0] : params.error
+  const passwordReset = Array.isArray(params.password_reset) ? params.password_reset[0] : params.password_reset
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -49,6 +54,7 @@ export default async function LoginPage({
       <LoginForm
         nextPath={next}
         initialError={authError === "oauth_callback_failed" ? "სოციალური ავტორიზაცია ვერ დასრულდა. თავიდან სცადე." : ""}
+        initialSuccess={passwordReset === "success" ? "პაროლი წარმატებით შეიცვალა. ახლა შეგიძლია ახალი პაროლით შეხვიდე." : ""}
       />
     </AuthCard>
   )
