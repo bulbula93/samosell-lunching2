@@ -34,6 +34,50 @@ function NotificationBell({ count }: { count: number }) {
   )
 }
 
+function MarketplaceActionLink({
+  kind,
+  href,
+  prefetch,
+}: {
+  kind: "sell" | "buy"
+  href: string
+  prefetch?: boolean
+}) {
+  const isSell = kind === "sell"
+
+  return (
+    <Link
+      href={href}
+      prefetch={prefetch}
+      data-marketplace-action={kind}
+      className={`group inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-safe:transition-[transform,box-shadow,background-color] motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-[2px] active:shadow-none sm:gap-2 sm:text-sm ${
+        isSell
+          ? "border-brand-hover bg-brand text-white shadow-[0_3px_0_#03443e] hover:bg-brand-hover"
+          : "border-accent/65 bg-accent-soft text-brand shadow-[0_3px_0_#edc59d] hover:bg-[#ffe9d1]"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-brand motion-safe:transition-transform motion-safe:duration-200 ${
+          isSell ? "motion-safe:group-hover:-rotate-12" : "motion-safe:group-hover:rotate-12"
+        }`}
+      >
+        <svg viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+          {isSell ? (
+            <path d="M9 6a3 3 0 0 1 6 0c0 1.8-3 1.8-3 4M12 10l8.2 5.2a1.2 1.2 0 0 1-.7 2.2h-15a1.2 1.2 0 0 1-.7-2.2L12 10" />
+          ) : (
+            <>
+              <path d="M6 8h12l1 12H5L6 8Z" />
+              <path d="M9 9V6a3 3 0 0 1 6 0v3" />
+            </>
+          )}
+        </svg>
+      </span>
+      <span>{isSell ? "გაყიდე" : "იყიდე"}</span>
+    </Link>
+  )
+}
+
 export default function MarketplaceHeader({
   items,
   userState: initialUserState,
@@ -80,12 +124,8 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <Link href={sellHref} prefetch={userState.signedIn ? false : undefined} className="ui-btn-primary">
-            გაყიდე
-          </Link>
-          <Link href="/catalog" className="ui-btn-secondary">
-            იყიდე
-          </Link>
+          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
+          <MarketplaceActionLink kind="buy" href="/catalog" />
 
           {userState.signedIn ? (
             <>
@@ -174,12 +214,8 @@ export default function MarketplaceHeader({
           <NotificationBell count={userState.unreadNotifications} />
         </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
-          <Link href={sellHref} prefetch={userState.signedIn ? false : undefined} className="ui-btn-primary px-3 text-xs sm:px-4 sm:text-sm">
-            გაყიდე
-          </Link>
-          <Link href="/catalog" className="ui-btn-secondary px-3 text-xs sm:px-4 sm:text-sm">
-            იყიდე
-          </Link>
+          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
+          <MarketplaceActionLink kind="buy" href="/catalog" />
         </div>
       </div>
 
