@@ -31,7 +31,7 @@ export default async function LoginPage({
       title={
         <>
           <span>სისტემაში </span>
-          <span className="text-[#f06f16] underline decoration-[#ffd27a] decoration-[6px] underline-offset-4">
+          <span className="text-[#f06f16]">
             შესვლა
           </span>
         </>
