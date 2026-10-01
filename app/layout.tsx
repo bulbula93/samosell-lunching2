@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next"
 import { Suspense } from "react"
-import Script from "next/script"
 import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
 import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
-import FieldWebVitals from "@/components/shared/FieldWebVitals"
+import BrowserConsentPanel from "@/components/privacy/BrowserConsentPanel"
+import OptionalAnalytics from "@/components/privacy/OptionalAnalytics"
 import { absoluteUrl, getSiteUrl, GOOGLE_SITE_VERIFICATION } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import "./globals.css"
@@ -75,15 +75,8 @@ export default function RootLayout({
         </a>
         <PwaRuntime />
         <PwaInstallPrompt />
-        <Script id="vercel-speed-insights-init" strategy="afterInteractive">
-          {`window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };`}
-        </Script>
-        <Script
-          id="vercel-speed-insights"
-          src="/_vercel/speed-insights/script.js"
-          strategy="afterInteractive"
-        />
-        <FieldWebVitals />
+        <BrowserConsentPanel />
+        <OptionalAnalytics />
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>

@@ -1,3 +1,4 @@
+import { cookieConsent } from "@/lib/browser-preferences"
 import { after } from "next/server"
 import { NextResponse } from "next/server"
 import {
@@ -23,8 +24,10 @@ export async function GET(request: Request) {
   const target = ad ? getTrackableTarget(ad) : null
   if (!ad || !target) return NextResponse.redirect(new URL("/", request.url), 303)
 
-  const identity = getAdRequestIdentity(request.headers)
-  after(() => recordResolvedAdEvent(ad, input, identity))
+  if (cookieConsent(request.headers.get("cookie"))?.analytics) {
+    const identity = getAdRequestIdentity(request.headers)
+    after(() => recordResolvedAdEvent(ad, input, identity))
+  }
 
   const response = NextResponse.redirect(new URL(target, request.url), 303)
   response.headers.set("cache-control", "no-store")

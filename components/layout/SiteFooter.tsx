@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import Script from "next/script"
+import { BrowserSettingsButton } from "@/components/privacy/BrowserConsentPanel"
 import { ka } from "@/lib/i18n/ka"
 import PaymentMethodMarks from "@/components/payments/PaymentMethodMarks"
 import { LEGAL_OPERATOR_NAME, SITE_NAME, SOCIAL_LINKS } from "@/lib/site"
@@ -132,17 +132,13 @@ export default function SiteFooter() {
             <p className="mt-1">პლატფორმის ოპერატორი: {LEGAL_OPERATOR_NAME}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <BrowserSettingsButton />
             <div id="top-ge-counter-container" data-site-id="118968" />
             <p>იყიდე და გაყიდე პასუხისმგებლობით</p>
           </div>
         </div>
       </div>
 
-      <Script
-        id="top-ge-counter"
-        src="https://counter.top.ge/counter.js"
-        strategy="afterInteractive"
-      />
     </footer>
   )
 }

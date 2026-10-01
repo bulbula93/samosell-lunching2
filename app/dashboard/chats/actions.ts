@@ -1,5 +1,7 @@
 "use server"
 
+import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
+
 import { hydrateStoryContexts } from "@/lib/chat-story-context"
 
 import { revalidatePath } from "next/cache"
@@ -164,7 +166,7 @@ export async function startChatAction(
     return { ok: false, message: chatErrorMessage(error?.message) }
   }
 
-  await recordSearchInteractionSafely(supabase, {
+  if (searchId && await serverAllowsAnalytics()) await recordSearchInteractionSafely(supabase, {
     searchId: typeof searchId === "string" ? searchId : "",
     listingId,
     eventType: "chat_start",

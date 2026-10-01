@@ -46,6 +46,7 @@ export default async function DashboardNewListingPage() {
             brands={brandsResult.data ?? []}
             sizes={sizesResult.data ?? []}
             initialSellerPhone={sellerPhone}
+            userId={user.id}
           />
         )}
 

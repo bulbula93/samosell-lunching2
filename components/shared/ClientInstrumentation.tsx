@@ -3,6 +3,8 @@
 import Script from "next/script"
 import { usePathname } from "next/navigation"
 import { useEffect } from "react"
+import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
+import { allowsAnalytics } from "@/lib/browser-preferences"
 
 const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 const plausibleDomain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
@@ -17,8 +19,10 @@ function postClientError(payload: Record<string, unknown>) {
 
 export default function ClientInstrumentation() {
   const pathname = usePathname()
+  const consent = useBrowserConsent()
 
   useEffect(() => {
+    if (!allowsAnalytics()) return
     const search = typeof window !== "undefined" ? window.location.search : ""
     const path = `${pathname}${search}`
 
@@ -33,7 +37,7 @@ export default function ClientInstrumentation() {
         plausible("pageview", { props: { path } })
       }
     }
-  }, [pathname])
+  }, [pathname, consent?.analytics])
 
   useEffect(() => {
     function onError(event: ErrorEvent) {
@@ -65,7 +69,7 @@ export default function ClientInstrumentation() {
 
   return (
     <>
-      {gaId ? (
+      {consent?.analytics && gaId ? (
         <>
           <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
           <Script id="ga-init" strategy="afterInteractive">
@@ -73,7 +77,7 @@ export default function ClientInstrumentation() {
           </Script>
         </>
       ) : null}
-      {plausibleDomain ? <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" strategy="afterInteractive" /> : null}
+      {consent?.analytics && plausibleDomain ? <Script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js" strategy="afterInteractive" /> : null}
     </>
   )
 }

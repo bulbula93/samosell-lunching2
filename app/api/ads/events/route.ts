@@ -1,3 +1,4 @@
+import { cookieConsent } from "@/lib/browser-preferences"
 import { after } from "next/server"
 import {
   getAdRequestIdentity,
@@ -10,6 +11,10 @@ export async function POST(request: Request) {
   const input = parseAdEventInput(payload)
   if (!input || input.eventType !== "impression") {
     return Response.json({ error: "invalid_ad_event" }, { status: 400 })
+  }
+
+  if (!cookieConsent(request.headers.get("cookie"))?.analytics) {
+    return new Response(null, { status: 204, headers: { "cache-control": "no-store" } })
   }
 
   const identity = getAdRequestIdentity(request.headers)

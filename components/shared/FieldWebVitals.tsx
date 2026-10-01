@@ -1,5 +1,6 @@
 "use client"
 
+import { allowsAnalytics } from "@/lib/browser-preferences"
 import { useReportWebVitals } from "next/web-vitals"
 
 type MetricName = "LCP" | "INP" | "CLS" | "FCP" | "TTFB"
@@ -60,7 +61,7 @@ function sendMetric(payload: {
 
 export default function FieldWebVitals() {
   useReportWebVitals((metric) => {
-    if (navigator.webdriver) return
+    if (navigator.webdriver || !allowsAnalytics()) return
     if (!["LCP", "INP", "CLS", "FCP", "TTFB"].includes(metric.name)) return
 
     const pathname = window.location.pathname || "/"

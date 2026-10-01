@@ -4,7 +4,9 @@ import { useEffect, useMemo, useSyncExternalStore } from "react"
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import { activePromotionBadges } from "@/lib/boosts"
-import { RECENTLY_VIEWED_STORAGE_KEY } from "@/lib/recently-viewed"
+import { readRecentlyViewedIds } from "@/lib/recently-viewed"
+import { subscribePreferences } from "@/lib/browser-preferences"
+import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import type { CatalogListing } from "@/types/marketplace"
 
 type RecentlyViewedRailProps = {
@@ -44,7 +46,7 @@ function subscribeRecentlyViewedResults(listener: () => void) {
 
 function getRecentlyViewedResultSnapshot(requestKey: string) {
   if (!requestKey) return EMPTY_RECENTLY_VIEWED_RESULT
-  return recentlyViewedResultCache.get(requestKey) ?? { key: requestKey, items: [], status: "idle" as const }
+  return recentlyViewedResultCache.get(requestKey) ?? EMPTY_RECENTLY_VIEWED_RESULT
 }
 
 function ensureRecentlyViewedResult(requestKey: string) {
@@ -84,20 +86,8 @@ function ensureRecentlyViewedResult(requestKey: string) {
   recentlyViewedRequests.set(requestKey, request)
 }
 
-function subscribeRecentlyViewed(onStoreChange: () => void) {
-  if (typeof window === "undefined") return () => {}
-  const handleChange = () => onStoreChange()
-  window.addEventListener("storage", handleChange)
-  window.addEventListener("recently-viewed-updated", handleChange as EventListener)
-  return () => {
-    window.removeEventListener("storage", handleChange)
-    window.removeEventListener("recently-viewed-updated", handleChange as EventListener)
-  }
-}
-
 function getRecentlyViewedSnapshot() {
-  if (typeof window === "undefined") return EMPTY_RECENTLY_VIEWED_SNAPSHOT
-  return window.localStorage.getItem(RECENTLY_VIEWED_STORAGE_KEY) ?? EMPTY_RECENTLY_VIEWED_SNAPSHOT
+  return JSON.stringify(readRecentlyViewedIds())
 }
 
 function parseRecentlyViewedSnapshot(snapshot: string) {
@@ -115,8 +105,9 @@ export default function RecentlyViewedRail({
   emptyText = "აქ გამოჩნდება ნივთები, რომლებსაც ბოლოს დაათვალიერებ.",
   excludeId,
 }: RecentlyViewedRailProps) {
+  const consent = useBrowserConsent()
   const storedSnapshot = useSyncExternalStore(
-    subscribeRecentlyViewed,
+    subscribePreferences,
     getRecentlyViewedSnapshot,
     () => EMPTY_RECENTLY_VIEWED_SNAPSHOT
   )
@@ -139,6 +130,8 @@ export default function RecentlyViewedRail({
 
   const loading = result.status === "loading"
   const items = result.key === requestKey ? result.items : []
+
+  if (!consent?.personalization || (!loading && items.length === 0)) return null
 
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 pb-8 sm:px-6 sm:pb-16 lg:px-8">

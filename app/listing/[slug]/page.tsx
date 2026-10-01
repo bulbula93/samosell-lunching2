@@ -1,3 +1,4 @@
+import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { after } from "next/server"
@@ -77,7 +78,7 @@ export default async function ListingDetailsPage({
     typeof query.search_id === "string" ? query.search_id : "",
   )
 
-  if (searchId && listing.status === "active") {
+  if (searchId && listing.status === "active" && await serverAllowsAnalytics()) {
     const analyticsClient = await createClient()
     after(() => {
       return recordSearchInteractionSafely(analyticsClient, {
