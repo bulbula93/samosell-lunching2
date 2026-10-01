@@ -3,14 +3,19 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import BrowserConsentPanel, { BrowserSettingsButton } from "@/components/privacy/BrowserConsentPanel"
 import CatalogPreferences from "@/components/listings/CatalogPreferences"
-import { CONSENT_KEY, CONSENT_TTL_MS, allowsAnalytics, allowsPersonalization, parseConsent, saveBrowserConsent } from "@/lib/browser-preferences"
+import { CONSENT_KEY, CONSENT_TTL_MS, allowsAnalytics, allowsPersonalization, parseConsent, saveBrowserConsent, subscribePreferences } from "@/lib/browser-preferences"
 import { CATALOG_PREFERENCE_KEY, readCatalogFilters, rememberCatalogFilters } from "@/lib/catalog-preferences"
 import { readRecentlyViewedIds, rememberRecentlyViewed } from "@/lib/recently-viewed"
 
 vi.mock("@/lib/listing-draft", () => ({ clearAllListingDrafts: vi.fn(() => Promise.resolve()) }))
 const id = "12345678-1234-1234-1234-123456789abc"
 
-beforeEach(() => { localStorage.clear(); document.cookie = "samosell_browser_consent=; Max-Age=0; Path=/"; vi.restoreAllMocks() })
+beforeEach(() => {
+  vi.restoreAllMocks()
+  saveBrowserConsent(false, false)
+  localStorage.clear()
+  document.cookie = "samosell_browser_consent=; Max-Age=0; Path=/"
+})
 
 describe("browser consent and preferences", () => {
   it("does not record optional history or filters before consent or after necessary-only", () => {
@@ -44,6 +49,28 @@ describe("browser consent and preferences", () => {
     expect(() => saveBrowserConsent(false, false)).not.toThrow()
     expect(allowsPersonalization()).toBe(false)
     expect(() => rememberRecentlyViewed(id)).not.toThrow()
+  })
+
+  it("honors withdrawal when consent writes fail but the previous choice can still be read", () => {
+    saveBrowserConsent(true, true)
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("Full", "QuotaExceededError") })
+    saveBrowserConsent(false, false)
+    expect(JSON.parse(localStorage.getItem(CONSENT_KEY)!)).toMatchObject({ analytics: true })
+    expect(allowsAnalytics()).toBe(false)
+    expect(allowsPersonalization()).toBe(false)
+  })
+
+  it("accepts a later choice from another tab after a failed storage write", () => {
+    saveBrowserConsent(true, true)
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked") })
+    saveBrowserConsent(false, false)
+    setItem.mockRestore()
+    const unsubscribe = subscribePreferences(() => undefined)
+    localStorage.setItem(CONSENT_KEY, JSON.stringify({ version: 1, analytics: true, personalization: false, updatedAt: Date.now() }))
+    window.dispatchEvent(new StorageEvent("storage", { key: CONSENT_KEY }))
+    expect(allowsAnalytics()).toBe(true)
+    expect(allowsPersonalization()).toBe(false)
+    unsubscribe()
   })
 
   it("offers a small choice panel, honors necessary-only, and reopens from footer", async () => {
