@@ -39,7 +39,7 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
     }
 
     setSuccess(
-      "ანგარიში შეიქმნა. თუ email confirmation ჩართულია, გადაამოწმე ელფოსტა და მერე შეხვდი სისტემაში."
+      "გადაამოწმე ელფოსტა და დაადასტურე ანგარიში გამოგზავნილი ბმულით."
     )
     setLoading(false)
   }
