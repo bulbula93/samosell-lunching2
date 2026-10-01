@@ -28,13 +28,28 @@ export default async function LoginPage({
 
   return (
     <AuthCard
-      title="სისტემაში შესვლა"
-      subtitle="შედი შენს ანგარიშში და მართე განცხადებები, პროფილი და ჩატები."
+      title={
+        <>
+          <span>სისტემაში </span>
+          <span className="text-[#f06f16] underline decoration-[#ffd27a] decoration-[6px] underline-offset-4">
+            შესვლა
+          </span>
+        </>
+      }
+      subtitle={
+        <>
+          შედი შენს ანგარიშში და მართე განცხადებები,{" "}
+          <span className="font-bold text-brand">პროფილი და ჩატები.</span>
+        </>
+      }
       altHref="/register"
       altText="ანგარიში არ გაქვს?"
       altLabel="რეგისტრაცია"
     >
-      <LoginForm nextPath={next} initialError={authError === "oauth_callback_failed" ? "სოციალური ავტორიზაცია ვერ დასრულდა. თავიდან სცადე." : ""} />
+      <LoginForm
+        nextPath={next}
+        initialError={authError === "oauth_callback_failed" ? "სოციალური ავტორიზაცია ვერ დასრულდა. თავიდან სცადე." : ""}
+      />
     </AuthCard>
   )
 }
