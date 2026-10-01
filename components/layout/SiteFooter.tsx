@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import Script from "next/script"
 import { ka } from "@/lib/i18n/ka"
@@ -40,8 +41,18 @@ export default function SiteFooter() {
       <div className="ui-container py-12 sm:py-16">
         <div className="grid gap-12 border-b border-white/15 pb-12 lg:grid-cols-[1.1fr_2fr]">
           <div className="max-w-md">
-            <Link href="/" className="font-logo text-3xl font-black tracking-[-0.045em] text-white transition hover:text-[#9EE3DA]">
-              {ka.brand}
+            <Link
+              href="/"
+              aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
+              className="inline-flex min-h-11 items-center rounded-xl bg-white px-3 py-2 transition hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+            >
+              <Image
+                src="/brand/samosell-header-logo.svg"
+                alt="Samo$ell"
+                width={164}
+                height={50}
+                className="h-[34px] w-auto sm:h-[42px]"
+              />
             </Link>
             <p className="mt-4 text-sm leading-7 text-white/70">
               ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
