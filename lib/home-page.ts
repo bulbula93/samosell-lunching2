@@ -62,21 +62,46 @@ async function settleHomeQuery<T>(
   query: PromiseLike<T>,
   section: string,
 ): Promise<T | null> {
+  const startedAt = Date.now()
+  let queryTimedOut = false
   let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  const trackedQuery = Promise.resolve(query).then(
+    (value) => {
+      const elapsedMs = Date.now() - startedAt
+      if (elapsedMs >= 1000 || queryTimedOut) {
+        console.info("home_public_data_query_timing", {
+          section,
+          outcome: "resolved",
+          elapsedMs,
+          timeoutMs: HOME_QUERY_BUDGET_MS,
+          completedAfterTimeout: queryTimedOut,
+        })
+      }
+      return value
+    },
+    (error) => {
+      console.warn("home_public_data_partial", section, {
+        outcome: "query_rejected",
+        elapsedMs: Date.now() - startedAt,
+        timeoutMs: HOME_QUERY_BUDGET_MS,
+        completedAfterTimeout: queryTimedOut,
+        message: error instanceof Error ? error.message : "query_failed",
+      })
+      return null
+    },
+  )
 
   try {
     return await Promise.race([
-      Promise.resolve(query).catch((error) => {
-        console.warn(
-          "home_public_data_partial",
-          section,
-          error instanceof Error ? error.message : "query_failed",
-        )
-        return null
-      }),
+      trackedQuery,
       new Promise<null>((resolve) => {
         timeoutId = setTimeout(() => {
-          console.warn("home_public_data_partial", section, "client_timeout")
+          queryTimedOut = true
+          console.warn("home_public_data_partial", section, "client_timeout", {
+            elapsedMs: Date.now() - startedAt,
+            timeoutMs: HOME_QUERY_BUDGET_MS,
+          })
           resolve(null)
         }, HOME_QUERY_BUDGET_MS)
       }),

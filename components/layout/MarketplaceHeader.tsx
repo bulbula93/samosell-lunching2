@@ -195,7 +195,7 @@ export default function MarketplaceHeader({
             const target = new URL(item.href, "https://samosell.local")
             const pathMatches = pathname === target.pathname
             const queryMatches = Array.from(target.searchParams.entries()).every(
-              ([key, value]) => searchParams.get(key) === value,
+              ([key, value]) => searchParams?.get(key) === value,
             )
             const active = pathMatches && queryMatches && target.searchParams.size > 0
 
