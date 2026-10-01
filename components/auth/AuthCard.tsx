@@ -32,18 +32,7 @@ export default function AuthCard({
       />
 
       <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-[#eadfd7] bg-white/95 p-6 shadow-[0_20px_65px_rgba(7,63,59,0.12)] backdrop-blur sm:p-8">
-        <div aria-hidden="true" className="pointer-events-none absolute right-5 top-5 hidden sm:block">
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-[#fff4df]">
-            <svg viewBox="0 0 88 88" className="h-20 w-20" fill="none">
-              <path d="M38 24c0-6 4-10 9-10 5 0 9 4 9 9 0 5-4 7-8 9v6" stroke="#075A53" strokeWidth="4" strokeLinecap="round" />
-              <path d="M18 51 44 36l26 15" stroke="#075A53" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M29 47h31l7 28H22l7-28Z" fill="#FFB424" />
-              <path d="m32 49 4 19M58 49l-4 19" stroke="#FF7A00" strokeWidth="4" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="mb-8 sm:pr-20">
+        <div className="mb-8">
           <Link
             href="/"
             aria-label="მთავარ გვერდზე დაბრუნება"
