@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { SITE_NAME } from "@/lib/site"
+import type { ReactNode } from "react"
 
 export default function AuthCard({
   title,
@@ -9,36 +9,71 @@ export default function AuthCard({
   altText,
   children,
 }: {
-  title: string
-  subtitle: string
+  title: ReactNode
+  subtitle: ReactNode
   altHref: string
   altLabel: string
   altText: string
   children: React.ReactNode
 }) {
   return (
-    <main className="min-h-screen bg-neutral-50 px-6 py-16 text-neutral-900">
-      <div className="mx-auto w-full max-w-md rounded-[2rem] border border-neutral-200 bg-white p-8 shadow-sm">
-        <div className="mb-8">
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#fffaf6] px-4 py-10 text-neutral-900 sm:px-6 sm:py-14">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-24 top-28 h-56 w-56 rounded-full bg-[#dff5ef] blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-24 top-16 h-64 w-64 rounded-full bg-[#fff0d7] blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-1/2 h-64 w-72 -translate-x-1/2 rounded-full bg-[#fff4df] blur-3xl"
+      />
+
+      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-[2rem] border border-[#eadfd7] bg-white/95 p-6 shadow-[0_20px_65px_rgba(7,63,59,0.12)] backdrop-blur sm:p-8">
+        <div aria-hidden="true" className="pointer-events-none absolute right-5 top-5 hidden sm:block">
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-[#fff4df]">
+            <svg viewBox="0 0 88 88" className="h-20 w-20" fill="none">
+              <path d="M38 24c0-6 4-10 9-10 5 0 9 4 9 9 0 5-4 7-8 9v6" stroke="#075A53" strokeWidth="4" strokeLinecap="round" />
+              <path d="M18 51 44 36l26 15" stroke="#075A53" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M29 47h31l7 28H22l7-28Z" fill="#FFB424" />
+              <path d="m32 49 4 19M58 49l-4 19" stroke="#FF7A00" strokeWidth="4" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="mb-8 sm:pr-20">
           <Link
             href="/"
             aria-label="მთავარ გვერდზე დაბრუნება"
-            className="inline-block rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-300"
+            className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
           >
-            <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500 transition group-hover:opacity-90">
-              {SITE_NAME}
-            </div>
+            <img
+              src="/brand/samosell-header-logo.svg"
+              alt="Samo$ell"
+              width={164}
+              height={50}
+              className="h-[38px] w-auto"
+            />
           </Link>
-          <h1 className="mt-3 text-3xl font-black">{title}</h1>
-          <p className="mt-3 text-sm leading-6 text-neutral-600">{subtitle}</p>
+
+          <h1 className="mt-5 text-3xl font-black leading-tight tracking-[-0.03em] text-brand sm:text-[2rem]">
+            {title}
+          </h1>
+          <p className="mt-3 max-w-sm text-sm leading-6 text-neutral-600">{subtitle}</p>
         </div>
 
         {children}
 
-        <div className="mt-6 text-sm text-neutral-600">
+        <div className="mt-7 text-center text-sm text-neutral-600">
           {altText}{" "}
-          <Link href={altHref} className="font-semibold text-black underline-offset-2 hover:underline">
+          <Link
+            href={altHref}
+            className="font-black text-[#f06f16] underline decoration-[#ffb424] decoration-2 underline-offset-4 transition hover:text-[#d85f0e]"
+          >
             {altLabel}
+            <span aria-hidden="true" className="ml-1">→</span>
           </Link>
         </div>
       </div>
