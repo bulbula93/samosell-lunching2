@@ -21,6 +21,12 @@ export async function GET(request: Request) {
     }
   }
 
+  if (next === "/reset-password") {
+    const recoveryUrl = new URL("/forgot-password", redirectOrigin)
+    recoveryUrl.searchParams.set("error", "invalid_or_expired")
+    return NextResponse.redirect(recoveryUrl)
+  }
+
   const loginUrl = new URL("/login", redirectOrigin)
   loginUrl.searchParams.set("error", "oauth_callback_failed")
   loginUrl.searchParams.set("next", next)
