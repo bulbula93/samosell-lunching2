@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 
@@ -36,6 +37,7 @@ function wasRecentlyDismissed() {
 
 export default function PwaInstallPrompt() {
   const pathname = usePathname()
+  const consent = useBrowserConsent()
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
   const [ios, setIos] = useState(false)
@@ -117,7 +119,7 @@ export default function PwaInstallPrompt() {
     setPromptEvent(null)
   }
 
-  if (!eligibleRoute || !visible || (!ios && !promptEvent)) return null
+  if (!consent || !eligibleRoute || !visible || (!ios && !promptEvent)) return null
 
   return (
     <aside

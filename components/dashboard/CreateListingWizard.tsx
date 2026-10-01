@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
+import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -38,6 +40,7 @@ type Props = {
   brands: Option[]
   sizes: SizeOption[]
   initialSellerPhone: string
+  userId?: string
 }
 
 const conditionOptions: ToggleOption[] = [
@@ -209,7 +212,7 @@ function TogglePills({
   )
 }
 
-export default function CreateListingWizard({ categories, brands, sizes, initialSellerPhone }: Props) {
+export default function CreateListingWizard({ categories, brands, sizes, initialSellerPhone, userId = "" }: Props) {
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
   const formPrefix = useId().replace(/:/g, "")
@@ -242,6 +245,75 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [progressText, setProgressText] = useState("")
   const [progressPercent, setProgressPercent] = useState(0)
   const [draggingImageId, setDraggingImageId] = useState("")
+
+  const consent = useBrowserConsent()
+  const [pendingDraft, setPendingDraft] = useState<ListingDraft | null>(null)
+  const [draftChecked, setDraftChecked] = useState(false)
+  const [draftStatus, setDraftStatus] = useState("")
+  const publishedRef = useRef(false)
+  const draftFields = useMemo(() => ({ title, description, price, categoryId, brandId, sizeId, condition,
+    saleType, gender, color, material, city, publishNow }),
+    [title, description, price, categoryId, brandId, sizeId, condition, saleType, gender, color, material, city, publishNow])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!consent?.personalization || !userId) {
+      queueMicrotask(() => { if (!cancelled) { setPendingDraft(null); setDraftChecked(false); setDraftStatus("") } })
+      return () => { cancelled = true }
+    }
+    readListingDraft(userId).then((draft) => {
+      if (!cancelled) { setPendingDraft(draft); setDraftChecked(true) }
+    }).catch(() => {
+      if (!cancelled) { setDraftChecked(true); setDraftStatus("ამ ბრაუზერში მონახაზის შენახვა მიუწვდომელია.") }
+    })
+    return () => { cancelled = true }
+  }, [consent?.personalization, userId])
+
+  useEffect(() => {
+    if (!consent?.personalization || !userId || !draftChecked || pendingDraft || loading || publishedRef.current) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      const hasContent = Boolean(title || description || price || categoryId || images.length)
+      const operation = hasContent ? saveListingDraft({ userId, updatedAt: Date.now(), fields: draftFields, sizeType,
+        images: images.map((image) => ({ id: image.id, name: image.file.name, type: image.file.type,
+          lastModified: image.file.lastModified, blob: image.file })) }) : deleteListingDraft(userId)
+      operation.then((saved) => {
+        if (!cancelled && saved !== false) setDraftStatus(hasContent ? "მონახაზი შენახულია ამ ბრაუზერში · 7 დღით" : "")
+      }).catch(() => {
+        if (!cancelled) setDraftStatus("მონახაზი ვერ შეინახა. გვერდის დახურვისას მონაცემები შეიძლება დაიკარგოს.")
+      })
+    }, 700)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [consent?.personalization, userId, draftChecked, pendingDraft, loading, draftFields, sizeType, images,
+    title, description, price, categoryId])
+
+  function restoreDraft() {
+    if (!pendingDraft) return
+    const fields = pendingDraft.fields
+    setTitle(fields.title); setDescription(fields.description); setPrice(fields.price)
+    setCategoryId(categories.some((item) => item.id === Number(fields.categoryId)) ? Number(fields.categoryId) : "")
+    setBrandId(brands.some((item) => item.id === fields.brandId) ? fields.brandId : "")
+    setSizeId(sizes.some((item) => item.id === fields.sizeId) ? fields.sizeId : "")
+    setSizeType(pendingDraft.sizeType); setCondition(fields.condition); setSaleType(fields.saleType)
+    setGender(fields.gender); setColor(fields.color); setMaterial(fields.material); setCity(fields.city)
+    setPublishNow(fields.publishNow)
+    const restored = pendingDraft.images.map((image) => {
+      const file = new File([image.blob], image.name, { type: image.type, lastModified: image.lastModified })
+      return { id: image.id, file, imageUrl: URL.createObjectURL(file) }
+    })
+    for (const image of imagesRef.current) URL.revokeObjectURL(image.imageUrl)
+    imagesRef.current = restored
+    setImages(restored); setPendingDraft(null); setStep(1)
+    setDraftStatus("მონახაზი აღდგენილია. გადაამოწმე მონაცემები გამოქვეყნებამდე.")
+  }
+
+  async function discardDraft() {
+    try {
+      await deleteListingDraft(userId)
+      setPendingDraft(null)
+      setDraftStatus("")
+    } catch { setDraftStatus("ძველი მონახაზის წაშლა ვერ მოხერხდა. სცადე ხელახლა.") }
+  }
 
   const titleId = `${formPrefix}-title`
   const descriptionId = `${formPrefix}-description`
@@ -543,6 +615,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
       uploadedPaths = []
       completed = true
+      publishedRef.current = true
+      if (userId) await deleteListingDraft(userId).catch(() => undefined)
       setProgressPercent(100)
       setProgressText(publishNow ? "განცხადება გამოქვეყნდა." : "დრაფტი შეიქმნა.")
       router.push(result.status === "active" ? `/listing/${result.slug}` : "/dashboard/listings")
@@ -561,6 +635,15 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
   return (
     <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-5xl space-y-5">
+      {pendingDraft ? <section aria-label="შენახული მონახაზი" className="ui-card border-brand/25 bg-brand-soft p-4">
+        <h2 className="font-black">შენახული მონახაზი იპოვე</h2>
+        <p className="mt-1 text-sm leading-6">{pendingDraft.fields.title || "დაუსრულებელი განცხადება"} · {pendingDraft.images.length} ფოტო. აღადგინო ტექსტი და ფოტოები?</p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <button type="button" onClick={restoreDraft} className="ui-btn-primary">მონახაზის აღდგენა</button>
+          <button type="button" onClick={() => void discardDraft()} className="ui-btn-secondary">მონახაზის წაშლა</button>
+        </div>
+      </section> : null}
+      {draftStatus ? <p role="status" className="text-xs leading-5 text-text-soft">{draftStatus}</p> : null}
       <div ref={topRef} className="scroll-mt-28" />
 
       <header className="ui-card overflow-hidden">

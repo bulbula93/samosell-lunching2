@@ -1,3 +1,4 @@
+import { cookieConsent } from "@/lib/browser-preferences"
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -16,6 +17,10 @@ export async function POST(request: Request) {
   const requestOrigin = new URL(request.url).origin
   if (origin && origin !== requestOrigin) {
     return new NextResponse(null, { status: 403 })
+  }
+
+  if (!cookieConsent(request.headers.get("cookie"))?.analytics) {
+    return new NextResponse(null, { status: 204, headers: { "cache-control": "no-store" } })
   }
 
   if (isKnownBot(request.headers.get("user-agent") ?? "")) {

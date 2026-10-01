@@ -1,5 +1,7 @@
 "use client"
 
+import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
+import { allowsAnalytics } from "@/lib/browser-preferences"
 import { useEffect, useRef } from "react"
 import type { AdPlacementKey } from "@/lib/ads"
 
@@ -12,15 +14,16 @@ export default function AdImpressionTracker({
   placementKey: AdPlacementKey
   pagePath: string
 }) {
+  const consent = useBrowserConsent()
   const markerRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const marker = markerRef.current
-    if (!marker) return
+    if (!marker || !consent?.analytics) return
 
     let sent = false
     const send = () => {
-      if (sent) return
+      if (sent || !allowsAnalytics()) return
       sent = true
       void fetch("/api/ads/events", {
         method: "POST",
@@ -47,7 +50,7 @@ export default function AdImpressionTracker({
     )
     observer.observe(marker)
     return () => observer.disconnect()
-  }, [adId, pagePath, placementKey])
+  }, [adId, pagePath, placementKey, consent?.analytics])
 
   return <span ref={markerRef} aria-hidden="true" className="pointer-events-none absolute inset-0" />
 }

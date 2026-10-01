@@ -1,5 +1,7 @@
 "use server"
 
+import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
+
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
@@ -85,7 +87,7 @@ export async function toggleFavoriteAction(formData: FormData) {
       redirect(favoriteErrorPath(nextPath))
     }
 
-    await recordSearchInteractionSafely(supabase, {
+    if (searchId && await serverAllowsAnalytics()) await recordSearchInteractionSafely(supabase, {
       searchId,
       listingId,
       eventType: "favorite",

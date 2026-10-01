@@ -1,3 +1,5 @@
+import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
+import CatalogPreferences from "@/components/listings/CatalogPreferences"
 import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
 import { unstable_cache } from "next/cache"
@@ -181,7 +183,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const savedSearchStatus = readStatus(params.saved_search_status)
   const databaseFilters = getCatalogDatabaseFilters(filters)
   const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance")
-  const searchId = q ? randomUUID() : null
+  const analyticsAllowed = await serverAllowsAnalytics()
+  const searchId = q && analyticsAllowed ? randomUUID() : null
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -456,6 +459,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
             cities={cityOptions}
             values={filterValues}
           />
+
+          <CatalogPreferences values={filterValues} />
 
           <SavedSearchControls
             values={filterValues}
