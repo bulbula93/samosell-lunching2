@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons"
@@ -28,12 +29,33 @@ function FieldIcon({ kind }: { kind: "email" | "password" }) {
   )
 }
 
+function getLoginErrorMessage(authError: { code?: string; message?: string; status?: number }) {
+  const code = authError.code?.toLowerCase() ?? ""
+  const message = authError.message?.toLowerCase() ?? ""
+
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
+    return "ელფოსტა ან პაროლი არასწორია. ცადე თავიდან."
+  }
+
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return "ელფოსტა ჯერ არ არის დადასტურებული. გადაამოწმე ელფოსტა და ცადე თავიდან."
+  }
+
+  if (authError.status === 429 || code.includes("rate_limit") || message.includes("rate limit")) {
+    return "ძალიან ბევრი მცდელობაა. ცოტა ხანში ცადე თავიდან."
+  }
+
+  return "შესვლა ვერ მოხერხდა. გადაამოწმე მონაცემები და ცადე თავიდან."
+}
+
 export default function LoginForm({
   nextPath,
   initialError,
+  initialSuccess,
 }: {
   nextPath?: string
   initialError?: string
+  initialSuccess?: string
 }) {
   const supabase = createClient()
 
@@ -41,6 +63,7 @@ export default function LoginForm({
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(initialError || "")
+  const [success] = useState(initialSuccess || "")
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -48,13 +71,13 @@ export default function LoginForm({
     setLoading(true)
     setError("")
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
       password,
     })
 
-    if (error) {
-      setError(error.message)
+    if (authError) {
+      setError(getLoginErrorMessage(authError))
       setLoading(false)
       return
     }
@@ -65,6 +88,12 @@ export default function LoginForm({
   return (
     <div className="space-y-5">
       <SocialAuthButtons mode="login" nextPath={nextPath} />
+
+      {success ? (
+        <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          {success}
+        </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -85,10 +114,18 @@ export default function LoginForm({
         </div>
 
         <div>
-          <label htmlFor="login-password" className="mb-2 flex items-center gap-2 text-sm font-black text-brand">
-            <FieldIcon kind="password" />
-            <span className="underline decoration-[#ffc45b] decoration-2 underline-offset-4">Password</span>
-          </label>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <label htmlFor="login-password" className="flex items-center gap-2 text-sm font-black text-brand">
+              <FieldIcon kind="password" />
+              <span className="underline decoration-[#ffc45b] decoration-2 underline-offset-4">Password</span>
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-bold text-[#e96b10] transition hover:text-[#c95708] hover:underline"
+            >
+              პაროლი დაგავიწყდა?
+            </Link>
+          </div>
           <div className="relative">
             <input
               id="login-password"
@@ -122,7 +159,7 @@ export default function LoginForm({
         </div>
 
         {error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
             {error}
           </div>
         ) : null}
