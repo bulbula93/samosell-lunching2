@@ -83,7 +83,7 @@ describe("HomePageContent", () => {
     render(<HomePageContent data={data} />)
 
     expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
-    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები")).toBeInTheDocument()
+    expect(screen.getByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).toBeInTheDocument()
     expect(screen.queryByRole("region", { name: "პოპულარული ნივთები" })).not.toBeInTheDocument()
   })
 
@@ -113,7 +113,7 @@ describe("HomePageContent", () => {
     render(<HomePageContent data={data} />)
 
     expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
-    expect(screen.getByText("აქ გამოჩნდება მხოლოდ აქტიური VIP MAX განცხადებები")).toBeInTheDocument()
+    expect(screen.getByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "გააქტიურე VIP MAX" })).toHaveAttribute("href", "/dashboard/listings")
   })
 
