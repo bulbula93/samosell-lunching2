@@ -27,6 +27,7 @@ function NotificationBell({ count }: { count: number }) {
   return (
     <Link
       href="/dashboard/notifications"
+      prefetch={false}
       aria-label={count > 0 ? `ნოტიფიკაციები — ${count} წაუკითხავი` : "ნოტიფიკაციები"}
       title="ნოტიფიკაციები"
       className={`${accountActionClass} inline-flex border-accent/60 bg-accent-soft shadow-[0_3px_0_#edc59d] hover:bg-[#ffe9d1]`}
