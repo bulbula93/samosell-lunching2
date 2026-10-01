@@ -42,10 +42,6 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
 
     try {
       const safeNext = getSafeAuthRedirectPath(nextPath)
-      // Keep OAuth callbacks on the same host that initiated sign-in. This lets
-      // Vercel previews establish their own auth cookie while production still
-      // returns to samosell.ge. Supabase's redirect allow-list remains the
-      // security boundary for accepted callback hosts.
       const redirectUrl = new URL("/auth/callback", window.location.origin)
       redirectUrl.searchParams.set("next", safeNext)
 
@@ -67,7 +63,7 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="grid gap-3">
         {PROVIDERS.map(({ provider, label, icon }) => {
           const isLoading = loadingProvider === provider
@@ -77,7 +73,7 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
               type="button"
               onClick={() => handleOAuthSignIn(provider)}
               disabled={Boolean(loadingProvider)}
-              className="flex h-12 items-center justify-center gap-3 rounded-2xl border border-neutral-300 bg-white px-4 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-12 items-center justify-center gap-3 rounded-2xl border border-[#d9dedc] bg-white px-4 text-sm font-black text-brand shadow-[0_2px_10px_rgba(7,63,59,0.04)] transition hover:-translate-y-0.5 hover:border-brand/25 hover:bg-[#fbfdfc] hover:shadow-[0_8px_20px_rgba(7,63,59,0.08)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {icon}
               <span>{isLoading ? "იტვირთება..." : getButtonLabel(mode, label)}</span>
@@ -92,12 +88,14 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
         </div>
       ) : null}
 
-      <div className="relative py-1">
+      <div className="relative py-1.5">
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-neutral-200" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">ან</span>
+          <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-white px-2 text-xs font-black text-neutral-400 shadow-[0_1px_6px_rgba(7,63,59,0.05)]">
+            ან
+          </span>
         </div>
       </div>
     </div>
