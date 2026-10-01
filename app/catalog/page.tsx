@@ -33,6 +33,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
+import { withQueryTimeout } from "@/lib/supabase/query-timeout"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -67,12 +68,12 @@ const getCachedCatalogFilterOptions = unstable_cache(
   async (): Promise<CatalogFilterOptions> => {
     const supabase = createPublicServerClient()
     const [sizesResponse, facetsResponse] = await Promise.all([
-      supabase
+      withQueryTimeout(supabase
         .from("sizes")
         .select("label, group_name, sort_order")
         .order("group_name", { ascending: true })
-        .order("sort_order", { ascending: true }),
-      supabase.rpc("get_catalog_public_facets"),
+        .order("sort_order", { ascending: true })),
+      withQueryTimeout(supabase.rpc("get_catalog_public_facets")),
     ])
 
     const publicOptionsError = sizesResponse.error || facetsResponse.error
@@ -197,10 +198,10 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   let experimentVariant: string | null = null
 
   if (useRankedSearch && searchId) {
-    const { data: assignmentData, error: assignmentError } = await supabase.rpc(
+    const { data: assignmentData, error: assignmentError } = await withQueryTimeout(supabase.rpc(
       "get_search_experiment_assignment",
       { p_search_id: searchId },
-    )
+    ))
 
     if (assignmentError) {
       console.error("[search-experiment] assignment failed", assignmentError.message)
@@ -262,22 +263,23 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   }
 
   const rankedSearchPromise = useRankedSearch
-    ? supabase.rpc("search_catalog_ranked", rankedArgs)
+    ? withQueryTimeout(supabase.rpc("search_catalog_ranked", rankedArgs))
     : Promise.resolve({ data: null, error: null })
 
   const listingsPromise = useRankedSearch
     ? Promise.resolve({ data: [] as CatalogListing[], error: null })
-    : listingsQuery.range(rangeFrom, rangeTo)
+    : withQueryTimeout(listingsQuery.range(rangeFrom, rangeTo))
   const countPromise = useRankedSearch
     ? Promise.resolve({ count: 0, error: null })
-    : countQuery
+    : withQueryTimeout(countQuery)
 
   const savedSearchPromise = user && canSaveSearch
-    ? supabase
+    ? withQueryTimeout((signal) => supabase
         .from("saved_searches")
         .select("id, is_active")
         .eq("catalog_path", savedSearchPath)
-        .maybeSingle()
+        .abortSignal(signal)
+        .maybeSingle())
     : Promise.resolve({ data: null as { id: string; is_active: boolean } | null, error: null })
 
   const [
@@ -291,7 +293,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     listingsPromise,
     countPromise,
     user
-      ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
+      ? withQueryTimeout(supabase.from("favorites").select("listing_id").eq("user_id", user.id))
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
     savedSearchPromise,
   ])
@@ -303,10 +305,10 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     !rankedSearchResponse.error &&
     Math.max(0, Number(rankedPayload?.total_count ?? 0)) === 0
   ) {
-    const { data: rescueData, error: rescueError } = await supabase.rpc(
+    const { data: rescueData, error: rescueError } = await withQueryTimeout(supabase.rpc(
       "search_catalog_rescue",
       rankedArgs,
-    )
+    ))
 
     if (rescueError) {
       console.error("[search-quality] rescue failed", rescueError.message)
@@ -343,7 +345,13 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     savedSearchResponse.error
 
   if (queryError) {
-    throw new Error(`catalog_data_failed:${queryError.message}`)
+    console.error("catalog_data_failed", {
+      code: queryError.code,
+      message: queryError.message || "upstream_request_failed",
+      page,
+      sort,
+    })
+    throw new Error("catalog_data_failed")
   }
 
   const categories = CATALOG_SECTION_OPTIONS.map((item) => ({ slug: item.value, name: item.label }))

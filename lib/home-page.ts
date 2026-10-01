@@ -3,6 +3,7 @@ import "server-only"
 import { unstable_cache } from "next/cache"
 import type { User } from "@supabase/supabase-js"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
+import { withQueryTimeout } from "@/lib/supabase/query-timeout"
 import type { CatalogListing } from "@/types/marketplace"
 import type { StoryRailData } from "@/types/story"
 
@@ -146,12 +147,12 @@ export const getPublicHomePageData = unstable_cache(
     const supabase = createPublicServerClient()
 
     const response = await settleHomeQuery(
-      supabase
+      withQueryTimeout(supabase
         .from("listings_catalog")
         .select(HOME_LISTING_SELECT, { count: "exact" })
         .eq("status", "active")
         .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(HOME_POOL_LIMIT),
+        .limit(HOME_POOL_LIMIT), HOME_QUERY_BUDGET_MS),
       "catalog_pool",
     )
 
