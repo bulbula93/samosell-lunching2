@@ -62,7 +62,9 @@ export const getMarketplaceNavigationItems = unstable_cache(
       return true
     })
 
-    const order = new Map(marketplaceNavOrder.map((href, index) => [href, index]))
+    const order = new Map<string, number>(
+      marketplaceNavOrder.map((href, index) => [href, index]),
+    )
     return mergedItems.sort((a, b) => {
       const aOrder = order.get(a.href) ?? Number.MAX_SAFE_INTEGER
       const bOrder = order.get(b.href) ?? Number.MAX_SAFE_INTEGER
