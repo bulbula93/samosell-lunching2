@@ -62,6 +62,14 @@ const genderOptions: ToggleOption[] = [
   { value: "unisex", label: "უნისექსი" },
 ]
 
+const perfumeConcentrationOptions = [
+  { value: "parfum", label: "Parfum / Extrait" },
+  { value: "edp", label: "Eau de Parfum (EDP)" },
+  { value: "edt", label: "Eau de Toilette (EDT)" },
+  { value: "edc", label: "Eau de Cologne (EDC)" },
+  { value: "body-mist", label: "Body Mist" },
+]
+
 const stepMeta: Array<{ step: Step; label: string; helper: string }> = [
   { step: 1, label: "ფოტოები", helper: "კამერა, გალერეა, რიგი" },
   { step: 2, label: "დეტალები", helper: "სათაური და მახასიათებლები" },
@@ -331,7 +339,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     () => categories.find((item) => item.id === categoryId),
     [categories, categoryId],
   )
-  const sizeTypeChoices = useMemo(() => listingSizeTypeOptions(gender), [gender])
+  const isPerfume = selectedCategory?.slug === "perfume"
+  const sizeTypeChoices = useMemo(
+    () => listingSizeTypeOptions(gender, selectedCategory?.slug),
+    [gender, selectedCategory?.slug],
+  )
   const filteredSizes = useMemo(() => {
     const byLabel = new Map<string, SizeOption>()
     for (const item of sizes) {
@@ -914,20 +926,47 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           </section>
 
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-fit-heading`}>
-            <h2 id={`${formPrefix}-fit-heading`} className="text-lg font-black text-text">ზომა და ბრენდი</h2>
-            <p className="mt-1 text-sm text-text-soft">არჩევითია, მაგრამ ზუსტი მონაცემები ძებნის ფილტრებში უკეთ გამოჩნდება.</p>
+            <h2 id={`${formPrefix}-fit-heading`} className="text-lg font-black text-text">{isPerfume ? "ბრენდი და მოცულობა" : "ზომა და ბრენდი"}</h2>
+            <p className="mt-1 text-sm text-text-soft">
+  {isPerfume
+    ? "მიუთითე სუნამოს ბრენდი, მოცულობა და კონცენტრაცია — ეს მონაცემები პარფიუმერიის ფილტრებში გამოჩნდება."
+    : "არჩევითია, მაგრამ ზუსტი მონაცემები ძებნის ფილტრებში უკეთ გამოჩნდება."}
+</p>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
               <SelectField id={brandIdField} label="ბრენდი" value={brandId} onChange={(value) => { setBrandId(value); clearFieldError("brandId") }} options={brands.map((item) => ({ value: item.id, label: item.name ?? item.id }))} placeholder="ბრენდის გარეშე" error={fieldErrors.brandId} />
-              <SelectField id={sizeTypeId} label="ზომის ტიპი" value={sizeType} onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }} options={sizeTypeChoices} placeholder="აირჩიე ზომის ტიპი" />
-              <SelectField id={sizeIdField} label="ზომა" value={sizeId} onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }} options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))} placeholder="ზომის გარეშე" error={fieldErrors.sizeId} />
+              {!isPerfume ? (
+  <SelectField id={sizeTypeId} label="ზომის ტიპი" value={sizeType} onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }} options={sizeTypeChoices} placeholder="აირჩიე ზომის ტიპი" />
+) : null}
+              <SelectField
+  id={sizeIdField}
+  label={isPerfume ? "მოცულობა" : "ზომა"}
+  value={sizeId}
+  onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }}
+  options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
+  placeholder={isPerfume ? "აირჩიე მოცულობა" : "ზომის გარეშე"}
+  error={fieldErrors.sizeId}
+/>
+{isPerfume ? (
+  <SelectField
+    id={materialId}
+    label="კონცენტრაცია"
+    value={material}
+    onChange={(value) => { setMaterial(value); clearFieldError("material") }}
+    options={perfumeConcentrationOptions}
+    placeholder="აირჩიე კონცენტრაცია"
+    error={fieldErrors.material}
+  />
+) : null}
             </div>
-            <details className="mt-5 rounded-2xl border border-line bg-surface-alt/35 p-4">
+            {!isPerfume ? (
+<details className="mt-5 rounded-2xl border border-line bg-surface-alt/35 p-4">
               <summary className="cursor-pointer text-sm font-black text-brand">+ ფერი და მასალა</summary>
               <div className="mt-4 grid gap-5 sm:grid-cols-2">
                 <TextInput id={colorId} label="ფერი" value={color} onChange={(value) => { setColor(value); clearFieldError("color") }} error={fieldErrors.color} maxLength={LISTING_TEXT_LIMITS.colorMax} placeholder="მაგ: შავი" />
                 <TextInput id={materialId} label="მასალა" value={material} onChange={(value) => { setMaterial(value); clearFieldError("material") }} error={fieldErrors.material} maxLength={LISTING_TEXT_LIMITS.materialMax} placeholder="მაგ: ტყავი" />
               </div>
             </details>
+) : null}
           </section>
         </>
       ) : null}
@@ -984,7 +1023,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                   <span className="ui-pill-soft">{genderOptions.find((item) => item.value === gender)?.label}</span>
                   <span className="ui-pill-soft">{saleTypeOptions.find((item) => item.value === saleType)?.label}</span>
                   {selectedBrand ? <span className="ui-pill-soft">{selectedBrand.name}</span> : null}
-                  {selectedSize ? <span className="ui-pill-soft">ზომა {selectedSize.label}</span> : null}
+                  {selectedSize ? <span className="ui-pill-soft">{isPerfume ? "მოცულობა" : "ზომა"} {selectedSize.label}</span> : null}
+                  {isPerfume && material ? <span className="ui-pill-soft">{perfumeConcentrationOptions.find((item) => item.value === material)?.label ?? material}</span> : null}
                   {city ? <span className="ui-pill-soft">{city}</span> : null}
                 </div>
               </div>
