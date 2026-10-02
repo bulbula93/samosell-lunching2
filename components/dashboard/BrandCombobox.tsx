@@ -19,6 +19,7 @@ export default function BrandCombobox({
   customBrand,
   onChange,
   error,
+  extraSuggestions = [],
 }: {
   id: string
   brands: BrandOption[]
@@ -26,6 +27,7 @@ export default function BrandCombobox({
   customBrand: string
   onChange: (next: { brandId: string; customBrand: string }) => void
   error?: string
+  extraSuggestions?: readonly string[]
 }) {
   const knownBrands = useMemo(
     () =>
@@ -42,7 +44,7 @@ export default function BrandCombobox({
     const seen = new Set<string>()
     const next: string[] = []
 
-    for (const name of [...POPULAR_BRAND_NAMES, ...knownBrands.map((brand) => brand.name)]) {
+    for (const name of [...extraSuggestions, ...POPULAR_BRAND_NAMES, ...knownBrands.map((brand) => brand.name)]) {
       const key = normalize(name)
       if (!key || seen.has(key)) continue
       seen.add(key)
@@ -50,7 +52,7 @@ export default function BrandCombobox({
     }
 
     return next
-  }, [knownBrands])
+  }, [extraSuggestions, knownBrands])
 
   function handleChange(nextValue: string) {
     const normalized = normalize(nextValue)
