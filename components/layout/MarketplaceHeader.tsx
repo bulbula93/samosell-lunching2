@@ -253,7 +253,13 @@ export default function MarketplaceHeader({
               >
                 {isPerfume ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <span aria-hidden="true" className="text-[11px] text-[#e8894a]">✦</span>
+                    <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center text-[#e8894a]">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 3h4v3h-4z" />
+                        <path d="M9 6h6l1.5 2.5V11l2 2v6H5.5v-6l2-2V8.5L9 6Z" />
+                        <path d="M8.5 14.5h7" />
+                      </svg>
+                    </span>
                     <span>{item.label}</span>
                   </span>
                 ) : item.label}
