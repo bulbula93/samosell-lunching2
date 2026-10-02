@@ -51,8 +51,8 @@ export default function CatalogLandingFilters({
     <section aria-label="კატალოგის ფილტრები" className="mt-6">
       <MobileFiltersDrawer options={options} values={values} activeCount={activeCount} />
 
-      <form action="/catalog" className="ui-card hidden p-4 lg:block">
-        <div className="mb-4 flex items-end gap-3">
+      <form action="/catalog" className="ui-card hidden p-3 lg:block">
+        <div className="mb-3 flex items-end gap-3">
           <label className="min-w-0 flex-1">
             <span className="mb-1.5 block text-xs font-bold text-text-soft">ძებნა</span>
             <input
