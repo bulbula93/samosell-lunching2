@@ -244,8 +244,8 @@ export default function MarketplaceHeader({
                 className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                   isPerfume
                     ? active
-                      ? "bg-[#fff0e8] text-[#b44f17] shadow-[inset_0_0_0_1px_rgba(229,111,37,0.18)]"
-                      : "bg-[#fff8f3] text-[#b95a20] hover:bg-[#fff0e8] hover:text-[#9b4314]"
+                      ? "bg-[#fff4ec] text-[#b44f17]"
+                      : "text-[#b95a20] hover:bg-[#fff4ec] hover:text-[#9b4314]"
                     : active
                       ? "bg-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(7,63,59,0.06)]"
                       : "text-text-soft hover:bg-brand-soft/70 hover:text-brand"
@@ -255,9 +255,10 @@ export default function MarketplaceHeader({
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center text-[#e8894a]">
                       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 3h4v3h-4z" />
-                        <path d="M9 6h6l1.5 2.5V11l2 2v6H5.5v-6l2-2V8.5L9 6Z" />
-                        <path d="M8.5 14.5h7" />
+                        <path d="M7 15c1.2-2.7 2.7-4.7 5-6.1" />
+                        <path d="M11.5 5.5c1.8.2 3.6 1.1 5 2.5" />
+                        <path d="M15.7 4.7 18 3.5M17.1 8.1l2.7-.1M15.7 11.2l2 1.5" />
+                        <path d="M6.2 15.7c-1.7 1.1-2.5 2.2-2.2 3.1.4 1.1 2.6 1.2 5 .2 2.5-1 4-2.5 3.6-3.5-.3-.8-1.6-1-3.2-.7" />
                       </svg>
                     </span>
                     <span>{item.label}</span>
