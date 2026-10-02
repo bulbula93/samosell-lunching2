@@ -21,7 +21,6 @@ import {
 } from "@/lib/listing-form"
 import {
   GEORGIA_CITIES,
-  listingSizeTypeOptions,
   recommendedListingSizeType,
   sizeGroupMatchesType,
   type ListingSizeType,
@@ -332,7 +331,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const priceId = `${formPrefix}-price`
   const categoryIdField = `${formPrefix}-category`
   const brandIdField = `${formPrefix}-brand`
-  const sizeTypeId = `${formPrefix}-size-type`
   const sizeIdField = `${formPrefix}-size`
   const colorId = `${formPrefix}-color`
   const materialId = `${formPrefix}-material`
@@ -348,10 +346,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     [listingCategories, categoryId],
   )
   const isPerfume = selectedCategory?.slug === "perfume"
-  const sizeTypeChoices = useMemo(
-    () => listingSizeTypeOptions(gender, selectedCategory?.slug),
-    [gender, selectedCategory?.slug],
-  )
   const filteredSizes = useMemo(() => {
     const byLabel = new Map<string, SizeOption>()
     for (const item of sizes) {
@@ -874,7 +868,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 value={categoryId ? String(categoryId) : ""}
                 onChange={(value) => {
                   const nextCategoryId = Number(value) || ""
-                  const nextCategorySlug = categories.find((item) => item.id === nextCategoryId)?.slug
+                  const nextCategorySlug = listingCategories.find((item) => item.id === nextCategoryId)?.slug
                   setCategoryId(nextCategoryId)
                   setSizeType(recommendedListingSizeType(nextCategorySlug, gender))
                   setSizeId("")
@@ -963,16 +957,25 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 }}
                 error={fieldErrors.brandId ?? fieldErrors.customBrand}
               />
-              {!isPerfume ? (
-  <SelectField id={sizeTypeId} label="ზომის ტიპი" value={sizeType} onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }} options={sizeTypeChoices} placeholder="აირჩიე ზომის ტიპი" />
-) : null}
               <SelectField
   id={sizeIdField}
-  label={isPerfume ? "მოცულობა" : "ზომა"}
+  label={isPerfume
+              ? "მოცულობა"
+              : selectedCategory?.slug === "footwear"
+                ? "ფეხსაცმლის ზომა"
+                : selectedCategory?.slug === "kids"
+                  ? "საბავშვო ზომა"
+                  : "ზომა"}
   value={sizeId}
   onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }}
   options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
-  placeholder={isPerfume ? "აირჩიე მოცულობა" : "ზომის გარეშე"}
+  placeholder={isPerfume
+              ? "აირჩიე მოცულობა"
+              : selectedCategory?.slug === "footwear"
+                ? "აირჩიე ფეხსაცმლის ზომა"
+                : selectedCategory?.slug === "kids"
+                  ? "აირჩიე საბავშვო ზომა"
+                  : "აირჩიე ზომა"}
   error={fieldErrors.sizeId}
 />
 {isPerfume ? (
