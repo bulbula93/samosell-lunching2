@@ -11,7 +11,6 @@ import PerfumeBrandCarousel from "@/components/listings/PerfumeBrandCarousel"
 import CatalogPagination from "@/components/listings/CatalogPagination"
 import CatalogPageHeader from "@/components/listings/CatalogPageHeader"
 import CatalogResultsGrid from "@/components/listings/CatalogResultsGrid"
-import SavedSearchControls from "@/components/listings/SavedSearchControls"
 import {
   PAGE_SIZE,
   applyCatalogFilters,
@@ -23,10 +22,6 @@ import {
 } from "@/lib/catalog-page"
 import { CATALOG_SECTION_OPTIONS } from "@/lib/catalog-taxonomy"
 import { GEORGIA_CITIES } from "@/lib/marketplace-options"
-import {
-  buildSavedSearchPath,
-  hasSavableCatalogFilters,
-} from "@/lib/saved-searches"
 import {
   absoluteUrl,
   buildCatalogCanonicalPath,
@@ -106,10 +101,6 @@ const getCachedCatalogFilterOptions = unstable_cache(
   },
 )
 
-function readStatus(value?: string | string[]) {
-  return typeof value === "string" ? value : ""
-}
-
 function optionalNumber(value: string) {
   if (!value) return null
   const parsed = Number(value)
@@ -179,9 +170,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const { filters, sort, page, queryParams, currentPath } = resolveCatalogState(params)
   const { q, category, item_type, brand, size, color, city, condition, gender, vip, min_price, max_price } = filters
   const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }
-  const savedSearchPath = buildSavedSearchPath(filters)
-  const canSaveSearch = hasSavableCatalogFilters(filters)
-  const savedSearchStatus = readStatus(params.saved_search_status)
   const databaseFilters = getCatalogDatabaseFilters(filters)
   const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance")
   const analyticsAllowed = await serverAllowsAnalytics()
@@ -277,21 +265,11 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     ? Promise.resolve({ count: 0, error: null })
     : withQueryTimeout(countQuery)
 
-  const savedSearchPromise = user && canSaveSearch
-    ? withQueryTimeout((signal) => supabase
-        .from("saved_searches")
-        .select("id, is_active")
-        .eq("catalog_path", savedSearchPath)
-        .abortSignal(signal)
-        .maybeSingle())
-    : Promise.resolve({ data: null as { id: string; is_active: boolean } | null, error: null })
-
   const [
     rankedSearchResponse,
     listingsResponse,
     countResponse,
     favoritesResponse,
-    savedSearchResponse,
   ] = await Promise.all([
     rankedSearchPromise,
     listingsPromise,
@@ -299,7 +277,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     user
       ? withQueryTimeout(supabase.from("favorites").select("listing_id").eq("user_id", user.id))
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
-    savedSearchPromise,
   ])
 
   let rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
@@ -345,8 +322,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
     rankedSearchResponse.error ||
     listingsResponse.error ||
     countResponse.error ||
-    favoritesResponse.error ||
-    savedSearchResponse.error
+    favoritesResponse.error
 
   if (queryError) {
     console.error("catalog_data_failed", {
@@ -364,8 +340,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
 
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
-  const savedSearch = savedSearchResponse.data as { id: string; is_active: boolean } | null
-
   const legacyCategory =
     !filters.category && ["women", "men", "kids"].includes(filters.gender)
       ? filters.gender
@@ -464,15 +438,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
           {category === "perfume" ? <PerfumeBrandCarousel /> : null}
 
           <CatalogPreferences values={filterValues} />
-
-          <SavedSearchControls
-            values={filterValues}
-            signedIn={Boolean(user)}
-            canSave={canSaveSearch}
-            savedExists={Boolean(savedSearch)}
-            savedActive={Boolean(savedSearch?.is_active)}
-            status={savedSearchStatus}
-          />
 
           {rescueMessage ? (
             <div className="mt-5 rounded-2xl border border-brand/20 bg-brand-soft/55 px-4 py-3 text-sm leading-6 text-text sm:px-5">
