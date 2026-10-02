@@ -234,6 +234,7 @@ export default function MarketplaceHeader({
               ([key, value]) => searchParams?.get(key) === value,
             )
             const active = pathMatches && queryMatches && target.searchParams.size > 0
+            const isPerfume = item.href === "/catalog?category=perfume"
 
             return (
               <Link
@@ -241,12 +242,21 @@ export default function MarketplaceHeader({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                  active
-                    ? "bg-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(7,63,59,0.06)]"
-                    : "text-text-soft hover:bg-brand-soft/70 hover:text-brand"
+                  isPerfume
+                    ? active
+                      ? "bg-[#fff0e8] text-[#b44f17] shadow-[inset_0_0_0_1px_rgba(229,111,37,0.18)]"
+                      : "bg-[#fff8f3] text-[#b95a20] hover:bg-[#fff0e8] hover:text-[#9b4314]"
+                    : active
+                      ? "bg-brand-soft text-brand shadow-[inset_0_0_0_1px_rgba(7,63,59,0.06)]"
+                      : "text-text-soft hover:bg-brand-soft/70 hover:text-brand"
                 }`}
               >
-                {item.label}
+                {isPerfume ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true" className="text-[11px] text-[#e8894a]">✦</span>
+                    <span>{item.label}</span>
+                  </span>
+                ) : item.label}
               </Link>
             )
           })}
