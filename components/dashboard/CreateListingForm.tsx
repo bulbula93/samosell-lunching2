@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import BrandCombobox from "@/components/dashboard/BrandCombobox"
+import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -876,6 +877,7 @@ export default function CreateListingForm({
               clearFieldError("customBrand")
             }}
             error={fieldErrors.brandId ?? fieldErrors.customBrand}
+            extraSuggestions={isPerfume ? PERFUME_BRAND_NAMES : []}
           />
           <SelectField
             id={sizeIdField}
