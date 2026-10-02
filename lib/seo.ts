@@ -8,6 +8,7 @@ export const INDEXABLE_CATALOG_CATEGORIES = [
   { value: "women", label: "ქალებისთვის" },
   { value: "men", label: "მამაკაცებისთვის" },
   { value: "accessories", label: "აქსესუარები" },
+  { value: "perfume", label: "პარფიუმერია" },
   { value: "kids", label: "ბავშვებისთვის" },
   { value: "vintage", label: "ვინტაჟი" },
   { value: "footwear", label: "ფეხსაცმელი" },
