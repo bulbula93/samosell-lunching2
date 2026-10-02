@@ -96,7 +96,11 @@ function SelectField({
 type PlayfulOption = { value: string; label: string }
 
 function FilterLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mb-2 block text-xs font-black uppercase tracking-[0.08em] text-brand/80">{children}</span>
+  return (
+    <span className="mb-2 block text-xs font-black uppercase tracking-[0.08em] text-brand/80">
+      {children}
+    </span>
+  )
 }
 
 function PillGroup({
@@ -149,6 +153,7 @@ function SelectIcon({ kind }: { kind: "brand" | "city" | "sort" }) {
       </svg>
     )
   }
+
   if (kind === "city") {
     return (
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -157,6 +162,7 @@ function SelectIcon({ kind }: { kind: "brand" | "city" | "sort" }) {
       </svg>
     )
   }
+
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M8 4v16M8 4 5 7M8 4l3 3M16 20V4m0 16-3-3m3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
@@ -185,6 +191,7 @@ function PlayfulSelect({
     <div className="min-w-0">
       <FilterLabel>{label}</FilterLabel>
       <input type="hidden" name={name} value={value} />
+
       <details className="group relative">
         <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 [&::-webkit-details-marker]:hidden">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand">
@@ -249,7 +256,9 @@ export default function CatalogFilterFields({
   const [selectedBrandFilter, setSelectedBrandFilter] = useState(values.brand)
   const [selectedConditionFilter, setSelectedConditionFilter] = useState(values.condition)
   const [selectedCityFilter, setSelectedCityFilter] = useState(values.city)
-  const [selectedSortFilter, setSelectedSortFilter] = useState(values.sort || (values.q ? "relevance" : "latest"))
+  const [selectedSortFilter, setSelectedSortFilter] = useState(
+    values.sort || (values.q ? "relevance" : "latest"),
+  )
 
   const categoryOptions = useMemo(() => {
     if (options.categories.some((item) => item.slug === "perfume")) return options.categories
@@ -274,9 +283,88 @@ export default function CatalogFilterFields({
 
   const availableSizes = useMemo(() => {
     if (selectedCategory === "perfume") {
-    const perfumeBrands = values.brand && !PERFUME_BRAND_NAMES.includes(values.brand as (typeof PERFUME_BRAND_NAMES)[number])
-      ? [values.brand, ...PERFUME_BRAND_NAMES]
-      : PERFUME_BRAND_NAMES
+      const valuesToShow = [...PERFUME_VOLUMES]
+      if (selectedSize && !valuesToShow.includes(selectedSize as typeof PERFUME_VOLUMES[number])) {
+        valuesToShow.push(selectedSize as typeof PERFUME_VOLUMES[number])
+      }
+      return valuesToShow
+    }
+
+    return getCatalogSizeLabels(
+      options.sizes,
+      selectedSizeCategory,
+      selectedGender,
+      selectedCategory === values.category && selectedItemType === values.item_type ? values.size : "",
+    )
+  }, [
+    options.sizes,
+    selectedCategory,
+    selectedGender,
+    selectedItemType,
+    selectedSize,
+    selectedSizeCategory,
+    values.category,
+    values.item_type,
+    values.size,
+  ])
+
+  function handleCategoryChange(nextCategory: string) {
+    const nextItemTypes = getCatalogItemOptionsForSection(nextCategory)
+    const nextItemType = selectedItemType && nextItemTypes.some((item) => item.value === selectedItemType)
+      ? selectedItemType
+      : ""
+    const nextGender = categoryGender(nextCategory)
+    const nextSizes: string[] = nextCategory === "perfume"
+      ? [...PERFUME_VOLUMES]
+      : getCatalogSizeLabels(
+          options.sizes,
+          sizeCategory(nextCategory, nextItemType),
+          nextGender,
+          "",
+        )
+
+    setSelectedCategory(nextCategory)
+    setSelectedItemType(nextItemType)
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+  }
+
+  function handleItemTypeChange(nextItemType: string) {
+    const nextSizes: string[] = selectedCategory === "perfume"
+      ? [...PERFUME_VOLUMES]
+      : getCatalogSizeLabels(
+          options.sizes,
+          sizeCategory(selectedCategory, nextItemType),
+          categoryGender(selectedCategory),
+          "",
+        )
+
+    setSelectedItemType(nextItemType)
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+  }
+
+  const categoryField = (
+    <label className="block min-w-0">
+      <span className="mb-1.5 block text-xs font-bold text-text-soft">კატეგორია</span>
+      <select
+        name="category"
+        value={selectedCategory}
+        onChange={(event) => handleCategoryChange(event.target.value)}
+        className="ui-input"
+      >
+        <option value="">ყველა კატეგორია</option>
+        {categoryOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+      </select>
+    </label>
+  )
+
+  if (selectedCategory === "perfume") {
+    const perfumeBrands =
+      values.brand &&
+      !PERFUME_BRAND_NAMES.includes(
+        values.brand as (typeof PERFUME_BRAND_NAMES)[number],
+      )
+        ? [values.brand, ...PERFUME_BRAND_NAMES]
+        : PERFUME_BRAND_NAMES
 
     const audienceOptions: PlayfulOption[] = [
       { value: "", label: "ყველა" },
@@ -284,24 +372,37 @@ export default function CatalogFilterFields({
       { value: "men", label: "მამაკაცებისთვის" },
       { value: "unisex", label: "უნისექსი" },
     ]
+
     const concentrationOptions: PlayfulOption[] = [
       { value: "", label: "ყველა ტიპი" },
-      ...availableItemTypes.map((item) => ({ value: item.value, label: item.label })),
+      ...availableItemTypes.map((item) => ({
+        value: item.value,
+        label: item.label,
+      })),
     ]
+
     const volumeOptions: PlayfulOption[] = [
       { value: "", label: "ყველა" },
       ...availableSizes.map((item) => ({ value: item, label: item })),
     ]
-    const conditionPills: PlayfulOption[] = perfumeConditionOptions.map((item) => ({ value: item.value, label: item.label }))
+
+    const conditionPills: PlayfulOption[] = perfumeConditionOptions.map(
+      (item) => ({ value: item.value, label: item.label }),
+    )
+
     const brandOptions: PlayfulOption[] = [
       { value: "", label: "ყველა ბრენდი" },
       ...perfumeBrands.map((item) => ({ value: item, label: item })),
     ]
+
     const cityOptions: PlayfulOption[] = [
       { value: "", label: "ყველა ქალაქი" },
       ...options.cities.map((item) => ({ value: item, label: item })),
     ]
-    const sortSelectOptions: PlayfulOption[] = availableSortOptions.map((item) => ({ value: item.value, label: item.label }))
+
+    const sortSelectOptions: PlayfulOption[] = availableSortOptions.map(
+      (item) => ({ value: item.value, label: item.label }),
+    )
 
     return (
       <div className="space-y-5">
@@ -378,7 +479,13 @@ export default function CatalogFilterFields({
           />
         </div>
 
-        <div className={mobile ? "grid gap-3" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]"}>
+        <div
+          className={
+            mobile
+              ? "grid gap-3"
+              : "grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]"
+          }
+        >
           <label className="block">
             <FilterLabel>მინ. ფასი</FilterLabel>
             <input
@@ -391,6 +498,7 @@ export default function CatalogFilterFields({
               className="ui-input rounded-2xl border-[#dfe8e4] bg-white"
             />
           </label>
+
           <label className="block">
             <FilterLabel>მაქს. ფასი</FilterLabel>
             <input
@@ -403,6 +511,7 @@ export default function CatalogFilterFields({
               className="ui-input rounded-2xl border-[#dfe8e4] bg-white"
             />
           </label>
+
           <label className="flex min-h-12 items-center gap-3 self-end rounded-2xl border border-[#e3ece8] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)]">
             <input
               type="checkbox"
