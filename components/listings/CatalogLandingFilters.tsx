@@ -54,7 +54,7 @@ export default function CatalogLandingFilters({
       <form action="/catalog" className="ui-card hidden p-3 lg:block">
         <div className="mb-3 flex items-end gap-3">
           <label className="min-w-0 flex-1">
-            <span className="mb-1.5 block text-xs font-bold text-text-soft">ძებნა</span>
+            <span className="mb-1.5 block text-xs font-semibold text-text-soft">ძებნა</span>
             <input
               type="search"
               name="q"
@@ -63,8 +63,8 @@ export default function CatalogLandingFilters({
               className="ui-input"
             />
           </label>
-          <button type="submit" className="ui-btn-primary shrink-0">{ka.catalog.apply}</button>
-          <Link href="/catalog" className="ui-btn-secondary shrink-0">{ka.catalog.clear}</Link>
+          <button type="submit" className="ui-btn-primary shrink-0 !font-semibold">{ka.catalog.apply}</button>
+          <Link href="/catalog" className="ui-btn-secondary shrink-0 !font-semibold">{ka.catalog.clear}</Link>
         </div>
         <CatalogFilterFields
           key={`${values.category}:${values.item_type}:${values.size}`}
@@ -90,7 +90,7 @@ export default function CatalogLandingFilters({
               <Link
                 key={`${chip.key}-${chip.label}`}
                 href={buildCatalogHref(nextValues)}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-bold text-brand transition hover:bg-brand-soft"
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
                 aria-label={`${chip.label} ფილტრის მოხსნა`}
               >
                 {chip.label}<span aria-hidden="true">×</span>
