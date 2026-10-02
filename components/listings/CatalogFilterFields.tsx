@@ -244,7 +244,14 @@ export default function CatalogFilterFields({
 
     return (
       <div className={mobile ? "space-y-4" : "grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6"}>
-        {categoryField}
+        <input type="hidden" name="category" value="perfume" />
+
+        <SelectField label="ვისთვისაა" name="gender" value={values.gender}>
+          <option value="">ყველა</option>
+          <option value="women">ქალებისთვის</option>
+          <option value="men">მამაკაცებისთვის</option>
+          <option value="unisex">უნისექსი</option>
+        </SelectField>
 
         <label className="block min-w-0">
           <span className="mb-1.5 block text-xs font-bold text-text-soft">კონცენტრაცია</span>
@@ -276,13 +283,6 @@ export default function CatalogFilterFields({
             {availableSizes.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
         </label>
-
-        <SelectField label="ვისთვისაა" name="gender" value={values.gender}>
-          <option value="">ყველა</option>
-          <option value="women">ქალებისთვის</option>
-          <option value="men">მამაკაცებისთვის</option>
-          <option value="unisex">უნისექსი</option>
-        </SelectField>
 
         <SelectField label="მდგომარეობა" name="condition" value={values.condition}>
           {perfumeConditionOptions.map((item) => <option key={item.value || "all"} value={item.value}>{item.label}</option>)}
