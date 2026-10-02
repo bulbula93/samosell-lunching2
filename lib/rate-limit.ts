@@ -8,6 +8,11 @@ const ACTION_RULES = {
     maxHits: 12,
     label: "განცხადებების შექმნა",
   },
+  brand_create: {
+    windowSeconds: 60 * 60,
+    maxHits: 12,
+    label: "ახალი ბრენდების დამატება",
+  },
   listing_upload: {
     windowSeconds: 60 * 60,
     maxHits: 60,
