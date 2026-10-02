@@ -36,7 +36,7 @@ export type ListingFormInput = {
   price: string
   categoryId: string | number
   brandId: string
-  customBrand: string
+  customBrand?: string
   sizeId: string
   condition: string
   saleType: string
@@ -134,7 +134,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
     fieldErrors.brandId = "არჩეული ბრენდი არასწორია."
   }
 
-  const customBrand = normalizeOptionalText(input.customBrand)
+  const customBrand = normalizeOptionalText(input.customBrand ?? "")
   if (customBrand && textLength(customBrand) > LISTING_TEXT_LIMITS.brandMax) {
     fieldErrors.customBrand = `ბრენდის სახელი არ უნდა აღემატებოდეს ${LISTING_TEXT_LIMITS.brandMax} სიმბოლოს.`
   }
