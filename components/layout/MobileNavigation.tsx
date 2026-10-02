@@ -163,7 +163,13 @@ export default function MobileNavigation({
                   >
                     {isPerfume ? (
                       <span className="inline-flex items-center gap-2">
-                        <span aria-hidden="true" className="text-sm text-[#e8894a]">✦</span>
+                        <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center text-[#e8894a]">
+                          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 3h4v3h-4z" />
+                            <path d="M9 6h6l1.5 2.5V11l2 2v6H5.5v-6l2-2V8.5L9 6Z" />
+                            <path d="M8.5 14.5h7" />
+                          </svg>
+                        </span>
                         <span>{item.label}</span>
                       </span>
                     ) : item.label}
