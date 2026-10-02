@@ -31,18 +31,6 @@ export type CatalogFilterOptions = {
 type PlayfulOption = { value: string; label: string }
 type SelectIconKind = "brand" | "city" | "sort" | "item" | "size" | "color"
 
-const FILTER_CATEGORY_OPTIONS: PlayfulOption[] = [
-  { value: "", label: "ყველა" },
-  { value: "women", label: "ქალებისთვის" },
-  { value: "men", label: "მამაკაცებისთვის" },
-  { value: "kids", label: "ბავშვებისთვის" },
-  { value: "footwear", label: "ფეხსაცმელი" },
-  { value: "bags", label: "ჩანთები" },
-  { value: "vintage", label: "ვინტაჟი" },
-  { value: "accessories", label: "აქსესუარები" },
-  { value: "perfume", label: "პარფიუმერია" },
-]
-
 const conditionOptions: PlayfulOption[] = [
   { value: "", label: "ყველა" },
   { value: "new", label: "ახალი" },
@@ -270,7 +258,7 @@ export default function CatalogFilterFields({
   values: CatalogFilterValues
   mobile?: boolean
 }) {
-  const [selectedCategory, setSelectedCategory] = useState(values.category)
+  const selectedCategory = values.category
   const [selectedItemType, setSelectedItemType] = useState(values.item_type)
   const [selectedSize, setSelectedSize] = useState(values.size)
   const [selectedGenderFilter, setSelectedGenderFilter] = useState(values.gender)
@@ -326,41 +314,6 @@ export default function CatalogFilterFields({
     values.size,
   ])
 
-  function handleCategoryChange(nextCategory: string) {
-    const nextItemTypes = getCatalogItemOptionsForSection(nextCategory)
-    const nextItemType = FIXED_TYPE_CATEGORIES.has(nextCategory)
-      ? ""
-      : selectedItemType &&
-          nextItemTypes.some((item) => item.value === selectedItemType)
-        ? selectedItemType
-        : ""
-
-    const nextGender = categoryGender(nextCategory)
-    const nextSizes: string[] =
-      nextCategory === "perfume"
-        ? [...PERFUME_VOLUMES]
-        : getCatalogSizeLabels(
-            options.sizes,
-            sizeCategory(nextCategory, nextItemType),
-            nextGender || selectedGenderFilter,
-            "",
-          )
-
-    setSelectedCategory(nextCategory)
-    setSelectedItemType(nextItemType)
-
-    if (nextCategory !== selectedCategory) {
-      setSelectedGenderFilter("")
-    }
-
-    if (nextCategory !== "perfume") {
-      setSelectedBrandFilter("")
-    }
-
-    if (selectedSize && !nextSizes.includes(selectedSize)) {
-      setSelectedSize("")
-    }
-  }
 
   function handleItemTypeChange(nextItemType: string) {
     const nextSizes: string[] =
@@ -548,16 +501,7 @@ export default function CatalogFilterFields({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-[26px] border border-[#e3ece8] bg-[#fbfdfc] p-4 sm:p-5">
-        <FilterLabel>კატეგორია</FilterLabel>
-        <PillGroup
-          name="category"
-          value={selectedCategory}
-          onChange={handleCategoryChange}
-          options={FILTER_CATEGORY_OPTIONS}
-          compact={mobile}
-        />
-      </div>
+      <input type="hidden" name="category" value={selectedCategory} />
 
       {selectedCategory === "footwear" ? (
         <div className="rounded-[26px] border border-[#e3ece8] bg-[#fbfdfc] p-4 sm:p-5">
