@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ka } from "@/lib/i18n/ka"
 import type { PopularBrand } from "@/lib/home-page"
 
@@ -59,22 +59,9 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [paused, setPaused] = useState(false)
 
-  const activeCounts = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const brand of brands) {
-      map.set(normalizeBrand(brand.name), brand.count)
-    }
-    return map
-  }, [brands])
+  void brands
+  const carouselBrands = SHOWCASE_BRANDS
 
-  const carouselBrands = useMemo(
-    () =>
-      SHOWCASE_BRANDS.map((brand) => ({
-        ...brand,
-        count: activeCounts.get(normalizeBrand(brand.name)) ?? 0,
-      })),
-    [activeCounts]
-  )
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -197,34 +184,11 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
                 <Link
                   key={`${brand.name}-${index}`}
                   href={`/catalog?brand=${encodeURIComponent(brand.name)}`}
-                  className="group flex h-[104px] w-[150px] shrink-0 flex-col justify-between rounded-[22px] border border-[#e5ebe8] bg-white p-3.5 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-1 hover:border-brand/20 hover:shadow-[0_13px_28px_rgba(7,63,59,0.09)] sm:h-[112px] sm:w-[166px] sm:p-4"
+                  className="group flex h-[98px] w-[138px] shrink-0 flex-col items-center justify-center gap-3 rounded-[22px] border border-[#e5ebe8] bg-white px-3 py-3 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-1 hover:border-brand/20 hover:shadow-[0_13px_28px_rgba(7,63,59,0.09)] sm:h-[106px] sm:w-[150px]"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <BrandMark name={brand.name} domain={brand.domain} />
-                    {brand.count > 0 ? (
-                      <span className="rounded-full bg-[#ecf8f4] px-2 py-1 text-[10px] font-black text-brand">
-                        {brand.count}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="flex items-end justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-black tracking-[-0.02em] text-brand transition group-hover:text-accent sm:text-[15px]">
-                        {brand.name}
-                      </div>
-                      {brand.count > 0 ? (
-                        <div className="mt-0.5 text-[10px] font-semibold text-text-soft">აქტიური განცხადება</div>
-                      ) : (
-                        <div className="mt-0.5 text-[10px] font-semibold text-text-soft">ნახე ბრენდი</div>
-                      )}
-                    </div>
-                    <span
-                      aria-hidden="true"
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#f7f7f4] text-sm font-black text-brand transition group-hover:bg-brand group-hover:text-white"
-                    >
-                      →
-                    </span>
+                  <BrandMark name={brand.name} domain={brand.domain} />
+                  <div className="w-full truncate text-center text-sm font-black tracking-[-0.02em] text-brand transition group-hover:text-accent sm:text-[15px]">
+                    {brand.name}
                   </div>
                 </Link>
               ))}
