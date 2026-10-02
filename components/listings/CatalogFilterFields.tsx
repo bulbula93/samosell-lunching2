@@ -29,10 +29,18 @@ export type CatalogFilterOptions = {
 
 const conditionOptions = [
   { value: "", label: "ყველა მდგომარეობა" },
-  { value: "new", label: "ახალი / გაუხსნელი" },
+  { value: "new", label: "ახალი" },
   { value: "like_new", label: "თითქმის ახალი" },
   { value: "good", label: "კარგი" },
   { value: "fair", label: "დამაკმაყოფილებელი" },
+] as const
+
+const perfumeConditionOptions = [
+  { value: "", label: "ყველა მდგომარეობა" },
+  { value: "new", label: "ახალი / გაუხსნელი" },
+  { value: "like_new", label: "გახსნილი, თითქმის სავსე" },
+  { value: "good", label: "გამოყენებული" },
+  { value: "fair", label: "ნაწილობრივ დარჩენილი" },
 ] as const
 
 const sortOptions = [
@@ -186,7 +194,7 @@ export default function CatalogFilterFields({
       ? selectedItemType
       : ""
     const nextGender = categoryGender(nextCategory)
-    const nextSizes = nextCategory === "perfume"
+    const nextSizes: string[] = nextCategory === "perfume"
       ? [...PERFUME_VOLUMES]
       : getCatalogSizeLabels(
           options.sizes,
@@ -197,11 +205,11 @@ export default function CatalogFilterFields({
 
     setSelectedCategory(nextCategory)
     setSelectedItemType(nextItemType)
-    if (selectedSize && !nextSizes.includes(selectedSize as never)) setSelectedSize("")
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
   }
 
   function handleItemTypeChange(nextItemType: string) {
-    const nextSizes = selectedCategory === "perfume"
+    const nextSizes: string[] = selectedCategory === "perfume"
       ? [...PERFUME_VOLUMES]
       : getCatalogSizeLabels(
           options.sizes,
@@ -211,7 +219,7 @@ export default function CatalogFilterFields({
         )
 
     setSelectedItemType(nextItemType)
-    if (selectedSize && !nextSizes.includes(selectedSize as never)) setSelectedSize("")
+    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
   }
 
   const categoryField = (
@@ -277,7 +285,7 @@ export default function CatalogFilterFields({
         </SelectField>
 
         <SelectField label="მდგომარეობა" name="condition" value={values.condition}>
-          {conditionOptions.map((item) => <option key={item.value || "all"} value={item.value}>{item.label}</option>)}
+          {perfumeConditionOptions.map((item) => <option key={item.value || "all"} value={item.value}>{item.label}</option>)}
         </SelectField>
 
         <SelectField label="მდებარეობა" name="city" value={values.city}>
