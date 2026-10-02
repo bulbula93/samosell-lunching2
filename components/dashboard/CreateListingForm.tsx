@@ -26,6 +26,7 @@ import {
   type ListingSizeType,
 } from "@/lib/marketplace-options"
 import { createClient } from "@/lib/supabase/client"
+import { buildListingCategoryOptions, isVirtualListingCategory } from "@/lib/listing-categories"
 import {
   listingStatusLabel,
   MAX_LISTING_IMAGES,
@@ -307,10 +308,15 @@ export default function CreateListingForm({
   const imagesRef = useRef(images)
   const formPrefix = useId().replace(/:/g, "")
 
-  const selectedCategorySlug = useMemo(
-    () => categories.find((item) => item.id === categoryId)?.slug ?? "",
-    [categories, categoryId],
+  const listingCategories = useMemo(
+    () => buildListingCategoryOptions(categories),
+    [categories],
   )
+  const selectedCategory = useMemo(
+    () => listingCategories.find((item) => item.id === categoryId),
+    [listingCategories, categoryId],
+  )
+  const selectedCategorySlug = selectedCategory?.slug ?? ""
   const isPerfume = selectedCategorySlug === "perfume"
   const sizeTypeChoices = useMemo(
     () => listingSizeTypeOptions(gender, selectedCategorySlug),
@@ -456,6 +462,12 @@ export default function CreateListingForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submittingRef.current) return
+
+    if (isVirtualListingCategory(selectedCategory)) {
+      setFieldErrors({ categoryId: "ეს კატეგორია preview-ში დამატებულია და production migration-ის შემდეგ ჩაირთვება." })
+      setFormError("არჩეული კატეგორია ჯერ preview რეჟიმშია.")
+      return
+    }
 
     const validation = validateListingInput(formInput)
     if (!validation.ok || images.length === 0) {
@@ -834,7 +846,7 @@ export default function CreateListingForm({
               clearFieldError("categoryId")
               clearFieldError("sizeId")
             }}
-            options={categories.map((item) => ({ value: String(item.id), label: item.name }))}
+            options={listingCategories.map((item) => ({ value: String(item.id), label: item.name }))}
             placeholder="აირჩიე კატეგორია"
             error={fieldErrors.categoryId}
             required
