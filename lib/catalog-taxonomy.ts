@@ -6,7 +6,7 @@ export type CatalogItemOption = {
 }
 
 export type CatalogSectionOption = {
-  value: "women" | "men" | "accessories" | "kids"
+  value: "women" | "men" | "accessories" | "kids" | "perfume"
   label: string
 }
 
@@ -14,6 +14,7 @@ export const CATALOG_SECTION_OPTIONS: CatalogSectionOption[] = [
   { value: "women", label: "ქალებისთვის" },
   { value: "men", label: "მამაკაცებისთვის" },
   { value: "accessories", label: "აქსესუარები" },
+  { value: "perfume", label: "პარფიუმერია" },
   { value: "kids", label: "ბავშვებისთვის" },
 ]
 
@@ -50,6 +51,16 @@ const CATALOG_ITEM_OPTIONS: CatalogItemOption[] = [
   { value: "school-uniform", label: "სასკოლო ფორმა", genders: ["kids"], keywords: ["სასკოლო ფორმა", "uniform"] },
 ]
 
+export const PERFUME_ITEM_OPTIONS: CatalogItemOption[] = [
+  { value: "parfum", label: "Parfum / Extrait", genders: ["women", "men", "unisex"], keywords: ["parfum", "extrait", "perfume", "სუნამო"] },
+  { value: "edp", label: "Eau de Parfum (EDP)", genders: ["women", "men", "unisex"], keywords: ["eau de parfum", "edp", "perfume", "სუნამო"] },
+  { value: "edt", label: "Eau de Toilette (EDT)", genders: ["women", "men", "unisex"], keywords: ["eau de toilette", "edt", "perfume", "სუნამო"] },
+  { value: "edc", label: "Eau de Cologne (EDC)", genders: ["women", "men", "unisex"], keywords: ["eau de cologne", "edc", "cologne", "სუნამო"] },
+  { value: "body-mist", label: "Body Mist", genders: ["women", "men", "unisex"], keywords: ["body mist", "mist", "სუნამო"] },
+]
+
+const ALL_ITEM_OPTIONS = [...CATALOG_ITEM_OPTIONS, ...PERFUME_ITEM_OPTIONS]
+
 export function getCatalogItemOptions(gender?: string) {
   const normalized = gender === "women" || gender === "men" || gender === "unisex" || gender === "kids" ? gender : ""
   if (!normalized) return CATALOG_ITEM_OPTIONS
@@ -63,6 +74,9 @@ export function getCatalogItemOptionsForSection(section?: string) {
   if (section === "accessories") {
     return CATALOG_ITEM_OPTIONS.filter((item) => item.value === "accessories")
   }
+  if (section === "perfume") {
+    return PERFUME_ITEM_OPTIONS
+  }
   return CATALOG_ITEM_OPTIONS
 }
 
@@ -73,10 +87,10 @@ export function getCatalogSectionLabel(value?: string | null) {
 
 export function getCatalogItemLabel(value?: string | null) {
   if (!value) return ""
-  return CATALOG_ITEM_OPTIONS.find((item) => item.value === value)?.label ?? value
+  return ALL_ITEM_OPTIONS.find((item) => item.value === value)?.label ?? value
 }
 
 export function getCatalogItemKeywords(value?: string | null) {
   if (!value) return []
-  return CATALOG_ITEM_OPTIONS.find((item) => item.value === value)?.keywords ?? [value]
+  return ALL_ITEM_OPTIONS.find((item) => item.value === value)?.keywords ?? [value]
 }
