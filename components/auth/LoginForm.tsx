@@ -169,7 +169,7 @@ export default function LoginForm({
           disabled={loading}
           className="group mt-1 flex h-12 w-full items-center justify-center gap-3 rounded-2xl bg-[#ff6f0f] px-5 font-black text-white shadow-[0_8px_24px_rgba(255,111,15,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ed6208] hover:shadow-[0_12px_28px_rgba(255,111,15,0.28)] active:translate-y-0 disabled:cursor-wait disabled:opacity-60"
         >
-          <span>{loading ? "იტვირთება..." : "შესვლა"}</span>
+          <span>{loading ? "იტვირთება..." : "შედი"}</span>
           {!loading ? (
             <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-xl transition group-hover:translate-x-0.5">
               →
