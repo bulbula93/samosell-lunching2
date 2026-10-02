@@ -35,7 +35,7 @@ export default async function LoginPage({
     <AuthCard
       title={
         <>
-          <span>სისტემაში </span>
+          <span>გარდერობში </span>
           <span className="text-[#f06f16]">
             შესვლა
           </span>
