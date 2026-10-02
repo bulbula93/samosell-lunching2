@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { getCatalogItemOptionsForSection } from "@/lib/catalog-taxonomy"
 import { getCatalogSizeLabels } from "@/lib/marketplace-options"
+import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 
 export type CatalogFilterValues = {
   q: string
@@ -58,33 +59,6 @@ const relevanceSortOption = {
 
 const SPECIAL_SIZE_CATEGORIES = new Set(["footwear", "bags", "accessories"])
 
-const PERFUME_BRANDS = [
-  "Chanel",
-  "Dior",
-  "Giorgio Armani",
-  "Yves Saint Laurent",
-  "Tom Ford",
-  "Gucci",
-  "Prada",
-  "Versace",
-  "Dolce & Gabbana",
-  "Burberry",
-  "Givenchy",
-  "Hermès",
-  "Maison Francis Kurkdjian",
-  "Creed",
-  "Jo Malone",
-  "Narciso Rodriguez",
-  "Carolina Herrera",
-  "Jean Paul Gaultier",
-  "Paco Rabanne",
-  "Montale",
-  "Mancera",
-  "Byredo",
-  "Le Labo",
-  "Diptyque",
-  "Xerjoff",
-] as const
 
 const PERFUME_VOLUMES = [
   "15 ml",
@@ -238,9 +212,9 @@ export default function CatalogFilterFields({
   )
 
   if (selectedCategory === "perfume") {
-    const perfumeBrands = values.brand && !PERFUME_BRANDS.includes(values.brand as typeof PERFUME_BRANDS[number])
-      ? [values.brand, ...PERFUME_BRANDS]
-      : PERFUME_BRANDS
+    const perfumeBrands = values.brand && !PERFUME_BRAND_NAMES.includes(values.brand as (typeof PERFUME_BRAND_NAMES)[number])
+      ? [values.brand, ...PERFUME_BRAND_NAMES]
+      : PERFUME_BRAND_NAMES
 
     return (
       <div className={mobile ? "space-y-4" : "grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6"}>
