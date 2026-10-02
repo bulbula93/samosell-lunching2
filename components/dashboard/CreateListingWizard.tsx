@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import BrandCombobox from "@/components/dashboard/BrandCombobox"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
@@ -237,6 +238,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [price, setPrice] = useState("")
   const [categoryId, setCategoryId] = useState<number | "">("")
   const [brandId, setBrandId] = useState("")
+  const [customBrand, setCustomBrand] = useState("")
   const [sizeType, setSizeType] = useState<ListingSizeType>("clothing")
   const [sizeId, setSizeId] = useState("")
   const [condition, setCondition] = useState("good")
@@ -259,9 +261,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [draftChecked, setDraftChecked] = useState(false)
   const [draftStatus, setDraftStatus] = useState("")
   const publishedRef = useRef(false)
-  const draftFields = useMemo(() => ({ title, description, price, categoryId, brandId, sizeId, condition,
+  const draftFields = useMemo(() => ({ title, description, price, categoryId, brandId, customBrand, sizeId, condition,
     saleType, gender, color, material, city, publishNow }),
-    [title, description, price, categoryId, brandId, sizeId, condition, saleType, gender, color, material, city, publishNow])
+    [title, description, price, categoryId, brandId, customBrand, sizeId, condition, saleType, gender, color, material, city, publishNow])
 
   useEffect(() => {
     let cancelled = false
@@ -301,6 +303,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     setTitle(fields.title); setDescription(fields.description); setPrice(fields.price)
     setCategoryId(categories.some((item) => item.id === Number(fields.categoryId)) ? Number(fields.categoryId) : "")
     setBrandId(brands.some((item) => item.id === fields.brandId) ? fields.brandId : "")
+    setCustomBrand(fields.customBrand ?? "")
     setSizeId(sizes.some((item) => item.id === fields.sizeId) ? fields.sizeId : "")
     setSizeType(pendingDraft.sizeType); setCondition(fields.condition); setSaleType(fields.saleType)
     setGender(fields.gender); setColor(fields.color); setMaterial(fields.material); setCity(fields.city)
@@ -355,6 +358,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }, [sizes, sizeType])
   const cityOptions = useMemo(() => GEORGIA_CITIES, [])
   const selectedBrand = brands.find((item) => item.id === brandId)
+  const selectedBrandName = selectedBrand?.name ?? customBrand.trim()
   const selectedSize = sizes.find((item) => item.id === sizeId)
 
   useEffect(() => {
@@ -375,6 +379,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     price,
     categoryId,
     brandId,
+    customBrand,
     sizeId,
     condition,
     saleType,
@@ -412,7 +417,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
     const validation = validateListingInput(formInput)
     const allowedFields: Array<keyof ListingFormInput> = currentStep === 2
-      ? ["title", "categoryId", "description", "brandId", "sizeId", "condition", "gender", "color", "material", "city"]
+      ? ["title", "categoryId", "description", "brandId", "customBrand", "sizeId", "condition", "gender", "color", "material", "city"]
       : ["price", "saleType"]
     const nextErrors: ListingFieldErrors = {}
 
@@ -933,7 +938,19 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     : "არჩევითია, მაგრამ ზუსტი მონაცემები ძებნის ფილტრებში უკეთ გამოჩნდება."}
 </p>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              <SelectField id={brandIdField} label="ბრენდი" value={brandId} onChange={(value) => { setBrandId(value); clearFieldError("brandId") }} options={brands.map((item) => ({ value: item.id, label: item.name ?? item.id }))} placeholder="ბრენდის გარეშე" error={fieldErrors.brandId} />
+              <BrandCombobox
+                id={brandIdField}
+                brands={brands}
+                brandId={brandId}
+                customBrand={customBrand}
+                onChange={({ brandId: nextBrandId, customBrand: nextCustomBrand }) => {
+                  setBrandId(nextBrandId)
+                  setCustomBrand(nextCustomBrand)
+                  clearFieldError("brandId")
+                  clearFieldError("customBrand")
+                }}
+                error={fieldErrors.brandId ?? fieldErrors.customBrand}
+              />
               {!isPerfume ? (
   <SelectField id={sizeTypeId} label="ზომის ტიპი" value={sizeType} onChange={(value) => { setSizeType(value as ListingSizeType); setSizeId(""); clearFieldError("sizeId") }} options={sizeTypeChoices} placeholder="აირჩიე ზომის ტიპი" />
 ) : null}
@@ -1022,7 +1039,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                   <span className="ui-pill-soft">{conditionOptions.find((item) => item.value === condition)?.label}</span>
                   <span className="ui-pill-soft">{genderOptions.find((item) => item.value === gender)?.label}</span>
                   <span className="ui-pill-soft">{saleTypeOptions.find((item) => item.value === saleType)?.label}</span>
-                  {selectedBrand ? <span className="ui-pill-soft">{selectedBrand.name}</span> : null}
+                  {selectedBrandName ? <span className="ui-pill-soft">{selectedBrandName}</span> : null}
                   {selectedSize ? <span className="ui-pill-soft">{isPerfume ? "მოცულობა" : "ზომა"} {selectedSize.label}</span> : null}
                   {isPerfume && material ? <span className="ui-pill-soft">{perfumeConcentrationOptions.find((item) => item.value === material)?.label ?? material}</span> : null}
                   {city ? <span className="ui-pill-soft">{city}</span> : null}
