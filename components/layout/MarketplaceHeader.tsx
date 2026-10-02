@@ -115,10 +115,6 @@ export default function MarketplaceHeader({
           />
         </Link>
 
-        <Link href="/catalog" className="ui-btn-secondary hidden shrink-0 lg:inline-flex">
-          {ka.nav.catalog}
-        </Link>
-
         <div className="hidden min-w-0 flex-1 md:block">
           <MarketplaceSearch id="desktop-marketplace-search" />
         </div>
