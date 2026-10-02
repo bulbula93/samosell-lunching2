@@ -7,6 +7,7 @@ import { after } from "next/server"
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
+import PerfumeBrandCarousel from "@/components/listings/PerfumeBrandCarousel"
 import CatalogPagination from "@/components/listings/CatalogPagination"
 import CatalogPageHeader from "@/components/listings/CatalogPageHeader"
 import CatalogResultsGrid from "@/components/listings/CatalogResultsGrid"
@@ -459,6 +460,8 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
             cities={cityOptions}
             values={filterValues}
           />
+
+          {category === "perfume" ? <PerfumeBrandCarousel /> : null}
 
           <CatalogPreferences values={filterValues} />
 
