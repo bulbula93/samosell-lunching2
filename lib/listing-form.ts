@@ -8,6 +8,7 @@ export const LISTING_TEXT_LIMITS = {
   colorMax: 60,
   materialMax: 100,
   cityMax: 80,
+  brandMax: 80,
 } as const
 
 export const LISTING_PRICE_LIMITS = {
@@ -35,6 +36,7 @@ export type ListingFormInput = {
   price: string
   categoryId: string | number
   brandId: string
+  customBrand: string
   sizeId: string
   condition: string
   saleType: string
@@ -55,6 +57,7 @@ export type ValidatedListingInput = {
   price: string
   categoryId: number
   brandId: string | null
+  customBrand: string | null
   sizeId: string | null
   condition: ListingCondition
   saleType: ListingSaleType
@@ -131,6 +134,14 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
     fieldErrors.brandId = "არჩეული ბრენდი არასწორია."
   }
 
+  const customBrand = normalizeOptionalText(input.customBrand)
+  if (customBrand && textLength(customBrand) > LISTING_TEXT_LIMITS.brandMax) {
+    fieldErrors.customBrand = `ბრენდის სახელი არ უნდა აღემატებოდეს ${LISTING_TEXT_LIMITS.brandMax} სიმბოლოს.`
+  }
+  if (input.brandId && customBrand) {
+    fieldErrors.customBrand = "აირჩიე არსებული ბრენდი ან დატოვე მხოლოდ ხელით ჩაწერილი სახელი."
+  }
+
   if (input.sizeId && !UUID_PATTERN.test(input.sizeId)) {
     fieldErrors.sizeId = "არჩეული ზომა არასწორია."
   }
@@ -180,6 +191,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
       price,
       categoryId,
       brandId: input.brandId || null,
+      customBrand,
       sizeId: input.sizeId || null,
       condition: input.condition as ListingCondition,
       saleType: input.saleType as ListingSaleType,
