@@ -36,6 +36,18 @@ type EditableImage = { id: string; imageUrl: string; file: File }
 type ToggleOption = { value: string; label: string; helper?: string }
 type Step = 1 | 2 | 3 | 4
 
+const PERFUME_VOLUME_FALLBACK_SIZES: SizeOption[] = [
+  { id: "preview-perfume-15", label: "15 ml", group_name: "perfume" },
+  { id: "preview-perfume-30", label: "30 ml", group_name: "perfume" },
+  { id: "preview-perfume-50", label: "50 ml", group_name: "perfume" },
+  { id: "preview-perfume-75", label: "75 ml", group_name: "perfume" },
+  { id: "preview-perfume-100", label: "100 ml", group_name: "perfume" },
+  { id: "preview-perfume-125", label: "125 ml", group_name: "perfume" },
+  { id: "preview-perfume-150", label: "150 ml", group_name: "perfume" },
+  { id: "preview-perfume-200", label: "200 ml", group_name: "perfume" },
+]
+
+
 type Props = {
   categories: CategoryOption[]
   brands: Option[]
@@ -353,12 +365,19 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       const key = item.label ?? item.id
       if (!byLabel.has(key)) byLabel.set(key, item)
     }
+
+    if (sizeType === "perfume" && byLabel.size === 0) {
+      for (const item of PERFUME_VOLUME_FALLBACK_SIZES) {
+        byLabel.set(item.label ?? item.id, item)
+      }
+    }
+
     return Array.from(byLabel.values())
   }, [sizes, sizeType])
   const cityOptions = useMemo(() => GEORGIA_CITIES, [])
   const selectedBrand = brands.find((item) => item.id === brandId)
   const selectedBrandName = selectedBrand?.name ?? customBrand.trim()
-  const selectedSize = sizes.find((item) => item.id === sizeId)
+  const selectedSize = filteredSizes.find((item) => item.id === sizeId)
 
   useEffect(() => {
     imagesRef.current = images
