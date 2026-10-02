@@ -1,5 +1,4 @@
 import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
-import CatalogPreferences from "@/components/listings/CatalogPreferences"
 import { randomUUID } from "node:crypto"
 import type { Metadata } from "next"
 import { unstable_cache } from "next/cache"
@@ -436,8 +435,6 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
           />
 
           {category === "perfume" ? <PerfumeBrandCarousel /> : null}
-
-          <CatalogPreferences values={filterValues} />
 
           {rescueMessage ? (
             <div className="mt-5 rounded-2xl border border-brand/20 bg-brand-soft/55 px-4 py-3 text-sm leading-6 text-text sm:px-5">
