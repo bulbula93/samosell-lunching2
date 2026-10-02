@@ -53,20 +53,6 @@ export default function CatalogLandingFilters({
 
   return (
     <section aria-label="კატალოგის ფილტრები" className="mt-6">
-      {values.category === "perfume" ? (
-        <div className="mb-4 flex flex-col gap-2 rounded-[1.4rem] border border-[#f0d8c1] bg-[#fff8f1] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div>
-            <div className="text-sm font-black text-[#9a4b12]">პარფიუმერიის ფილტრები</div>
-            <div className="mt-0.5 text-xs leading-5 text-[#7b604b]">
-              მოძებნე სუნამო ბრენდით, კონცენტრაციით, მოცულობით და აუდიტორიით.
-            </div>
-          </div>
-          <span className="inline-flex self-start rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-brand shadow-sm sm:self-auto">
-            perfume mode
-          </span>
-        </div>
-      ) : null}
-
       <MobileFiltersDrawer options={options} values={values} activeCount={activeCount} />
 
       <form action="/catalog" className="ui-card hidden p-4 lg:block">
