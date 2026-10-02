@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import BrandCombobox from "@/components/dashboard/BrandCombobox"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -282,6 +283,7 @@ export default function CreateListingForm({
   const [price, setPrice] = useState(initialData.price)
   const [categoryId, setCategoryId] = useState<number | "">(initialData.category_id)
   const [brandId, setBrandId] = useState(initialData.brand_id)
+  const [customBrand, setCustomBrand] = useState("")
   const [sizeId, setSizeId] = useState(initialData.size_id)
   const [sizeType, setSizeType] = useState<ListingSizeType>(initialSizeType)
   const [condition, setCondition] = useState(initialData.condition)
@@ -362,6 +364,7 @@ export default function CreateListingForm({
     price,
     categoryId,
     brandId,
+    customBrand,
     sizeId,
     condition,
     saleType,
@@ -836,14 +839,18 @@ export default function CreateListingForm({
             error={fieldErrors.categoryId}
             required
           />
-          <SelectField
+          <BrandCombobox
             id={brandIdField}
-            label="ბრენდი"
-            value={brandId}
-            onChange={(value) => { setBrandId(value); clearFieldError("brandId") }}
-            options={brands.map((item) => ({ value: item.id, label: item.name ?? item.id }))}
-            placeholder="ბრენდის გარეშე"
-            error={fieldErrors.brandId}
+            brands={brands}
+            brandId={brandId}
+            customBrand={customBrand}
+            onChange={({ brandId: nextBrandId, customBrand: nextCustomBrand }) => {
+              setBrandId(nextBrandId)
+              setCustomBrand(nextCustomBrand)
+              clearFieldError("brandId")
+              clearFieldError("customBrand")
+            }}
+            error={fieldErrors.brandId ?? fieldErrors.customBrand}
           />
           {!isPerfume ? (
             <SelectField
