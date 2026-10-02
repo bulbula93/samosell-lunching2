@@ -76,7 +76,7 @@ const PERFUME_VOLUMES = [
 
 function FilterLabel({ children }: { children: ReactNode }) {
   return (
-    <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.08em] text-brand/80 sm:text-xs">
+    <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.06em] text-brand/80 sm:text-xs">
       {children}
     </span>
   )
@@ -108,7 +108,7 @@ function PillGroup({
               key={option.value || "all"}
               type="button"
               onClick={() => onChange(option.value)}
-              className={`${compact ? "min-h-9 px-3 py-1.5 text-xs" : "min-h-10 px-4 py-2 text-sm"} rounded-full border font-black transition ${
+              className={`${compact ? "min-h-9 px-3 py-1.5 text-xs" : "min-h-10 px-4 py-2 text-sm"} rounded-full border font-semibold transition ${
                 active
                   ? tone === "orange"
                     ? "border-[#f2a36a] bg-[#fff0e4] text-[#b75217] shadow-[0_5px_14px_rgba(232,109,19,0.12)]"
@@ -202,7 +202,7 @@ function PlayfulSelect({
       <input type="hidden" name={name} value={value} />
 
       <details className="group relative">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 lg:min-h-10 lg:gap-2.5 lg:px-3 [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-semibold text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 lg:min-h-10 lg:gap-2.5 lg:px-3 [&::-webkit-details-marker]:hidden">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand lg:h-7 lg:w-7">
             <SelectIcon kind={icon} />
           </span>
@@ -223,7 +223,7 @@ function PlayfulSelect({
                   onChange(option.value)
                   event.currentTarget.closest("details")?.removeAttribute("open")
                 }}
-                className={`flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-bold transition ${
+                className={`flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium transition ${
                   active
                     ? "bg-[#e9f6f2] text-brand"
                     : "text-text-soft hover:bg-[#fff7ef] hover:text-[#b75217]"
@@ -629,7 +629,7 @@ function PriceAndVip({
         />
       </label>
 
-      <label className="flex min-h-12 items-center gap-3 self-end rounded-2xl border border-[#e3ece8] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)]">
+      <label className="flex min-h-12 items-center gap-3 self-end rounded-2xl border border-[#e3ece8] bg-white px-4 text-sm font-semibold text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)]">
         <input
           type="checkbox"
           name="vip"
