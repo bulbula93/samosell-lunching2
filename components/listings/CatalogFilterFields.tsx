@@ -76,7 +76,7 @@ const PERFUME_VOLUMES = [
 
 function FilterLabel({ children }: { children: ReactNode }) {
   return (
-    <span className="mb-2 block text-xs font-black uppercase tracking-[0.08em] text-brand/80">
+    <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.08em] text-brand/80 sm:text-xs">
       {children}
     </span>
   )
@@ -202,8 +202,8 @@ function PlayfulSelect({
       <input type="hidden" name={name} value={value} />
 
       <details className="group relative">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 [&::-webkit-details-marker]:hidden">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-black text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 lg:min-h-10 lg:gap-2.5 lg:px-3 [&::-webkit-details-marker]:hidden">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand lg:h-7 lg:w-7">
             <SelectIcon kind={icon} />
           </span>
           <span className="min-w-0 flex-1 truncate">{selected?.label ?? "აირჩიე"}</span>
@@ -408,10 +408,10 @@ export default function CatalogFilterFields({
     ]
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-4 lg:space-y-3">
         <input type="hidden" name="category" value="perfume" />
 
-        <div className="grid gap-5 rounded-[26px] border border-[#e3ece8] bg-[#fbfdfc] p-4 sm:p-5 xl:grid-cols-2">
+        <div className="grid gap-4 rounded-[22px] border border-[#e3ece8] bg-[#fbfdfc] p-4 lg:p-3 xl:grid-cols-2">
           <div>
             <FilterLabel>ვისთვისაა</FilterLabel>
             <PillGroup
@@ -434,7 +434,7 @@ export default function CatalogFilterFields({
           </div>
         </div>
 
-        <div className="rounded-[26px] border border-[#f1dfcf] bg-[#fffaf5] p-4 sm:p-5">
+        <div className="rounded-[22px] border border-[#f1dfcf] bg-[#fffaf5] p-4 lg:p-3">
           <FilterLabel>მოცულობა</FilterLabel>
           <PillGroup
             name="size"
@@ -500,11 +500,11 @@ export default function CatalogFilterFields({
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 lg:space-y-3">
       <input type="hidden" name="category" value={selectedCategory} />
 
       {selectedCategory === "footwear" ? (
-        <div className="rounded-[26px] border border-[#e3ece8] bg-[#fbfdfc] p-4 sm:p-5">
+        <div className="rounded-[22px] border border-[#e3ece8] bg-[#fbfdfc] p-4 lg:p-3">
           <FilterLabel>ვისთვისაა</FilterLabel>
           <PillGroup
             name="gender"
@@ -516,7 +516,7 @@ export default function CatalogFilterFields({
         </div>
       ) : null}
 
-      <div className={mobile ? "grid gap-4" : "grid gap-4 md:grid-cols-2 xl:grid-cols-4"}>
+      <div className={mobile ? "grid gap-4" : "grid gap-3 md:grid-cols-2 xl:grid-cols-5"}>
         {showItemType ? (
           <PlayfulSelect
             label="ნივთის ტიპი"
@@ -570,7 +570,7 @@ export default function CatalogFilterFields({
       </div>
 
       {useSizePills ? (
-        <div className="rounded-[26px] border border-[#f1dfcf] bg-[#fffaf5] p-4 sm:p-5">
+        <div className="rounded-[22px] border border-[#f1dfcf] bg-[#fffaf5] p-4 lg:p-3">
           <FilterLabel>
             {selectedCategory === "footwear" ? "ფეხსაცმლის ზომა" : "ზომა"}
           </FilterLabel>
@@ -585,21 +585,23 @@ export default function CatalogFilterFields({
         </div>
       ) : null}
 
-      <div>
-        <FilterLabel>მდგომარეობა</FilterLabel>
-        <PillGroup
-          name="condition"
-          value={selectedConditionFilter}
-          onChange={setSelectedConditionFilter}
-          options={conditionOptions}
-          compact={mobile}
+      <div className={mobile ? "grid gap-4" : "grid items-end gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)]"}>
+        <div>
+          <FilterLabel>მდგომარეობა</FilterLabel>
+          <PillGroup
+            name="condition"
+            value={selectedConditionFilter}
+            onChange={setSelectedConditionFilter}
+            options={conditionOptions}
+            compact={!mobile}
+          />
+        </div>
+
+        <PriceAndVip
+          values={values}
+          mobile={mobile}
         />
       </div>
-
-      <PriceAndVip
-        values={values}
-        mobile={mobile}
-      />
     </div>
   )
 }
