@@ -193,10 +193,6 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
           </div>
         </div>
 
-        <div className="mt-3 flex items-center justify-center gap-2 text-[11px] font-semibold text-text-soft">
-          <span className={`h-1.5 w-1.5 rounded-full ${paused ? "bg-accent" : "bg-brand"}`} />
-          {paused ? "კარუსელი დროებით შეჩერებულია" : "ავტომატური კარუსელი"}
-        </div>
       </div>
     </section>
   )
