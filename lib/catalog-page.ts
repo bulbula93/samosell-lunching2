@@ -112,7 +112,7 @@ export function getCatalogDatabaseFilters(
     }
   }
 
-  addItemKeywords(itemKeywords, filters.item_type)
+  if (category !== "perfume") addItemKeywords(itemKeywords, filters.item_type)
 
   const publicId = normalizeListingPublicId(filters.q)
 
@@ -149,8 +149,11 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
     next = next.eq("category_slug", databaseFilters.categorySlug) as T & CatalogFilterable
   }
 
-  // Keep legacy brand URLs working, but the current catalog UI no longer exposes a brand dropdown.
+  // Brand is exposed for perfume mode and remains backward-compatible for legacy URLs.
   if (filters.brand) next = next.eq("brand_name", filters.brand) as T & CatalogFilterable
+  if (filters.category === "perfume" && filters.item_type) {
+    next = next.eq("material", filters.item_type) as T & CatalogFilterable
+  }
   if (filters.size) next = next.eq("size_label", filters.size) as T & CatalogFilterable
   if (filters.color) next = next.eq("color", filters.color) as T & CatalogFilterable
   if (filters.city) next = next.eq("city", filters.city) as T & CatalogFilterable
