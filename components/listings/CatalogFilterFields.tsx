@@ -349,6 +349,10 @@ export default function CatalogFilterFields({
     setSelectedCategory(nextCategory)
     setSelectedItemType(nextItemType)
 
+    if (nextCategory !== selectedCategory) {
+      setSelectedGenderFilter("")
+    }
+
     if (nextCategory !== "perfume") {
       setSelectedBrandFilter("")
     }
@@ -370,6 +374,23 @@ export default function CatalogFilterFields({
           )
 
     setSelectedItemType(nextItemType)
+
+    if (selectedSize && !nextSizes.includes(selectedSize)) {
+      setSelectedSize("")
+    }
+  }
+
+  function handleGenderChange(nextGender: string) {
+    setSelectedGenderFilter(nextGender)
+
+    if (selectedCategory !== "footwear") return
+
+    const nextSizes = getCatalogSizeLabels(
+      options.sizes,
+      sizeCategory(selectedCategory, selectedItemType),
+      nextGender,
+      "",
+    )
 
     if (selectedSize && !nextSizes.includes(selectedSize)) {
       setSelectedSize("")
@@ -443,7 +464,7 @@ export default function CatalogFilterFields({
             <PillGroup
               name="gender"
               value={selectedGenderFilter}
-              onChange={setSelectedGenderFilter}
+              onChange={handleGenderChange}
               options={audienceOptions}
             />
           </div>
@@ -518,6 +539,12 @@ export default function CatalogFilterFields({
 
   const showItemType = !FIXED_TYPE_CATEGORIES.has(selectedCategory)
   const useSizePills = availableSizes.length > 0 && availableSizes.length <= 10
+  const footwearAudienceOptions: PlayfulOption[] = [
+    { value: "", label: "ყველა" },
+    { value: "women", label: "ქალის" },
+    { value: "men", label: "კაცის" },
+    { value: "unisex", label: "უნისექსი" },
+  ]
 
   return (
     <div className="space-y-5">
@@ -531,6 +558,19 @@ export default function CatalogFilterFields({
           compact={mobile}
         />
       </div>
+
+      {selectedCategory === "footwear" ? (
+        <div className="rounded-[26px] border border-[#e3ece8] bg-[#fbfdfc] p-4 sm:p-5">
+          <FilterLabel>ვისთვისაა</FilterLabel>
+          <PillGroup
+            name="gender"
+            value={selectedGenderFilter}
+            onChange={handleGenderChange}
+            options={footwearAudienceOptions}
+            compact={mobile}
+          />
+        </div>
+      ) : null}
 
       <div className={mobile ? "grid gap-4" : "grid gap-4 md:grid-cols-2 xl:grid-cols-4"}>
         {showItemType ? (
