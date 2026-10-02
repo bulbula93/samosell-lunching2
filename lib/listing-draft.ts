@@ -40,9 +40,9 @@ export function isUsableDraft(value: unknown, userId: string): value is ListingD
   const draft = value as ListingDraft | null
   return Boolean(draft && draft.userId === userId && Number.isFinite(draft.updatedAt) &&
     draft.updatedAt <= Date.now() && Date.now() - draft.updatedAt < DRAFT_TTL_MS &&
-    draft.fields && ["title", "description", "price", "brandId", "sizeId", "condition", "saleType", "gender", "color", "material", "city"].every((key) => typeof (draft.fields as unknown as Record<string, unknown>)[key] === "string") &&
+    draft.fields && ["title", "description", "price", "brandId", "customBrand", "sizeId", "condition", "saleType", "gender", "color", "material", "city"].every((key) => typeof (draft.fields as unknown as Record<string, unknown>)[key] === "string") &&
     typeof draft.fields.publishNow === "boolean" && ["string", "number"].includes(typeof draft.fields.categoryId) &&
-    ["clothing", "bottoms", "shoes", "kids", "kids_shoes", "universal"].includes(draft.sizeType) &&
+    ["clothing", "bottoms", "shoes", "kids", "kids_shoes", "universal", "perfume"].includes(draft.sizeType) &&
     Array.isArray(draft.images) && draft.images.length <= 8 && draft.images.every((image) =>
       image.blob instanceof Blob && image.blob.size <= 7 * 1024 * 1024 && typeof image.name === "string" &&
       typeof image.id === "string" && ["image/jpeg", "image/png", "image/webp"].includes(image.type)))
