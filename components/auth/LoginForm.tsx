@@ -171,8 +171,26 @@ export default function LoginForm({
         >
           <span>{loading ? "იტვირთება..." : "შედი"}</span>
           {!loading ? (
-            <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-xl transition group-hover:translate-x-0.5">
-              →
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/10 transition duration-200 group-hover:scale-110"
+            >
+              <svg
+                viewBox="0 0 28 24"
+                className="h-[21px] w-[24px]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M8 4.5h12v15H8z" />
+                <path d="M8 5.5 3.5 8v11l4.5-1.8" />
+                <path d="m20 5.5 4.5 2.5v11L20 17.2" />
+                <path d="M14 7.2c0-1 .7-1.7 1.6-1.7.8 0 1.4.6 1.4 1.3 0 .8-.6 1.2-1.4 1.6v1.1" />
+                <path d="m10.2 13.4 4.2-2.5 4.1 2.5" />
+                <path d="M11.4 13.2h6l1 3.6h-8l1-3.6Z" />
+              </svg>
             </span>
           ) : null}
         </button>
