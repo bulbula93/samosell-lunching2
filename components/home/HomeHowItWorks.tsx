@@ -60,9 +60,16 @@ export default function HomeHowItWorks() {
               </div>
               <h2
                 aria-label={ka.home.howItWorks}
-                className="mt-4 text-3xl font-black tracking-[-0.045em] text-brand sm:text-4xl"
+                className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-3xl font-black tracking-[-0.045em] text-brand sm:text-4xl"
               >
-                როგორ მუშაობს <span className="text-accent">Samo$ell</span>
+                <span>როგორ მუშაობს</span>
+                <img
+                  src="/brand/samosell-header-logo.svg"
+                  alt="Samo$ell"
+                  width={164}
+                  height={50}
+                  className="h-[34px] w-auto sm:h-[42px]"
+                />
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-text-soft sm:text-base">
                 ოთხი მარტივი ნაბიჯი — განცხადების ატვირთვიდან შეთანხმებამდე.
