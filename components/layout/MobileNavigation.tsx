@@ -157,7 +157,7 @@ export default function MobileNavigation({
                     onClick={() => setOpen(false)}
                     className={`flex min-h-12 items-center rounded-xl px-4 text-base font-medium transition ${
                       isPerfume
-                        ? "bg-[#fff8f3] text-[#b95a20] hover:bg-[#fff0e8]"
+                        ? "text-[#b95a20] hover:bg-[#fff4ec]"
                         : "text-text-soft hover:bg-brand-soft hover:text-brand"
                     }`}
                   >
@@ -165,9 +165,10 @@ export default function MobileNavigation({
                       <span className="inline-flex items-center gap-2">
                         <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center text-[#e8894a]">
                           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M10 3h4v3h-4z" />
-                            <path d="M9 6h6l1.5 2.5V11l2 2v6H5.5v-6l2-2V8.5L9 6Z" />
-                            <path d="M8.5 14.5h7" />
+                            <path d="M7 15c1.2-2.7 2.7-4.7 5-6.1" />
+                            <path d="M11.5 5.5c1.8.2 3.6 1.1 5 2.5" />
+                            <path d="M15.7 4.7 18 3.5M17.1 8.1l2.7-.1M15.7 11.2l2 1.5" />
+                            <path d="M6.2 15.7c-1.7 1.1-2.5 2.2-2.2 3.1.4 1.1 2.6 1.2 5 .2 2.5-1 4-2.5 3.6-3.5-.3-.8-1.6-1-3.2-.7" />
                           </svg>
                         </span>
                         <span>{item.label}</span>
