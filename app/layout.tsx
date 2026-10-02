@@ -34,10 +34,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
+      { url: "/icon.svg?v=dollar-20261002", type: "image/svg+xml", sizes: "any" },
     ],
-    shortcut: ["/favicon.ico"],
+    shortcut: ["/icon.svg?v=dollar-20261002"],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   alternates: {
