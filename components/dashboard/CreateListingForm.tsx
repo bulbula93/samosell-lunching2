@@ -40,6 +40,18 @@ type SizeOption = { id: string; label?: string; group_name?: string | null }
 type EditableImage = { id: string; kind: "existing" | "new"; imageUrl: string; file?: File }
 type ToggleOption = { value: string; label: string; helper?: string }
 
+const PERFUME_VOLUME_FALLBACK_SIZES: SizeOption[] = [
+  { id: "preview-perfume-15", label: "15 ml", group_name: "perfume" },
+  { id: "preview-perfume-30", label: "30 ml", group_name: "perfume" },
+  { id: "preview-perfume-50", label: "50 ml", group_name: "perfume" },
+  { id: "preview-perfume-75", label: "75 ml", group_name: "perfume" },
+  { id: "preview-perfume-100", label: "100 ml", group_name: "perfume" },
+  { id: "preview-perfume-125", label: "125 ml", group_name: "perfume" },
+  { id: "preview-perfume-150", label: "150 ml", group_name: "perfume" },
+  { id: "preview-perfume-200", label: "200 ml", group_name: "perfume" },
+]
+
+
 export type CreateListingFormProps = {
   categories: CategoryOption[]
   brands: Option[]
@@ -324,6 +336,13 @@ export default function CreateListingForm({
       const key = item.label ?? item.id
       if (!byLabel.has(key)) byLabel.set(key, item)
     }
+
+    if (sizeType === "perfume" && byLabel.size === 0) {
+      for (const item of PERFUME_VOLUME_FALLBACK_SIZES) {
+        byLabel.set(item.label ?? item.id, item)
+      }
+    }
+
     const selected = sizes.find((item) => item.id === sizeId)
     if (selected) byLabel.set(selected.label ?? selected.id, selected)
     return Array.from(byLabel.values())
