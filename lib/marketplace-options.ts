@@ -37,6 +37,7 @@ export type ListingSizeType =
   | "kids"
   | "kids_shoes"
   | "universal"
+  | "perfume"
 
 export type SizeLookupOption = {
   label?: string | null
@@ -56,6 +57,10 @@ export const KIDS_SIZE_TYPE_OPTIONS: Array<{ value: ListingSizeType; label: stri
   { value: "universal", label: "უნივერსალური / One Size" },
 ]
 
+export const PERFUME_SIZE_TYPE_OPTIONS: Array<{ value: ListingSizeType; label: string }> = [
+  { value: "perfume", label: "მოცულობა (ml)" },
+]
+
 const BOTTOM_ITEM_TYPES = new Set(["jeans", "trousers", "leggings", "shorts", "skirts"])
 const UNIVERSAL_ITEM_TYPES = new Set(["bags", "accessories"])
 const KIDS_ITEM_TYPES = new Set(["newborn", "school-uniform"])
@@ -68,7 +73,8 @@ export function normalizeListingSizeType(groupName?: string | null): ListingSize
     groupName === "shoes" ||
     groupName === "kids" ||
     groupName === "kids_shoes" ||
-    groupName === "universal"
+    groupName === "universal" ||
+    groupName === "perfume"
   ) {
     return groupName
   }
@@ -79,6 +85,7 @@ export function recommendedListingSizeType(categorySlug?: string | null, gender?
   const category = String(categorySlug ?? "")
   const normalizedGender = String(gender ?? "")
 
+  if (category === "perfume") return "perfume"
   if (category === "footwear") return normalizedGender === "kids" ? "kids_shoes" : "shoes"
   if (BOTTOM_ITEM_TYPES.has(category)) return normalizedGender === "kids" ? "kids" : "bottoms"
   if (KIDS_ITEM_TYPES.has(category) || normalizedGender === "kids") return "kids"
@@ -86,7 +93,8 @@ export function recommendedListingSizeType(categorySlug?: string | null, gender?
   return "clothing"
 }
 
-export function listingSizeTypeOptions(gender?: string | null) {
+export function listingSizeTypeOptions(gender?: string | null, categorySlug?: string | null) {
+  if (categorySlug === "perfume") return PERFUME_SIZE_TYPE_OPTIONS
   return gender === "kids" ? KIDS_SIZE_TYPE_OPTIONS : ADULT_SIZE_TYPE_OPTIONS
 }
 
