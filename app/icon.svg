@@ -1,7 +1,5 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="4" y="4" width="56" height="56" rx="18" fill="#F7F1E8"/>
-  <rect x="4.75" y="4.75" width="54.5" height="54.5" rx="17.25" stroke="#D9E8E1" stroke-width="1.5"/>
-  <path d="M42.5 18.5C39.4 15.1 34.5 13.4 29.6 14.2C22.9 15.3 18.4 20 18.4 26.2C18.4 32.2 23.2 35 30.2 36.1C37.8 37.3 41.4 39 41.4 43C41.4 47.1 37.4 49.9 31.9 49.9C27.3 49.9 22.8 48 19.9 44.4" stroke="#2D5F4F" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="45.5" cy="17.5" r="4" fill="#D6A15B"/>
-  <path d="M18.5 20.5L22.4 18.2" stroke="#D6A15B" stroke-width="3.4" stroke-linecap="round"/>
+<svg width="64" height="64" viewBox="478 19 216 216" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SamoSell">
+  <rect x="478" y="19" width="216" height="216" rx="64" fill="#F7F1E8"/>
+  <rect x="481" y="22" width="210" height="210" rx="61" stroke="#E3D9CF" stroke-width="6"/>
+  <path d="M596,19 L588,19 L581,22 L576,27 L573,34 L573,45 L571,47 L556,52 L544,61 L536,74 L534,81 L534,87 L533,88 L534,100 L536,106 L541,115 L550,124 L570,135 L572,135 L590,143 L597,149 L599,153 L599,160 L597,164 L590,169 L581,169 L573,165 L564,156 L558,153 L547,153 L542,155 L535,162 L532,169 L531,181 L535,191 L544,200 L553,205 L562,207 L564,209 L563,219 L566,227 L569,231 L574,234 L577,234 L578,235 L588,234 L595,229 L599,221 L599,210 L601,208 L605,208 L611,206 L619,202 L629,194 L636,184 L641,168 L641,149 L640,148 L638,138 L633,129 L622,118 L616,114 L601,107 L584,101 L581,99 L577,94 L577,90 L581,85 L590,83 L591,84 L595,84 L612,94 L615,95 L626,95 L632,92 L638,86 L641,80 L641,69 L638,63 L635,59 L628,54 L615,48 L612,48 L610,46 L610,33 L607,26 L601,21Z" fill="#FF7A00" fill-rule="evenodd"/>
 </svg>
