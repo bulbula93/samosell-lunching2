@@ -18,6 +18,17 @@ const perfumeItem: MarketplaceNavItem = {
   href: "/catalog?category=perfume",
 }
 
+const marketplaceNavOrder = [
+  "/catalog?category=women",
+  "/catalog?category=men",
+  "/catalog?category=kids",
+  "/catalog?category=footwear",
+  "/catalog?category=bags",
+  "/catalog?category=vintage",
+  "/catalog?category=accessories",
+  "/catalog?category=perfume",
+] as const
+
 export const getMarketplaceNavigationItems = unstable_cache(
   async (): Promise<MarketplaceNavItem[]> => {
     const supabase = createPublicServerClient()
@@ -45,13 +56,20 @@ export const getMarketplaceNavigationItems = unstable_cache(
         )
 
     const seen = new Set<string>()
-    return [...databaseWithPerfume, ...supportingItems].filter((item) => {
+    const mergedItems = [...databaseWithPerfume, ...supportingItems].filter((item) => {
       if (!item.label || seen.has(item.href)) return false
       seen.add(item.href)
       return true
     })
+
+    const order = new Map(marketplaceNavOrder.map((href, index) => [href, index]))
+    return mergedItems.sort((a, b) => {
+      const aOrder = order.get(a.href) ?? Number.MAX_SAFE_INTEGER
+      const bOrder = order.get(b.href) ?? Number.MAX_SAFE_INTEGER
+      return aOrder - bOrder
+    })
   },
-  ["marketplace-header-navigation-v2"],
+  ["marketplace-header-navigation-v3"],
   {
     revalidate: 600,
     tags: ["marketplace-navigation"],
