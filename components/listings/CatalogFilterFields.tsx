@@ -29,7 +29,7 @@ export type CatalogFilterOptions = {
 
 const conditionOptions = [
   { value: "", label: "ყველა მდგომარეობა" },
-  { value: "new", label: "ახალი" },
+  { value: "new", label: "ახალი / გაუხსნელი" },
   { value: "like_new", label: "თითქმის ახალი" },
   { value: "good", label: "კარგი" },
   { value: "fair", label: "დამაკმაყოფილებელი" },
@@ -49,6 +49,45 @@ const relevanceSortOption = {
 } as const
 
 const SPECIAL_SIZE_CATEGORIES = new Set(["footwear", "bags", "accessories"])
+
+const PERFUME_BRANDS = [
+  "Chanel",
+  "Dior",
+  "Giorgio Armani",
+  "Yves Saint Laurent",
+  "Tom Ford",
+  "Gucci",
+  "Prada",
+  "Versace",
+  "Dolce & Gabbana",
+  "Burberry",
+  "Givenchy",
+  "Hermès",
+  "Maison Francis Kurkdjian",
+  "Creed",
+  "Jo Malone",
+  "Narciso Rodriguez",
+  "Carolina Herrera",
+  "Jean Paul Gaultier",
+  "Paco Rabanne",
+  "Montale",
+  "Mancera",
+  "Byredo",
+  "Le Labo",
+  "Diptyque",
+  "Xerjoff",
+] as const
+
+const PERFUME_VOLUMES = [
+  "15 ml",
+  "30 ml",
+  "50 ml",
+  "75 ml",
+  "100 ml",
+  "125 ml",
+  "150 ml",
+  "200 ml",
+] as const
 
 function SelectField({
   label,
@@ -93,6 +132,16 @@ export default function CatalogFilterFields({
   const [selectedItemType, setSelectedItemType] = useState(values.item_type)
   const [selectedSize, setSelectedSize] = useState(values.size)
 
+  const categoryOptions = useMemo(() => {
+    if (options.categories.some((item) => item.slug === "perfume")) return options.categories
+    const next = [...options.categories]
+    const accessoriesIndex = next.findIndex((item) => item.slug === "accessories")
+    const perfumeOption = { slug: "perfume", name: "პარფიუმერია" }
+    if (accessoriesIndex >= 0) next.splice(accessoriesIndex + 1, 0, perfumeOption)
+    else next.push(perfumeOption)
+    return next
+  }, [options.categories])
+
   const availableItemTypes = useMemo(
     () => getCatalogItemOptionsForSection(selectedCategory),
     [selectedCategory],
@@ -104,24 +153,32 @@ export default function CatalogFilterFields({
     ? [relevanceSortOption, ...sortOptions]
     : sortOptions
 
-  const availableSizes = useMemo(
-    () => getCatalogSizeLabels(
+  const availableSizes = useMemo(() => {
+    if (selectedCategory === "perfume") {
+      const valuesToShow = [...PERFUME_VOLUMES]
+      if (selectedSize && !valuesToShow.includes(selectedSize as typeof PERFUME_VOLUMES[number])) {
+        valuesToShow.push(selectedSize as typeof PERFUME_VOLUMES[number])
+      }
+      return valuesToShow
+    }
+
+    return getCatalogSizeLabels(
       options.sizes,
       selectedSizeCategory,
       selectedGender,
       selectedCategory === values.category && selectedItemType === values.item_type ? values.size : "",
-    ),
-    [
-      options.sizes,
-      selectedCategory,
-      selectedGender,
-      selectedItemType,
-      selectedSizeCategory,
-      values.category,
-      values.item_type,
-      values.size,
-    ],
-  )
+    )
+  }, [
+    options.sizes,
+    selectedCategory,
+    selectedGender,
+    selectedItemType,
+    selectedSize,
+    selectedSizeCategory,
+    values.category,
+    values.item_type,
+    values.size,
+  ])
 
   function handleCategoryChange(nextCategory: string) {
     const nextItemTypes = getCatalogItemOptionsForSection(nextCategory)
@@ -129,44 +186,138 @@ export default function CatalogFilterFields({
       ? selectedItemType
       : ""
     const nextGender = categoryGender(nextCategory)
-    const nextSizes = getCatalogSizeLabels(
-      options.sizes,
-      sizeCategory(nextCategory, nextItemType),
-      nextGender,
-      "",
-    )
+    const nextSizes = nextCategory === "perfume"
+      ? [...PERFUME_VOLUMES]
+      : getCatalogSizeLabels(
+          options.sizes,
+          sizeCategory(nextCategory, nextItemType),
+          nextGender,
+          "",
+        )
 
     setSelectedCategory(nextCategory)
     setSelectedItemType(nextItemType)
-    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+    if (selectedSize && !nextSizes.includes(selectedSize as never)) setSelectedSize("")
   }
 
   function handleItemTypeChange(nextItemType: string) {
-    const nextSizes = getCatalogSizeLabels(
-      options.sizes,
-      sizeCategory(selectedCategory, nextItemType),
-      categoryGender(selectedCategory),
-      "",
-    )
+    const nextSizes = selectedCategory === "perfume"
+      ? [...PERFUME_VOLUMES]
+      : getCatalogSizeLabels(
+          options.sizes,
+          sizeCategory(selectedCategory, nextItemType),
+          categoryGender(selectedCategory),
+          "",
+        )
 
     setSelectedItemType(nextItemType)
-    if (selectedSize && !nextSizes.includes(selectedSize)) setSelectedSize("")
+    if (selectedSize && !nextSizes.includes(selectedSize as never)) setSelectedSize("")
+  }
+
+  const categoryField = (
+    <label className="block min-w-0">
+      <span className="mb-1.5 block text-xs font-bold text-text-soft">კატეგორია</span>
+      <select
+        name="category"
+        value={selectedCategory}
+        onChange={(event) => handleCategoryChange(event.target.value)}
+        className="ui-input"
+      >
+        <option value="">ყველა კატეგორია</option>
+        {categoryOptions.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+      </select>
+    </label>
+  )
+
+  if (selectedCategory === "perfume") {
+    const perfumeBrands = values.brand && !PERFUME_BRANDS.includes(values.brand as typeof PERFUME_BRANDS[number])
+      ? [values.brand, ...PERFUME_BRANDS]
+      : PERFUME_BRANDS
+
+    return (
+      <div className={mobile ? "space-y-4" : "grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6"}>
+        {categoryField}
+
+        <label className="block min-w-0">
+          <span className="mb-1.5 block text-xs font-bold text-text-soft">კონცენტრაცია</span>
+          <select
+            name="item_type"
+            value={selectedItemType}
+            onChange={(event) => handleItemTypeChange(event.target.value)}
+            className="ui-input"
+          >
+            <option value="">ყველა ტიპი</option>
+            {availableItemTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+        </label>
+
+        <SelectField label="ბრენდი" name="brand" value={values.brand}>
+          <option value="">ყველა ბრენდი</option>
+          {perfumeBrands.map((item) => <option key={item} value={item}>{item}</option>)}
+        </SelectField>
+
+        <label className="block min-w-0">
+          <span className="mb-1.5 block text-xs font-bold text-text-soft">მოცულობა</span>
+          <select
+            name="size"
+            value={selectedSize}
+            onChange={(event) => setSelectedSize(event.target.value)}
+            className="ui-input"
+          >
+            <option value="">ყველა მოცულობა</option>
+            {availableSizes.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
+
+        <SelectField label="ვისთვისაა" name="gender" value={values.gender}>
+          <option value="">ყველა</option>
+          <option value="women">ქალებისთვის</option>
+          <option value="men">მამაკაცებისთვის</option>
+          <option value="unisex">უნისექსი</option>
+        </SelectField>
+
+        <SelectField label="მდგომარეობა" name="condition" value={values.condition}>
+          {conditionOptions.map((item) => <option key={item.value || "all"} value={item.value}>{item.label}</option>)}
+        </SelectField>
+
+        <SelectField label="მდებარეობა" name="city" value={values.city}>
+          <option value="">ყველა ქალაქი</option>
+          {options.cities.map((item) => <option key={item} value={item}>{item}</option>)}
+        </SelectField>
+
+        <SelectField
+          label="დალაგება"
+          name="sort"
+          value={values.sort || (values.q ? "relevance" : "latest")}
+        >
+          {availableSortOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </SelectField>
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-bold text-text-soft">მინ. ფასი</span>
+          <input name="min_price" type="number" min="0" step="1" defaultValue={values.min_price} placeholder="0 ₾" className="ui-input" />
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-bold text-text-soft">მაქს. ფასი</span>
+          <input name="max_price" type="number" min="0" step="1" defaultValue={values.max_price} placeholder="5000 ₾" className="ui-input" />
+        </label>
+
+        <label className="flex min-h-11 items-center gap-3 self-end rounded-xl border border-line bg-white px-4 text-sm font-semibold text-text">
+          <input type="checkbox" name="vip" value="1" defaultChecked={values.vip === "1"} className="h-5 w-5 accent-brand" />
+          მხოლოდ VIP
+        </label>
+
+        <div className="flex min-h-11 items-center rounded-xl border border-[#f2d9c2] bg-[#fff8f1] px-4 text-xs font-bold leading-5 text-[#a95716]">
+          პარფიუმერიის სპეციალური ფილტრები
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className={mobile ? "space-y-4" : "grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7"}>
-      <label className="block min-w-0">
-        <span className="mb-1.5 block text-xs font-bold text-text-soft">კატეგორია</span>
-        <select
-          name="category"
-          value={selectedCategory}
-          onChange={(event) => handleCategoryChange(event.target.value)}
-          className="ui-input"
-        >
-          <option value="">ყველა კატეგორია</option>
-          {options.categories.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
-        </select>
-      </label>
+      {categoryField}
 
       <label className="block min-w-0">
         <span className="mb-1.5 block text-xs font-bold text-text-soft">ნივთის ტიპი</span>
