@@ -316,9 +316,6 @@ export default function CatalogFilterFields({
           მხოლოდ VIP
         </label>
 
-        <div className="flex min-h-11 items-center rounded-xl border border-[#f2d9c2] bg-[#fff8f1] px-4 text-xs font-bold leading-5 text-[#a95716]">
-          პარფიუმერიის სპეციალური ფილტრები
-        </div>
       </div>
     )
   }
