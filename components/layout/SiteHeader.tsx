@@ -13,6 +13,11 @@ const supportingItems: MarketplaceNavItem[] = [
   { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
 ]
 
+const perfumeItem: MarketplaceNavItem = {
+  label: "პარფიუმერია",
+  href: "/catalog?category=perfume",
+}
+
 export const getMarketplaceNavigationItems = unstable_cache(
   async (): Promise<MarketplaceNavItem[]> => {
     const supabase = createPublicServerClient()
@@ -30,14 +35,23 @@ export const getMarketplaceNavigationItems = unstable_cache(
         href: `/catalog?category=${encodeURIComponent(item.slug)}`,
       }))
 
+    const hasPerfume = databaseItems.some((item) => item.href === perfumeItem.href)
+    const databaseWithPerfume = hasPerfume
+      ? databaseItems
+      : databaseItems.flatMap((item) =>
+          item.href === "/catalog?category=accessories"
+            ? [item, perfumeItem]
+            : [item],
+        )
+
     const seen = new Set<string>()
-    return [...databaseItems, ...supportingItems].filter((item) => {
+    return [...databaseWithPerfume, ...supportingItems].filter((item) => {
       if (!item.label || seen.has(item.href)) return false
       seen.add(item.href)
       return true
     })
   },
-  ["marketplace-header-navigation-v1"],
+  ["marketplace-header-navigation-v2"],
   {
     revalidate: 600,
     tags: ["marketplace-navigation"],
