@@ -93,7 +93,7 @@ export default function HomeHowItWorks() {
                   key={step.title}
                   className="group relative rounded-[26px] border border-[#e7ece9] bg-white p-5 shadow-[0_8px_26px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(7,63,59,0.09)]"
                 >
-                  <div className="relative z-10 flex items-center justify-between">
+                  <div className="relative z-10 flex items-center">
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
                         orange ? "bg-[#fff0df] text-accent" : "bg-[#e5f4ef] text-brand"
@@ -101,13 +101,6 @@ export default function HomeHowItWorks() {
                     >
                       <StepIcon index={index} />
                     </div>
-                    <span
-                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${
-                        orange ? "bg-[#fff7ee] text-accent" : "bg-[#eff9f5] text-brand"
-                      }`}
-                    >
-                      {index + 1}
-                    </span>
                   </div>
 
                   <h3 className="mt-5 text-lg font-black tracking-[-0.02em] text-brand">{step.title}</h3>
