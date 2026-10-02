@@ -1,7 +1,5 @@
 import Link from "next/link"
-import ProfileCompletionIndicator from "@/components/dashboard/ProfileCompletionIndicator"
 import ProfileForm from "@/components/dashboard/ProfileForm"
-import { getProfileCompletion } from "@/lib/profile-completion"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardProfilePage() {
@@ -16,14 +14,6 @@ export default async function DashboardProfilePage() {
     .eq("id", user!.id)
     .maybeSingle()
 
-  const completion = getProfileCompletion({
-    full_name: profile?.full_name,
-    city: profile?.city,
-    avatar_url: profile?.avatar_url,
-    seller_type: profile?.seller_type,
-    store_logo_url: profile?.store_logo_url,
-    store_phone: profile?.store_phone,
-  })
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -45,8 +35,6 @@ export default async function DashboardProfilePage() {
           </Link>
         </nav>
       ) : null}
-
-      <ProfileCompletionIndicator completion={completion} className="mb-6" />
 
       <ProfileForm
         userId={user!.id}
