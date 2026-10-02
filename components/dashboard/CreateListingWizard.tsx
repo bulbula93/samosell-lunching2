@@ -27,6 +27,7 @@ import {
   type ListingSizeType,
 } from "@/lib/marketplace-options"
 import { createClient } from "@/lib/supabase/client"
+import { buildListingCategoryOptions, isVirtualListingCategory } from "@/lib/listing-categories"
 import { MAX_LISTING_IMAGES, validateImageFile } from "@/lib/listings"
 
 type Option = { id: string; name?: string; label?: string }
@@ -301,7 +302,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     if (!pendingDraft) return
     const fields = pendingDraft.fields
     setTitle(fields.title); setDescription(fields.description); setPrice(fields.price)
-    setCategoryId(categories.some((item) => item.id === Number(fields.categoryId)) ? Number(fields.categoryId) : "")
+    setCategoryId(listingCategories.some((item) => item.id === Number(fields.categoryId)) ? Number(fields.categoryId) : "")
     setBrandId(brands.some((item) => item.id === fields.brandId) ? fields.brandId : "")
     setCustomBrand(fields.customBrand ?? "")
     setSizeId(sizes.some((item) => item.id === fields.sizeId) ? fields.sizeId : "")
@@ -338,9 +339,13 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const cityId = `${formPrefix}-city`
   const imagesId = `${formPrefix}-images`
 
+  const listingCategories = useMemo(
+    () => buildListingCategoryOptions(categories),
+    [categories],
+  )
   const selectedCategory = useMemo(
-    () => categories.find((item) => item.id === categoryId),
-    [categories, categoryId],
+    () => listingCategories.find((item) => item.id === categoryId),
+    [listingCategories, categoryId],
   )
   const isPerfume = selectedCategory?.slug === "perfume"
   const sizeTypeChoices = useMemo(
@@ -411,6 +416,13 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       if (images.length > 0) return true
       setFieldErrors((current) => ({ ...current, images: "დაამატე მინიმუმ ერთი ფოტო." }))
       setFormError("ფოტოს გარეშე განცხადება ვერ გაგრძელდება.")
+      requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+      return false
+    }
+
+    if (currentStep === 2 && isVirtualListingCategory(selectedCategory)) {
+      setFieldErrors((current) => ({ ...current, categoryId: "ეს კატეგორია preview-ში დამატებულია და production migration-ის შემდეგ ჩაირთვება." }))
+      setFormError("არჩეული კატეგორია ჯერ preview რეჟიმშია.")
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
       return false
     }
@@ -869,7 +881,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                   clearFieldError("categoryId")
                   clearFieldError("sizeId")
                 }}
-                options={categories.map((item) => ({ value: String(item.id), label: item.name }))}
+                options={listingCategories.map((item) => ({ value: String(item.id), label: item.name }))}
                 placeholder="აირჩიე კატეგორია"
                 error={fieldErrors.categoryId}
                 required
