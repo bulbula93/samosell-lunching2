@@ -102,7 +102,7 @@ export function getCatalogDatabaseFilters(
   if (category) {
     if (category === "women" || category === "men" || category === "kids") {
       gender = category
-    } else if (category === "accessories" || category === "vintage") {
+    } else if (category === "accessories" || category === "vintage" || category === "perfume") {
       categorySlug = category
     } else if (category === "footwear" || category === "bags") {
       addItemKeywords(itemKeywords, category)
@@ -187,7 +187,7 @@ export function summarizeFilters(filters: Record<string, string>) {
   if (filters.category) active.push(`კატეგორია: ${getCatalogSectionLabel(filters.category)}`)
   if (filters.item_type) active.push(`ნივთის ტიპი: ${getCatalogItemLabel(filters.item_type)}`)
   if (filters.brand) active.push(`ბრენდი: ${filters.brand}`)
-  if (filters.size) active.push(`ზომა: ${filters.size}`)
+  if (filters.size) active.push(`${filters.category === "perfume" ? "მოცულობა" : "ზომა"}: ${filters.size}`)
   if (filters.color) active.push(`ფერი: ${filters.color}`)
   if (filters.city) active.push(`ქალაქი: ${filters.city}`)
   if (filters.condition) active.push(`მდგომარეობა: ${conditionLabels[filters.condition] ?? filters.condition}`)
