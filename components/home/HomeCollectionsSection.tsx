@@ -129,9 +129,6 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
             <h2 className="mt-4 text-3xl font-black tracking-[-0.045em] text-brand sm:text-4xl">
               {ka.home.brands}
             </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-text-soft sm:text-base">
-              დაათვალიერე პოპულარული ბრენდები — კარუსელი ავტომატურად მოძრაობს, ხოლო სურვილის შემთხვევაში შეგიძლია გადაასრიალო.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
