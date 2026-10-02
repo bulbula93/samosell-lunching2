@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import BrandCombobox from "@/components/dashboard/BrandCombobox"
+import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
@@ -975,6 +976,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                   clearFieldError("customBrand")
                 }}
                 error={fieldErrors.brandId ?? fieldErrors.customBrand}
+                extraSuggestions={isPerfume ? PERFUME_BRAND_NAMES : []}
               />
               <SelectField
   id={sizeIdField}
