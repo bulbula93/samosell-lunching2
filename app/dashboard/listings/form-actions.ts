@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { enforceRateLimit } from "@/lib/rate-limit"
 import { notifyAdminNewListing } from "@/lib/admin-activity-email"
 import {
@@ -186,6 +187,89 @@ async function validateLookupValues(
   if (sizeId && !sizeResult.data) fieldErrors.sizeId = "არჩეული ზომა აღარ არის ხელმისაწვდომი."
   return fieldErrors
 }
+
+function normalizeBrandName(value: string) {
+  return value.trim().replace(/\s+/g, " ")
+}
+
+function brandSlug(value: string) {
+  const base = value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+
+  return base || `brand-${crypto.randomUUID().slice(0, 8)}`
+}
+
+async function resolveBrandId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  brandId: string | null,
+  customBrand: string | null,
+) {
+  if (brandId) return brandId
+
+  const name = normalizeBrandName(customBrand ?? "")
+  if (!name) return null
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("brands")
+    .select("id, name, is_active")
+    .limit(1000)
+
+  if (existingError) throw existingError
+
+  const normalized = name.toLocaleLowerCase("en-US")
+  const existing = (existingRows ?? []).find(
+    (row) => String(row.name ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US") === normalized,
+  )
+
+  if (existing?.id) {
+    if (existing.is_active === false) {
+      throw new Error("არჩეული ბრენდი დროებით არააქტიურია.")
+    }
+    return String(existing.id)
+  }
+
+  await enforceRateLimit(supabase, "brand_create")
+
+  const admin = createAdminClient()
+  let slug = brandSlug(name)
+  let created = await admin
+    .from("brands")
+    .insert({ name, slug, is_active: true })
+    .select("id")
+    .maybeSingle()
+
+  if (created.error) {
+    const { data: racedRows, error: racedError } = await admin
+      .from("brands")
+      .select("id, name, is_active")
+      .limit(1000)
+
+    if (racedError) throw created.error
+    const raced = (racedRows ?? []).find(
+      (row) => String(row.name ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US") === normalized,
+    )
+    if (raced?.id && raced.is_active !== false) return String(raced.id)
+
+    slug = `${brandSlug(name)}-${crypto.randomUUID().slice(0, 6)}`
+    created = await admin
+      .from("brands")
+      .insert({ name, slug, is_active: true })
+      .select("id")
+      .maybeSingle()
+  }
+
+  if (created.error || !created.data?.id) {
+    throw created.error ?? new Error("ბრენდის დამატება ვერ მოხერხდა.")
+  }
+
+  return String(created.data.id)
+}
+
 
 async function removeUploadedPaths(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -400,10 +484,16 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       await enforceRateLimit(supabase, "listing_create")
     }
 
+    const resolvedBrandId = await resolveBrandId(
+      supabase,
+      validation.data.brandId,
+      validation.data.customBrand,
+    )
+
     const lookupErrors = await validateLookupValues(
       supabase,
       validation.data.categoryId,
-      validation.data.brandId,
+      resolvedBrandId,
       validation.data.sizeId,
       ownedListing?.brand_id,
       ownedListing?.category_id
@@ -514,7 +604,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     const coverImageUrl = nextImageRows[0]?.image_url ?? null
     const listingPayload = {
       category_id: data.categoryId,
-      brand_id: data.brandId,
+      brand_id: resolvedBrandId,
       size_id: data.sizeId,
       title: data.title,
       slug,
