@@ -4,29 +4,9 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { ka } from "@/lib/i18n/ka"
 import type { PopularBrand } from "@/lib/home-page"
+import { POPULAR_BRANDS } from "@/lib/popular-brands"
 
-const SHOWCASE_BRANDS = [
-  { name: "Zara", domain: "zara.com" },
-  { name: "adidas", domain: "adidas.com" },
-  { name: "Nike", domain: "nike.com" },
-  { name: "Mango", domain: "mango.com" },
-  { name: "H&M", domain: "hm.com" },
-  { name: "Bershka", domain: "bershka.com" },
-  { name: "Pull&Bear", domain: "pullandbear.com" },
-  { name: "Stradivarius", domain: "stradivarius.com" },
-  { name: "Massimo Dutti", domain: "massimodutti.com" },
-  { name: "New Balance", domain: "newbalance.com" },
-  { name: "Levi's", domain: "levi.com" },
-  { name: "Puma", domain: "puma.com" },
-  { name: "Reebok", domain: "reebok.com" },
-  { name: "Uniqlo", domain: "uniqlo.com" },
-  { name: "Vans", domain: "vans.com" },
-  { name: "The North Face", domain: "thenorthface.com" },
-  { name: "Lacoste", domain: "lacoste.com" },
-  { name: "Calvin Klein", domain: "calvinklein.com" },
-  { name: "Gucci", domain: "gucci.com" },
-  { name: "Prada", domain: "prada.com" },
-] as const
+
 
 function normalizeBrand(value: string) {
   return value.trim().toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, "")
@@ -60,7 +40,7 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
   const [paused, setPaused] = useState(false)
 
   void brands
-  const carouselBrands = SHOWCASE_BRANDS
+  const carouselBrands = POPULAR_BRANDS
 
 
   useEffect(() => {
