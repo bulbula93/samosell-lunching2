@@ -1,6 +1,5 @@
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import CreateListingWizard from "@/components/dashboard/CreateListingWizard"
-import ProfileCompletionIndicator from "@/components/dashboard/ProfileCompletionIndicator"
 import ProfilePhoneRequiredCard from "@/components/dashboard/ProfilePhoneRequiredCard"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import { getProfileCompletion } from "@/lib/profile-completion"
@@ -36,8 +35,6 @@ export default async function DashboardNewListingPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto w-full max-w-5xl space-y-6">
-        <ProfileCompletionIndicator completion={completion} context="listing" />
-
         {!completion.canPublishListing ? (
           <ProfilePhoneRequiredCard />
         ) : (
