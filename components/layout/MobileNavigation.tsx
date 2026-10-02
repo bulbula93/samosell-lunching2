@@ -148,16 +148,28 @@ export default function MobileNavigation({
               >
                 {ka.nav.catalog}
               </Link>
-              {items.map((item) => (
-                <Link
-                  key={`${item.label}-${item.href}`}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex min-h-12 items-center rounded-xl px-4 text-base font-medium text-text-soft transition hover:bg-brand-soft hover:text-brand"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {items.map((item) => {
+                const isPerfume = item.href === "/catalog?category=perfume"
+                return (
+                  <Link
+                    key={`${item.label}-${item.href}`}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex min-h-12 items-center rounded-xl px-4 text-base font-medium transition ${
+                      isPerfume
+                        ? "bg-[#fff8f3] text-[#b95a20] hover:bg-[#fff0e8]"
+                        : "text-text-soft hover:bg-brand-soft hover:text-brand"
+                    }`}
+                  >
+                    {isPerfume ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span aria-hidden="true" className="text-sm text-[#e8894a]">✦</span>
+                        <span>{item.label}</span>
+                      </span>
+                    ) : item.label}
+                  </Link>
+                )
+              })}
             </nav>
 
             <div
