@@ -85,6 +85,14 @@ const genderOptions: ToggleOption[] = [
   { value: "unisex", label: "უნისექსი" },
 ]
 
+const perfumeConcentrationOptions = [
+  { value: "parfum", label: "Parfum / Extrait" },
+  { value: "edp", label: "Eau de Parfum (EDP)" },
+  { value: "edt", label: "Eau de Toilette (EDT)" },
+  { value: "edc", label: "Eau de Cologne (EDC)" },
+  { value: "body-mist", label: "Body Mist" },
+]
+
 function mapExistingImages(images: ListingImage[]): EditableImage[] {
   return images
     .slice()
@@ -301,7 +309,11 @@ export default function CreateListingForm({
     () => categories.find((item) => item.id === categoryId)?.slug ?? "",
     [categories, categoryId],
   )
-  const sizeTypeChoices = useMemo(() => listingSizeTypeOptions(gender), [gender])
+  const isPerfume = selectedCategorySlug === "perfume"
+  const sizeTypeChoices = useMemo(
+    () => listingSizeTypeOptions(gender, selectedCategorySlug),
+    [gender, selectedCategorySlug],
+  )
   const filteredSizes = useMemo(() => {
     const byLabel = new Map<string, SizeOption>()
     for (const item of sizes) {
@@ -833,27 +845,40 @@ export default function CreateListingForm({
             placeholder="ბრენდის გარეშე"
             error={fieldErrors.brandId}
           />
-          <SelectField
-            id={sizeTypeId}
-            label="ზომის ტიპი"
-            value={sizeType}
-            onChange={(value) => {
-              setSizeType(value as ListingSizeType)
-              setSizeId("")
-              clearFieldError("sizeId")
-            }}
-            options={sizeTypeChoices}
-            placeholder="აირჩიე ზომის ტიპი"
-          />
+          {!isPerfume ? (
+            <SelectField
+              id={sizeTypeId}
+              label="ზომის ტიპი"
+              value={sizeType}
+              onChange={(value) => {
+                setSizeType(value as ListingSizeType)
+                setSizeId("")
+                clearFieldError("sizeId")
+              }}
+              options={sizeTypeChoices}
+              placeholder="აირჩიე ზომის ტიპი"
+            />
+          ) : null}
           <SelectField
             id={sizeIdField}
-            label="ზომა"
+            label={isPerfume ? "მოცულობა" : "ზომა"}
             value={sizeId}
             onChange={(value) => { setSizeId(value); clearFieldError("sizeId") }}
             options={filteredSizes.map((item) => ({ value: item.id, label: item.label ?? item.id }))}
-            placeholder="ზომის გარეშე"
+            placeholder={isPerfume ? "აირჩიე მოცულობა" : "ზომის გარეშე"}
             error={fieldErrors.sizeId}
           />
+          {isPerfume ? (
+            <SelectField
+              id={materialId}
+              label="კონცენტრაცია"
+              value={material}
+              onChange={(value) => { setMaterial(value); clearFieldError("material") }}
+              options={perfumeConcentrationOptions}
+              placeholder="აირჩიე კონცენტრაცია"
+              error={fieldErrors.material}
+            />
+          ) : null}
         </div>
 
         <div className="mt-6 grid gap-6">
@@ -893,24 +918,32 @@ export default function CreateListingForm({
         <h2 id={`${formPrefix}-optional-heading`} className="text-lg font-black text-text">დამატებითი ინფორმაცია</h2>
         <p className="mt-1 text-sm text-text-soft">ზუსტი პირადი მისამართი არ მიუთითო — ქალაქი საკმარისია.</p>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <TextInput
-            id={colorId}
-            label="ფერი"
-            value={color}
-            onChange={(value) => { setColor(value); clearFieldError("color") }}
-            error={fieldErrors.color}
-            maxLength={LISTING_TEXT_LIMITS.colorMax}
-            placeholder="მაგ: შავი"
-          />
-          <TextInput
-            id={materialId}
-            label="მასალა"
-            value={material}
-            onChange={(value) => { setMaterial(value); clearFieldError("material") }}
-            error={fieldErrors.material}
-            maxLength={LISTING_TEXT_LIMITS.materialMax}
-            placeholder="მაგ: ტყავი"
-          />
+          {!isPerfume ? (
+            <>
+              <TextInput
+                id={colorId}
+                label="ფერი"
+                value={color}
+                onChange={(value) => { setColor(value); clearFieldError("color") }}
+                error={fieldErrors.color}
+                maxLength={LISTING_TEXT_LIMITS.colorMax}
+                placeholder="მაგ: შავი"
+              />
+              <TextInput
+                id={materialId}
+                label="მასალა"
+                value={material}
+                onChange={(value) => { setMaterial(value); clearFieldError("material") }}
+                error={fieldErrors.material}
+                maxLength={LISTING_TEXT_LIMITS.materialMax}
+                placeholder="მაგ: ტყავი"
+              />
+            </>
+          ) : (
+            <div className="sm:col-span-2 rounded-2xl border border-[#f0d8c1] bg-[#fff8f1] p-4 text-sm leading-6 text-[#7b604b]">
+              პარფიუმერიის შემთხვევაში ფერი და მასალა არ გამოიყენება — კონცენტრაცია ინახება სპეციალურ ველად, მოცულობა კი ml-ით.
+            </div>
+          )}
           <div className="sm:col-span-2">
             <SelectField
               id={cityId}
