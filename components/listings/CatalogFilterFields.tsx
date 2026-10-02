@@ -491,7 +491,6 @@ export default function CatalogFilterFields({
   }
 
   const showItemType = !FIXED_TYPE_CATEGORIES.has(selectedCategory)
-  const useSizePills = availableSizes.length > 0 && availableSizes.length <= 10
   const footwearAudienceOptions: PlayfulOption[] = [
     { value: "", label: "ყველა" },
     { value: "women", label: "ქალის" },
@@ -530,16 +529,14 @@ export default function CatalogFilterFields({
           <input type="hidden" name="item_type" value="" />
         )}
 
-        {!useSizePills ? (
-          <PlayfulSelect
-            label={selectedCategory === "footwear" ? "ფეხსაცმლის ზომა" : "ზომა"}
-            name="size"
-            value={selectedSize}
-            onChange={setSelectedSize}
-            options={sizeOptions}
-            icon="size"
-          />
-        ) : null}
+        <PlayfulSelect
+          label={selectedCategory === "footwear" ? "ფეხსაცმლის ზომა" : "ზომა"}
+          name="size"
+          value={selectedSize}
+          onChange={setSelectedSize}
+          options={sizeOptions}
+          icon="size"
+        />
 
         <PlayfulSelect
           label="მდებარეობა"
@@ -569,21 +566,6 @@ export default function CatalogFilterFields({
         />
       </div>
 
-      {useSizePills ? (
-        <div className="rounded-[22px] border border-[#f1dfcf] bg-[#fffaf5] p-4 lg:p-3">
-          <FilterLabel>
-            {selectedCategory === "footwear" ? "ფეხსაცმლის ზომა" : "ზომა"}
-          </FilterLabel>
-          <PillGroup
-            name="size"
-            value={selectedSize}
-            onChange={setSelectedSize}
-            options={sizeOptions}
-            tone="orange"
-            compact={mobile}
-          />
-        </div>
-      ) : null}
 
       <div className={mobile ? "grid gap-4" : "grid items-end gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)]"}>
         <div>
