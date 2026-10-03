@@ -4,7 +4,7 @@ export default function BuyerSafetyReminder() {
   return (
     <aside
       aria-label="უსაფრთხო ყიდვის შეხსენება"
-      className="mt-6 overflow-hidden rounded-2xl border border-brand/15 bg-[linear-gradient(135deg,rgba(232,247,242,0.9),rgba(255,244,223,0.72))] p-4"
+      className="mt-5 overflow-hidden rounded-2xl border border-brand/15 bg-[linear-gradient(135deg,rgba(232,247,242,0.92),rgba(255,244,223,0.78))] p-4 shadow-[0_8px_24px_rgba(7,63,59,0.05)]"
     >
       <div className="flex gap-3">
         <span
@@ -17,17 +17,26 @@ export default function BuyerSafetyReminder() {
           </svg>
         </span>
 
-        <div className="min-w-0">
-          <h3 className="text-sm font-black text-brand">უსაფრთხო ყიდვა</h3>
-          <p className="mt-1 text-xs leading-5 text-text-soft sm:text-sm sm:leading-6">
-            შეინარჩუნე შეთანხმების დეტალები SamoSell-ის ჩათში, გადაამოწმე ნივთი და გამყიდველის პროფილი და არასოდეს გააზიარო SMS/ბანკის ერთჯერადი კოდები.
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-black text-brand">უსაფრთხო ყიდვა</h3>
+            <Link
+              href="/safety"
+              className="text-xs font-black text-brand underline decoration-brand/25 decoration-2 underline-offset-4 hover:decoration-brand"
+            >
+              წესები →
+            </Link>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold text-text-soft sm:text-xs">
+            <span className="rounded-full border border-white/80 bg-white/75 px-2.5 py-1">ჩათი SamoSell-ში</span>
+            <span className="rounded-full border border-white/80 bg-white/75 px-2.5 py-1">ნივთი გადაამოწმე</span>
+            <span className="rounded-full border border-white/80 bg-white/75 px-2.5 py-1">OTP კოდი არ გააზიარო</span>
+          </div>
+
+          <p className="mt-2 text-xs leading-5 text-text-soft">
+            შეთანხმებამდე გადაამოწმე გამყიდველის პროფილი, შეფასებები და ნივთის მდგომარეობა.
           </p>
-          <Link
-            href="/safety"
-            className="mt-2 inline-flex min-h-9 items-center text-xs font-black text-brand underline decoration-brand/25 decoration-2 underline-offset-4 hover:decoration-brand"
-          >
-            უსაფრთხოების სრული წესები →
-          </Link>
         </div>
       </div>
     </aside>
