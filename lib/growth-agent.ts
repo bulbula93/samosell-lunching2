@@ -1,11 +1,10 @@
 import "server-only"
 
-import { createAdminClient } from "@/lib/supabase/admin"
+import { createClient } from "@/lib/supabase/server"
 
 const ACTIVE_SELLER_LISTING_THRESHOLD = 3
 const TARGET_ACTIVE_LISTINGS = 1000
 const TARGET_WINDOW_DAYS = 30
-const MAX_ROWS = 5000
 
 export type GrowthSignalSeverity = "critical" | "warning" | "info"
 
@@ -39,19 +38,6 @@ export type GrowthSnapshot = {
     failedSections: string[]
   }
   signals: GrowthSignal[]
-}
-
-type CountResponse = {
-  count: number | null
-  error: unknown
-}
-
-type ListingSellerRow = {
-  seller_id: string
-}
-
-function countOf(response: CountResponse) {
-  return response.count ?? 0
 }
 
 function roundedPct(numerator: number, denominator: number) {
@@ -152,13 +138,55 @@ function buildSignals(
   return signals.sort((a, b) => rank[a.severity] - rank[b.severity])
 }
 
-export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
-  const admin = createAdminClient()
-  const now = new Date()
-  const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-  const cutoff7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+type GrowthRpcPayload = {
+  generatedAt?: string
+  activeListings?: number | string
+  listings24h?: number | string
+  listings7d?: number | string
+  newProfiles24h?: number | string
+  newProfiles7d?: number | string
+  chats7d?: number | string
+  sold7d?: number | string
+  sellersWithActiveListings?: number | string
+  activatedSellers?: number | string
+  warmSellers?: number | string
+  singleListingSellers?: number | string
+}
 
-  const [
+function safeNumber(value: unknown) {
+  const numeric = Number(value ?? 0)
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0
+}
+
+export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
+  const supabase = await createClient()
+  const now = new Date()
+  const { data, error } = await supabase.rpc("admin_growth_snapshot")
+  const payload = (data ?? {}) as GrowthRpcPayload
+
+  const activeListings = safeNumber(payload.activeListings)
+  const listings24h = safeNumber(payload.listings24h)
+  const listings7d = safeNumber(payload.listings7d)
+  const newProfiles24h = safeNumber(payload.newProfiles24h)
+  const newProfiles7d = safeNumber(payload.newProfiles7d)
+  const chats7d = safeNumber(payload.chats7d)
+  const sold7d = safeNumber(payload.sold7d)
+  const sellersWithActiveListings = safeNumber(payload.sellersWithActiveListings)
+  const activatedSellers = safeNumber(payload.activatedSellers)
+  const warmSellers = safeNumber(payload.warmSellers)
+  const singleListingSellers = safeNumber(payload.singleListingSellers)
+
+  const gapToTarget = Math.max(0, TARGET_ACTIVE_LISTINGS - activeListings)
+  const dailyListingTarget = Math.max(
+    gapToTarget > 0 ? 1 : 0,
+    Math.ceil(gapToTarget / TARGET_WINDOW_DAYS),
+  )
+
+  const base: Omit<GrowthSnapshot, "signals"> = {
+    generatedAt:
+      typeof payload.generatedAt === "string" && payload.generatedAt
+        ? payload.generatedAt
+        : now.toISOString(),
     activeListings,
     listings24h,
     listings7d,
@@ -166,85 +194,17 @@ export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
     newProfiles7d,
     chats7d,
     sold7d,
-    sellerRows,
-  ] = await Promise.all([
-    admin.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
-    admin
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", cutoff24h)
-      .in("status", ["pending_review", "active", "reserved", "sold"]),
-    admin
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .gte("created_at", cutoff7d)
-      .in("status", ["pending_review", "active", "reserved", "sold"]),
-    admin.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", cutoff24h),
-    admin.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", cutoff7d),
-    admin.from("chats").select("id", { count: "exact", head: true }).gte("created_at", cutoff7d),
-    admin
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "sold")
-      .gte("updated_at", cutoff7d),
-    admin
-      .from("listings")
-      .select("seller_id")
-      .eq("status", "active")
-      .limit(MAX_ROWS),
-  ])
-
-  const failedSections = [
-    ["active_listings", activeListings],
-    ["listings_24h", listings24h],
-    ["listings_7d", listings7d],
-    ["profiles_24h", newProfiles24h],
-    ["profiles_7d", newProfiles7d],
-    ["chats_7d", chats7d],
-    ["sold_7d", sold7d],
-    ["seller_rows", sellerRows],
-  ]
-    .filter(([, response]) => Boolean((response as { error: unknown }).error))
-    .map(([label]) => String(label))
-
-  const perSeller = new Map<string, number>()
-  for (const row of ((sellerRows.data ?? []) as ListingSellerRow[])) {
-    perSeller.set(row.seller_id, (perSeller.get(row.seller_id) ?? 0) + 1)
-  }
-
-  const counts = [...perSeller.values()]
-  const activatedSellers = counts.filter(
-    (count) => count >= ACTIVE_SELLER_LISTING_THRESHOLD,
-  ).length
-  const warmSellers = counts.filter((count) => count >= 1 && count < ACTIVE_SELLER_LISTING_THRESHOLD).length
-  const singleListingSellers = counts.filter((count) => count === 1).length
-  const activeListingCount = countOf(activeListings as CountResponse)
-  const gapToTarget = Math.max(0, TARGET_ACTIVE_LISTINGS - activeListingCount)
-  const dailyListingTarget = Math.max(
-    gapToTarget > 0 ? 1 : 0,
-    Math.ceil(gapToTarget / TARGET_WINDOW_DAYS),
-  )
-
-  const base: Omit<GrowthSnapshot, "signals"> = {
-    generatedAt: now.toISOString(),
-    activeListings: activeListingCount,
-    listings24h: countOf(listings24h as CountResponse),
-    listings7d: countOf(listings7d as CountResponse),
-    newProfiles24h: countOf(newProfiles24h as CountResponse),
-    newProfiles7d: countOf(newProfiles7d as CountResponse),
-    chats7d: countOf(chats7d as CountResponse),
-    sold7d: countOf(sold7d as CountResponse),
-    sellersWithActiveListings: counts.length,
+    sellersWithActiveListings,
     activatedSellers,
     warmSellers,
     singleListingSellers,
-    activationRatePct: roundedPct(activatedSellers, counts.length),
+    activationRatePct: roundedPct(activatedSellers, sellersWithActiveListings),
     dailyListingTarget,
     gapToTarget,
     aiConfigured: Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
     dataHealth: {
-      ok: failedSections.length === 0,
-      failedSections,
+      ok: !error,
+      failedSections: error ? ["admin_growth_snapshot"] : [],
     },
   }
 
