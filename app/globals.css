@@ -246,6 +246,50 @@ body {
     @apply animate-pulse rounded-xl bg-[linear-gradient(110deg,#e5ece9_8%,#f3f6f5_18%,#e5ece9_33%)] bg-[length:200%_100%];
   }
 
+  .ui-page-shell {
+    @apply min-h-screen bg-bg text-text;
+  }
+
+  .ui-page-container {
+    @apply mx-auto w-full max-w-6xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8;
+  }
+
+  .ui-subcard {
+    @apply rounded-2xl border border-line bg-surface-alt/65 p-4;
+  }
+
+  .ui-nav-chip {
+    @apply inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-text-soft transition hover:border-brand/35 hover:bg-brand-soft/45 hover:text-brand;
+  }
+
+  .ui-field-label {
+    @apply mb-2 block text-sm font-semibold text-text;
+  }
+
+  .ui-textarea {
+    @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft;
+  }
+
+  .ui-danger-button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .ui-status-success {
+    @apply rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800;
+  }
+
+  .ui-status-warning {
+    @apply rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900;
+  }
+
+  .ui-status-error {
+    @apply rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800;
+  }
+
+  .ui-status-info {
+    @apply rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800;
+  }
+
   .ui-sr-status {
     @apply sr-only;
   }
