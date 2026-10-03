@@ -90,6 +90,7 @@ const conditionOptions: ToggleOption[] = [
 const saleTypeOptions: ToggleOption[] = [
   { value: "sell", label: "გაყიდვა", helper: "ფიქსირებული ფასით" },
   { value: "exchange", label: "გაცვლა", helper: "შემოთავაზებების მისაღებად" },
+  { value: "gift", label: "გავაჩუქებ", helper: "ფასი არ არის საჭირო" },
 ]
 
 const genderOptions: ToggleOption[] = [
@@ -810,17 +811,23 @@ export default function CreateListingForm({
       <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-attributes-heading`}>
         <h2 id={`${formPrefix}-attributes-heading`} className="text-lg font-black text-text">ფასი და მახასიათებლები</h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <TextInput
-            id={priceId}
-            label="ფასი (₾)"
-            value={price}
-            onChange={(value) => { setPrice(value); clearFieldError("price") }}
-            error={fieldErrors.price}
-            required
-            inputMode="decimal"
-            placeholder="მაგ: 120.00"
-            helper="გამოიყენე მაქსიმუმ ორი ათწილადი ნიშანი."
-          />
+          {saleType !== "gift" ? (
+            <TextInput
+              id={priceId}
+              label="ფასი (₾)"
+              value={price}
+              onChange={(value) => { setPrice(value); clearFieldError("price") }}
+              error={fieldErrors.price}
+              required
+              inputMode="decimal"
+              placeholder="მაგ: 120.00"
+              helper="გამოიყენე მაქსიმუმ ორი ათწილადი ნიშანი."
+            />
+          ) : (
+            <div className="rounded-2xl border border-brand/15 bg-brand-soft/35 px-4 py-3 text-sm font-semibold text-brand">
+              ჩუქება — ფასის მითითება საჭირო არ არის.
+            </div>
+          )
           <SelectField
             id={categoryIdField}
             label="კატეგორია"
@@ -897,9 +904,16 @@ export default function CreateListingForm({
             columns={4}
           />
           <TogglePills
-            legend="გაყიდვა ან გაცვლა"
+            legend="რას სთავაზობ?"
             value={saleType}
-            onChange={(value) => { setSaleType(value); clearFieldError("saleType") }}
+            onChange={(value) => {
+              setSaleType(value)
+              if (value === "gift") {
+                setPrice("")
+                clearFieldError("price")
+              }
+              clearFieldError("saleType")
+            }}
             options={saleTypeOptions}
             error={fieldErrors.saleType}
           />
