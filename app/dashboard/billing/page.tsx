@@ -240,7 +240,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
             <div className="flex flex-col gap-2 lg:items-end">
               <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft">{boostStatusLabel(order.status, order.ends_at)}</span>
               {payment.tbcCheckoutEnabled && order.payment_method === "tbc_checkout" && order.provider_checkout_url && order.status === "pending_payment" ? (
-                <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">TBC-ით გადახდის გაგრძელება</a>
+                <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">TBC-ით გადახდის გაგრძელება</a>
               ) : null}
               {payment.tbcCheckoutEnabled && order.payment_provider === "tbc_checkout" ? (
                 <form action={refreshBoostOrderStatusAction}>
