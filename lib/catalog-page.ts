@@ -18,6 +18,7 @@ export type CatalogSearchParams = {
   new_only?: string | string[]
   gender?: string | string[]
   vip?: string | string[]
+  sale_type?: string | string[]
   sort?: string | string[]
   min_price?: string | string[]
   max_price?: string | string[]
@@ -35,6 +36,7 @@ export type CatalogFilters = {
   condition: string
   gender: string
   vip: string
+  sale_type: string
   min_price: string
   max_price: string
 }
@@ -162,6 +164,7 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
     next = next.eq("gender", databaseFilters.gender) as T & CatalogFilterable
   }
   if (filters.vip === "1") next = next.eq("is_vip", true) as T & CatalogFilterable
+  if (filters.sale_type) next = next.eq("sale_type", filters.sale_type) as T & CatalogFilterable
   if (filters.min_price) {
     const minPrice = Number.parseInt(filters.min_price, 10)
     if (Number.isFinite(minPrice)) next = next.gte("price", minPrice) as T & CatalogFilterable
@@ -196,6 +199,7 @@ export function summarizeFilters(filters: Record<string, string>) {
   if (filters.condition) active.push(`მდგომარეობა: ${conditionLabels[filters.condition] ?? filters.condition}`)
   if (filters.gender) active.push(`სექცია: ${genderLabels[filters.gender] ?? filters.gender}`)
   if (filters.vip === "1") active.push("მხოლოდ VIP")
+  if (filters.sale_type === "gift") active.push("ჩუქება")
   if (filters.min_price || filters.max_price) active.push(`ფასი: ${filters.min_price || "0"}-${filters.max_price || "∞"} ₾`)
   return active
 }
@@ -212,6 +216,7 @@ export function resolveCatalogState(params: CatalogSearchParams = {}) {
     condition: readParam(params.condition) || (readParam(params.new_only) ? "new" : ""),
     gender: readParam(params.gender),
     vip: readParam(params.vip),
+    sale_type: readParam(params.sale_type),
     min_price: readParam(params.min_price),
     max_price: readParam(params.max_price),
   }
