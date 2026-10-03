@@ -133,7 +133,12 @@ export default function SiteFooter() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <BrowserSettingsButton />
-            <div id="top-ge-counter-container" data-site-id="118968" />
+            <div
+              id="top-ge-counter-container"
+              data-site-id="118968"
+              aria-hidden="true"
+              className="flex h-[31px] w-[88px] shrink-0 items-center justify-center overflow-hidden"
+            />
             <p>იყიდე და გაყიდე პასუხისმგებლობით</p>
           </div>
         </div>
