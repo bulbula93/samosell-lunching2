@@ -4,6 +4,7 @@ import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
 import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
+import GlobalNavigationProgress from "@/components/shared/GlobalNavigationProgress"
 import BrowserConsentPanel from "@/components/privacy/BrowserConsentPanel"
 import OptionalAnalytics from "@/components/privacy/OptionalAnalytics"
 import { absoluteUrl, getSiteUrl, GOOGLE_SITE_VERIFICATION } from "@/lib/seo"
@@ -76,6 +77,9 @@ export default function RootLayout({
         <PwaInstallPrompt />
         <BrowserConsentPanel />
         <OptionalAnalytics />
+        <Suspense fallback={null}>
+          <GlobalNavigationProgress />
+        </Suspense>
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>
