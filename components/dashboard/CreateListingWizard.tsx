@@ -511,30 +511,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     })
   }
 
-  function setAsCover(imageId: string) {
-    setImages((current) => {
-      const index = current.findIndex((item) => item.id === imageId)
-      if (index <= 0) return current
-      const copy = [...current]
-      const [item] = copy.splice(index, 1)
-      copy.unshift(item)
-      return copy
-    })
-  }
-
-
-  function reorderImage(sourceId: string, targetId: string) {
-    if (!sourceId || sourceId === targetId) return
-    setImages((current) => {
-      const sourceIndex = current.findIndex((item) => item.id === sourceId)
-      const targetIndex = current.findIndex((item) => item.id === targetId)
-      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return current
-      const copy = [...current]
-      const [item] = copy.splice(sourceIndex, 1)
-      copy.splice(targetIndex, 0, item)
-      return copy
-    })
-  }
 
   function beginPointerReorder(event: React.PointerEvent<HTMLButtonElement>, imageId: string) {
     if (loading) return
@@ -828,8 +804,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={image.imageUrl} alt={`ფოტო ${index + 1}`} className="h-full w-full object-cover" />
-                  <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-2">
-                    {index === 0 ? <span className="rounded-full bg-brand px-2.5 py-1 text-[11px] font-black text-white">მთავარი</span> : <span />}
+                  <div className="absolute inset-x-2 top-2 flex items-start justify-end gap-2">
                     <button
                       type="button"
                       disabled={loading}
@@ -846,7 +821,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                   <div className="absolute inset-x-1.5 bottom-1.5 flex gap-1 rounded-xl bg-white/95 p-1 shadow-sm backdrop-blur">
                     <button type="button" disabled={index === 0 || loading} onClick={() => moveImage(image.id, -1)} className="min-h-10 min-w-10 rounded-lg text-sm font-black disabled:opacity-30" aria-label={`ფოტო ${index + 1} გადაიტანე მარცხნივ`}>←</button>
                     <button type="button" disabled={index === images.length - 1 || loading} onClick={() => moveImage(image.id, 1)} className="min-h-10 min-w-10 rounded-lg text-sm font-black disabled:opacity-30" aria-label={`ფოტო ${index + 1} გადაიტანე მარჯვნივ`}>→</button>
-                    {index > 0 ? <button type="button" disabled={loading} onClick={() => setAsCover(image.id)} className="min-h-10 rounded-lg px-2 text-[10px] font-black text-brand">მთავარი</button> : null}
                     <button type="button" disabled={loading} onClick={() => removeImage(image.id)} className="ml-auto min-h-10 min-w-10 rounded-lg font-black text-red-700" aria-label={`ფოტო ${index + 1} წაშალე`}>×</button>
                   </div>
                 </article>
