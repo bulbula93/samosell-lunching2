@@ -1,5 +1,6 @@
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
+import UiPageHeader from "@/components/shared/UiPageHeader"
 import { notFound, redirect } from "next/navigation"
 import { createBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
 import {
@@ -143,21 +144,17 @@ export default async function DashboardListingPromotePage({
 
   return (
     <main className="ui-container ui-section">
-      <section className="ui-card p-6 sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="max-w-3xl">
-            <div className="ui-eyebrow">მეტი ხილვადობა</div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">გააძლიერე განცხადება</h1>
-            <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              აირჩიე ოთხი მარტივი პაკეტიდან. {flittEnabled ? "Preview-ზე Flitt sandbox რეალურ VIP/boost შეკვეთას ამუშავებს და ხელმოწერილი სტატუსის დადასტურების შემდეგ პაკეტს ავტომატურად ააქტიურებს" : tbcEnabled ? "TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს" : "ბარათით გადახდა ჯერ სატესტო რეჟიმშია"}; ხელით გადახდას ადმინი დაადასტურებს.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
+      <UiPageHeader
+        eyebrow="მეტი ხილვადობა"
+        title="გახადე განცხადება VIP"
+        description={<>აირჩიე ოთხი მარტივი პაკეტიდან. {flittEnabled ? "Preview-ზე Flitt sandbox რეალურ VIP/boost შეკვეთას ამუშავებს და ხელმოწერილი სტატუსის დადასტურების შემდეგ პაკეტს ავტომატურად ააქტიურებს" : tbcEnabled ? "TBC Checkout-ის წარმატებას სისტემა ბანკთან დამოუკიდებლად გადაამოწმებს და პაკეტს ავტომატურად გაააქტიურებს" : "ბარათით გადახდა ჯერ სატესტო რეჟიმშია"}; ხელით გადახდას ადმინი დაადასტურებს.</>}
+        actions={
+          <>
             <Link href="/dashboard/billing" className="ui-btn-secondary">შეკვეთები და გადახდები</Link>
             <Link href="/dashboard/listings" className="ui-btn-secondary">უკან განცხადებებზე</Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      />
 
       {flash ? <div className="mt-6 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{flash}</div> : null}
 
