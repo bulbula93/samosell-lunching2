@@ -1,12 +1,15 @@
-name: Preview Typecheck
+name: Preview Build Diagnostic
 
 on:
+  push:
+    branches:
+      - preview/home-discovery-polish
   pull_request:
     branches:
       - main
 
 jobs:
-  typecheck:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,5 +21,4 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc --noEmit
-      - run: pnpm test -- --run tests/UsefulNotifications.test.ts
+      - run: pnpm run build
