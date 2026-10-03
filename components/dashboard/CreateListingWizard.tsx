@@ -67,6 +67,7 @@ const conditionOptions: ToggleOption[] = [
 const saleTypeOptions: ToggleOption[] = [
   { value: "sell", label: "გაყიდვა", helper: "ფიქსირებული ფასით" },
   { value: "exchange", label: "გაცვლა", helper: "შემოთავაზებების მისაღებად" },
+  { value: "gift", label: "გავაჩუქებ", helper: "ფასი არ არის საჭირო" },
 ]
 
 const genderOptions: ToggleOption[] = [
@@ -1019,22 +1020,37 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       {step === 3 ? (
         <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-price-heading`}>
           <h2 id={`${formPrefix}-price-heading`} className="text-lg font-black text-text">3. ფასი და გაყიდვის ტიპი</h2>
-          <p className="mt-1 text-sm leading-6 text-text-soft">მიუთითე ფასი და აირჩიე, ყიდი ნივთს თუ გაცვლაც გაწყობს.</p>
+          <p className="mt-1 text-sm leading-6 text-text-soft">აირჩიე გაყიდვა, გაცვლა ან ჩუქება. ჩუქების შემთხვევაში ფასი საჭირო არ არის.</p>
           <div className="mt-5 grid gap-6">
-            <div className="max-w-md">
-              <TextInput
-                id={priceId}
-                label="ფასი (₾)"
-                value={price}
-                onChange={(value) => { setPrice(value); clearFieldError("price") }}
-                error={fieldErrors.price}
-                required
-                inputMode="decimal"
-                placeholder="მაგ: 120"
-                helper="მიუთითე მხოლოდ რიცხვი, მაგალითად 120 ან 120.50"
-              />
-            </div>
-            <TogglePills legend="გაყიდვა ან გაცვლა" value={saleType} onChange={(value) => { setSaleType(value); clearFieldError("saleType") }} options={saleTypeOptions} error={fieldErrors.saleType} />
+            {saleType !== "gift" ? (
+              <div className="max-w-md">
+                <TextInput
+                  id={priceId}
+                  label="ფასი (₾)"
+                  value={price}
+                  onChange={(value) => { setPrice(value); clearFieldError("price") }}
+                  error={fieldErrors.price}
+                  required
+                  inputMode="decimal"
+                  placeholder="მაგ: 120"
+                  helper="მიუთითე მხოლოდ რიცხვი, მაგალითად 120 ან 120.50"
+                />
+              </div>
+            ) : null}
+            <TogglePills
+              legend="რას სთავაზობ?"
+              value={saleType}
+              onChange={(value) => {
+                setSaleType(value)
+                if (value === "gift") {
+                  setPrice("")
+                  clearFieldError("price")
+                }
+                clearFieldError("saleType")
+              }}
+              options={saleTypeOptions}
+              error={fieldErrors.saleType}
+            />
           </div>
         </section>
       ) : null}
@@ -1061,7 +1077,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-brand">{selectedCategory?.name ?? "კატეგორია"}</p>
                 <h3 className="mt-2 text-2xl font-black tracking-tight text-text">{title || "უსათაურო"}</h3>
-                <p className="mt-2 text-xl font-black text-brand">{price ? `${price} ₾` : "ფასი არ არის"}</p>
+                <p className="mt-2 text-xl font-black text-brand">{saleType === "gift" ? "ჩუქება" : price ? `${price} ₾` : "ფასი არ არის"}</p>
                 <p className="mt-4 whitespace-pre-line text-sm leading-6 text-text-soft">{description}</p>
                 <div className="mt-5 flex flex-wrap gap-2 text-xs font-bold text-text-soft">
                   <span className="ui-pill-soft">{conditionOptions.find((item) => item.value === condition)?.label}</span>
