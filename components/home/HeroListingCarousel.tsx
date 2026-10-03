@@ -3,14 +3,14 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import SmartImage from "@/components/shared/SmartImage"
-import { formatPrice } from "@/lib/listings"
+import { listingPriceLabel } from "@/lib/listings"
 import type { CatalogListing } from "@/types/marketplace"
 
 const ROTATION_INTERVAL_MS = 5_000
 
 export type HeroListingItem = Pick<
   CatalogListing,
-  "id" | "slug" | "title" | "cover_image_url" | "price" | "currency" | "brand_name" | "category_name"
+  "id" | "slug" | "title" | "cover_image_url" | "price" | "currency" | "sale_type" | "brand_name" | "category_name"
 >
 
 type HeroListingCarouselProps = {
@@ -152,7 +152,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
             {item.title}
           </h2>
           <p className={`mt-3 font-black text-[#f6d98e] ${isCenter ? "text-xl" : "text-base"}`}>
-            {formatPrice(item.price, item.currency)}
+            {listingPriceLabel(item.price, item.currency, item.sale_type)}
           </p>
           <span className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-[#f6d98e] font-black text-[#073f3b] shadow-sm transition group-hover/card:bg-white ${isCenter ? "px-4 py-2.5 text-sm" : "px-3 py-2 text-xs"}`}>
             ნახე განცხადება <span aria-hidden="true">→</span>
