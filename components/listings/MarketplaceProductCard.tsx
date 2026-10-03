@@ -3,7 +3,7 @@ import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
 import { ka } from "@/lib/i18n/ka"
-import { conditionLabel, formatPrice } from "@/lib/listings"
+import { conditionLabel, listingPriceLabel } from "@/lib/listings"
 import { searchListingHref } from "@/lib/search-analytics"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -40,7 +40,7 @@ export default function MarketplaceProductCard({
 
   return (
     <article className="group relative flex h-full min-w-0 flex-col rounded-[22px] border border-[#e7ebe8] bg-white p-2.5 shadow-[0_8px_24px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] [contain-intrinsic-size:auto_360px] [content-visibility:auto]">
-      <Link href={listingHref} aria-label={`${item.title} — ${formatPrice(item.price, item.currency)}`} className="absolute inset-0 z-10 rounded-[22px]">
+      <Link href={listingHref} aria-label={`${item.title} — ${listingPriceLabel(item.price, item.currency, item.sale_type)}`} className="absolute inset-0 z-10 rounded-[22px]">
         <span className="sr-only">{item.title}</span>
       </Link>
 
@@ -108,7 +108,7 @@ export default function MarketplaceProductCard({
         </div>
 
         <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-          <span className="text-base font-black text-brand">{formatPrice(item.price, item.currency)}</span>
+          <span className="text-base font-black text-brand">{listingPriceLabel(item.price, item.currency, item.sale_type)}</span>
           <span className="max-w-[46%] truncate text-right text-xs text-text-soft">{item.city || ka.product.locationUnknown}</span>
         </div>
       </div>
