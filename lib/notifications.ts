@@ -119,12 +119,12 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
   const listingTitle = listing?.title || "განცხადება"
   const href = `/dashboard/chats/${chat.id}`
   const firstMessage = chat.chat_type === "listing" && input.firstMessage && input.senderId === chat.buyer_id
-  const title = firstMessage
-    ? "ახალი დაინტერესებული მყიდველი"
-    : "ახალი შეტყობინება"
+  const title = chat.chat_type === "listing"
+    ? input.senderId === chat.buyer_id ? "შენს ნივთზე მოგწერეს" : "გამყიდველმა გიპასუხა"
+    : `${compactText(senderLabel, 60)}-მა მოგწერა`
   const body = firstMessage
     ? `${senderLabel}-მა მოგწერა „${listingTitle}“-ზე: ${compactText(input.body)}`
-    : `${senderLabel}: ${compactText(input.body)}`
+    : `${senderLabel}${listing ? ` · „${listingTitle}“` : ""}: ${compactText(input.body)}`
 
   const { data: inserted, error: insertError } = await admin
     .from("notifications")

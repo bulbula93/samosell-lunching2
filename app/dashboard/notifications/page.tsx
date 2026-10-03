@@ -3,6 +3,8 @@ import {
   markNotificationReadAction,
   openNotificationAction,
 } from "@/app/dashboard/notifications/actions"
+import SellerReminders from "@/components/notifications/SellerReminders"
+import { buildSellerReminders, type ReminderListing } from "@/lib/notification-reminders"
 import PushPwaSettings from "@/components/pwa/PushPwaSettings"
 import { requireAuthenticatedUser } from "@/lib/auth"
 
@@ -56,7 +58,7 @@ function readStatusLabel(type: string) {
 }
 
 export default async function DashboardNotificationsPage() {
-  const { supabase } = await requireAuthenticatedUser("/dashboard/notifications")
+  const { supabase, user } = await requireAuthenticatedUser("/dashboard/notifications")
   const { data, error } = await supabase
     .from("notifications")
     .select("id, type, title, body, href, read_at, created_at")
@@ -66,6 +68,17 @@ export default async function DashboardNotificationsPage() {
 
   if (error) throw new Error("Notifications could not be loaded.")
 
+  const { data: ownListings, error: listingError } = await supabase
+    .from("listings")
+    .select("id, seller_id, slug, title, status, updated_at, vip_until, favorites_count")
+    .eq("seller_id", user.id)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+  if (listingError) throw new Error("Seller reminders could not be loaded.")
+  // Request-time snapshot for expiry calculations in this authenticated server page.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
+  const reminders = buildSellerReminders((ownListings ?? []) as ReminderListing[], user.id, now)
   const notifications = (data ?? []) as NotificationRow[]
   const unreadCount = notifications.filter((item) => !item.read_at).length
 
@@ -89,6 +102,7 @@ export default async function DashboardNotificationsPage() {
           ) : null}
         </header>
 
+        <SellerReminders reminders={reminders} userId={user.id} now={now} />
         <PushPwaSettings />
 
         {notifications.length === 0 ? (
@@ -96,7 +110,7 @@ export default async function DashboardNotificationsPage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-xl text-brand">✓</div>
             <h2 className="mt-4 text-xl font-black text-text">ჯერ შეტყობინებები არ გაქვს</h2>
             <p className="mt-2 text-sm leading-6 text-text-soft">
-              ახალი ჩათი, ფასის შეთავაზება, შენახული ძებნის შესაბამისობა ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება.
+              ფასის შეთავაზება, შენახული ძებნის შესაბამისობა ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება.
             </p>
           </section>
         ) : (

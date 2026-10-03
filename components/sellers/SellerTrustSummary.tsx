@@ -27,12 +27,12 @@ export default function SellerTrustSummary({ metrics, verified, createdAt, compa
         </p>
       </div>
       <dl className={`grid min-w-0 grid-cols-2 gap-2 ${compact ? "mt-3" : "mt-4"}`}>
-        <div className={`min-w-0 rounded-xl ${compact ? "bg-surface-alt p-3" : "border border-line bg-surface p-4"}`}>
-          <dt className="text-sm text-text-soft"><span aria-hidden="true" className="text-accent">↗ </span>გაყიდულად მონიშნული</dt>
+        <div className={`min-w-0 rounded-xl ${compact ? "bg-surface-alt p-3" : "border border-line bg-surface p-3 sm:p-4"}`}>
+          <dt className="break-words text-sm text-text-soft [overflow-wrap:anywhere]"><span aria-hidden="true" className="text-accent">↗ </span>გაყიდულად მონიშნული</dt>
           <dd className="mt-1 break-words text-sm font-bold text-text [overflow-wrap:anywhere]">{soldCount ? `${format(soldCount)} ნივთი` : "ჯერ გაყიდვა არ მონიშნულა"}</dd>
         </div>
-        <div className={`min-w-0 rounded-xl ${compact ? "bg-surface-alt p-3" : "border border-line bg-surface p-4"}`}>
-          <dt className="text-sm text-text-soft"><span aria-hidden="true" className="text-brand">▦ </span>აქტიური განცხადებები</dt>
+        <div className={`min-w-0 rounded-xl ${compact ? "bg-surface-alt p-3" : "border border-line bg-surface p-3 sm:p-4"}`}>
+          <dt className="break-words text-sm text-text-soft [overflow-wrap:anywhere]"><span aria-hidden="true" className="text-brand">▦ </span>აქტიური განცხადებები</dt>
           <dd className="mt-1 break-words text-sm font-bold text-text [overflow-wrap:anywhere]">{activeCount ? `${format(activeCount)} აქტიური ნივთი` : "ჯერ აქტიური ნივთები არ აქვს"}</dd>
         </div>
       </dl>
