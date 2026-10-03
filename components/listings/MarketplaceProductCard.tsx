@@ -116,7 +116,7 @@ export default function MarketplaceProductCard({
           {item.title}
         </h3>
 
-        <div className="mt-1.5 text-[17px] font-black leading-6 text-brand sm:text-lg">
+        <div className={`mt-1.5 text-[17px] font-black leading-6 sm:text-lg ${item.sale_type === "gift" ? "text-[#e96b10]" : "text-brand"}`}>
           {priceLabel}
         </div>
 
