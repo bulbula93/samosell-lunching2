@@ -424,7 +424,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
       <SiteHeader authenticatedUser={user} />
       <main className="min-h-screen bg-bg text-text">
         <section className="ui-container py-7 sm:py-10">
-          <CatalogPageHeader totalCount={totalCount} />
+          <CatalogPageHeader totalCount={totalCount} giftActive={sale_type === "gift"} />
 
           <CatalogLandingFilters
             categories={categories}
