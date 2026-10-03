@@ -453,7 +453,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     return false
   }
 
-  function handleNext() {
+  function handleNext(event: React.MouseEvent<HTMLButtonElement>) {
+    // The last navigation click must not submit after React replaces this
+    // button with the final submit control during the same native event.
+    event.preventDefault()
     if (step === 1 && validateCurrentStep(1)) jumpToStep(2)
     if (step === 2 && validateCurrentStep(2)) jumpToStep(3)
     if (step === 3 && validateCurrentStep(3)) jumpToStep(4)
@@ -1144,9 +1147,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         )}
 
         {step < 4 ? (
-          <button type="button" disabled={loading} onClick={handleNext} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
+          <button key="next-step" type="button" disabled={loading} onClick={handleNext} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
         ) : (
-          <button type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
+          <button key="save-listing" type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
             {loading ? "ინახება…" : publishNow ? "განცხადების გამოქვეყნება" : "დრაფტის შექმნა"}
           </button>
         )}

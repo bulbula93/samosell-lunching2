@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import CreateListingWizard from "@/components/dashboard/CreateListingWizard"
+import { prepareListingUploadsAction, saveListingAction } from "@/app/dashboard/listings/form-actions"
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -26,6 +27,8 @@ const props = {
 
 describe("CreateListingWizard", () => {
   beforeEach(() => {
+    vi.mocked(prepareListingUploadsAction).mockReset()
+    vi.mocked(saveListingAction).mockReset()
     Element.prototype.scrollIntoView = vi.fn()
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
@@ -49,7 +52,7 @@ describe("CreateListingWizard", () => {
     expect(screen.getByRole("button", { name: /გალერეიდან არჩევა/ })).toBeInTheDocument()
   })
 
-  it("moves through photos, details, price, and preview without uploading early", async () => {
+  it.each(["sell", "gift"])("only uploads after explicit confirmation, including %s listings", async (saleType) => {
     const user = userEvent.setup()
     render(<CreateListingWizard {...props} />)
 
@@ -71,13 +74,37 @@ describe("CreateListingWizard", () => {
     expect(
       screen.getByRole("heading", { name: "3. ფასი და გაყიდვის ტიპი" }),
     ).toBeInTheDocument()
-    await user.type(screen.getByLabelText(/^ფასი/), "120")
-    await user.click(screen.getByRole("button", { name: "გაგრძელება →" }))
+    if (saleType === "gift") {
+      await user.click(screen.getByRole("button", { name: /გავაჩუქებ/ }))
+    } else {
+      await user.type(screen.getByLabelText(/^ფასი/), "120")
+    }
+    const continueButton = screen.getByRole("button", { name: "გაგრძელება →" })
+    const nativeClick = vi.fn<(event: MouseEvent) => void>()
+    continueButton.addEventListener("click", nativeClick, { once: true })
+    await user.click(continueButton)
 
+    // Chromium checks the clicked element's type after React's update. A still
+    // connected submit button must never activate through a navigation click.
+    expect(
+      nativeClick.mock.calls[0][0].defaultPrevented ||
+      !continueButton.isConnected ||
+      continueButton.getAttribute("type") === "button",
+    ).toBe(true)
     expect(
       screen.getByRole("heading", { name: /Preview — ასე გამოჩნდება განცხადება/ }),
     ).toBeInTheDocument()
     expect(screen.getByText("4/4 · Preview")).toBeInTheDocument()
+    expect(prepareListingUploadsAction).not.toHaveBeenCalled()
+    expect(saveListingAction).not.toHaveBeenCalled()
+
+    vi.mocked(prepareListingUploadsAction).mockResolvedValue({
+      ok: false,
+      code: "server_error",
+      message: "QA upload is intentionally blocked.",
+    })
+    await user.click(screen.getByRole("button", { name: "განცხადების გამოქვეყნება" }))
+    expect(prepareListingUploadsAction).toHaveBeenCalledTimes(1)
   })
 
   it("keeps the user on the first step until at least one image is selected", async () => {
