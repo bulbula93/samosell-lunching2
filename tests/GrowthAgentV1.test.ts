@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import { buildGrowthModelContext } from "@/lib/growth-agent"
+
+vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
 
 const growthLib = readFileSync(
   join(process.cwd(), "lib", "growth-agent.ts"),
@@ -30,11 +33,38 @@ describe("Growth Agent v1", () => {
   })
 
   it("sends aggregate growth context without direct personal fields", () => {
-    expect(growthLib).toContain("aggregate marketplace metrics only")
-    expect(growthLib).not.toContain('.select("id, email')
-    expect(growthLib).not.toContain('.select("id, phone')
-    expect(growthLib).not.toContain("full_name")
-    expect(growthLib).not.toContain("username")
+    const snapshot = {
+      generatedAt: "2026-10-03T00:00:00Z",
+      activeListings: 10,
+      listings24h: 2,
+      listings7d: 7,
+      newProfiles24h: 1,
+      newProfiles7d: 3,
+      chats7d: 4,
+      sold7d: 1,
+      sellersWithActiveListings: 5,
+      activatedSellers: 2,
+      warmSellers: 3,
+      singleListingSellers: 2,
+      activationRatePct: 40,
+      dailyListingTarget: 33,
+      gapToTarget: 990,
+      aiConfigured: false,
+      dataHealth: { ok: true, failedSections: [] },
+      signals: [],
+      email: "private-seller@example.invalid",
+      phone: "private-phone-sentinel",
+      full_name: "private-name-sentinel",
+      username: "private-username-sentinel",
+    }
+    const context = buildGrowthModelContext(snapshot)
+    expect(context.metrics.activeListings).toBe(10)
+    expect(context.metrics.activatedSellers).toBe(2)
+    expect(context.privacyNote).toContain("aggregate marketplace metrics only")
+    for (const field of ["email", "phone", "full_name", "username"] as const) {
+      expect(context).not.toHaveProperty(field)
+      expect(JSON.stringify(context)).not.toContain(snapshot[field])
+    }
     expect(growthRoute).toContain("buildGrowthModelContext(snapshot)")
     expect(growthRoute).not.toContain("JSON.stringify(snapshot")
   })
@@ -43,7 +73,7 @@ describe("Growth Agent v1", () => {
     expect(growthRoute).toContain('requireAdminUser("/dashboard")')
     expect(growthRoute).toContain("READ-ONLY")
     expect(growthRoute).toContain("do NOT publish posts")
-    expect(growthRoute).toContain("do not")
+    expect(growthRoute).toContain("execution must pass an approval-enabled integration")
     expect(growthRoute).not.toContain(".update(")
     expect(growthRoute).not.toContain(".insert(")
     expect(growthRoute).not.toContain(".delete(")
