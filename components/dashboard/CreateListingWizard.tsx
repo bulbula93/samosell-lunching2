@@ -308,8 +308,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     let cancelled = false
     const hasContent = Boolean(title || description || price || categoryId || images.length)
 
-    if (hasContent) setDraftStatus("ინახება…")
-    else setDraftStatus("")
+    const statusTimer = setTimeout(() => {
+      if (!cancelled) setDraftStatus(hasContent ? "ინახება…" : "")
+    }, 0)
 
     const timer = setTimeout(() => {
       const operation = hasContent ? saveListingDraft({ userId, updatedAt: Date.now(), fields: draftFields, sizeType,
@@ -321,7 +322,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         if (!cancelled) setDraftStatus("ავტოშენახვა ვერ მოხერხდა")
       })
     }, 700)
-    return () => { cancelled = true; clearTimeout(timer) }
+    return () => { cancelled = true; clearTimeout(statusTimer); clearTimeout(timer) }
   }, [consent?.personalization, userId, draftChecked, pendingDraft, loading, draftFields, sizeType, images,
     title, description, price, categoryId])
 
