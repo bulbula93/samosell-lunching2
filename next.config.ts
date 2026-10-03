@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const supabaseStorageUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://invalid.local");
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
@@ -8,7 +10,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "lxsvjzbiuewgwpajqrwr.supabase.co",
+        hostname: supabaseStorageUrl.hostname,
+        port: supabaseStorageUrl.port,
         pathname: "/storage/v1/object/public/**",
       },
     ],
