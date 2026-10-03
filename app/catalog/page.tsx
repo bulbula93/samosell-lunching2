@@ -53,7 +53,7 @@ type SearchExperimentAssignment = {
 }
 
 const CATALOG_LISTING_SELECT =
-  "id, public_id, slug, title, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
+  "id, public_id, slug, title, price, currency, condition, sale_type, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
 type CatalogFilterOptions = {
   sizes: Array<{ label: string; group_name: string; sort_order: number }>
@@ -131,7 +131,7 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
   const canonicalFilterKey = legacyCategory ? "gender" : "category"
   const catalogFilterKeys: Array<keyof CatalogPageParams> = [
     "q", "category", "item_type", "brand", "size", "color", "city",
-    "condition", "new_only", "gender", "vip", "min_price", "max_price",
+    "condition", "new_only", "gender", "vip", "sale_type", "min_price", "max_price",
   ]
   const hasOtherFilters = catalogFilterKeys.some(
     (key) => key !== canonicalFilterKey && params[key] !== undefined,
@@ -167,10 +167,10 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
 export default async function CatalogPage({ searchParams }: { searchParams?: Promise<CatalogPageParams> }) {
   const params = (await searchParams) ?? {}
   const { filters, sort, page, queryParams, currentPath } = resolveCatalogState(params)
-  const { q, category, item_type, brand, size, color, city, condition, gender, vip, min_price, max_price } = filters
-  const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sort, min_price, max_price }
+  const { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, min_price, max_price } = filters
+  const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, sort, min_price, max_price }
   const databaseFilters = getCatalogDatabaseFilters(filters)
-  const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance")
+  const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance" && !sale_type)
   const analyticsAllowed = await serverAllowsAnalytics()
   const searchId = q && analyticsAllowed ? randomUUID() : null
 
