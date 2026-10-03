@@ -3,9 +3,11 @@ import type { SellerReviewSummary } from "@/types/review"
 
 type Variant = "light" | "dark"
 
-function ratingLabel(summary?: SellerReviewSummary | null) {
+function ratingLabel(summary?: SellerReviewSummary | null, compact = false) {
   if (!summary || summary.reviewCount <= 0 || summary.averageScore === null) return "ჯერ არაა"
-  return `★ ${summary.averageScore.toFixed(1)}`
+  return compact
+    ? `★ ${summary.averageScore.toFixed(1)} · ${summary.reviewCount}`
+    : `★ ${summary.averageScore.toFixed(1)}`
 }
 
 export default function SellerTrustSummary({
@@ -31,18 +33,18 @@ export default function SellerTrustSummary({
 
   const items = [
     {
-      label: "აქტიური",
+      label: "განცხადებები",
       value: activeListingsCount,
-      helper: "განცხადება",
+      helper: "აქტიური",
     },
     {
-      label: "გაყიდული",
+      label: "გაყიდა",
       value: soldListingsCount,
-      helper: "მონიშნული ნივთი",
+      helper: "გაყიდულად მონიშნული",
     },
     {
       label: "შეფასება",
-      value: ratingLabel(reviewSummary),
+      value: ratingLabel(reviewSummary, compact),
       helper: reviewCount > 0 ? `${reviewCount} შეფასება` : "შეფასება ჯერ არ აქვს",
     },
     {
