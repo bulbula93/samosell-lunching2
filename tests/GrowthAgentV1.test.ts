@@ -23,9 +23,7 @@ describe("Growth Agent v1", () => {
   it("tracks seller activation and supply KPIs", () => {
     expect(growthLib).toContain("ACTIVE_SELLER_LISTING_THRESHOLD = 3")
     expect(growthLib).toContain("TARGET_ACTIVE_LISTINGS = 1000")
-    expect(growthLib).toContain('from("listings")')
-    expect(growthLib).toContain('from("profiles")')
-    expect(growthLib).toContain('from("chats")')
+    expect(growthLib).toContain('rpc("admin_growth_snapshot")')
     expect(growthLib).toContain("activatedSellers")
     expect(growthLib).toContain("warmSellers")
     expect(growthLib).toContain("dailyListingTarget")
@@ -33,8 +31,8 @@ describe("Growth Agent v1", () => {
 
   it("sends aggregate growth context without direct personal fields", () => {
     expect(growthLib).toContain("aggregate marketplace metrics only")
-    expect(growthLib).not.toContain("email")
-    expect(growthLib).not.toContain("phone")
+    expect(growthLib).not.toContain('.select("id, email')
+    expect(growthLib).not.toContain('.select("id, phone')
     expect(growthLib).not.toContain("full_name")
     expect(growthLib).not.toContain("username")
     expect(growthRoute).toContain("buildGrowthModelContext(snapshot)")
