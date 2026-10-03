@@ -116,6 +116,7 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
     const position = getVisualPosition(index)
     const isCenter = position === "center"
     const isSide = position === "left" || position === "right"
+    const isGift = item.sale_type === "gift"
 
     return (
       <Link
@@ -141,8 +142,15 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
           sizes={isCenter ? "(max-width: 639px) 92vw, (max-width: 1279px) 58vw, 520px" : "(max-width: 1279px) 40vw, 340px"}
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,28,26,0.04)_16%,rgba(3,28,26,0.96)_100%)]" />
-        <div className={`absolute rounded-full border border-[#f6d98e]/60 bg-[#102f2b]/90 font-black tracking-[0.14em] text-[#f6d98e] shadow-sm backdrop-blur ${isCenter ? "left-5 top-5 px-4 py-2 text-[11px]" : "left-4 top-4 px-3 py-1.5 text-[10px]"}`}>
-          {badge}
+        <div className={`absolute flex flex-wrap gap-1.5 ${isCenter ? "left-5 top-5" : "left-4 top-4"}`}>
+          {isGift ? (
+            <span className={`rounded-full border border-[#ffd5b2]/80 bg-[#fff7ed]/95 font-black text-[#d85f0e] shadow-sm backdrop-blur ${isCenter ? "px-3 py-2 text-[11px]" : "px-2.5 py-1.5 text-[10px]"}`}>
+              🎁 ჩუქება
+            </span>
+          ) : null}
+          <span className={`rounded-full border border-[#f6d98e]/60 bg-[#102f2b]/90 font-black tracking-[0.14em] text-[#f6d98e] shadow-sm backdrop-blur ${isCenter ? "px-4 py-2 text-[11px]" : "px-3 py-1.5 text-[10px]"}`}>
+            {badge}
+          </span>
         </div>
         <div className={`absolute inset-x-0 bottom-0 text-white ${isCenter ? "p-6 pr-8 sm:p-8" : "p-4 sm:p-5"}`}>
           <p className={`${isCenter ? "text-xs" : "text-[10px]"} line-clamp-1 font-semibold text-white/70`}>
@@ -151,8 +159,8 @@ export default function HeroListingCarousel({ items }: HeroListingCarouselProps)
           <h2 className={`mt-2 line-clamp-2 font-bold leading-tight tracking-[-0.025em] ${isCenter ? "text-2xl sm:text-3xl" : "text-base sm:text-lg"}`}>
             {item.title}
           </h2>
-          <p className={`mt-3 font-black text-[#f6d98e] ${isCenter ? "text-xl" : "text-base"}`}>
-            {listingPriceLabel(item.price, item.currency, item.sale_type)}
+          <p className={`mt-3 font-black ${isGift ? "text-[#ffb15f]" : "text-[#f6d98e]"} ${isCenter ? "text-xl" : "text-base"}`}>
+            {isGift ? "🎁 " : ""}{listingPriceLabel(item.price, item.currency, item.sale_type)}
           </p>
           <span className={`mt-4 inline-flex items-center gap-2 rounded-xl bg-[#f6d98e] font-black text-[#073f3b] shadow-sm transition group-hover/card:bg-white ${isCenter ? "px-4 py-2.5 text-sm" : "px-3 py-2 text-xs"}`}>
             ნახე განცხადება <span aria-hidden="true">→</span>

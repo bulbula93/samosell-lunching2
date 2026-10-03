@@ -6,6 +6,7 @@ import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
 import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import SmartImage from "@/components/shared/SmartImage"
@@ -24,7 +25,7 @@ import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 
 const listingSelect =
-  "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 type PublicSellerListingCounts = {
   active_count?: number | string | null
@@ -237,12 +238,28 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-black tracking-tight text-text sm:text-4xl">{sellerName}</h1>
-                        {profile.is_seller_verified ? <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">დადასტურებული პროფილი</span> : null}
+                        {profile.is_seller_verified ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 py-1.5 text-xs font-black text-brand shadow-sm">
+                            <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] text-white">✓</span>
+                            Verified
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-2 text-sm text-text-soft">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><ProfileChatButton userId={profile.id} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
+                </div>
+
+                <div className="mt-6 lg:hidden">
+                  <SellerTrustSummary
+                    verified={Boolean(profile.is_seller_verified)}
+                    activeListingsCount={activeListingsCount}
+                    soldListingsCount={soldListingsCount}
+                    reviewSummary={sellerReviewData.summary}
+                    createdAt={profile.created_at}
+                    compact
+                  />
                 </div>
 
                 <p className="mt-6 max-w-3xl whitespace-pre-wrap text-base leading-7 text-text-soft sm:text-lg sm:leading-8">
@@ -274,20 +291,21 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
             <div className="border-t border-neutral-200 bg-brand px-6 py-7 text-white lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                {[
-                  { label: "აქტიური განცხადებები", value: activeListingsCount },
-                  { label: "გაყიდულად მონიშნული", value: soldListingsCount },
-                  { label: "ჯამური ნახვები", value: totalViews },
-                  { label: "ფავორიტები", value: totalFavorites },
-                  { label: "VIP", value: boostedListings },
-                  { label: "ტიპი", value: sellerTypeLabel(profile.seller_type) },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs uppercase tracking-[0.16em] text-white/55">{item.label}</div>
-                    <div className="mt-2 text-2xl font-black text-white">{item.value}</div>
-                  </div>
-                ))}
+              <div className="hidden lg:block">
+                <SellerTrustSummary
+                  verified={Boolean(profile.is_seller_verified)}
+                  activeListingsCount={activeListingsCount}
+                  soldListingsCount={soldListingsCount}
+                  reviewSummary={sellerReviewData.summary}
+                  createdAt={profile.created_at}
+                  variant="dark"
+                />
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ნახვები: {totalViews}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ფავორიტები: {totalFavorites}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">VIP: {boostedListings}</span>
               </div>
 
               {trustSignals.length > 0 ? (

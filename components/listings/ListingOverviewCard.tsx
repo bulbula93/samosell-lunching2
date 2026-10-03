@@ -1,10 +1,10 @@
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
+import BuyerSafetyReminder from "@/components/listings/BuyerSafetyReminder"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
-import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
-import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
 import Avatar from "@/components/shared/Avatar"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
@@ -18,11 +18,9 @@ import {
   genderLabel,
 } from "@/lib/listings"
 import {
-  formatJoinDate,
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
 
@@ -32,6 +30,7 @@ type ListingOverviewCardProps = {
   sellerLabel: string
   sellerAvatarSrc: string | null
   sellerActiveListingsCount: number
+  sellerSoldListingsCount?: number
   isOwner: boolean
   isAuthenticated: boolean
   canChat: boolean
@@ -106,6 +105,7 @@ export default function ListingOverviewCard({
   sellerLabel,
   sellerAvatarSrc,
   sellerActiveListingsCount,
+  sellerSoldListingsCount = 0,
   isOwner,
   isAuthenticated,
   canChat,
@@ -129,21 +129,12 @@ export default function ListingOverviewCard({
   const statusMessage = getStatusMessage(listing.status)
   const details = buildDetailItems(listing)
   const description = listing.description?.trim() || ""
-  const sellerJoinedAt = formatJoinDate(
-    sellerProfile?.created_at || listing.seller_created_at,
-  )
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
   const listingReturnPath = searchId
     ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}`
     : `/listing/${listing.slug}`
-  const sellerTrustSignals = sellerProfile
-    ? getSellerTrustSignals({
-        profile: sellerProfile,
-        reviewSummary: sellerReviewSummary,
-      }).filter((signal) => signal.key !== "reviews")
-    : []
   const messagingUnavailable =
     isActive &&
     !isOwner &&
@@ -286,38 +277,44 @@ export default function ListingOverviewCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            {sellerProfileHref ? (
-              <Link
-                href={sellerProfileHref}
-                className="block truncate rounded-md text-base font-black text-text transition hover:text-brand"
-              >
-                {sellerLabel}
-              </Link>
-            ) : (
-              <p className="truncate text-base font-black text-text">{sellerLabel}</p>
-            )}
-            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
-              {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
-              {sellerJoinedAt ? (
-                <span>
-                  {ka.listingDetail.memberSince}: {sellerJoinedAt}
-                </span>
-              ) : null}
-              {sellerActiveListingsCount > 0 ? (
-                <span>
-                  {sellerActiveListingsCount} {ka.listingDetail.activeListings}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {sellerProfileHref ? (
+                <Link
+                  href={sellerProfileHref}
+                  className="min-w-0 truncate rounded-md text-base font-black text-text transition hover:text-brand"
+                >
+                  {sellerLabel}
+                </Link>
+              ) : (
+                <p className="min-w-0 truncate text-base font-black text-text">{sellerLabel}</p>
+              )}
+              {(sellerProfile?.is_seller_verified || listing.seller_is_verified) ? (
+                <span
+                  title="დადასტურებული გამყიდველი"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand/20 bg-brand-soft px-2 py-1 text-[10px] font-black text-brand"
+                >
+                  <span aria-hidden="true" className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-brand text-[9px] text-white">✓</span>
+                  Verified
                 </span>
               ) : null}
             </div>
-            {sellerReviewSummary && sellerReviewSummary.reviewCount > 0 ? (
-              <div className="mt-2">
-                <ReviewSummary summary={sellerReviewSummary} compact />
-              </div>
-            ) : null}
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
+              {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
+            </div>
           </div>
         </div>
 
-        <SellerTrustBadges signals={sellerTrustSignals} compact className="mt-3" />
+        <span className="sr-only">{sellerActiveListingsCount} აქტიური ნივთები</span>
+        <div className="mt-4">
+          <SellerTrustSummary
+            verified={Boolean(sellerProfile?.is_seller_verified || listing.seller_is_verified)}
+            activeListingsCount={sellerActiveListingsCount}
+            soldListingsCount={sellerSoldListingsCount}
+            reviewSummary={sellerReviewSummary}
+            createdAt={sellerProfile?.created_at || listing.seller_created_at}
+            compact
+          />
+        </div>
 
         {sellerProfile?.bio ? (
           <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
@@ -333,6 +330,8 @@ export default function ListingOverviewCard({
           />
         ) : null}
       </section>
+
+      {!isOwner && isActive ? <BuyerSafetyReminder /> : null}
 
       {!isOwner && listing.seller_id ? (
         <section

@@ -13,8 +13,11 @@ export default function CatalogLoading() {
             {Array.from({ length: 8 }).map((_, index) => <div key={index} className="ui-skeleton h-11" />)}
           </div>
         </div>
-        <div className="ui-skeleton mt-6 h-11 w-full lg:hidden" />
-        <div className="mt-9 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="mt-6 grid grid-cols-2 gap-2.5 lg:hidden">
+          <div className="ui-skeleton h-14 w-full rounded-2xl" />
+          <div className="ui-skeleton h-14 w-full rounded-2xl" />
+        </div>
+        <div className="mt-7 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-9 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4 xl:grid-cols-5">
           {Array.from({ length: 10 }).map((_, index) => <MarketplaceProductCardSkeleton key={index} />)}
         </div>
       </div>

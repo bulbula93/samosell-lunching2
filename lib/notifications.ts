@@ -57,7 +57,7 @@ async function sendFirstChatEmail(input: {
   if (error || !email) return
 
   const chatUrl = absoluteSiteUrl(input.href)
-  const subject = `ახალი შეტყობინება — ${compactText(input.listingTitle, 80)}`
+  const subject = `შენს ნივთზე მოგწერეს — ${compactText(input.listingTitle, 80)}`
   const preview = compactText(input.body, 260)
 
   await sendTransactionalEmail({
@@ -120,7 +120,7 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
   const href = `/dashboard/chats/${chat.id}`
   const firstMessage = chat.chat_type === "listing" && input.firstMessage && input.senderId === chat.buyer_id
   const title = firstMessage
-    ? "ახალი დაინტერესებული მყიდველი"
+    ? "შენს ნივთზე მოგწერეს"
     : "ახალი შეტყობინება"
   const body = firstMessage
     ? `${senderLabel}-მა მოგწერა „${listingTitle}“-ზე: ${compactText(input.body)}`
@@ -161,5 +161,44 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
       body: input.body,
       href,
     })
+  }
+}
+
+
+export async function notifyListingFavorited(input: {
+  listingId: string
+  actorId: string
+}) {
+  const admin = createAdminClient()
+
+  const { data: listingData, error: listingError } = await admin
+    .from("listings")
+    .select("id, seller_id, title, slug, status")
+    .eq("id", input.listingId)
+    .maybeSingle()
+
+  const listing = listingData as (ListingRow & { seller_id: string; status: string }) | null
+  if (listingError || !listing || listing.status !== "active") return
+  if (listing.seller_id === input.actorId) return
+
+  const dayKey = new Date().toISOString().slice(0, 10)
+  const eventKey = `listing_favorited:${listing.id}:${dayKey}`
+
+  const { error } = await admin.from("notifications").insert({
+    user_id: listing.seller_id,
+    type: "listing_favorited",
+    title: "შენი ნივთი რჩეულებში დაამატეს",
+    body: `ვიღაცამ „${compactText(listing.title, 90)}“ რჩეულებში დაამატა.`,
+    href: `/listing/${listing.slug}`,
+    actor_id: input.actorId,
+    listing_id: listing.id,
+    event_key: eventKey,
+    metadata: {
+      cooldown: "daily_per_listing",
+    },
+  })
+
+  if (error && error.code !== "23505") {
+    console.error("[notifications] favorite notification insert failed", error.message)
   }
 }

@@ -4,6 +4,8 @@ import {
   openNotificationAction,
 } from "@/app/dashboard/notifications/actions"
 import PushPwaSettings from "@/components/pwa/PushPwaSettings"
+import UiPageHeader from "@/components/shared/UiPageHeader"
+import UiEmptyState from "@/components/shared/UiEmptyState"
 import { requireAuthenticatedUser } from "@/lib/auth"
 
 type NotificationRow = {
@@ -45,6 +47,8 @@ function notificationIcon(type: string) {
     type === "review_request_canceled"
   ) return "★"
   if (type === "price_drop") return "₾"
+  if (type === "favorite_activity") return "♡"
+  if (type === "listing_stale") return "↻"
   if (type === "boost_expiry") return "VIP"
   return "•"
 }
@@ -72,35 +76,31 @@ export default async function DashboardNotificationsPage() {
   return (
     <main className="min-h-screen bg-bg px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto w-full max-w-4xl">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="ui-eyebrow">განახლებები</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-text">შეტყობინებები</h1>
-            <p className="mt-2 text-sm leading-6 text-text-soft">
-              აქ გამოჩნდება შენახული ძებნების, შეთავაზებების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები. Story-ზე პასუხები და ჩატის შეტყობინებები წერილებშია.
-            </p>
-          </div>
-          {unreadCount > 0 ? (
+        <UiPageHeader
+          eyebrow="განახლებები"
+          title="შეტყობინებები"
+          description="აქ გამოჩნდება შენახული ძებნების, შეთავაზებების, VIP-ის ვადის, განცხადების აქტუალურობის, ფავორიტებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები."
+          actions={unreadCount > 0 ? (
             <form action={markAllNotificationsReadAction}>
               <button type="submit" className="ui-btn-secondary whitespace-nowrap">
-                ყველა წაკითხულად მონიშვნა
+                ყველა წაკითხულად
               </button>
             </form>
           ) : null}
-        </header>
+        />
 
-        <PushPwaSettings />
+        <div className="mt-6"><PushPwaSettings /></div>
 
         {notifications.length === 0 ? (
-          <section className="ui-card p-8 text-center sm:p-12">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-xl text-brand">✓</div>
-            <h2 className="mt-4 text-xl font-black text-text">ჯერ შეტყობინებები არ გაქვს</h2>
-            <p className="mt-2 text-sm leading-6 text-text-soft">
-              ახალი ჩათი, ფასის შეთავაზება, შენახული ძებნის შესაბამისობა ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება.
-            </p>
-          </section>
+          <div className="mt-6">
+            <UiEmptyState
+              icon="✓"
+              title="ჯერ შეტყობინებები არ გაქვს"
+              description="ახალი შეთავაზება, ფასის ცვლილება, VIP-ის ვადა, ფავორიტი ან განცხადების განახლების reminder აქ გამოჩნდება."
+            />
+          </div>
         ) : (
-          <section className="space-y-3" aria-label="შეტყობინებების სია">
+          <section className="mt-6 space-y-3" aria-label="შეტყობინებების სია">
             {notifications.map((notification) => {
               const unread = !notification.read_at
               return (

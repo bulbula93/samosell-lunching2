@@ -1,5 +1,6 @@
 import Link from "next/link"
 import ProfileForm from "@/components/dashboard/ProfileForm"
+import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardProfilePage() {
@@ -16,27 +17,29 @@ export default async function DashboardProfilePage() {
 
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="mb-8">
-        <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">პროფილი</div>
-        <h1 className="mt-3 text-4xl font-black">პროფილის რედაქტირება</h1>
-        <p className="mt-3 max-w-2xl text-neutral-600">განაახლე ის ინფორმაცია, რომელსაც მყიდველები და გამყიდველები შენს ანგარიშთან ერთად ხედავენ.</p>
-      </div>
+    <main className="ui-page-shell">
+      <div className="ui-page-container max-w-5xl">
+        <UiPageHeader
+          eyebrow="პროფილი"
+          title="პროფილის რედაქტირება"
+          description="განაახლე ის ინფორმაცია, რომელსაც მყიდველები და გამყიდველები შენს ანგარიშთან ერთად ხედავენ."
+        />
 
       {profile?.username ? (
-        <nav aria-label="გამომწერები და გამოწერები" className="mb-6 grid gap-3 sm:grid-cols-2">
-          <Link href={`/seller/${encodeURIComponent(profile.username)}/followers`} className="rounded-2xl border border-line bg-white p-5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-brand">
+        <nav aria-label="გამომწერები და გამოწერები" className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Link href={`/seller/${encodeURIComponent(profile.username)}/followers`} className="ui-card p-5 transition hover:-translate-y-0.5 hover:border-brand/35 hover:shadow-[0_16px_34px_rgba(7,63,59,0.08)] focus-visible:outline-2 focus-visible:outline-brand">
             <span className="block text-lg font-black text-brand">გამომწერები →</span>
             <span className="mt-1 block text-sm text-text-soft">ვინც შენ გამოგიწერა</span>
           </Link>
-          <Link href={`/seller/${encodeURIComponent(profile.username)}/following`} className="rounded-2xl border border-line bg-white p-5 transition hover:border-brand focus-visible:outline-2 focus-visible:outline-brand">
+          <Link href={`/seller/${encodeURIComponent(profile.username)}/following`} className="ui-card p-5 transition hover:-translate-y-0.5 hover:border-brand/35 hover:shadow-[0_16px_34px_rgba(7,63,59,0.08)] focus-visible:outline-2 focus-visible:outline-brand">
             <span className="block text-lg font-black text-brand">ჩემი გამოწერები →</span>
             <span className="mt-1 block text-sm text-text-soft">მომხმარებლები, რომლებსაც შენ იწერ</span>
           </Link>
         </nav>
       ) : null}
 
-      <ProfileForm
+      <div className="mt-6">
+        <ProfileForm
         userId={user!.id}
         initialProfile={{
           username: profile?.username ?? "",
@@ -59,7 +62,9 @@ export default async function DashboardProfilePage() {
           tiktok_username: profile?.tiktok_username ?? "",
           tiktok_live_until: profile?.tiktok_live_until ?? "",
         }}
-      />
+        />
+      </div>
+      </div>
     </main>
   )
 }

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
@@ -162,11 +163,15 @@ export default async function PaymentResultPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4 py-10">
-      <section className="w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">SamoSell Payments</p>
-        <h1 className="mt-2 text-2xl font-bold">{statusText(attempt?.status)}</h1>
-        <p className="mt-3 text-sm text-neutral-600">
+    <main className="ui-page-shell flex min-h-[70vh] items-center px-4 py-10">
+      <div className="mx-auto w-full max-w-2xl">
+        <UiPageHeader
+          eyebrow="SamoSell Payments"
+          title={statusText(attempt?.status)}
+          description="გადახდის საბოლოო სტატუსი დადასტურებული server-to-server მონაცემებით მოწმდება."
+        />
+        <section className="ui-card mt-5 p-5 sm:p-6">
+        <p className="text-sm leading-7 text-text-soft">
           საბოლოო სტატუსს პირველ რიგში Flitt-ის ხელმოწერილი server callback ადასტურებს. თუ callback არ მოვიდა,
           SamoSell დამატებით ამოწმებს შეკვეთას Flitt-ის ხელმოწერილი server-to-server status API-ით. ბრაუზერის
           დაბრუნების მონაცემები თვითონ გადახდას წარმატებულად ვერ ნიშნავს.
@@ -197,29 +202,30 @@ export default async function PaymentResultPage({
           </p>
         ) : null}
         {attempt?.status === "pending" && fallbackChecked ? (
-          <p className="mt-3 text-xs text-neutral-500">
+          <p className="mt-3 text-xs text-text-soft">
             Flitt-ის სტატუსი გადამოწმდა, მაგრამ ტრანზაქცია ჯერ დასრულებული არ არის. რამდენიმე წამში შეგიძლია ხელახლა შეამოწმო.
           </p>
         ) : null}
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/" className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white">მთავარზე დაბრუნება</Link>
+          <Link href="/" className="ui-btn-primary">მთავარზე დაბრუნება</Link>
           {attempt?.status === "pending" && safeOrder ? (
             <Link
               href={`/payment/result?order=${encodeURIComponent(safeOrder)}`}
-              className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold"
+              className="ui-btn-secondary"
             >
               სტატუსის ხელახლა შემოწმება
             </Link>
           ) : null}
           {attempt?.purpose === "boost_order" ? (
-            <Link href="/dashboard/billing" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">შეკვეთებზე დაბრუნება</Link>
+            <Link href="/dashboard/billing" className="ui-btn-secondary">შეკვეთებზე დაბრუნება</Link>
           ) : attempt?.purpose === "ad_order" ? (
-            <Link href="/dashboard/ads" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">ჩემს რეკლამებზე დაბრუნება</Link>
+            <Link href="/dashboard/ads" className="ui-btn-secondary">ჩემს რეკლამებზე დაბრუნება</Link>
           ) : (
-            <Link href="/admin/flitt-sandbox" className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold">Sandbox-ზე დაბრუნება</Link>
+            <Link href="/admin/flitt-sandbox" className="ui-btn-secondary">Sandbox-ზე დაბრუნება</Link>
           )}
         </div>
-      </section>
+        </section>
+      </div>
     </main>
   )
 }

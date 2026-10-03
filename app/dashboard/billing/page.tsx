@@ -3,6 +3,8 @@ import { refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
 import { requestBoostRefundAction } from "@/app/dashboard/billing/actions"
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
+import UiPageHeader from "@/components/shared/UiPageHeader"
+import UiEmptyState from "@/components/shared/UiEmptyState"
 import { boostProductName, boostStatusLabel, formatDateOnly, paymentMethodLabel } from "@/lib/boosts"
 import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { getBoostPaymentConfig } from "@/lib/boost-payment-config"
@@ -153,15 +155,14 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
   for (const refund of refunds ?? []) if (!refundMap.has(refund.order_id)) refundMap.set(refund.order_id, refund)
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">გადახდები</div>
-          <h1 className="mt-3 text-4xl font-black">გაძლიერებები და გადახდები</h1>
-          <p className="mt-3 max-w-2xl text-neutral-600">აქ ჩანს VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის ყველა შეკვეთა — თანხა, გადახდა, აქტივაცია და მოქმედების ვადა.</p>
-        </div>
-        <Link href="/dashboard/listings" className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">განცხადებების მართვა</Link>
-      </div>
+    <main className="ui-page-shell">
+      <div className="ui-page-container">
+        <UiPageHeader
+          eyebrow="გადახდები"
+          title="VIP და გადახდები"
+          description="აქ ჩანს VIP, TOP, VIP MAX და მთავარი გვერდის ბანერის ყველა შეკვეთა — თანხა, გადახდა, აქტივაცია და მოქმედების ვადა."
+          actions={<Link href="/dashboard/listings" className="ui-btn-secondary">განცხადებების მართვა</Link>}
+        />
 
       {pendingOrders.length > 0 ? (
         <section className="mb-6 rounded-[2rem] border border-amber-200 bg-amber-50 p-5">
@@ -178,21 +179,21 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
       {flash ? <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">{flash}</div> : null}
 
       <section className="mb-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">როგორ მუშაობს</div>
-          <div className="mt-3 space-y-2 text-sm leading-6 text-neutral-700">
+        <div className="ui-card p-5">
+          <div className="ui-eyebrow">როგორ მუშაობს</div>
+          <div className="mt-3 space-y-2 text-sm leading-6 text-text-soft">
             <p>1. განცხადების VIP განთავსების გვერდიდან ქმნი ახალ მოთხოვნას.</p>
             <p>2. აქ ამოწმებ შეკვეთას და მის რეფერენსს.</p>
             <p>3. იხდი ხელმისაწვდომი გადახდის მეთოდით.</p>
             <p>4. {payment.tbcCheckoutEnabled ? "წარმატებული TBC Checkout გადახდის შემდეგ VIP განთავსება ავტომატურად აქტიურდება" : "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"}, ხელით მეთოდებზე კი დადასტურება მოდერატორის მხრიდან ხდება.</p>
           </div>
         </div>
-        <div className="rounded-[2rem] border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">გადახდის მონაცემები</div>
-          <div className="mt-3 space-y-2 text-sm leading-6 text-neutral-700">
-            {payment.bankName ? <p>ბანკი: <span className="font-semibold text-neutral-900">{payment.bankName}</span></p> : null}
-            {payment.accountHolder ? <p>მიმღები: <span className="font-semibold text-neutral-900">{payment.accountHolder}</span></p> : null}
-            {payment.accountNumber ? <p>IBAN / ანგარიში: <span className="font-mono text-xs text-neutral-900 sm:text-sm">{payment.accountNumber}</span></p> : null}
+        <div className="ui-card p-5">
+          <div className="ui-eyebrow">გადახდის მონაცემები</div>
+          <div className="mt-3 space-y-2 text-sm leading-6 text-text-soft">
+            {payment.bankName ? <p>ბანკი: <span className="font-semibold text-text">{payment.bankName}</span></p> : null}
+            {payment.accountHolder ? <p>მიმღები: <span className="font-semibold text-text">{payment.accountHolder}</span></p> : null}
+            {payment.accountNumber ? <p>IBAN / ანგარიში: <span className="font-mono text-xs text-text sm:text-sm">{payment.accountNumber}</span></p> : null}
             {payment.hasExternalPaymentUrl ? (
               <p>
                 <a href={payment.externalPaymentUrl} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">
@@ -205,55 +206,56 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
         </div>
       </section>
 
-      <div className="mb-6 flex flex-wrap gap-3">
-        {tabs.map((tab) => <Link key={tab.key} href={tab.key === "all" ? "/dashboard/billing" : `/dashboard/billing?status=${tab.key}`} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "bg-black text-white" : "border border-neutral-300 bg-white text-neutral-700"}`}>{tab.label} ({counts[tab.key] ?? 0})</Link>)}
+      <div className="mb-6 mt-6 flex gap-2 overflow-x-auto pb-1">
+        {tabs.map((tab) => <Link key={tab.key} href={tab.key === "all" ? "/dashboard/billing" : `/dashboard/billing?status=${tab.key}`} className={`ui-nav-chip ${activeTab === tab.key ? "!border-brand !bg-brand !text-white" : ""}`}>{tab.label} ({counts[tab.key] ?? 0})</Link>)}
       </div>
 
       <div className="space-y-4">
         {typedOrders.length > 0 ? typedOrders.map((order) => (
-          <div key={order.id} className="grid gap-4 rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-sm lg:grid-cols-[120px_1fr_auto] lg:items-center">
-            <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-neutral-100"><SmartImage src={order.cover_image_url} alt={order.listing_title || "განცხადება"} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" /></div>
+          <div key={order.id} className="grid gap-4 ui-card p-4 lg:grid-cols-[120px_1fr_auto] lg:items-center">
+            <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-surface-alt"><SmartImage src={order.cover_image_url} alt={order.listing_title || "განცხადება"} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" /></div>
             <div>
-              <div className="text-lg font-bold text-neutral-900">{boostProductName(order.product_name, order.placement)}</div>
-              <div className="mt-1 text-sm text-neutral-500">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
-              <div className="mt-1 text-sm text-neutral-500">განცხადება: {order.listing_title || "—"}</div>
-              <div className="mt-3 grid gap-2 text-sm text-neutral-600 md:grid-cols-2">
-                <div>თანხა: <span className="font-medium text-neutral-900">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</span></div>
+              <div className="text-lg font-bold text-text">{boostProductName(order.product_name, order.placement)}</div>
+              <div className="mt-1 text-sm text-text-soft">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</div>
+              <div className="mt-1 text-sm text-text-soft">განცხადება: {order.listing_title || "—"}</div>
+              <div className="mt-3 grid gap-2 text-sm text-text-soft md:grid-cols-2">
+                <div>თანხა: <span className="font-medium text-text">{order.amount} {order.currency === "GEL" ? "₾" : order.currency}</span></div>
                 <div>გადახდის მეთოდი: {paymentMethodLabel(order.payment_method)}</div>
-                <div>რეფერენსი: <span className="font-medium text-neutral-900">{order.payment_reference || "—"}</span></div>
-                <div>აქტივაციის სტატუსი: <span className="font-medium text-neutral-900">{boostStatusLabel(order.status, order.ends_at)}</span></div>
+                <div>რეფერენსი: <span className="font-medium text-text">{order.payment_reference || "—"}</span></div>
+                <div>აქტივაციის სტატუსი: <span className="font-medium text-text">{boostStatusLabel(order.status, order.ends_at)}</span></div>
                 <div>დაწყება: {order.starts_at ? formatDateOnly(order.starts_at) : "—"}</div>
                 <div>დასრულება: {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
-                {order.provider_status ? <div>გადახდის სტატუსი (TBC): <span className="font-medium text-neutral-900">{tbcProviderStatusLabel(order.provider_status)}</span></div> : <div>გადახდის სტატუსი: <span className="font-medium text-neutral-900">{order.approved_at ? "დადასტურებული" : "მოლოდინში"}</span></div>}
+                {order.provider_status ? <div>გადახდის სტატუსი (TBC): <span className="font-medium text-text">{tbcProviderStatusLabel(order.provider_status)}</span></div> : <div>გადახდის სტატუსი: <span className="font-medium text-text">{order.approved_at ? "დადასტურებული" : "მოლოდინში"}</span></div>}
                 {order.checkout_session_started_at ? <div>Checkout დაიწყო: {formatDateOnly(order.checkout_session_started_at)}</div> : null}
                 {order.last_payment_sync_at ? <div>ბოლო სინქი: {formatDateOnly(order.last_payment_sync_at)}</div> : null}
                 {order.paid_at ? <div>გადახდილია: {formatDateOnly(order.paid_at)}</div> : null}
                 {order.cancelled_at ? <div>გაუქმდა: {formatDateOnly(order.cancelled_at)}</div> : null}
               </div>
               {order.failure_reason ? <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">TBC მიზეზი: {order.failure_reason}</div> : null}
-              {order.notes ? <div className="mt-3 rounded-2xl bg-neutral-50 px-3 py-2 text-sm text-neutral-600">შენი შენიშვნა: {order.notes}</div> : null}
+              {order.notes ? <div className="mt-3 rounded-2xl bg-surface-alt px-3 py-2 text-sm text-text-soft">შენი შენიშვნა: {order.notes}</div> : null}
               {order.admin_note ? <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">ადმინის შენიშვნა: {order.admin_note}</div> : null}
               {refundMap.get(order.id) ? <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">დაბრუნების სტატუსი: {refundStatusLabel(refundMap.get(order.id)?.status)}</div> : null}
-              {!refundMap.get(order.id) && isRefundRequestEligible(order) ? <form action={requestBoostRefundAction} className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-4"><input type="hidden" name="orderId" value={order.id} /><label className="text-sm font-semibold text-neutral-900">თანხის დაბრუნების მიზეზი</label><textarea name="reason" required minLength={10} maxLength={1000} className="mt-2 min-h-24 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm" placeholder="აღწერე პრობლემა ან დაბრუნების მიზეზი" /><div className="mt-3 flex flex-wrap items-center gap-3"><button className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold">თანხის დაბრუნების მოთხოვნა</button><Link href="/refund-policy" className="text-xs font-semibold text-brand underline">დაბრუნების პოლიტიკა</Link></div><p className="mt-2 text-xs text-neutral-500">მოთხოვნის გაგზავნა თანხას ავტომატურად არ აბრუნებს</p></form> : null}
+              {!refundMap.get(order.id) && isRefundRequestEligible(order) ? <form action={requestBoostRefundAction} className="mt-4 rounded-2xl border border-line bg-surface-alt p-4"><input type="hidden" name="orderId" value={order.id} /><label className="text-sm font-semibold text-text">თანხის დაბრუნების მიზეზი</label><textarea name="reason" required minLength={10} maxLength={1000} className="mt-2 min-h-24 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm" placeholder="აღწერე პრობლემა ან დაბრუნების მიზეზი" /><div className="mt-3 flex flex-wrap items-center gap-3"><button className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold">თანხის დაბრუნების მოთხოვნა</button><Link href="/refund-policy" className="text-xs font-semibold text-brand underline">დაბრუნების პოლიტიკა</Link></div><p className="mt-2 text-xs text-text-soft">მოთხოვნის გაგზავნა თანხას ავტომატურად არ აბრუნებს</p></form> : null}
             </div>
             <div className="flex flex-col gap-2 lg:items-end">
-              <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">{boostStatusLabel(order.status, order.ends_at)}</span>
+              <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft">{boostStatusLabel(order.status, order.ends_at)}</span>
               {payment.tbcCheckoutEnabled && order.payment_method === "tbc_checkout" && order.provider_checkout_url && order.status === "pending_payment" ? (
-                <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">TBC-ით გადახდის გაგრძელება</a>
+                <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">TBC-ით გადახდის გაგრძელება</a>
               ) : null}
               {payment.tbcCheckoutEnabled && order.payment_provider === "tbc_checkout" ? (
                 <form action={refreshBoostOrderStatusAction}>
                   <input type="hidden" name="orderId" value={order.id} />
                   <input type="hidden" name="nextPath" value={activeTab === "all" ? "/dashboard/billing" : `/dashboard/billing?status=${activeTab}`} />
-                  <button className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">სტატუსის გადამოწმება</button>
+                  <button className="ui-btn-secondary">სტატუსის გადამოწმება</button>
                 </form>
               ) : null}
-              <Link href={`/dashboard/listings/${order.listing_id}/promote`} className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">მართვა</Link>
+              <Link href={`/dashboard/listings/${order.listing_id}/promote`} className="ui-btn-secondary">მართვა</Link>
             </div>
           </div>
-        )) : <div className="rounded-[2rem] border border-dashed border-neutral-300 bg-white px-6 py-10 text-sm text-neutral-500 shadow-sm">ამ ფილტრში VIP განთავსების შეკვეთა ვერ მოიძებნა.</div>}
+        )) : <UiEmptyState icon="VIP" title="ამ ფილტრში შეკვეთა ვერ მოიძებნა" description="შეცვალე სტატუსის ფილტრი ან შექმენი ახალი VIP შეკვეთა კონკრეტული განცხადებიდან." />}
       </div>
       <div className="mt-8 flex flex-wrap gap-4 text-sm"><Link href="/payment-terms" className="font-semibold text-brand underline">გადახდის პირობები</Link><Link href="/refund-policy" className="font-semibold text-brand underline">დაბრუნების პოლიტიკა</Link></div>
+      </div>
     </main>
   )
 }

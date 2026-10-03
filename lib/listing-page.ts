@@ -58,11 +58,17 @@ export type ListingSellerProfile = {
   tiktok_live_until?: string | null
 }
 
+type PublicSellerListingCounts = {
+  active_count?: number | string | null
+  sold_count?: number | string | null
+}
+
 export type ListingPageData = {
   listing: CatalogListing
   images: ListingImage[]
   sellerProfile: ListingSellerProfile | null
   sellerActiveListingsCount: number
+  sellerSoldListingsCount: number
   similarItems: CatalogListing[]
   favoriteIds: string[]
   isFavorited: boolean
@@ -306,13 +312,11 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .maybeSingle()
     : Promise.resolve({ data: null, error: null })
 
-  const sellerActiveCountQuery = listing.seller_id
+  const sellerCountsQuery = listing.seller_id
     ? supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("seller_id", listing.seller_id)
-        .eq("status", "active")
-    : Promise.resolve({ count: 0, error: null })
+        .rpc("get_public_seller_listing_counts", { p_seller_id: listing.seller_id })
+        .maybeSingle()
+    : Promise.resolve({ data: { active_count: 0, sold_count: 0 }, error: null })
 
   const emptyRelatedQuery = () =>
     Promise.resolve({ data: [] as CatalogListing[], error: null })
@@ -366,7 +370,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const [
     imagesResponse,
     sellerProfileResponse,
-    sellerActiveCountResponse,
+    sellerCountsResponse,
     similarCategoryResponse,
     similarGenderResponse,
     similarBrandResponse,
@@ -383,7 +387,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
       .eq("listing_id", listing.id)
       .order("sort_order", { ascending: true }),
     sellerProfileQuery,
-    sellerActiveCountQuery,
+    sellerCountsQuery,
     similarCategoryQuery,
     similarGenderQuery,
     similarBrandQuery,
@@ -427,7 +431,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const criticalError =
     imagesResponse.error ||
     sellerProfileResponse.error ||
-    sellerActiveCountResponse.error ||
+    sellerCountsResponse.error ||
     similarCategoryResponse.error ||
     similarGenderResponse.error ||
     similarBrandResponse.error ||
@@ -438,6 +442,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   }
 
   const sellerProfile = (sellerProfileResponse.data ?? null) as ListingSellerProfile | null
+  const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const isBlocked = Boolean(myBlockResponse.data)
   const isBlockedBySeller = Boolean(theirBlockResponse.data)
   const canChat =
@@ -468,7 +473,8 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     listing,
     images: (imagesResponse.data ?? []) as ListingImage[],
     sellerProfile,
-    sellerActiveListingsCount: sellerActiveCountResponse.count ?? 0,
+    sellerActiveListingsCount: Number(sellerCounts?.active_count ?? 0),
+    sellerSoldListingsCount: Number(sellerCounts?.sold_count ?? 0),
     similarItems,
     favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
     isFavorited: Boolean(favoriteRowResponse.data),

@@ -269,8 +269,8 @@ export default function ChatWorkspace({
           role={feedbackIsError ? "alert" : "status"}
           className={
             feedbackIsError
-              ? "mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"
-              : "mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800"
+              ? "ui-status-error mb-3 font-semibold"
+              : "ui-status-success mb-3 font-semibold"
           }
         >
           {feedbackMessage}
@@ -412,11 +412,10 @@ export default function ChatWorkspace({
                 })}
               </div>
             ) : (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm font-bold text-text">მიმოწერა ვერ მოიძებნა</p>
-                <p className="mt-2 text-xs leading-5 text-text-soft">
-                  შეცვალე ძებნა ან ფილტრი.
-                </p>
+              <div className="px-5 py-10 text-center">
+                <div aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-soft text-lg text-brand">⌕</div>
+                <p className="mt-3 text-sm font-bold text-text">მიმოწერა ვერ მოიძებნა</p>
+                <p className="mt-1.5 text-xs leading-5 text-text-soft">შეცვალე ძებნა ან ფილტრი.</p>
               </div>
             )}
           </div>

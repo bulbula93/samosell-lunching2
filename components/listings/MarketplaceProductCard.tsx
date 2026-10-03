@@ -22,6 +22,28 @@ function statusLabel(status?: string | null) {
   return ""
 }
 
+function promotionLabel(item: CatalogListing) {
+  if (item.is_featured) return "VIP MAX"
+  if (item.is_promoted) return "TOP"
+  if (item.is_vip) return ka.product.vip
+  return ""
+}
+
+function promotionClass(item: CatalogListing) {
+  if (item.is_featured) return "bg-accent text-brand"
+  if (item.is_promoted) return "bg-brand text-white"
+  return "bg-[#fff4df] text-brand"
+}
+
+function LocationIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current" strokeWidth="1.8">
+      <path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z" />
+      <circle cx="12" cy="10" r="2" />
+    </svg>
+  )
+}
+
 export default function MarketplaceProductCard({
   item,
   currentPath = "/catalog",
@@ -31,20 +53,28 @@ export default function MarketplaceProductCard({
   imageLoading = "lazy",
 }: MarketplaceProductCardProps) {
   const unavailable = item.status === "reserved" || item.status === "sold"
-  const badge = statusLabel(item.status)
+  const statusBadge = statusLabel(item.status)
+  const promotionBadge = !statusBadge ? promotionLabel(item) : ""
   const sellerLabel = item.seller_full_name || item.seller_username || "გამყიდველი"
   const sellerAvatar = item.seller_type === "store"
     ? item.seller_store_logo_url || item.seller_avatar_url
     : item.seller_avatar_url
   const listingHref = searchListingHref(item.slug, searchId)
+  const priceLabel = listingPriceLabel(item.price, item.currency, item.sale_type)
+  const isGift = item.sale_type === "gift"
+  const locationLabel = item.city || ka.product.locationUnknown
 
   return (
-    <article className="group relative flex h-full min-w-0 flex-col rounded-[22px] border border-[#e7ebe8] bg-white p-2.5 shadow-[0_8px_24px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] [contain-intrinsic-size:auto_360px] [content-visibility:auto]">
-      <Link href={listingHref} aria-label={`${item.title} — ${listingPriceLabel(item.price, item.currency, item.sale_type)}`} className="absolute inset-0 z-10 rounded-[22px]">
+    <article className="group relative flex h-full min-w-0 flex-col rounded-[20px] border border-line bg-white p-2 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] sm:rounded-[22px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
+      <Link
+        href={listingHref}
+        aria-label={`${item.title} — ${priceLabel}`}
+        className="absolute inset-0 z-10 rounded-[20px] sm:rounded-[22px]"
+      >
         <span className="sr-only">{item.title}</span>
       </Link>
 
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[16px] bg-[#f1f2ef]">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[15px] bg-[#f1f2ef] sm:rounded-[16px]">
         <SmartImage
           src={item.cover_image_url}
           alt={item.title}
@@ -55,17 +85,27 @@ export default function MarketplaceProductCard({
           sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 20vw"
         />
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-2 p-2.5">
-          <div className="flex flex-wrap gap-1.5">
-            {badge ? <span className="rounded-lg bg-text px-2.5 py-1 text-[11px] font-bold text-white">{badge}</span> : null}
-            {!badge && item.is_featured ? <span className="rounded-lg bg-accent px-2.5 py-1 text-[11px] font-black text-brand">VIP MAX</span> : null}
-            {!badge && !item.is_featured && item.is_promoted ? <span className="rounded-lg bg-brand px-2.5 py-1 text-[11px] font-bold text-white">TOP</span> : null}
-            {!badge && !item.is_featured && !item.is_promoted && item.is_vip ? <span className="rounded-lg bg-accent-soft px-2.5 py-1 text-[11px] font-black text-brand">{ka.product.vip}</span> : null}
+        {(isGift || statusBadge || promotionBadge) ? (
+          <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5 sm:left-2.5 sm:top-2.5">
+            {isGift ? (
+              <span className="inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[10px] font-black text-[#d85f0e] shadow-sm backdrop-blur sm:text-[11px]">
+                🎁 ჩუქება
+              </span>
+            ) : null}
+            {statusBadge || promotionBadge ? (
+              <span
+                className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur sm:text-[11px] ${
+                  statusBadge ? "bg-text text-white" : promotionClass(item)
+                }`}
+              >
+                {statusBadge || promotionBadge}
+              </span>
+            ) : null}
           </div>
-        </div>
+        ) : null}
 
         {showFavorite && !unavailable ? (
-          <div className="absolute bottom-2.5 right-2.5 z-30">
+          <div className="absolute bottom-2 right-2 z-30 sm:bottom-2.5 sm:right-2.5">
             <FavoriteToggleForm
               listingId={item.id}
               listingSlug={item.slug}
@@ -79,37 +119,46 @@ export default function MarketplaceProductCard({
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-        <div className="flex items-center gap-2 text-xs text-text-soft">
-          {sellerAvatar ? (
-            <Avatar
-              src={sellerAvatar}
-              alt={sellerLabel}
-              fallbackText={sellerLabel}
-              sizeClassName="h-6 w-6"
-              textClassName="text-[8px]"
-              className="border border-line shadow-none ring-0"
-            />
+      <div className="flex flex-1 flex-col px-1 pb-1 pt-2.5 sm:pt-3">
+        <h3 className="line-clamp-2 min-h-10 text-[13px] font-bold leading-5 text-text transition group-hover:text-brand sm:text-sm">
+          {item.title}
+        </h3>
+
+        <div className={`mt-1.5 flex items-center gap-1.5 text-[17px] font-black leading-6 sm:text-lg ${isGift ? "text-[#e96b10]" : "text-brand"}`}>
+          {isGift ? <span aria-hidden="true" className="text-[15px]">🎁</span> : null}
+          <span>{priceLabel}</span>
+        </div>
+
+        <div className="mt-2 flex min-w-0 items-center gap-2 text-[11px] font-medium text-text-soft sm:text-xs">
+          <span className="min-w-0 truncate rounded-full bg-surface-alt px-2.5 py-1">
+            {conditionLabel(item.condition)}
+          </span>
+          <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-line" />
+          <span className="flex min-w-0 items-center gap-1 truncate">
+            <LocationIcon />
+            <span className="truncate">{locationLabel}</span>
+          </span>
+        </div>
+
+        <div className="mt-auto flex min-w-0 items-center gap-2 border-t border-line/75 pt-2.5 text-[11px] text-text-soft sm:pt-3 sm:text-xs">
+          <Avatar
+            src={sellerAvatar}
+            alt={sellerLabel}
+            fallbackText={sellerLabel}
+            sizeClassName="h-6 w-6"
+            textClassName="text-[8px]"
+            className="shrink-0 border border-line shadow-none ring-0"
+          />
+          <span className="min-w-0 flex-1 truncate font-semibold text-text-soft">{sellerLabel}</span>
+          {item.seller_is_verified ? (
+            <span
+              title="დადასტურებული გამყიდველი"
+              aria-label="დადასტურებული გამყიდველი"
+              className="relative z-20 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-black text-white"
+            >
+              ✓
+            </span>
           ) : null}
-          <span className="min-w-0 truncate">{sellerLabel}</span>
-          {item.seller_is_verified ? <span title="დადასტურებული გამყიდველი" aria-label="დადასტურებული გამყიდველი" className="font-bold text-brand">✓</span> : null}
-        </div>
-
-        <div className="mt-2">
-          <h3 className="line-clamp-2 min-h-10 text-sm font-bold leading-5 text-text transition group-hover:text-accent">
-            {item.brand_name ? `${item.brand_name} · ${item.title}` : item.title}
-          </h3>
-        </div>
-
-        <div className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-soft">
-          {item.size_label ? <span>ზომა {item.size_label}</span> : null}
-          <span>{conditionLabel(item.condition)}</span>
-          {item.public_id ? <span className="font-semibold">ID {item.public_id}</span> : null}
-        </div>
-
-        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-          <span className="text-base font-black text-brand">{listingPriceLabel(item.price, item.currency, item.sale_type)}</span>
-          <span className="max-w-[46%] truncate text-right text-xs text-text-soft">{item.city || ka.product.locationUnknown}</span>
         </div>
       </div>
     </article>
@@ -118,12 +167,12 @@ export default function MarketplaceProductCard({
 
 export function MarketplaceProductCardSkeleton() {
   return (
-    <div aria-hidden="true" className="min-w-0 rounded-[22px] border border-line bg-white p-2.5">
-      <div className="ui-skeleton aspect-[4/5] w-full rounded-[16px]" />
-      <div className="ui-skeleton mt-3 h-4 w-2/5" />
-      <div className="ui-skeleton mt-3 h-5 w-4/5" />
-      <div className="ui-skeleton mt-2 h-4 w-3/5" />
-      <div className="ui-skeleton mt-4 h-5 w-1/3" />
+    <div aria-hidden="true" className="min-w-0 rounded-[20px] border border-line bg-white p-2 sm:rounded-[22px] sm:p-2.5">
+      <div className="ui-skeleton aspect-[4/5] w-full rounded-[15px] sm:rounded-[16px]" />
+      <div className="ui-skeleton mt-3 h-4 w-4/5" />
+      <div className="ui-skeleton mt-2 h-5 w-2/5" />
+      <div className="ui-skeleton mt-2 h-5 w-3/5" />
+      <div className="ui-skeleton mt-3 h-6 w-full" />
     </div>
   )
 }
