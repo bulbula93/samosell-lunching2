@@ -347,7 +347,7 @@ export default async function CatalogPage({ searchParams }: { searchParams?: Pro
   const canonicalFilterKey = legacyCategory ? "gender" : "category"
   const catalogFilterKeys: Array<keyof CatalogPageParams> = [
     "q", "category", "item_type", "brand", "size", "color", "city",
-    "condition", "new_only", "gender", "vip", "min_price", "max_price",
+    "condition", "new_only", "gender", "vip", "sale_type", "min_price", "max_price",
   ]
   const hasOtherFilters = catalogFilterKeys.some(
     (key) => key !== canonicalFilterKey && params[key] !== undefined,
