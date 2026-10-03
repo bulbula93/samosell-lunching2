@@ -44,7 +44,7 @@ export default function CatalogLandingFilters({
     chips.push({ key: "gender", label: genderLabels[values.gender] || values.gender })
   }
   if (values.vip === "1") chips.push({ key: "vip", label: "VIP" })
-  if (values.sale_type === "gift") chips.push({ key: "sale_type", label: "ჩუქება" })
+  if (values.sale_type === "gift") chips.push({ key: "sale_type", label: "🎁 ჩუქება" })
   if (values.min_price || values.max_price) chips.push({ key: "price", label: `${values.min_price || "0"}–${values.max_price || "∞"} ₾` })
   const activeCount = chips.length
 
