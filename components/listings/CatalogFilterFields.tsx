@@ -16,7 +16,7 @@ export type CatalogFilterValues = {
   condition: string
   gender: string
   vip: string
-  sale_type: string
+  sale_type?: string
   sort: string
   min_price: string
   max_price: string
