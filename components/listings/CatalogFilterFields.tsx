@@ -254,10 +254,12 @@ export default function CatalogFilterFields({
   options,
   values,
   mobile = false,
+  hideSort = false,
 }: {
   options: CatalogFilterOptions
   values: CatalogFilterValues
   mobile?: boolean
+  hideSort?: boolean
 }) {
   const selectedCategory = values.category
   const [selectedItemType, setSelectedItemType] = useState(values.item_type)
@@ -463,14 +465,18 @@ export default function CatalogFilterFields({
             options={cityOptions}
             icon="city"
           />
-          <PlayfulSelect
-            label="დალაგება"
-            name="sort"
-            value={selectedSortFilter}
-            onChange={setSelectedSortFilter}
-            options={sortSelectOptions}
-            icon="sort"
-          />
+          {hideSort ? (
+            <input type="hidden" name="sort" value={selectedSortFilter} />
+          ) : (
+            <PlayfulSelect
+              label="დალაგება"
+              name="sort"
+              value={selectedSortFilter}
+              onChange={setSelectedSortFilter}
+              options={sortSelectOptions}
+              icon="sort"
+            />
+          )}
         </div>
 
         <div>
@@ -557,14 +563,18 @@ export default function CatalogFilterFields({
           icon="color"
         />
 
-        <PlayfulSelect
-          label="დალაგება"
-          name="sort"
-          value={selectedSortFilter}
-          onChange={setSelectedSortFilter}
-          options={sortSelectOptions}
-          icon="sort"
-        />
+        {hideSort ? (
+          <input type="hidden" name="sort" value={selectedSortFilter} />
+        ) : (
+          <PlayfulSelect
+            label="დალაგება"
+            name="sort"
+            value={selectedSortFilter}
+            onChange={setSelectedSortFilter}
+            options={sortSelectOptions}
+            icon="sort"
+          />
+        )}
       </div>
 
 
