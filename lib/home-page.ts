@@ -8,7 +8,7 @@ import type { CatalogListing } from "@/types/marketplace"
 import type { StoryRailData } from "@/types/story"
 
 export const baseListingSelect =
-  "id, public_id, slug, title, description, price, currency, condition, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
+  "id, public_id, slug, title, description, price, currency, condition, sale_type, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
 const HOME_LISTING_SELECT = [
   baseListingSelect,
