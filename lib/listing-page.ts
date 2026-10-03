@@ -58,6 +58,11 @@ export type ListingSellerProfile = {
   tiktok_live_until?: string | null
 }
 
+type PublicSellerListingCounts = {
+  active_count?: number | string | null
+  sold_count?: number | string | null
+}
+
 export type ListingPageData = {
   listing: CatalogListing
   images: ListingImage[]
@@ -437,6 +442,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   }
 
   const sellerProfile = (sellerProfileResponse.data ?? null) as ListingSellerProfile | null
+  const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const isBlocked = Boolean(myBlockResponse.data)
   const isBlockedBySeller = Boolean(theirBlockResponse.data)
   const canChat =
@@ -467,8 +473,8 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     listing,
     images: (imagesResponse.data ?? []) as ListingImage[],
     sellerProfile,
-    sellerActiveListingsCount: Number(sellerCountsResponse.data?.active_count ?? 0),
-    sellerSoldListingsCount: Number(sellerCountsResponse.data?.sold_count ?? 0),
+    sellerActiveListingsCount: Number(sellerCounts?.active_count ?? 0),
+    sellerSoldListingsCount: Number(sellerCounts?.sold_count ?? 0),
     similarItems,
     favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
     isFavorited: Boolean(favoriteRowResponse.data),
