@@ -1,8 +1,8 @@
 "use server"
 
-import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
-
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
 import { redirect } from "next/navigation"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { notifyListingFavorited } from "@/lib/notifications"
