@@ -827,7 +827,7 @@ export default function CreateListingForm({
             <div className="rounded-2xl border border-brand/15 bg-brand-soft/35 px-4 py-3 text-sm font-semibold text-brand">
               ჩუქება — ფასის მითითება საჭირო არ არის.
             </div>
-          )
+          )}
           <SelectField
             id={categoryIdField}
             label="კატეგორია"
