@@ -309,7 +309,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     { label: "შეფასება", value: reviewRatingLabel, helper: sellerReviewData.summary.reviewCount > 0 ? `${sellerReviewData.summary.reviewCount} შეფასება` : "შეფასება ჯერ არ აქვს" },
                     { label: "წევრია", value: sellerTenure || "—", helper: formatJoinDate(profile.created_at) },
                   ].map((item) => (
-                    <div key={item.label} className="min-w-0 rounded-2xl border border-white/10 bg-white/7 p-3.5">
+                    <div key={item.label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.07] p-3.5">
                       <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">{item.label}</div>
                       <div className="mt-1.5 break-words text-xl font-black leading-tight text-white">{item.value}</div>
                       <div className="mt-1 text-[11px] leading-4 text-white/55">{item.helper}</div>
