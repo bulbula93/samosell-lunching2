@@ -75,7 +75,10 @@ export default function CatalogLandingFilters({
       </form>
 
       {chips.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2" aria-label="აქტიური ფილტრები">
+        <div
+          className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:mt-4 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0"
+          aria-label="აქტიური ფილტრები"
+        >
           {chips.map((chip) => {
             const nextValues = { ...values }
             if (chip.key === "price") {
@@ -91,7 +94,7 @@ export default function CatalogLandingFilters({
               <Link
                 key={`${chip.key}-${chip.label}`}
                 href={buildCatalogHref(nextValues)}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
+                className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
                 aria-label={`${chip.label} ფილტრის მოხსნა`}
               >
                 {chip.label}<span aria-hidden="true">×</span>
