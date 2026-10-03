@@ -17,7 +17,7 @@ import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
+import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
@@ -113,6 +113,11 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     soldListingsCount,
     reviewSummary: sellerReviewData.summary,
   })
+  const sellerTenure = formatSellerTenure(profile.created_at)
+  const reviewRatingLabel =
+    sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null
+      ? `★ ${sellerReviewData.summary.averageScore.toFixed(1)}`
+      : "ჯერ არაა"
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${username}`)
   const sellerAvatarSrc = getUserAvatar(profile)
@@ -237,7 +242,12 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-3xl font-black tracking-tight text-text sm:text-4xl">{sellerName}</h1>
-                        {profile.is_seller_verified ? <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">დადასტურებული პროფილი</span> : null}
+                        {profile.is_seller_verified ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand-soft px-3 py-1.5 text-xs font-black text-brand shadow-sm">
+                            <span aria-hidden="true" className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] text-white">✓</span>
+                            Verified
+                          </span>
+                        ) : null}
                       </div>
                       <div className="mt-2 text-sm text-text-soft">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
                     </div>
@@ -274,20 +284,44 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
             <div className="border-t border-neutral-200 bg-brand px-6 py-7 text-white lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                {[
-                  { label: "აქტიური განცხადებები", value: activeListingsCount },
-                  { label: "გაყიდულად მონიშნული", value: soldListingsCount },
-                  { label: "ჯამური ნახვები", value: totalViews },
-                  { label: "ფავორიტები", value: totalFavorites },
-                  { label: "VIP", value: boostedListings },
-                  { label: "ტიპი", value: sellerTypeLabel(profile.seller_type) },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs uppercase tracking-[0.16em] text-white/55">{item.label}</div>
-                    <div className="mt-2 text-2xl font-black text-white">{item.value}</div>
+              <div className="mt-5 rounded-[1.75rem] border border-white/10 bg-white/5 p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Trust summary</div>
+                    <div className="mt-1 text-sm text-white/70">რეალური აქტივობა და შეფასებები</div>
                   </div>
-                ))}
+                  {profile.is_seller_verified ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-black text-brand">
+                      <span aria-hidden="true">✓</span>
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/65">
+                      ვერიფიკაცია არ აქვს
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {[
+                    { label: "აქტიური", value: activeListingsCount, helper: "განცხადება" },
+                    { label: "გაყიდული", value: soldListingsCount, helper: "მონიშნული ნივთი" },
+                    { label: "შეფასება", value: reviewRatingLabel, helper: sellerReviewData.summary.reviewCount > 0 ? `${sellerReviewData.summary.reviewCount} შეფასება` : "შეფასება ჯერ არ აქვს" },
+                    { label: "წევრია", value: sellerTenure || "—", helper: formatJoinDate(profile.created_at) },
+                  ].map((item) => (
+                    <div key={item.label} className="min-w-0 rounded-2xl border border-white/10 bg-white/7 p-3.5">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/50">{item.label}</div>
+                      <div className="mt-1.5 break-words text-xl font-black leading-tight text-white">{item.value}</div>
+                      <div className="mt-1 text-[11px] leading-4 text-white/55">{item.helper}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ნახვები: {totalViews}</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ფავორიტები: {totalFavorites}</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">VIP: {boostedListings}</span>
+                </div>
               </div>
 
               {trustSignals.length > 0 ? (
