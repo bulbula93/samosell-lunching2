@@ -67,23 +67,23 @@ type AssetCardProps = {
 
 function AssetCard({ title, description, preview, onChoose, onRemove, buttonLabel, hint }: AssetCardProps) {
   return (
-    <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
+    <div className="ui-subcard bg-white p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">{title}</div>
-          <div className="mt-2 text-xl font-black text-neutral-950">{description}</div>
+          <div className="ui-eyebrow">{title}</div>
+          <div className="mt-2 text-xl font-black text-text">{description}</div>
         </div>
         <div className="shrink-0">{preview}</div>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" onClick={onChoose} className="h-11 rounded-2xl bg-black px-5 text-sm font-semibold text-white">
+        <button type="button" onClick={onChoose} className="ui-btn-primary">
           {buttonLabel}
         </button>
-        <button type="button" onClick={onRemove} className="h-11 rounded-2xl border border-neutral-300 px-5 text-sm font-semibold text-neutral-700">
+        <button type="button" onClick={onRemove} className="ui-btn-secondary">
           წაშლა
         </button>
       </div>
-      <div className="mt-3 text-xs leading-5 text-neutral-500">{hint}</div>
+      <div className="mt-3 text-xs leading-5 text-text-soft">{hint}</div>
     </div>
   )
 }
@@ -356,10 +356,10 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-[2rem] border border-neutral-200 bg-white p-6 shadow-sm">
-      <div className="overflow-hidden rounded-[1.75rem] border border-neutral-200 bg-neutral-50">
+    <form onSubmit={handleSubmit} className="ui-card space-y-6 p-5 sm:p-6">
+      <div className="overflow-hidden rounded-[1.75rem] border border-line bg-surface-alt">
         {sellerType === "store" ? (
-          <div className="relative h-36 border-b border-neutral-200 bg-neutral-100 sm:h-44">
+          <div className="relative h-36 border-b border-line bg-brand-soft/45 sm:h-44">
             <SmartImage
               src={visibleStoreBannerUrl}
               alt={fullName || username || "მაღაზიის banner"}
@@ -376,18 +376,18 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             <div className="flex items-center gap-4">
               <Avatar src={publicFacingAvatar} alt={fullName || username || "მომხმარებელი"} fallbackText={fullName || username || "SS"} sizeClassName="h-20 w-20" textClassName="text-2xl" />
               <div>
-                <div className="text-sm font-semibold uppercase tracking-[0.18em] text-neutral-500">საჯარო პროფილი</div>
-                <div className="mt-2 text-2xl font-black text-neutral-950">{fullName || username || "შენი პროფილი"}</div>
-                <div className="mt-1 text-sm text-neutral-600">{sellerTypeLabel(sellerType)} • {city || "ქალაქი ჯერ არ არის მითითებული"}</div>
+                <div className="ui-eyebrow">საჯარო პროფილი</div>
+                <div className="mt-2 text-2xl font-black text-text">{fullName || username || "შენი პროფილი"}</div>
+                <div className="mt-1 text-sm text-text-soft">{sellerTypeLabel(sellerType)} • {city || "ქალაქი ჯერ არ არის მითითებული"}</div>
               </div>
             </div>
-            <div className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">ეს ინფორმაცია ჩანს საჯარო პროფილზე და განცხადებებში.</div>
+            <div className="ui-pill bg-white text-text-soft">ეს ინფორმაცია ჩანს საჯარო პროფილზე და განცხადებებში.</div>
           </div>
         </div>
       </div>
 
       <div>
-        <label className="mb-3 block text-sm font-semibold">ანგარიშის ტიპი</label>
+        <label className="ui-field-label">ანგარიშის ტიპი</label>
         <div className="grid gap-3 md:grid-cols-2">
           {sellerTypeOptions.map((option) => {
             const active = sellerType === option.value
@@ -396,10 +396,10 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
                 key={option.value}
                 type="button"
                 onClick={() => setSellerType(option.value)}
-                className={`rounded-[1.5rem] border px-4 py-4 text-left transition ${active ? "border-neutral-900 bg-neutral-100 shadow-sm" : "border-neutral-200 bg-white hover:border-neutral-300"}`}
+                className={`rounded-[1.5rem] border px-4 py-4 text-left transition ${active ? "border-brand/30 bg-brand-soft/55 shadow-sm" : "border-line bg-white hover:border-brand/30 hover:bg-brand-soft/30"}`}
               >
-                <div className="text-base font-bold text-neutral-900">{option.label}</div>
-                <div className="mt-1 text-sm leading-6 text-neutral-600">{option.helper}</div>
+                <div className="text-base font-bold text-text">{option.label}</div>
+                <div className="mt-1 text-sm leading-6 text-text-soft">{option.helper}</div>
               </button>
             )
           })}
@@ -427,13 +427,13 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         className="hidden"
       />
 
-      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
-        <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">საჯარო კონტაქტი</div>
-        <div className="mt-2 text-xl font-black text-neutral-950">გამყიდველის ტელეფონი</div>
-        <p className="mt-1 text-sm leading-6 text-neutral-600">
+      <div className="ui-subcard bg-white p-5">
+        <div className="ui-eyebrow">საჯარო კონტაქტი</div>
+        <div className="mt-2 text-xl font-black text-text">გამყიდველის ტელეფონი</div>
+        <p className="mt-1 text-sm leading-6 text-text-soft">
           გამყიდველისთვის ნომერი სავალდებულოა: ის საჯაროდ გამოჩნდება განცხადებებზე და მყიდველი პირდაპირ დარეკვას შეძლებს.
         </p>
-        <label htmlFor="seller-phone" className="mt-4 mb-2 block text-sm font-semibold">ტელეფონი</label>
+        <label htmlFor="seller-phone" className="mt-4 ui-field-label">ტელეფონი</label>
         <input
           id="seller-phone"
           type="tel"
@@ -442,16 +442,16 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           maxLength={SELLER_PHONE_MAX_LENGTH}
           value={storePhone}
           onChange={(event) => setStorePhone(event.target.value)}
-          className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
+          className="ui-input h-12 rounded-2xl"
           placeholder="მაგ: +995 555 12 34 56"
         />
       </div>
 
-      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
+      <div className="ui-subcard bg-white p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">TikTok</div>
-            <div className="mt-2 text-xl font-black text-neutral-950">TikTok LIVE ნიშანი</div>
+            <div className="ui-eyebrow">TikTok</div>
+            <div className="mt-2 text-xl font-black text-text">TikTok LIVE ნიშანი</div>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-600">
               მიუთითე TikTok username. როცა LIVE-ში გახვალ, ჩართე სტატუსი — შენს ავატარზე გამოჩნდება LIVE და დაჭერისას გაიხსნება TikTok-ის LIVE გვერდი. სტატუსი 4 საათში ავტომატურად ქრება.
             </p>
@@ -461,12 +461,12 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           </span>
         </div>
 
-        <label htmlFor="tiktok-username" className="mt-4 mb-2 block text-sm font-semibold">TikTok username</label>
+        <label htmlFor="tiktok-username" className="mt-4 ui-field-label">TikTok username</label>
         <input
           id="tiktok-username"
           value={tiktokUsername}
           onChange={(event) => setTikTokUsername(event.target.value)}
-          className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
+          className="ui-input h-12 rounded-2xl"
           placeholder="მაგ: @samosell ან tiktok.com/@samosell"
           autoCapitalize="none"
           autoCorrect="off"
@@ -485,13 +485,13 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             type="button"
             onClick={() => updateTikTokLive(false)}
             disabled={tiktokLoading || !isTikTokLiveActive(tiktokLiveUntil)}
-            className="h-11 rounded-2xl border border-neutral-300 px-5 text-sm font-semibold text-neutral-700 disabled:opacity-50"
+            className="ui-btn-secondary disabled:opacity-50"
           >
             LIVE გამორთვა
           </button>
         </div>
 
-        <p className="mt-3 text-xs leading-5 text-neutral-500">
+        <p className="mt-3 text-xs leading-5 text-text-soft">
           TikTok-ის საჯარო API ამჟამად LIVE სტატუსს არ გვაძლევს, ამიტომ ჩართვა ხელით ხდება. დროის გასვლის შემდეგ SamoSell LIVE ნიშანს ავტომატურად აღარ აჩვენებს.
         </p>
       </div>
@@ -499,8 +499,8 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
       {sellerType === "store" ? (
         <>
           <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5">
-            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">მაღაზიის ბრენდინგი</div>
-            <div className="mt-2 text-xl font-black text-neutral-950">დაამატე მაღაზიის ცალკე ლოგო და cover / banner</div>
+            <div className="ui-eyebrow">მაღაზიის ბრენდინგი</div>
+            <div className="mt-2 text-xl font-black text-text">დაამატე მაღაზიის ცალკე ლოგო და cover / banner</div>
             <div className="mt-1 max-w-3xl text-sm leading-6 text-neutral-600">ლოგო გამოჩნდება საჯარო მაღაზიის პროფილზე და დეტალის გვერდზე. banner კი მაღაზიის გვერდს უფრო პროფესიონალურ იერს მისცემს.</div>
           </div>
 
@@ -548,96 +548,96 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             />
           </div>
 
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5">
-            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-neutral-500">მაღაზიის ინფორმაცია</div>
-            <div className="mt-2 text-xl font-black text-neutral-950">კონტაქტები, სოციალური ბმულები და მისამართი</div>
+          <div className="ui-subcard bg-white p-5">
+            <div className="ui-eyebrow">მაღაზიის ინფორმაცია</div>
+            <div className="mt-2 text-xl font-black text-text">კონტაქტები, სოციალური ბმულები და მისამართი</div>
             <div className="mt-1 max-w-3xl text-sm leading-6 text-neutral-600">თუ ეს ველები შეავსე, საჯარო მაღაზიის პროფილზე ცალკე სექციად გამოჩნდება — ტელეფონი, WhatsApp, Telegram, Instagram, სამუშაო საათები, მისამართი და რუკის ჩაშენებული preview.</div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold">WhatsApp</label>
-              <input value={storeWhatsapp} onChange={(e) => setStoreWhatsapp(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: +995 555 12 34 56 ან wa.me ბმული" />
+              <label className="ui-field-label">WhatsApp</label>
+              <input value={storeWhatsapp} onChange={(e) => setStoreWhatsapp(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: +995 555 12 34 56 ან wa.me ბმული" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold">Telegram</label>
-              <input value={storeTelegram} onChange={(e) => setStoreTelegram(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: @samosellshop" />
+              <label className="ui-field-label">Telegram</label>
+              <input value={storeTelegram} onChange={(e) => setStoreTelegram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosellshop" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold">Instagram</label>
-              <input value={storeInstagram} onChange={(e) => setStoreInstagram(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: @samosell.store" />
+              <label className="ui-field-label">Instagram</label>
+              <input value={storeInstagram} onChange={(e) => setStoreInstagram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosell.store" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold">Facebook</label>
-              <input value={storeFacebook} onChange={(e) => setStoreFacebook(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: facebook.com/samosell" />
+              <label className="ui-field-label">Facebook</label>
+              <input value={storeFacebook} onChange={(e) => setStoreFacebook(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: facebook.com/samosell" />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold">ვებსაიტი</label>
-              <input value={storeWebsite} onChange={(e) => setStoreWebsite(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: samosell.ge" />
+              <label className="ui-field-label">ვებსაიტი</label>
+              <input value={storeWebsite} onChange={(e) => setStoreWebsite(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: samosell.ge" />
             </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold">სამუშაო დღეები და საათები</label>
-              <textarea value={storeHours} onChange={(e) => setStoreHours(e.target.value)} className="min-h-32 w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none" placeholder={"ორშაბათი: 11:00–19:00\nსამშაბათი: 11:00–19:00\nოთხშაბათი: 11:00–19:00\nხუთშაბათი: 11:00–19:00\nპარასკევი: 11:00–20:00\nშაბათი: 12:00–18:00\nკვირა: დაკეტილია"} />
-              <div className="mt-2 text-xs leading-5 text-neutral-500">თითო დღე ახალ ხაზზე ჩაწერე. seller page-ზე ავტომატურად weekly layout-ად დალაგდება.</div>
+              <label className="ui-field-label">სამუშაო დღეები და საათები</label>
+              <textarea value={storeHours} onChange={(e) => setStoreHours(e.target.value)} className="ui-textarea min-h-32" placeholder={"ორშაბათი: 11:00–19:00\nსამშაბათი: 11:00–19:00\nოთხშაბათი: 11:00–19:00\nხუთშაბათი: 11:00–19:00\nპარასკევი: 11:00–20:00\nშაბათი: 12:00–18:00\nკვირა: დაკეტილია"} />
+              <div className="mt-2 text-xs leading-5 text-text-soft">თითო დღე ახალ ხაზზე ჩაწერე. seller page-ზე ავტომატურად weekly layout-ად დალაგდება.</div>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold">რუკის ბმული</label>
-              <input value={storeMapUrl} onChange={(e) => setStoreMapUrl(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="Google Maps ან სხვა რუკის ბმული" />
-              <div className="mt-2 text-xs leading-5 text-neutral-500">თუ მისამართსაც შეავსებ, პროფილზე გამოჩნდება ჩაშენებული რუკაც.</div>
+              <label className="ui-field-label">რუკის ბმული</label>
+              <input value={storeMapUrl} onChange={(e) => setStoreMapUrl(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="Google Maps ან სხვა რუკის ბმული" />
+              <div className="mt-2 text-xs leading-5 text-text-soft">თუ მისამართსაც შეავსებ, პროფილზე გამოჩნდება ჩაშენებული რუკაც.</div>
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold">მაღაზიის მისამართი</label>
-            <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="min-h-24 w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none" placeholder="მაგ: თბილისი, ვაკე, აბაშიძის ქუჩა 10" />
+            <label className="ui-field-label">მაღაზიის მისამართი</label>
+            <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="ui-textarea min-h-24" placeholder="მაგ: თბილისი, ვაკე, აბაშიძის ქუჩა 10" />
           </div>
         </>
       ) : null}
 
       <div className="grid gap-5 md:grid-cols-2">
         <div>
-          <label className="mb-2 block text-sm font-semibold">მომხმარებლის სახელი</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" />
+          <label className="ui-field-label">მომხმარებლის სახელი</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="ui-input h-12 rounded-2xl" />
         </div>
         <div>
-          <label className="mb-2 block text-sm font-semibold">{sellerType === "store" ? "მაღაზიის სახელი" : "სრული სახელი"}</label>
+          <label className="ui-field-label">{sellerType === "store" ? "მაღაზიის სახელი" : "სრული სახელი"}</label>
           <input
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
+            className="ui-input h-12 rounded-2xl"
             placeholder={sellerType === "store" ? "მაგ: SamoSell Studio" : "მაგ: გიორგი ბულბულაშვილი"}
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold">ქალაქი</label>
-        <input value={city} onChange={(e) => setCity(e.target.value)} className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none" placeholder="მაგ: თბილისი" />
+        <label className="ui-field-label">ქალაქი</label>
+        <input value={city} onChange={(e) => setCity(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: თბილისი" />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold">შესახებ</label>
+        <label className="ui-field-label">შესახებ</label>
         <textarea
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          className="min-h-32 w-full rounded-2xl border border-neutral-300 px-4 py-3 outline-none"
+          className="ui-textarea min-h-32"
           placeholder={sellerType === "store" ? "მოკლედ მოგვიყევი მაღაზიის სტილის, ბრენდების, მიწოდებისა და სერვისის შესახებ." : "მოკლედ დაწერე რას ყიდი და როგორ მდგომარეობაშია შენი ნივთები."}
         />
       </div>
 
       {sellerType === "store" ? (
-        <div className="rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-4 text-sm leading-6 text-neutral-700">
+        <div className="ui-subcard text-sm leading-6 text-text-soft">
           მაღაზიის საჯარო გვერდზე გამოჩნდება: avatar ან ლოგო, cover / banner, მაღაზიის სახელი, აღწერა, WhatsApp / Telegram / Instagram / Facebook / ვებსაიტი, სამუშაო დღეები, ტელეფონი, მისამართი და რუკის preview.
         </div>
       ) : null}
 
-      {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-      {success ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div> : null}
+      {error ? <div className="ui-status-error">{error}</div> : null}
+      {success ? <div className="ui-status-success">{success}</div> : null}
 
-      <button type="submit" disabled={loading} className="h-12 rounded-2xl bg-black px-6 font-semibold text-white disabled:opacity-60">
+      <button type="submit" disabled={loading} className="ui-btn-primary h-12 w-full sm:w-auto disabled:opacity-60">
         {loading ? "ინახება..." : "პროფილის შენახვა"}
       </button>
     </form>
