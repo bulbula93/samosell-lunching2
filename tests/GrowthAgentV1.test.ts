@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { buildGrowthModelContext } from "@/lib/growth-agent"
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
@@ -26,7 +26,7 @@ describe("Growth Agent v1", () => {
   it("tracks seller activation and supply KPIs", () => {
     expect(growthLib).toContain("ACTIVE_SELLER_LISTING_THRESHOLD = 3")
     expect(growthLib).toContain("TARGET_ACTIVE_LISTINGS = 1000")
-    expect(growthLib).toContain('rpc("admin_growth_snapshot")')
+    expect(growthLib).toContain("fetchProductionGrowthSnapshot")
     expect(growthLib).toContain("activatedSellers")
     expect(growthLib).toContain("warmSellers")
     expect(growthLib).toContain("dailyListingTarget")
