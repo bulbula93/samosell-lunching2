@@ -513,6 +513,21 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }
 
 
+  function reorderImage(sourceId: string, targetId: string) {
+    if (!sourceId || !targetId || sourceId === targetId) return
+
+    setImages((current) => {
+      const sourceIndex = current.findIndex((item) => item.id === sourceId)
+      const targetIndex = current.findIndex((item) => item.id === targetId)
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return current
+
+      const copy = [...current]
+      const [source] = copy.splice(sourceIndex, 1)
+      copy.splice(targetIndex, 0, source)
+      return copy
+    })
+  }
+
   function beginPointerReorder(event: React.PointerEvent<HTMLButtonElement>, imageId: string) {
     if (loading) return
     draggingImageIdRef.current = imageId
