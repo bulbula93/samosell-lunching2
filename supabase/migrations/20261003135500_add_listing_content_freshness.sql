@@ -3,13 +3,8 @@ begin;
 alter table public.listings
   add column if not exists content_updated_at timestamptz;
 
-update public.listings
-set content_updated_at = coalesce(updated_at, published_at, created_at, now())
-where content_updated_at is null;
-
 alter table public.listings
-  alter column content_updated_at set default now(),
-  alter column content_updated_at set not null;
+  alter column content_updated_at set default now();
 
 create or replace function private.track_listing_content_updated_at()
 returns trigger
@@ -18,7 +13,7 @@ set search_path = ''
 as $$
 begin
   if tg_op = 'INSERT' then
-    new.content_updated_at := now();
+    new.content_updated_at := coalesce(new.content_updated_at, now());
     return new;
   end if;
 
