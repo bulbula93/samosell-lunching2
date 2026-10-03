@@ -65,7 +65,7 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
     expect(screen.getByText("ნინო")).toBeInTheDocument()
-    expect(screen.getByText(/3.*აქტიური ნივთები/)).toBeInTheDocument()
+    expect(screen.getByText(/3.*აქტიური ნივთი/)).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /მიწერე.*შედი და მიწერე გამყიდველს/ }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
@@ -78,7 +78,7 @@ describe("ListingOverviewCard", () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/\+995 555 000 000/)).not.toBeInTheDocument()
     expect(screen.queryByText("პირადი მისამართი")).not.toBeInTheDocument()
-    expect(screen.queryByText(/4\.3|rating|checkout|ყიდვა/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/4\.3|rating|checkout/i)).not.toBeInTheDocument()
   })
 
   it("omits missing optional fields instead of inventing placeholders", () => {
@@ -128,7 +128,7 @@ describe("ListingOverviewCard", () => {
     ).toHaveAttribute("href", "/dashboard/listings/listing-1/edit")
     expect(screen.queryByText(ka.listingDetail.messageSeller)).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /რჩეულ/ })).not.toBeInTheDocument()
-    expect(screen.queryByText(/checkout|ყიდვა/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /checkout|ყიდვა/i })).not.toBeInTheDocument()
   })
 
   it("shows the real messaging action only for an authorized authenticated viewer", () => {

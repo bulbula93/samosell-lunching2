@@ -5,7 +5,7 @@ import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
 import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
-import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import SmartImage from "@/components/shared/SmartImage"
@@ -14,10 +14,10 @@ import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
-import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
+import { getSellerVisualAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
+import { fetchPublicSellerMetrics } from "@/lib/public-seller-metrics"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
@@ -25,11 +25,6 @@ import type { CatalogListing } from "@/types/marketplace"
 
 const listingSelect =
   "id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, cover_image_url, published_at, favorites_count, views_count, status"
-
-type PublicSellerListingCounts = {
-  active_count?: number | string | null
-  sold_count?: number | string | null
-}
 
 function formatJoinDate(value?: string | null) {
   if (!value) return "—"
@@ -77,45 +72,30 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
+  const metricsQuery = fetchPublicSellerMetrics(supabase, profile.id)
+  const [{ data: listings }, metrics, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
     supabase
       .from("listings_catalog")
       .select(listingSelect)
       .eq("status", "active")
       .eq("seller_username", username)
       .order("published_at", { ascending: false }),
-    supabase
-      .rpc("get_public_seller_listing_counts", { p_seller_id: profile.id })
-      .maybeSingle(),
+    metricsQuery,
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[] }),
-    fetchSellerReviewData(supabase, profile.id, { limit: 8 }),
+    metricsQuery.then(({ reviewSummary }) => fetchSellerReviewData(supabase, profile.id, { limit: 8, summary: reviewSummary })),
     getFollowSummary(supabase, profile.id, user?.id),
     hasActiveStory(supabase, profile.id),
   ])
 
-  if (sellerCountsResponse.error) {
-    throw new Error("SELLER_TRUST_STATS_FAILED", { cause: sellerCountsResponse.error })
-  }
-
-  const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
   const sellerListings = (listings ?? []) as CatalogListing[]
   const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
-  const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
-  const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
-  const boostedListings = sellerListings.filter((item) => item.is_vip || item.is_promoted || item.is_featured).length
-  const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
-  const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
-  const trustSignals = getSellerTrustSignals({
-    profile,
-    soldListingsCount,
-    reviewSummary: sellerReviewData.summary,
-  })
+  const activeListingsCount = metrics.activeCount
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${username}`)
-  const sellerAvatarSrc = getUserAvatar(profile)
+  const sellerAvatarSrc = getSellerVisualAvatar(profile)
   const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
     profile.store_phone ||
@@ -210,7 +190,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
       <SiteHeader />
       <section className="ui-container py-10 sm:py-14">
         <div className="overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[0_24px_90px_rgba(23,23,23,0.08)]">
-          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid gap-0">
             <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(245,245,243,0.98),_rgba(232,243,239,0.95))] p-6 sm:p-8 lg:p-10">
               {profile.seller_type === "store" && profile.store_banner_url ? (
                 <>
@@ -225,7 +205,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <div className={`relative z-10 ${profile.seller_type === "store" && profile.store_banner_url ? "pt-16 sm:pt-20" : ""}`}>
                 <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">{profile.seller_type === "store" ? "მაღაზიის პროფილი" : "გამყიდველის პროფილი"}</div>
                 <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
                     <div className="relative shrink-0">
                       {sellerHasStory ? <StoryRingAvatar owner={storyOwner} currentUserId={user?.id ?? null} /> : <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-20 w-20" textClassName="text-2xl" className="shrink-0" />}
                       <TikTokLiveBadge
@@ -234,16 +214,17 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                         className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2"
                       />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-3xl font-black tracking-tight text-text sm:text-4xl">{sellerName}</h1>
-                        {profile.is_seller_verified ? <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">დადასტურებული პროფილი</span> : null}
+                        <h1 className="min-w-0 break-words text-3xl font-black tracking-tight text-text [overflow-wrap:anywhere] sm:text-4xl">{sellerName}</h1>
                       </div>
-                      <div className="mt-2 text-sm text-text-soft">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
+                      <div className="mt-2 break-words text-sm text-text-soft [overflow-wrap:anywhere]">@{profile.username} • {sellerTypeLabel(profile.seller_type)} • ჩვენთან არის {formatJoinDate(profile.created_at)}</div>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><ProfileChatButton userId={profile.id} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
                 </div>
+
+                <div className="mt-6"><SellerTrustSummary metrics={metrics} verified={profile.is_seller_verified} createdAt={profile.created_at} /></div>
 
                 <p className="mt-6 max-w-3xl whitespace-pre-wrap text-base leading-7 text-text-soft sm:text-lg sm:leading-8">
                   {profile.bio || (profile.seller_type === "store" ? "მაღაზიას აღწერა ჯერ არ შეუვსია, მაგრამ ქვემოთ შეგიძლია ნახო აქტიური განცხადებები და საკონტაქტო ინფორმაცია." : "პროფილის აღწერა ჯერ არ არის შევსებული, მაგრამ ქვემოთ შეგიძლია გადაათვალიერო ყველა აქტიური განცხადება და ნდობის სიგნალი.")}
@@ -255,7 +236,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ქალაქი: {profile.city || "არ არის მითითებული"}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">აქტიური განცხადებები: {activeListingsCount}</span>
                   <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">ტიპი: {sellerTypeLabel(profile.seller_type)}</span>
-                  <span className="rounded-full border border-line bg-white/85 px-4 py-2 text-sm font-semibold text-text-soft">VIP განცხადებები: {boostedListings}</span>
                 </div>
                 <section aria-label="ბოლოს ატვირთული ნივთები" className="mt-8 border-t border-line/70 pt-6">
                   <div className="mb-4 flex items-center justify-between gap-3">
@@ -272,45 +252,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               </div>
             </div>
 
-            <div className="border-t border-neutral-200 bg-brand px-6 py-7 text-white lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                {[
-                  { label: "აქტიური განცხადებები", value: activeListingsCount },
-                  { label: "გაყიდულად მონიშნული", value: soldListingsCount },
-                  { label: "ჯამური ნახვები", value: totalViews },
-                  { label: "ფავორიტები", value: totalFavorites },
-                  { label: "VIP", value: boostedListings },
-                  { label: "ტიპი", value: sellerTypeLabel(profile.seller_type) },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs uppercase tracking-[0.16em] text-white/55">{item.label}</div>
-                    <div className="mt-2 text-2xl font-black text-white">{item.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {trustSignals.length > 0 ? (
-                <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">დადასტურებული სიგნალები</div>
-                  <SellerTrustBadges signals={trustSignals} variant="dark" className="mt-4" />
-                  <p className="mt-4 text-xs leading-5 text-white/55">
-                    ტელეფონის მითითება არ ნიშნავს ნომრის ვერიფიკაციას; გაყიდვების მაჩვენებელი ეფუძნება გაყიდულად მონიშნულ განცხადებებს.
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/catalog" className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-text transition hover:opacity-90">
-                  კატალოგის ნახვა
-                </Link>
-                {profile.city ? (
-                  <Link href={`/catalog?city=${encodeURIComponent(profile.city)}`} className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    {profile.city}-ის შეთავაზებები
-                  </Link>
-                ) : null}
-              </div>
-            </div>
           </div>
         </div>
       </section>

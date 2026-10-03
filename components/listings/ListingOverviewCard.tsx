@@ -2,9 +2,10 @@ import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
-import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
-import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
+import SafeBuyingReminder from "@/components/listings/SafeBuyingReminder"
+import type { PublicSellerMetrics } from "@/lib/public-seller-metrics"
 import Avatar from "@/components/shared/Avatar"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
@@ -18,11 +19,9 @@ import {
   genderLabel,
 } from "@/lib/listings"
 import {
-  formatJoinDate,
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
 
@@ -32,6 +31,7 @@ type ListingOverviewCardProps = {
   sellerLabel: string
   sellerAvatarSrc: string | null
   sellerActiveListingsCount: number
+  sellerMetrics?: PublicSellerMetrics
   isOwner: boolean
   isAuthenticated: boolean
   canChat: boolean
@@ -106,6 +106,7 @@ export default function ListingOverviewCard({
   sellerLabel,
   sellerAvatarSrc,
   sellerActiveListingsCount,
+  sellerMetrics,
   isOwner,
   isAuthenticated,
   canChat,
@@ -129,21 +130,13 @@ export default function ListingOverviewCard({
   const statusMessage = getStatusMessage(listing.status)
   const details = buildDetailItems(listing)
   const description = listing.description?.trim() || ""
-  const sellerJoinedAt = formatJoinDate(
-    sellerProfile?.created_at || listing.seller_created_at,
-  )
-  const sellerProfileHref = sellerProfile?.username
-    ? `/seller/${encodeURIComponent(sellerProfile.username)}`
+  const sellerUsername = sellerProfile?.username || listing.seller_username
+  const sellerProfileHref = sellerUsername
+    ? `/seller/${encodeURIComponent(sellerUsername)}`
     : null
   const listingReturnPath = searchId
     ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}`
     : `/listing/${listing.slug}`
-  const sellerTrustSignals = sellerProfile
-    ? getSellerTrustSignals({
-        profile: sellerProfile,
-        reviewSummary: sellerReviewSummary,
-      }).filter((signal) => signal.key !== "reviews")
-    : []
   const messagingUnavailable =
     isActive &&
     !isOwner &&
@@ -289,35 +282,25 @@ export default function ListingOverviewCard({
             {sellerProfileHref ? (
               <Link
                 href={sellerProfileHref}
-                className="block truncate rounded-md text-base font-black text-text transition hover:text-brand"
+                className="block break-words rounded-md text-base font-black text-text transition hover:text-brand [overflow-wrap:anywhere]"
               >
                 {sellerLabel}
               </Link>
             ) : (
-              <p className="truncate text-base font-black text-text">{sellerLabel}</p>
+              <p className="break-words text-base font-black text-text [overflow-wrap:anywhere]">{sellerLabel}</p>
             )}
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
               {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
-              {sellerJoinedAt ? (
-                <span>
-                  {ka.listingDetail.memberSince}: {sellerJoinedAt}
-                </span>
-              ) : null}
-              {sellerActiveListingsCount > 0 ? (
-                <span>
-                  {sellerActiveListingsCount} {ka.listingDetail.activeListings}
-                </span>
-              ) : null}
             </div>
-            {sellerReviewSummary && sellerReviewSummary.reviewCount > 0 ? (
-              <div className="mt-2">
-                <ReviewSummary summary={sellerReviewSummary} compact />
-              </div>
-            ) : null}
           </div>
         </div>
 
-        <SellerTrustBadges signals={sellerTrustSignals} compact className="mt-3" />
+        <SellerTrustSummary
+          compact
+          metrics={sellerMetrics ?? { activeCount: sellerActiveListingsCount, soldCount: 0, reviewSummary: sellerReviewSummary ?? { reviewCount: 0, averageScore: null } }}
+          verified={sellerProfile?.is_seller_verified ?? listing.seller_is_verified}
+          createdAt={sellerProfile?.created_at || listing.seller_created_at}
+        />
 
         {sellerProfile?.bio ? (
           <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
@@ -333,6 +316,8 @@ export default function ListingOverviewCard({
           />
         ) : null}
       </section>
+
+      <SafeBuyingReminder />
 
       {!isOwner && listing.seller_id ? (
         <section

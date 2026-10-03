@@ -6,6 +6,7 @@ import { ka } from "@/lib/i18n/ka"
 import { conditionLabel, listingPriceLabel } from "@/lib/listings"
 import { getSafeImageSource } from "@/lib/media"
 import { fetchSellerReviewData } from "@/lib/reviews"
+import { fetchPublicSellerMetrics, type PublicSellerMetrics } from "@/lib/public-seller-metrics"
 import { absoluteUrl, truncateDescription } from "@/lib/seo"
 import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
@@ -62,6 +63,7 @@ export type ListingPageData = {
   listing: CatalogListing
   images: ListingImage[]
   sellerProfile: ListingSellerProfile | null
+  sellerMetrics: PublicSellerMetrics
   sellerActiveListingsCount: number
   similarItems: CatalogListing[]
   favoriteIds: string[]
@@ -306,13 +308,9 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .maybeSingle()
     : Promise.resolve({ data: null, error: null })
 
-  const sellerActiveCountQuery = listing.seller_id
-    ? supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("seller_id", listing.seller_id)
-        .eq("status", "active")
-    : Promise.resolve({ count: 0, error: null })
+  const sellerMetricsQuery = listing.seller_id
+    ? fetchPublicSellerMetrics(supabase, listing.seller_id)
+    : Promise.resolve({ activeCount: 0, soldCount: 0, reviewSummary: { reviewCount: 0, averageScore: null } } satisfies PublicSellerMetrics)
 
   const emptyRelatedQuery = () =>
     Promise.resolve({ data: [] as CatalogListing[], error: null })
@@ -355,10 +353,11 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   )
   const shouldLoadFavoriteData = Boolean(user && !isOwner && isActive)
   const reviewDataQuery = listing.seller_id
-    ? fetchSellerReviewData(supabase, listing.seller_id, {
+    ? sellerMetricsQuery.then(({ reviewSummary }) => fetchSellerReviewData(supabase, listing.seller_id!, {
         listingId: listing.id,
         limit: 12,
-      })
+        summary: reviewSummary,
+      }))
     : Promise.resolve({
         summary: { reviewCount: 0, averageScore: null },
         reviews: [],
@@ -366,7 +365,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const [
     imagesResponse,
     sellerProfileResponse,
-    sellerActiveCountResponse,
+    sellerMetrics,
     similarCategoryResponse,
     similarGenderResponse,
     similarBrandResponse,
@@ -383,7 +382,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
       .eq("listing_id", listing.id)
       .order("sort_order", { ascending: true }),
     sellerProfileQuery,
-    sellerActiveCountQuery,
+    sellerMetricsQuery,
     similarCategoryQuery,
     similarGenderQuery,
     similarBrandQuery,
@@ -427,7 +426,6 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const criticalError =
     imagesResponse.error ||
     sellerProfileResponse.error ||
-    sellerActiveCountResponse.error ||
     similarCategoryResponse.error ||
     similarGenderResponse.error ||
     similarBrandResponse.error ||
@@ -468,7 +466,8 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     listing,
     images: (imagesResponse.data ?? []) as ListingImage[],
     sellerProfile,
-    sellerActiveListingsCount: sellerActiveCountResponse.count ?? 0,
+    sellerMetrics,
+    sellerActiveListingsCount: sellerMetrics.activeCount,
     similarItems,
     favoriteIds: (favoritesResponse.data ?? []).map((item) => item.listing_id),
     isFavorited: Boolean(favoriteRowResponse.data),

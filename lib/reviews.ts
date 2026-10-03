@@ -46,6 +46,7 @@ type ReviewerProfile = {
 }
 
 function toFiniteScore(value: unknown) {
+  if (value == null) return null
   const score = Number(value)
   return Number.isFinite(score) ? score : null
 }
@@ -101,7 +102,7 @@ export function formatReviewScore(value: number) {
 export async function fetchSellerReviewData(
   supabase: SupabaseClient,
   sellerId: string,
-  options: { listingId?: string; limit?: number } = {},
+  options: { listingId?: string; limit?: number; summary?: SellerReviewSummary } = {},
 ): Promise<SellerReviewData> {
   const limit = Math.min(Math.max(options.limit ?? 8, 1), 24)
   let reviewsQuery = supabase
@@ -116,7 +117,9 @@ export async function fetchSellerReviewData(
   }
 
   const [summaryResponse, reviewsResponse] = await Promise.all([
-    supabase
+    options.summary
+      ? Promise.resolve({ data: { review_count: options.summary.reviewCount, average_score: options.summary.averageScore }, error: null })
+      : supabase
       .from("seller_review_summaries")
       .select("review_count, average_score")
       .eq("seller_id", sellerId)
