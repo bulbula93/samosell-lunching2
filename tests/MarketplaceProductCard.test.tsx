@@ -8,7 +8,7 @@ describe("MarketplaceProductCard", () => {
   it("renders real listing fields, GEL price, fallback image, and favorite action", () => {
     render(<MarketplaceProductCard item={makeListing()} />)
 
-    expect(screen.getByRole("heading", { name: /SAMO.*თეთრეულის ვინტაჟური ქურთუკი/ })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /თეთრეულის ვინტაჟური ქურთუკი/ })).toBeInTheDocument()
     expect(screen.getByText("120 ₾")).toBeInTheDocument()
     expect(screen.getByText("თბილისი")).toBeInTheDocument()
     expect(screen.getByText(ka.product.imageUnavailable)).toBeInTheDocument()
