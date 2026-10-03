@@ -29,6 +29,7 @@ function BrandLogo({ name, domain }: { name: string; domain: string }) {
 export default function PerfumeBrandCarousel() {
   const viewportRef = useRef<HTMLDivElement>(null)
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fractionalScrollRef = useRef(0)
   const [paused, setPaused] = useState(false)
 
   useEffect(() => {
@@ -43,7 +44,14 @@ export default function PerfumeBrandCarousel() {
       previous = now
 
       if (!document.hidden) {
-        viewport.scrollLeft += delta * 0.03
+        const distance = fractionalScrollRef.current + delta * 0.03
+        const pixels = Math.floor(distance)
+        fractionalScrollRef.current = distance - pixels
+
+        if (pixels > 0) {
+          viewport.scrollLeft += pixels
+        }
+
         const halfway = viewport.scrollWidth / 2
         if (halfway > 0 && viewport.scrollLeft >= halfway) {
           viewport.scrollLeft -= halfway
@@ -64,10 +72,14 @@ export default function PerfumeBrandCarousel() {
     [],
   )
 
-  function pauseTemporarily() {
+  function pauseAutoplay() {
     setPaused(true)
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
-    resumeTimerRef.current = setTimeout(() => setPaused(false), 2200)
+  }
+
+  function resumeAutoplaySoon() {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    resumeTimerRef.current = setTimeout(() => setPaused(false), 1200)
   }
 
   const loop = [...PERFUME_BRANDS, ...PERFUME_BRANDS]
@@ -93,7 +105,7 @@ export default function PerfumeBrandCarousel() {
           onMouseLeave={() => setPaused(false)}
           onPointerDown={pauseTemporarily}
           onTouchStart={pauseTemporarily}
-          className="overflow-x-auto overscroll-x-contain py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="touch-pan-x overflow-x-auto overscroll-x-contain py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="flex w-max gap-3 pr-3">
             {loop.map((brand, index) => (
