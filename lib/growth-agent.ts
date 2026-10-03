@@ -1,6 +1,6 @@
 import "server-only"
 
-import { createClient } from "@/lib/supabase/server"
+import { fetchProductionGrowthSnapshot } from "@/lib/production-growth-source"
 
 const ACTIVE_SELLER_LISTING_THRESHOLD = 3
 const TARGET_ACTIVE_LISTINGS = 1000
