@@ -13,18 +13,26 @@ import MobileNavigation, {
 } from "@/components/layout/MobileNavigation"
 import { ka } from "@/lib/i18n/ka"
 
+const accountActionClass = "group relative h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-brand shadow-[0_3px_0_#c6ddd7] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-safe:transition-[transform,box-shadow,background-color] motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-[2px] active:shadow-none"
+
+function AccountIcon({ kind }: { kind: "heart" | "mail" | "bell" }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-rotate-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" focusable="false">
+      {kind === "heart" ? <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" /> : kind === "mail" ? <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" /></> : <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" /><path d="M10 21h4" /></>}
+    </svg>
+  )
+}
+
 function NotificationBell({ count }: { count: number }) {
   return (
     <Link
       href="/dashboard/notifications"
+      prefetch={false}
       aria-label={count > 0 ? `ნოტიფიკაციები — ${count} წაუკითხავი` : "ნოტიფიკაციები"}
       title="ნოტიფიკაციები"
-      className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-text transition hover:border-brand/40 hover:bg-brand-soft"
+      className={`${accountActionClass} inline-flex border-accent/60 bg-accent-soft shadow-[0_3px_0_#edc59d] hover:bg-[#ffe9d1]`}
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 21h4" />
-      </svg>
+      <AccountIcon kind="bell" />
       {count > 0 ? (
         <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black leading-none text-white ring-2 ring-white">
           {count > 99 ? "99+" : count}
@@ -129,14 +137,14 @@ export default function MarketplaceHeader({
                 href="/dashboard/favorites"
                 aria-label={ka.nav.favorites}
                 title={ka.nav.favorites}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft"
+                className={`${accountActionClass} inline-flex border-brand/20 bg-brand-soft hover:bg-[#dceeea]`}
               >
-                ♡
+                <AccountIcon kind="heart" />
               </Link>
               <details className="group relative">
                 <summary
                   aria-label={ka.nav.profile}
-                  className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-line bg-white px-2 pr-3 transition hover:border-brand/40 [&::-webkit-details-marker]:hidden"
+                  className="flex h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-brand/20 bg-brand-soft px-1.5 pr-3 text-brand shadow-[0_3px_0_#c6ddd7] hover:bg-[#dceeea] group-open:bg-[#dceeea] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand motion-safe:transition-[transform,box-shadow,background-color] motion-safe:duration-200 motion-safe:hover:-translate-y-0.5 [&::-webkit-details-marker]:hidden"
                 >
                   <Avatar
                     src={userState.profileImage}
@@ -144,10 +152,10 @@ export default function MarketplaceHeader({
                     fallbackText={userState.profileLabel}
                     sizeClassName="h-8 w-8"
                     textClassName="text-[10px]"
-                    className="border-0 shadow-none ring-0"
+                    className="border-2 border-white bg-white shadow-none ring-1 ring-brand/10"
                   />
                   <span className="max-w-28 truncate text-sm font-semibold">{userState.profileLabel}</span>
-                  <span aria-hidden="true" className="text-xs text-text-soft transition group-open:rotate-180">⌄</span>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" className="h-4 w-4 motion-safe:transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m4 6 4 4 4-4" /></svg>
                 </summary>
                 <nav className="absolute right-0 top-[calc(100%+10px)] w-52 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.14)]">
                   <Link prefetch={false} href="/dashboard" className="block rounded-xl px-4 py-3 text-sm font-semibold hover:bg-brand-soft">
@@ -203,8 +211,8 @@ export default function MarketplaceHeader({
         </div>
 
         {userState.signedIn ? <>
-          <Link prefetch={false} href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft md:inline-flex">
-            <span aria-hidden="true">✉</span>
+          <Link prefetch={false} href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className={`${accountActionClass} hidden border-brand/20 bg-brand-soft hover:bg-[#dceeea] md:inline-flex`}>
+            <AccountIcon kind="mail" />
             {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}
           </Link>
           <NotificationBell count={userState.unreadNotifications} />
