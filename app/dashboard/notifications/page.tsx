@@ -47,6 +47,8 @@ function notificationIcon(type: string) {
     type === "review_request_canceled"
   ) return "★"
   if (type === "price_drop") return "₾"
+  if (type === "favorite_activity") return "♡"
+  if (type === "listing_stale") return "↻"
   if (type === "boost_expiry") return "VIP"
   return "•"
 }
@@ -77,7 +79,7 @@ export default async function DashboardNotificationsPage() {
         <UiPageHeader
           eyebrow="განახლებები"
           title="შეტყობინებები"
-          description="აქ გამოჩნდება შენახული ძებნების, შეთავაზებების, გაყიდვის, შეფასებებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები."
+          description="აქ გამოჩნდება შენახული ძებნების, შეთავაზებების, VIP-ის ვადის, განცხადების აქტუალურობის, ფავორიტებისა და სხვა მნიშვნელოვანი მოვლენების შეტყობინებები."
           actions={unreadCount > 0 ? (
             <form action={markAllNotificationsReadAction}>
               <button type="submit" className="ui-btn-secondary whitespace-nowrap">
@@ -94,7 +96,7 @@ export default async function DashboardNotificationsPage() {
             <UiEmptyState
               icon="✓"
               title="ჯერ შეტყობინებები არ გაქვს"
-              description="ახალი შეთავაზება, ფასის ცვლილება, შეფასება ან სხვა მნიშვნელოვანი განახლება აქ გამოჩნდება."
+              description="ახალი შეთავაზება, ფასის ცვლილება, VIP-ის ვადა, ფავორიტი ან განცხადების განახლების reminder აქ გამოჩნდება."
             />
           </div>
         ) : (
