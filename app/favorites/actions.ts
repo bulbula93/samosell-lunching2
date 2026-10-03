@@ -5,6 +5,7 @@ import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
+import { notifyListingFavorited } from "@/lib/notifications"
 import { createClient } from "@/lib/supabase/server"
 
 function safeNextPath(value: string) {
@@ -85,6 +86,13 @@ export async function toggleFavoriteAction(formData: FormData) {
 
     if (insertError && insertError.code !== "23505") {
       redirect(favoriteErrorPath(nextPath))
+    }
+
+    if (!insertError) {
+      await notifyListingFavorited({
+        listingId,
+        actorId: user.id,
+      })
     }
 
     if (searchId && await serverAllowsAnalytics()) await recordSearchInteractionSafely(supabase, {
