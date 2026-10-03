@@ -1,5 +1,6 @@
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
+import BuyerSafetyReminder from "@/components/listings/BuyerSafetyReminder"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
@@ -142,7 +143,7 @@ export default function ListingOverviewCard({
     ? getSellerTrustSignals({
         profile: sellerProfile,
         reviewSummary: sellerReviewSummary,
-      }).filter((signal) => signal.key !== "reviews")
+      }).filter((signal) => signal.key !== "reviews" && signal.key !== "verified")
     : []
   const messagingUnavailable =
     isActive &&
@@ -286,16 +287,27 @@ export default function ListingOverviewCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            {sellerProfileHref ? (
-              <Link
-                href={sellerProfileHref}
-                className="block truncate rounded-md text-base font-black text-text transition hover:text-brand"
-              >
-                {sellerLabel}
-              </Link>
-            ) : (
-              <p className="truncate text-base font-black text-text">{sellerLabel}</p>
-            )}
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {sellerProfileHref ? (
+                <Link
+                  href={sellerProfileHref}
+                  className="min-w-0 truncate rounded-md text-base font-black text-text transition hover:text-brand"
+                >
+                  {sellerLabel}
+                </Link>
+              ) : (
+                <p className="min-w-0 truncate text-base font-black text-text">{sellerLabel}</p>
+              )}
+              {(sellerProfile?.is_seller_verified || listing.seller_is_verified) ? (
+                <span
+                  title="დადასტურებული გამყიდველი"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand/20 bg-brand-soft px-2 py-1 text-[10px] font-black text-brand"
+                >
+                  <span aria-hidden="true" className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-brand text-[9px] text-white">✓</span>
+                  Verified
+                </span>
+              ) : null}
+            </div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
               {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
               {sellerJoinedAt ? (
@@ -333,6 +345,8 @@ export default function ListingOverviewCard({
           />
         ) : null}
       </section>
+
+      {!isOwner && isActive ? <BuyerSafetyReminder /> : null}
 
       {!isOwner && listing.seller_id ? (
         <section
