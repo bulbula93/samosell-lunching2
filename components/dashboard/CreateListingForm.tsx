@@ -463,16 +463,6 @@ export default function CreateListingForm({
     })
   }
 
-  function setAsCover(imageId: string) {
-    setImages((current) => {
-      const index = current.findIndex((item) => item.id === imageId)
-      if (index <= 0) return current
-      const copy = [...current]
-      const [item] = copy.splice(index, 1)
-      copy.unshift(item)
-      return copy
-    })
-  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -736,11 +726,6 @@ export default function CreateListingForm({
                   alt={`${title.trim() || "განცხადება"} — ფოტო ${index + 1}`}
                   className="h-full w-full object-cover"
                 />
-                {index === 0 ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-brand px-2.5 py-1 text-[11px] font-black text-white">
-                    მთავარი
-                  </span>
-                ) : null}
                 <div className="absolute inset-x-1.5 bottom-1.5 flex items-center gap-1 rounded-xl bg-white/95 p-1 shadow-sm backdrop-blur">
                   <button
                     type="button"
@@ -760,17 +745,6 @@ export default function CreateListingForm({
                   >
                     →
                   </button>
-                  {index > 0 ? (
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => setAsCover(slot.id)}
-                      className="min-h-10 rounded-lg px-2 text-[11px] font-black text-brand hover:bg-brand-soft disabled:opacity-35"
-                      aria-label={`ფოტო ${index + 1} გახადე მთავარი`}
-                    >
-                      მთავარი
-                    </button>
-                  ) : null}
                   <button
                     type="button"
                     disabled={loading}
