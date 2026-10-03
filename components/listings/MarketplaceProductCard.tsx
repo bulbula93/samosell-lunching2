@@ -61,6 +61,7 @@ export default function MarketplaceProductCard({
     : item.seller_avatar_url
   const listingHref = searchListingHref(item.slug, searchId)
   const priceLabel = listingPriceLabel(item.price, item.currency, item.sale_type)
+  const isGift = item.sale_type === "gift"
   const locationLabel = item.city || ka.product.locationUnknown
 
   return (
@@ -84,15 +85,22 @@ export default function MarketplaceProductCard({
           sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 20vw"
         />
 
-        {(statusBadge || promotionBadge) ? (
-          <div className="pointer-events-none absolute left-2 top-2 z-20 sm:left-2.5 sm:top-2.5">
-            <span
-              className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur sm:text-[11px] ${
-                statusBadge ? "bg-text text-white" : promotionClass(item)
-              }`}
-            >
-              {statusBadge || promotionBadge}
-            </span>
+        {(isGift || statusBadge || promotionBadge) ? (
+          <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5 sm:left-2.5 sm:top-2.5">
+            {isGift ? (
+              <span className="inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[10px] font-black text-[#d85f0e] shadow-sm backdrop-blur sm:text-[11px]">
+                🎁 ჩუქება
+              </span>
+            ) : null}
+            {statusBadge || promotionBadge ? (
+              <span
+                className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur sm:text-[11px] ${
+                  statusBadge ? "bg-text text-white" : promotionClass(item)
+                }`}
+              >
+                {statusBadge || promotionBadge}
+              </span>
+            ) : null}
           </div>
         ) : null}
 
@@ -116,8 +124,9 @@ export default function MarketplaceProductCard({
           {item.title}
         </h3>
 
-        <div className={`mt-1.5 text-[17px] font-black leading-6 sm:text-lg ${item.sale_type === "gift" ? "text-[#e96b10]" : "text-brand"}`}>
-          {priceLabel}
+        <div className={`mt-1.5 flex items-center gap-1.5 text-[17px] font-black leading-6 sm:text-lg ${isGift ? "text-[#e96b10]" : "text-brand"}`}>
+          {isGift ? <span aria-hidden="true" className="text-[15px]">🎁</span> : null}
+          <span>{priceLabel}</span>
         </div>
 
         <div className="mt-2 flex min-w-0 items-center gap-2 text-[11px] font-medium text-text-soft sm:text-xs">
