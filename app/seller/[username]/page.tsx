@@ -251,6 +251,17 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   <div className="flex flex-wrap gap-2">{user && user.id !== profile.id ? <><FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /><ProfileChatButton userId={profile.id} /></> : null}<ShareButton url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${profile.seller_type === "store" ? "მაღაზიის" : "გამყიდველის"} საჯარო პროფილი ${SITE_NAME}-ზე`} /></div>
                 </div>
 
+                <div className="mt-6 lg:hidden">
+                  <SellerTrustSummary
+                    verified={Boolean(profile.is_seller_verified)}
+                    activeListingsCount={activeListingsCount}
+                    soldListingsCount={soldListingsCount}
+                    reviewSummary={sellerReviewData.summary}
+                    createdAt={profile.created_at}
+                    compact
+                  />
+                </div>
+
                 <p className="mt-6 max-w-3xl whitespace-pre-wrap text-base leading-7 text-text-soft sm:text-lg sm:leading-8">
                   {profile.bio || (profile.seller_type === "store" ? "მაღაზიას აღწერა ჯერ არ შეუვსია, მაგრამ ქვემოთ შეგიძლია ნახო აქტიური განცხადებები და საკონტაქტო ინფორმაცია." : "პროფილის აღწერა ჯერ არ არის შევსებული, მაგრამ ქვემოთ შეგიძლია გადაათვალიერო ყველა აქტიური განცხადება და ნდობის სიგნალი.")}
                 </p>
@@ -280,14 +291,16 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
             <div className="border-t border-neutral-200 bg-brand px-6 py-7 text-white lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
-              <SellerTrustSummary
-                verified={Boolean(profile.is_seller_verified)}
-                activeListingsCount={activeListingsCount}
-                soldListingsCount={soldListingsCount}
-                reviewSummary={sellerReviewData.summary}
-                createdAt={profile.created_at}
-                variant="dark"
-              />
+              <div className="hidden lg:block">
+                <SellerTrustSummary
+                  verified={Boolean(profile.is_seller_verified)}
+                  activeListingsCount={activeListingsCount}
+                  soldListingsCount={soldListingsCount}
+                  reviewSummary={sellerReviewData.summary}
+                  createdAt={profile.created_at}
+                  variant="dark"
+                />
+              </div>
 
               <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ნახვები: {totalViews}</span>
