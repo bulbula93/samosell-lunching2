@@ -3,7 +3,7 @@ import ListingStatusBadge from "@/components/dashboard/ListingStatusBadge"
 import ListingStatusControl from "@/components/dashboard/ListingStatusControl"
 import SmartImage from "@/components/shared/SmartImage"
 import { activePromotionBadges, formatDateOnly } from "@/lib/boosts"
-import { formatPrice } from "@/lib/listings"
+import { listingPriceLabel } from "@/lib/listings"
 import type { ListingStatus } from "@/lib/my-listings"
 
 export type ListingManagementItem = {
@@ -13,6 +13,7 @@ export type ListingManagementItem = {
   slug: string
   price: number | string
   currency: string
+  sale_type?: string | null
   status: ListingStatus
   created_at: string
   updated_at: string
@@ -61,7 +62,7 @@ export default function ListingManagementCard({ item }: { item: ListingManagemen
                 {item.title}
               </h2>
               <p className="mt-1 text-lg font-black text-brand">
-                {formatPrice(item.price, item.currency)}
+                {listingPriceLabel(item.price, item.currency, item.sale_type)}
               </p>
               <p className="mt-1 text-xs font-bold tracking-wide text-text-soft">
                 ნივთის ID: <span className="text-text">{item.public_id}</span>
