@@ -26,7 +26,7 @@ type MyListingsSearchParams = {
 }
 
 const LISTING_SELECT =
-  "id, public_id, title, slug, price, currency, status, created_at, updated_at, cover_image_url, is_vip, vip_until, promoted_until, featured_until, featured_slot"
+  "id, public_id, title, slug, price, currency, sale_type, status, created_at, updated_at, cover_image_url, is_vip, vip_until, promoted_until, featured_until, featured_slot"
 
 function readParam(value?: string | string[]) {
   return typeof value === "string" ? value : ""
