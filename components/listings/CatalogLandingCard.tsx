@@ -30,6 +30,7 @@ function StarRow() {
 export default function CatalogLandingCard({ item, currentPath = "/catalog", isFavorited = false, sellerItemCount = 0 }: CatalogLandingCardProps) {
   const sellerHref = item.seller_username ? `/seller/${item.seller_username}` : null
   const hasPromotion = Boolean(item.is_vip || item.is_promoted || item.is_featured)
+  const isGift = item.sale_type === "gift"
   const publishedLabel = relativePublishedLabel(item.published_at)
 
   return (
@@ -44,6 +45,12 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
             fallbackLabel="სურათი მალე დაემატება"
           />
         </Link>
+
+        {isGift ? (
+          <span className="pointer-events-none absolute left-2 top-2 inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[10px] font-black text-[#d85f0e] shadow-sm backdrop-blur">
+            🎁 ჩუქება
+          </span>
+        ) : null}
 
         <div className="absolute bottom-2 right-2">
           <FavoriteToggleForm
@@ -82,7 +89,9 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
         <div className="mt-1 flex items-end justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[20px] font-semibold leading-8 text-[#212832]">{listingPriceLabel(item.price, item.currency, item.sale_type)}</span>
+              <span className={`text-[20px] font-semibold leading-8 ${isGift ? "text-[#e96b10]" : "text-[#212832]"}`}>
+                {isGift ? "🎁 " : ""}{listingPriceLabel(item.price, item.currency, item.sale_type)}
+              </span>
             </div>
           </div>
 
