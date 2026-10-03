@@ -170,6 +170,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/agent" className="ui-btn-primary">
               Admin Agent
             </Link>
+            <Link href="/admin/growth" className="ui-btn-primary">
+              Growth Agent
+            </Link>
             <Link href="/admin/reports" className="ui-btn-secondary">
               რეპორტების ნახვა
             </Link>
