@@ -226,7 +226,7 @@ export default async function DashboardListingsPage({
           <>
             <section aria-label="ჩემი განცხადებების სია" className="mt-6 space-y-4">
               {listings.map((item) => (
-                <ListingManagementCard key={item.id} item={item} />
+                <ListingManagementCard key={item.id} item={item} filter={activeFilter} />
               ))}
             </section>
             <MyListingsPagination
