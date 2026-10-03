@@ -159,9 +159,8 @@ function safeNumber(value: unknown) {
 }
 
 export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
-  const supabase = await createClient()
   const now = new Date()
-  const { data, error } = await supabase.rpc("admin_growth_snapshot")
+  const { data, error } = await fetchProductionGrowthSnapshot()
   const payload = (data ?? {}) as GrowthRpcPayload
 
   const activeListings = safeNumber(payload.activeListings)
@@ -204,7 +203,7 @@ export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
     aiConfigured: Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
     dataHealth: {
       ok: !error,
-      failedSections: error ? ["admin_growth_snapshot"] : [],
+      failedSections: error ? ["marketing_growth_snapshot"] : [],
     },
   }
 
