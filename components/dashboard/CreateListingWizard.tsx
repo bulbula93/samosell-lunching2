@@ -36,6 +36,13 @@ type SizeOption = { id: string; label?: string; group_name?: string | null }
 type EditableImage = { id: string; imageUrl: string; file: File }
 type ToggleOption = { value: string; label: string; helper?: string }
 type Step = 1 | 2 | 3 | 4
+type ListingSuccessResult = {
+  listingId: string
+  slug: string
+  status: string
+  title: string
+  coverImageUrl: string | null
+}
 
 const PERFUME_VOLUME_FALLBACK_SIZES: SizeOption[] = [
   { id: "preview-perfume-15", label: "15 ml", group_name: "perfume" },
@@ -268,6 +275,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [loading, setLoading] = useState(false)
   const [progressText, setProgressText] = useState("")
   const [progressPercent, setProgressPercent] = useState(0)
+  const [uploadedImageCount, setUploadedImageCount] = useState(0)
+  const [uploadingImageIndex, setUploadingImageIndex] = useState<number | null>(null)
+  const [successResult, setSuccessResult] = useState<ListingSuccessResult | null>(null)
   const [draggingImageId, setDraggingImageId] = useState("")
 
   const consent = useBrowserConsent()
@@ -296,15 +306,19 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   useEffect(() => {
     if (!consent?.personalization || !userId || !draftChecked || pendingDraft || loading || publishedRef.current) return
     let cancelled = false
+    const hasContent = Boolean(title || description || price || categoryId || images.length)
+
+    if (hasContent) setDraftStatus("ინახება…")
+    else setDraftStatus("")
+
     const timer = setTimeout(() => {
-      const hasContent = Boolean(title || description || price || categoryId || images.length)
       const operation = hasContent ? saveListingDraft({ userId, updatedAt: Date.now(), fields: draftFields, sizeType,
         images: images.map((image) => ({ id: image.id, name: image.file.name, type: image.file.type,
           lastModified: image.file.lastModified, blob: image.file })) }) : deleteListingDraft(userId)
       operation.then((saved) => {
-        if (!cancelled && saved !== false) setDraftStatus(hasContent ? "მონახაზი შენახულია ამ ბრაუზერში · 7 დღით" : "")
+        if (!cancelled && saved !== false) setDraftStatus(hasContent ? "შენახულია ✓" : "")
       }).catch(() => {
-        if (!cancelled) setDraftStatus("მონახაზი ვერ შეინახა. გვერდის დახურვისას მონაცემები შეიძლება დაიკარგოს.")
+        if (!cancelled) setDraftStatus("ავტოშენახვა ვერ მოხერხდა")
       })
     }, 700)
     return () => { cancelled = true; clearTimeout(timer) }
@@ -350,6 +364,49 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const materialId = `${formPrefix}-material`
   const cityId = `${formPrefix}-city`
   const imagesId = `${formPrefix}-images`
+
+  function validationStep(errors: ListingFieldErrors): Step {
+    if (errors.images) return 1
+    if (
+      errors.title ||
+      errors.categoryId ||
+      errors.description ||
+      errors.brandId ||
+      errors.customBrand ||
+      errors.sizeId ||
+      errors.condition ||
+      errors.gender ||
+      errors.color ||
+      errors.material ||
+      errors.city
+    ) return 2
+    if (errors.price || errors.saleType) return 3
+    return 4
+  }
+
+  function validationStepLabel(targetStep: Step) {
+    return stepMeta.find((item) => item.step === targetStep)?.label ?? "ფორმა"
+  }
+
+  function focusFirstInvalidField(errors: ListingFieldErrors, targetStep: Step) {
+    const fieldId =
+      targetStep === 1 ? imagesId :
+      errors.title ? titleId :
+      errors.categoryId ? categoryIdField :
+      errors.description ? descriptionId :
+      errors.brandId || errors.customBrand ? brandIdField :
+      errors.sizeId ? sizeIdField :
+      errors.color ? colorId :
+      errors.material ? materialId :
+      errors.city ? cityId :
+      errors.price ? priceId :
+      null
+
+    requestAnimationFrame(() => {
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      if (fieldId) window.setTimeout(() => document.getElementById(fieldId)?.focus(), 350)
+    })
+  }
 
   const listingCategories = buildListingCategoryOptions(categories)
   const selectedCategory = listingCategories.find((item) => item.id === categoryId)
@@ -562,14 +619,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     const validation = validateListingInput(formInput)
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors)
-      const stepTwoError = ["title", "categoryId", "description", "brandId", "sizeId", "condition", "gender", "color", "material", "city"]
-        .some((field) => Boolean(validation.fieldErrors[field as keyof ListingFieldErrors]))
-      const stepThreeError = ["price", "saleType"]
-        .some((field) => Boolean(validation.fieldErrors[field as keyof ListingFieldErrors]))
-      if (stepTwoError) setStep(2)
-      else if (stepThreeError) setStep(3)
-      setFormError("შეამოწმე მონიშნული ველები და სცადე ხელახლა.")
-      requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+      const targetStep = validationStep(validation.fieldErrors)
+      setStep(targetStep)
+      setFormError(`ნაბიჯი ${targetStep} — ${validationStepLabel(targetStep)}: შეამოწმე მონიშნული ველები.`)
+      focusFirstInvalidField(validation.fieldErrors, targetStep)
       return
     }
 
@@ -579,6 +632,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     setFormError("")
     setProgressText("მონაცემები მოწმდება…")
     setProgressPercent(5)
+    setUploadedImageCount(0)
+    setUploadingImageIndex(null)
 
     let listingId = ""
     let uploadedPaths: string[] = []
@@ -606,8 +661,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         const plan = plansByClientId.get(image.id)
         if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
 
-        setProgressText(`სურათები იტვირთება… ${index + 1}/${images.length}`)
-        setProgressPercent(10 + Math.round(((index + 1) / Math.max(images.length, 1)) * 55))
+        setUploadingImageIndex(index)
+        setProgressText(`ფოტოები იტვირთება… ${index + 1}/${images.length}`)
+        setProgressPercent(10 + Math.round((index / Math.max(images.length, 1)) * 55))
 
         const { error } = await supabase.storage
           .from("listing-images")
@@ -617,8 +673,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           })
         if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
         uploadedPaths.push(plan.path)
+        setUploadedImageCount(index + 1)
+        setProgressPercent(10 + Math.round(((index + 1) / Math.max(images.length, 1)) * 55))
       }
 
+      setUploadingImageIndex(null)
       setProgressText("განცხადება უსაფრთხოდ ინახება…")
       setProgressPercent(75)
       const pathByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan.path]))
@@ -634,7 +693,13 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       })
 
       if (!result.ok) {
-        if (result.fieldErrors) setFieldErrors(result.fieldErrors)
+        if (result.fieldErrors) {
+          setFieldErrors(result.fieldErrors)
+          const targetStep = validationStep(result.fieldErrors)
+          setStep(targetStep)
+          focusFirstInvalidField(result.fieldErrors, targetStep)
+          throw new Error(`ნაბიჯი ${targetStep} — ${validationStepLabel(targetStep)}: ${result.message}`)
+        }
         if (result.code === "unauthorized") {
           router.push(`/login?next=${encodeURIComponent("/dashboard/listings/new")}`)
           return
@@ -646,9 +711,19 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       completed = true
       publishedRef.current = true
       if (userId) await deleteListingDraft(userId).catch(() => undefined)
+      setUploadingImageIndex(null)
+      setUploadedImageCount(images.length)
       setProgressPercent(100)
       setProgressText(publishNow ? "განცხადება გამოქვეყნდა." : "დრაფტი შეიქმნა.")
-      router.push(result.status === "active" ? `/listing/${result.slug}` : "/dashboard/listings")
+      setSuccessResult({
+        listingId: result.listingId,
+        slug: result.slug,
+        status: result.status,
+        title,
+        coverImageUrl: images[0]?.imageUrl ?? null,
+      })
+      submittingRef.current = false
+      setLoading(false)
       router.refresh()
     } catch (error) {
       if (listingId && uploadedPaths.length > 0) await abortListingUploadsAction(listingId, uploadedPaths)
@@ -662,6 +737,59 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     }
   }
 
+  if (successResult) {
+    const published = successResult.status === "active"
+
+    return (
+      <section className="mx-auto w-full max-w-3xl">
+        <div className="ui-card relative overflow-hidden p-6 text-center sm:p-10">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-accent-soft blur-2xl" />
+          <div aria-hidden="true" className="pointer-events-none absolute -bottom-14 -left-8 h-36 w-36 rounded-full bg-brand-soft blur-2xl" />
+
+          <div className="relative">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-3xl text-white shadow-[0_12px_30px_rgba(7,90,83,0.2)]">
+              {published ? "🎉" : "✓"}
+            </div>
+            <p className="ui-eyebrow mt-5">{published ? "გამოქვეყნებულია" : "დრაფტი მზადაა"}</p>
+            <h1 className="mt-2 text-3xl font-black tracking-[-0.035em] text-text sm:text-4xl">
+              {published ? "განცხადება გამოქვეყნდა 🎉" : "დრაფტი შეინახა"}
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-text-soft sm:text-base">
+              {published
+                ? `„${successResult.title}“ უკვე ხელმისაწვდომია SamoSell-ზე. შეგიძლია ნახო საჯარო გვერდი ან გაზარდო ხილვადობა VIP-ით.`
+                : `„${successResult.title}“ შენახულია დრაფტად და მხოლოდ შენს კაბინეტში ჩანს.`}
+            </p>
+
+            {successResult.coverImageUrl ? (
+              <div className="mx-auto mt-6 aspect-[4/5] w-32 overflow-hidden rounded-2xl border border-line bg-surface-alt shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={successResult.coverImageUrl} alt={successResult.title} className="h-full w-full object-cover" />
+              </div>
+            ) : null}
+
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              {published ? (
+                <>
+                  <Link href={`/listing/${successResult.slug}`} className="ui-btn-primary">ნახე განცხადება</Link>
+                  <Link href={`/dashboard/listings/${successResult.listingId}/promote`} className="ui-btn-secondary">გახადე VIP</Link>
+                </>
+              ) : (
+                <Link href="/dashboard/listings" className="ui-btn-primary">ჩემი განცხადებები</Link>
+              )}
+              <button
+                type="button"
+                onClick={() => window.location.assign("/dashboard/listings/new")}
+                className="ui-btn-secondary"
+              >
+                კიდევ დაამატე
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-5xl space-y-5">
       {pendingDraft ? <section aria-label="შენახული მონახაზი" className="ui-card border-brand/25 bg-brand-soft p-4">
@@ -672,12 +800,27 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           <button type="button" onClick={() => void discardDraft()} className="ui-btn-secondary">მონახაზის წაშლა</button>
         </div>
       </section> : null}
-      {draftStatus ? <p role="status" className="text-xs leading-5 text-text-soft">{draftStatus}</p> : null}
       <div ref={topRef} className="scroll-mt-28" />
 
       <header className="ui-card overflow-hidden">
         <div className="bg-[linear-gradient(135deg,#eff8f6_0%,#ffffff_62%)] px-5 py-7 sm:px-8">
-          <p className="ui-eyebrow">ახალი განცხადება</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="ui-eyebrow">ახალი განცხადება</p>
+            {draftStatus ? (
+              <span
+                role="status"
+                className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-[11px] font-bold ${
+                  draftStatus.includes("ვერ")
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : draftStatus.includes("ინახება")
+                      ? "border-amber-200 bg-amber-50 text-amber-800"
+                      : "border-brand/15 bg-brand-soft text-brand"
+                }`}
+              >
+                {draftStatus}
+              </span>
+            ) : null}
+          </div>
           <h1 className="mt-2 text-2xl font-black tracking-tight text-text sm:text-3xl">გაყიდე ნივთი 4 ნაბიჯში</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
             დაიწყე ფოტოებით, შემდეგ შეავსე დეტალები და ფასი. ბოლოს ნახავ ზუსტად როგორ გამოიყურება განცხადება.
@@ -732,8 +875,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
       {formError ? (
         <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-          <p className="font-black">შეამოწმე ფორმა</p>
-          <p className="mt-1">{formError}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-black">ნაბიჯი {step}/4</span>
+            <p className="font-black">{validationStepLabel(step)}</p>
+          </div>
+          <p className="mt-2">{formError}</p>
         </div>
       ) : null}
 
@@ -1129,10 +1275,55 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
       {progressText ? (
         <div className="ui-card px-5 py-4" role="status" aria-live="polite">
-          <div className="flex items-center justify-between gap-3 text-sm font-bold text-text"><span>{progressText}</span><span>{progressPercent}%</span></div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-soft">
-            <div role="progressbar" aria-label="შენახვის პროგრესი" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${progressPercent}%` }} />
+          <div className="flex items-center justify-between gap-3 text-sm font-bold text-text">
+            <span>{progressText}</span>
+            <span>{progressPercent}%</span>
           </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-soft">
+            <div
+              role="progressbar"
+              aria-label="შენახვის პროგრესი"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={progressPercent}
+              className="h-full rounded-full bg-brand transition-[width] duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {loading && images.length > 0 ? (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {images.map((image, index) => {
+                const uploaded = index < uploadedImageCount
+                const activeUpload = index === uploadingImageIndex
+
+                return (
+                  <div
+                    key={image.id}
+                    className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border bg-surface-alt ${
+                      uploaded
+                        ? "border-brand/40"
+                        : activeUpload
+                          ? "border-accent shadow-[0_0_0_3px_rgba(255,122,0,0.12)]"
+                          : "border-line opacity-65"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={image.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      {uploaded ? (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-xs font-black text-white">✓</span>
+                      ) : activeUpload ? (
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-white/80" />
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
