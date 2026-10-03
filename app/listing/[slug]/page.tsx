@@ -60,6 +60,7 @@ export default async function ListingDetailsPage({
     images,
     sellerProfile,
     sellerActiveListingsCount,
+    sellerSoldListingsCount,
     similarItems,
     favoriteIds,
     isFavorited,
@@ -164,6 +165,7 @@ export default async function ListingDetailsPage({
               sellerLabel={sellerLabel}
               sellerAvatarSrc={sellerAvatarSrc}
               sellerActiveListingsCount={sellerActiveListingsCount}
+              sellerSoldListingsCount={sellerSoldListingsCount}
               isOwner={isOwner}
               isAuthenticated={isAuthenticated}
               canChat={canChat}
