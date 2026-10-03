@@ -16,6 +16,7 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     cover_image_url: item.cover_image_url,
     price: item.price,
     currency: item.currency,
+    sale_type: item.sale_type,
     brand_name: item.brand_name,
     category_name: item.category_name,
   }))
@@ -35,12 +36,14 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
               <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.45rem,5vw,4.65rem)] font-normal leading-[1.06] tracking-[-0.04em] text-[#172321]">
                 {ka.home.title}
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-8 text-text-soft sm:text-lg">
-                {ka.home.description}
-              </p>
-              <p className="mt-5 text-sm font-semibold text-text-soft">
-                რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
-              </p>
+              <div className="mt-6 max-w-xl rounded-2xl bg-[#fffaf5]/78 px-4 py-3 shadow-[0_8px_24px_rgba(7,63,59,0.06)] backdrop-blur-[3px] sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+                <p className="text-base leading-8 text-text-soft sm:text-lg">
+                  {ka.home.description}
+                </p>
+                <p className="mt-4 text-sm font-semibold text-text-soft sm:mt-5">
+                  რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
+                </p>
+              </div>
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
