@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js"
 import { cache } from "react"
 import { rankSimilarListings } from "@/lib/discovery"
 import { ka } from "@/lib/i18n/ka"
-import { conditionLabel, formatPrice } from "@/lib/listings"
+import { conditionLabel, listingPriceLabel } from "@/lib/listings"
 import { getSafeImageSource } from "@/lib/media"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, truncateDescription } from "@/lib/seo"
@@ -16,10 +16,10 @@ const LISTING_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i
 const OWNER_VISIBLE_STATUSES = new Set(["active", "reserved", "sold"])
 
 export const listingSelect =
-  "id, public_id, seller_id, slug, title, description, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, public_id, seller_id, slug, title, description, price, currency, condition, sale_type, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 const relatedListingSelect =
-  "id, public_id, seller_id, slug, title, price, currency, condition, city, material, color, gender, is_vip, is_promoted, is_featured, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, public_id, seller_id, slug, title, price, currency, condition, sale_type, city, material, color, gender, is_vip, is_promoted, is_featured, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
   "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone, tiktok_username, tiktok_live_until"
@@ -202,7 +202,7 @@ function buildListingSeoTitle(listing: CatalogListing) {
       ? `${baseTitle} · ${context.slice(0, contextLimit).join(" · ")}`
       : baseTitle
 
-  return `${descriptiveTitle} — ${formatPrice(listing.price, listing.currency)}`
+  return `${descriptiveTitle} — ${listingPriceLabel(listing.price, listing.currency, listing.sale_type)}`
 }
 
 export async function generateListingMetadata(slug: string): Promise<Metadata | null> {
