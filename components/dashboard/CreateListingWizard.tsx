@@ -308,8 +308,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     let cancelled = false
     const hasContent = Boolean(title || description || price || categoryId || images.length)
 
-    if (hasContent) setDraftStatus("ინახება…")
-    else setDraftStatus("")
+    queueMicrotask(() => {
+      if (!cancelled) setDraftStatus(hasContent ? "ინახება…" : "")
+    })
 
     const timer = setTimeout(() => {
       const operation = hasContent ? saveListingDraft({ userId, updatedAt: Date.now(), fields: draftFields, sizeType,
