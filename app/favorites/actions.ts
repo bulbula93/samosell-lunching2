@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { notifyListingFavorited } from "@/lib/notifications"
+import { notifyListingFavorited } from "@/lib/notifications"
 import { createClient } from "@/lib/supabase/server"
 
 function safeNextPath(value: string) {
@@ -47,7 +48,7 @@ export async function toggleFavoriteAction(formData: FormData) {
 
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, slug, seller_id, status")
+    .select("id, slug, title, seller_id, status")
     .eq("id", listingId)
     .maybeSingle()
 
@@ -106,6 +107,7 @@ export async function toggleFavoriteAction(formData: FormData) {
   revalidatePath("/catalog")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/favorites")
+  revalidatePath("/dashboard/notifications")
   revalidatePath(nextPath)
   revalidatePath(`/listing/${listing.slug}`)
   redirect(nextPath)
