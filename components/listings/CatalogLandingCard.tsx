@@ -1,7 +1,7 @@
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import SmartImage from "@/components/shared/SmartImage"
-import { conditionLabel, relativePublishedLabel } from "@/lib/listings"
+import { conditionLabel, listingPriceLabel, relativePublishedLabel } from "@/lib/listings"
 import type { CatalogListing } from "@/types/marketplace"
 
 type CatalogLandingCardProps = {
@@ -9,12 +9,6 @@ type CatalogLandingCardProps = {
   currentPath?: string
   isFavorited?: boolean
   sellerItemCount?: number
-}
-
-function formatPrice(item: CatalogListing) {
-  const price = Number.isFinite(item.price) ? item.price : 0
-  const formatted = new Intl.NumberFormat("ka-GE", { maximumFractionDigits: 0 }).format(price)
-  return item.currency === "GEL" ? `${formatted} ₾` : `${formatted} ${item.currency}`
 }
 
 function sellerLabel(item: CatalogListing) {
@@ -88,7 +82,7 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
         <div className="mt-1 flex items-end justify-between gap-2">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[20px] font-semibold leading-8 text-[#212832]">{formatPrice(item)}</span>
+              <span className="text-[20px] font-semibold leading-8 text-[#212832]">{listingPriceLabel(item.price, item.currency, item.sale_type)}</span>
             </div>
           </div>
 
