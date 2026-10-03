@@ -351,14 +351,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const cityId = `${formPrefix}-city`
   const imagesId = `${formPrefix}-images`
 
-  const listingCategories = useMemo(
-    () => buildListingCategoryOptions(categories),
-    [categories],
-  )
-  const selectedCategory = useMemo(
-    () => listingCategories.find((item) => item.id === categoryId),
-    [listingCategories, categoryId],
-  )
+  const listingCategories = buildListingCategoryOptions(categories)
+  const selectedCategory = listingCategories.find((item) => item.id === categoryId)
   const isPerfume = selectedCategory?.slug === "perfume"
   const filteredSizes = useMemo(() => {
     const byLabel = new Map<string, SizeOption>()
