@@ -101,10 +101,14 @@ export default function PerfumeBrandCarousel() {
 
         <div
           ref={viewportRef}
-          onMouseEnter={() => setPaused(true)}
+          onMouseEnter={pauseAutoplay}
           onMouseLeave={() => setPaused(false)}
-          onPointerDown={pauseTemporarily}
-          onTouchStart={pauseTemporarily}
+          onPointerDown={pauseAutoplay}
+          onPointerUp={resumeAutoplaySoon}
+          onPointerCancel={resumeAutoplaySoon}
+          onTouchStart={pauseAutoplay}
+          onTouchEnd={resumeAutoplaySoon}
+          onTouchCancel={resumeAutoplaySoon}
           className="touch-pan-x overflow-x-auto overscroll-x-contain py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="flex w-max gap-3 pr-3">
