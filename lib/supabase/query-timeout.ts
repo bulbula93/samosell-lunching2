@@ -1,4 +1,4 @@
-export const PUBLIC_QUERY_TIMEOUT_MS = 7000
+export const PUBLIC_QUERY_TIMEOUT_MS = 15000
 
 /** Cancel the underlying PostgREST request, including response body reads. */
 export async function withQueryTimeout<T>(
