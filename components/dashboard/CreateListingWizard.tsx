@@ -673,17 +673,17 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             დაიწყე ფოტოებით, შემდეგ შეავსე დეტალები და ფასი. ბოლოს ნახავ ზუსტად როგორ გამოიყურება განცხადება.
           </p>
 
-          <ol className="mt-6 grid grid-cols-4 gap-2" aria-label="განცხადების შექმნის პროგრესი">
+          <ol className="mt-6 grid grid-cols-4 gap-1.5 sm:gap-2" aria-label="განცხადების შექმნის პროგრესი">
             {stepMeta.map((item) => {
               const active = item.step === step
               const complete = item.step < step
               return (
-                <li key={item.step}>
+                <li key={item.step} className="min-w-0">
                   <button
                     type="button"
                     disabled={item.step > step || loading}
                     onClick={() => item.step <= step && jumpToStep(item.step)}
-                    className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                    className={`flex min-h-[76px] w-full min-w-0 flex-col items-center justify-center rounded-xl border px-1.5 py-2 text-center transition sm:min-h-0 sm:items-start sm:px-3 sm:py-3 sm:text-left ${
                       active
                         ? "border-brand bg-brand text-white"
                         : complete
@@ -692,8 +692,26 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                     } disabled:cursor-default`}
                     aria-current={active ? "step" : undefined}
                   >
-                    <span className="block text-xs font-black">{item.step}/4 · {item.label}</span>
-                    <span className={`mt-1 hidden text-[11px] sm:block ${active ? "text-white/80" : "text-text-soft"}`}>{item.helper}</span>
+                    <span
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black sm:hidden ${
+                        active
+                          ? "bg-white/18 text-white"
+                          : complete
+                            ? "bg-white text-brand"
+                            : "bg-surface-alt text-text-soft"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {item.step}
+                    </span>
+                    <span className="mt-1.5 block max-w-full truncate text-[10px] font-black leading-tight sm:hidden">
+                      {item.label}
+                    </span>
+
+                    <span className="hidden text-xs font-black sm:block">{item.step}/4 · {item.label}</span>
+                    <span className={`mt-1 hidden text-[11px] sm:block ${active ? "text-white/80" : "text-text-soft"}`}>
+                      {item.helper}
+                    </span>
                   </button>
                 </li>
               )
