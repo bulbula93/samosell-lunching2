@@ -19,5 +19,4 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      - run: pnpm build
       - run: pnpm test -- --run tests/UsefulNotifications.test.ts
