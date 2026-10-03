@@ -1,13 +1,14 @@
 import Link from "next/link"
 import StartChatButton from "@/components/chat/StartChatButton"
 import { ka } from "@/lib/i18n/ka"
-import { formatPrice } from "@/lib/listings"
+import { listingPriceLabel } from "@/lib/listings"
 
 type MobileListingActionBarProps = {
   listingId: string
   listingSlug: string
   price: number
   currency: string
+  saleType?: string | null
   isActive: boolean
   isOwner: boolean
   isAuthenticated: boolean
@@ -21,6 +22,7 @@ export default function MobileListingActionBar({
   listingSlug,
   price,
   currency,
+  saleType,
   isActive,
   isOwner,
   isAuthenticated,
@@ -39,7 +41,7 @@ export default function MobileListingActionBar({
             ფასი
           </span>
           <strong className="block truncate text-lg font-black leading-tight text-text">
-            {formatPrice(price, currency)}
+            {listingPriceLabel(price, currency, saleType)}
           </strong>
         </div>
 
