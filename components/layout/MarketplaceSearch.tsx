@@ -78,11 +78,19 @@ export default function MarketplaceSearch({
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
   useEffect(() => {
-    setQuery(defaultValue)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setQuery(defaultValue)
+    })
+    return () => { cancelled = true }
   }, [defaultValue])
 
   useEffect(() => {
-    setRecentSearches(readRecentSearches())
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) setRecentSearches(readRecentSearches())
+    })
+    return () => { cancelled = true }
   }, [])
 
   useEffect(() => {
