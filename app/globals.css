@@ -140,6 +140,20 @@ body {
   }
 }
 
+@keyframes samosell-hanger-swing {
+  0%, 100% {
+    transform: rotate(-7deg) translateY(0);
+  }
+  50% {
+    transform: rotate(7deg) translateY(-2px);
+  }
+}
+
+.samosell-loader-hanger {
+  transform-origin: 50% 18%;
+  animation: samosell-hanger-swing 1.05s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
