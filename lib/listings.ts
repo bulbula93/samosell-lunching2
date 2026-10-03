@@ -138,6 +138,15 @@ export function formatPrice(value: number | string, currency = "GEL") {
   return `${formatted} ${currency === "GEL" ? "₾" : currency}`
 }
 
+
+export function listingPriceLabel(
+  value: number | string,
+  currency = "GEL",
+  saleType?: string | null,
+) {
+  return saleType === "gift" ? "ჩუქება" : formatPrice(value, currency)
+}
+
 export function formatPublishedDate(value?: string | null) {
   if (!value) return "—"
   return new Intl.DateTimeFormat("ka-GE", {
