@@ -6,7 +6,7 @@ import { clearAllListingDrafts, deleteListingDraft, DRAFT_TTL_MS, isUsableDraft,
 
 const draft = (): ListingDraft => ({
   userId: "owner-a", updatedAt: Date.now(), sizeType: "clothing",
-  fields: { title: "ქურთუკი", description: "ტესტი", price: "30", categoryId: 1, brandId: "", sizeId: "",
+  fields: { title: "ქურთუკი", description: "ტესტი", price: "30", categoryId: 1, brandId: "", customBrand: "", sizeId: "",
     condition: "good", saleType: "sell", gender: "unisex", color: "", material: "", city: "თბილისი", publishNow: true },
   images: [{ id: "photo-1", name: "item.jpg", type: "image/jpeg", lastModified: 1, blob: new NodeBlob(["photo"], { type: "image/jpeg" }) as unknown as Blob }],
 })

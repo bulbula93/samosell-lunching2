@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useUnreadNotifications } from "@/lib/use-unread-notifications"
@@ -106,7 +107,7 @@ export default function MarketplaceHeader({
           aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
           className="inline-flex min-h-11 shrink-0 items-center"
         >
-          <img
+          <Image unoptimized
             src="/brand/samosell-header-logo.svg"
             alt="Samo$ell"
             width={164}

@@ -55,7 +55,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
   it("records viewport dimensions for phone-specific field vitals", () => {
     expect(vitalsClient).toContain('type DeviceClass = "phone" | "tablet" | "desktop"')
     expect(vitalsClient).toContain("visualViewport")
-    expect(vitalsClient).toContain('viewportWidth <= 767 ? "phone" : viewportWidth <= 1024 ? "tablet" : "desktop"')
+    expect(vitalsClient).toContain("classifyViewport(viewportWidth)")
     expect(vitalsRoute).toContain("device_class: deviceClass")
     expect(vitalsRoute).toContain("viewport_width: viewportWidth")
     expect(vitalsMigration).toContain("web_vitals_events_mobile_rollup_idx")

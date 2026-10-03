@@ -1,3 +1,4 @@
+import Image from "next/image"
 import { ka } from "@/lib/i18n/ka"
 
 const steps = [
@@ -63,7 +64,7 @@ export default function HomeHowItWorks() {
                 className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-3xl font-black tracking-[-0.045em] text-brand sm:text-4xl"
               >
                 <span>როგორ მუშაობს</span>
-                <img
+                <Image unoptimized
                   src="/brand/samosell-header-logo.svg"
                   alt="Samo$ell"
                   width={164}

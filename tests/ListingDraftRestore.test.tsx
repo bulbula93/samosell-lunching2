@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 vi.mock("@/app/dashboard/listings/form-actions", () => ({ prepareListingUploadsAction: vi.fn(), saveListingAction: vi.fn(), abortListingUploadsAction: vi.fn() }))
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ storage: { from: vi.fn() } }) }))
 vi.mock("@/lib/listing-draft", () => ({ readListingDraft: vi.fn(), saveListingDraft: vi.fn(() => Promise.resolve(true)), deleteListingDraft: vi.fn(() => Promise.resolve()) }))
-const props = { categories: [{ id: 1, name: "ტანსაცმელი" }], brands: [], sizes: [], initialSellerPhone: "+995 555 12 34 56", userId: "owner-a" }
+const props = { categories: [{ id: 1, name: "ქალებისთვის", slug: "women" }], brands: [], sizes: [], initialSellerPhone: "+995 555 12 34 56", userId: "owner-a" }
 beforeEach(() => {
   localStorage.clear(); document.cookie = "samosell_browser_consent=; Max-Age=0; Path=/"; vi.clearAllMocks(); saveBrowserConsent(true, false)
   Element.prototype.scrollIntoView = vi.fn()

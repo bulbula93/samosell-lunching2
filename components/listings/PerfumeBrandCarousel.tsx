@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { PERFUME_BRANDS } from "@/lib/perfume-brands"
@@ -12,7 +13,7 @@ function BrandLogo({ name, domain }: { name: string; domain: string }) {
       {failed ? (
         <span className="text-xs font-black text-brand">{name.slice(0, 2)}</span>
       ) : (
-        <img
+        <Image unoptimized
           src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
           alt=""
           width={32}

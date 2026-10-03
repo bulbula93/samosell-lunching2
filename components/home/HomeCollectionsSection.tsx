@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { ka } from "@/lib/i18n/ka"
@@ -7,10 +8,6 @@ import type { PopularBrand } from "@/lib/home-page"
 import { POPULAR_BRANDS } from "@/lib/popular-brands"
 
 
-
-function normalizeBrand(value: string) {
-  return value.trim().toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, "")
-}
 
 function BrandMark({ name, domain }: { name: string; domain: string }) {
   const [failed, setFailed] = useState(false)
@@ -20,7 +17,7 @@ function BrandMark({ name, domain }: { name: string; domain: string }) {
       {failed ? (
         <span className="text-sm font-black text-brand">{name.slice(0, 2)}</span>
       ) : (
-        <img
+        <Image unoptimized
           src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
           alt=""
           width={32}

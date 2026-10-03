@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("@/app/dashboard/listings/actions", () => ({
+  deleteListingAction: vi.fn(),
   updateListingStatusAction: mocks.updateStatus,
   getListingBuyerCandidatesAction: mocks.getBuyerCandidates,
 }))
@@ -75,7 +76,7 @@ describe("my listings helpers and management UI", () => {
       "href",
       `/dashboard/listings/${baseItem.id}/edit`
     )
-    expect(screen.queryByText(/წაშლა/)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "წაშლა" })).toHaveAttribute("type", "submit")
     expect(screen.queryByText(/checkout|payment|შეტყობინება/i)).not.toBeInTheDocument()
   })
 

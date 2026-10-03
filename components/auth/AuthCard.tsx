@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import type { ReactNode } from "react"
 
@@ -38,7 +39,7 @@ export default function AuthCard({
             aria-label="მთავარ გვერდზე დაბრუნება"
             className="inline-flex min-h-11 items-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
           >
-            <img
+            <Image unoptimized
               src="/brand/samosell-header-logo.svg"
               alt="Samo$ell"
               width={164}

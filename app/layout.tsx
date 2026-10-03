@@ -84,7 +84,7 @@ export default function RootLayout({
           <ClientInstrumentation />
         </Suspense>
         <div className="flex min-h-screen flex-col">
-          <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div>
+          <div id="main-content" className="min-h-screen flex-1" tabIndex={-1}>{children}</div>
           <SiteFooter />
         </div>
       </body>

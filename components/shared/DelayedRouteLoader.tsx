@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useState } from "react"
 
 const SHOW_DELAY_MS = 220
@@ -22,7 +23,7 @@ export default function DelayedRouteLoader() {
       className="fixed inset-0 z-[150] flex items-center justify-center bg-[#fffaf6]/78 px-5 backdrop-blur-[3px]"
     >
       <div className="flex min-w-[190px] flex-col items-center rounded-[28px] border border-[#eadfd7] bg-white/95 px-7 py-6 shadow-[0_20px_60px_rgba(7,63,59,0.14)]">
-        <img
+        <Image unoptimized
           src="/brand/samosell-header-logo.svg"
           alt=""
           width={164}

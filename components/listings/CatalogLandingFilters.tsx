@@ -28,6 +28,10 @@ export default function CatalogLandingFilters({
   const options = { categories, sizes, colors, cities }
   const chips: Array<{ key: FilterKey | "price"; label: string }> = []
   if (values.q) chips.push({ key: "q", label: `ძებნა: ${values.q}` })
+  if (values.category) {
+    const category = categories.find(item => item.slug === values.category)
+    if (category) chips.push({ key: "category", label: category.name })
+  }
   if (values.item_type) chips.push({ key: "item_type", label: getCatalogItemLabel(values.item_type) })
   if (values.brand) chips.push({ key: "brand", label: values.brand })
   if (values.size) chips.push({ key: "size", label: `${values.category === "perfume" ? "მოცულობა" : "ზომა"} ${values.size}` })
@@ -84,6 +88,7 @@ export default function CatalogLandingFilters({
             } else {
               nextValues[chip.key] = chip.key === "sort" ? "latest" : ""
             }
+            if (chip.key === "category") { nextValues.item_type = ""; nextValues.size = "" }
             if (chip.key === "q" && nextValues.sort === "relevance") {
               nextValues.sort = "latest"
             }
