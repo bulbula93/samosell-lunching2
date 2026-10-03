@@ -1,6 +1,7 @@
 import "server-only"
 
 import { fetchProductionGrowthSnapshot } from "@/lib/production-growth-source"
+import { createClient } from "@/lib/supabase/server"
 
 const ACTIVE_SELLER_LISTING_THRESHOLD = 3
 const TARGET_ACTIVE_LISTINGS = 1000
@@ -160,7 +161,9 @@ function safeNumber(value: unknown) {
 
 export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
   const now = new Date()
-  const { data, error } = await fetchProductionGrowthSnapshot()
+  const { data, error } = process.env.VERCEL_ENV === "production"
+    ? await fetchProductionGrowthSnapshot()
+    : await (await createClient()).rpc("admin_growth_snapshot")
   const payload = (data ?? {}) as GrowthRpcPayload
 
   const activeListings = safeNumber(payload.activeListings)
@@ -203,7 +206,7 @@ export async function collectGrowthSnapshot(): Promise<GrowthSnapshot> {
     aiConfigured: Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
     dataHealth: {
       ok: !error,
-      failedSections: error ? ["marketing_growth_snapshot"] : [],
+      failedSections: error ? [process.env.VERCEL_ENV === "production" ? "marketing_growth_snapshot" : "admin_growth_snapshot"] : [],
     },
   }
 

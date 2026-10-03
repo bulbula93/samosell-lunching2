@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { describe, expect, it } from "vitest"
-import { buildGrowthModelContext } from "@/lib/growth-agent"
+import { describe, expect, it, vi } from "vitest"
+import { buildGrowthModelContext, collectGrowthSnapshot } from "@/lib/growth-agent"
+import { createClient } from "@/lib/supabase/server"
+import { fetchProductionGrowthSnapshot } from "@/lib/production-growth-source"
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }))
+vi.mock("@/lib/production-growth-source", () => ({ fetchProductionGrowthSnapshot: vi.fn() }))
 
 const growthLib = readFileSync(
   join(process.cwd(), "lib", "growth-agent.ts"),
@@ -23,6 +26,21 @@ const growthClient = readFileSync(
 )
 
 describe("Growth Agent v1", () => {
+  it("uses only the authenticated configured project for Preview growth data", async () => {
+    vi.stubEnv("VERCEL_ENV", "preview")
+    const rpc = vi.fn().mockResolvedValue({ data: { activeListings: 17 }, error: null })
+    vi.mocked(createClient).mockResolvedValue({ rpc } as unknown as Awaited<ReturnType<typeof createClient>>)
+    try {
+      const snapshot = await collectGrowthSnapshot()
+      expect(rpc).toHaveBeenCalledWith("admin_growth_snapshot")
+      expect(snapshot.activeListings).toBe(17)
+      expect(fetchProductionGrowthSnapshot).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+      vi.clearAllMocks()
+    }
+  })
+
   it("tracks seller activation and supply KPIs", () => {
     expect(growthLib).toContain("ACTIVE_SELLER_LISTING_THRESHOLD = 3")
     expect(growthLib).toContain("TARGET_ACTIVE_LISTINGS = 1000")
