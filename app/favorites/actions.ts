@@ -94,11 +94,13 @@ export async function toggleFavoriteAction(formData: FormData) {
       })
     }
 
-    if (searchId && await serverAllowsAnalytics()) await recordSearchInteractionSafely(supabase, {
-      searchId,
-      listingId,
-      eventType: "favorite",
-    })
+    if (searchId && (await serverAllowsAnalytics())) {
+      await recordSearchInteractionSafely(supabase, {
+        searchId,
+        listingId,
+        eventType: "favorite",
+      })
+    }
   }
 
   revalidatePath("/")
