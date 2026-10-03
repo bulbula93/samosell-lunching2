@@ -17,7 +17,7 @@ export const LISTING_PRICE_LIMITS = {
 } as const
 
 export const LISTING_CONDITIONS = ["new", "like_new", "good", "fair"] as const
-export const LISTING_SALE_TYPES = ["sell", "exchange"] as const
+export const LISTING_SALE_TYPES = ["sell", "exchange", "gift"] as const
 export const LISTING_GENDERS = ["women", "men", "unisex", "kids"] as const
 export const EDITABLE_LISTING_STATUSES = ["draft", "active"] as const
 
@@ -108,7 +108,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
   const description = input.description.trim()
   const titleLength = textLength(title)
   const descriptionLength = textLength(description)
-  const price = normalizePrice(input.price)
+  const price = input.saleType === "gift" ? "0.00" : normalizePrice(input.price)
   const categoryId = typeof input.categoryId === "number" ? input.categoryId : Number(input.categoryId)
 
   if (titleLength < LISTING_TEXT_LIMITS.titleMin || titleLength > LISTING_TEXT_LIMITS.titleMax) {
@@ -122,7 +122,7 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
     fieldErrors.description = `აღწერა უნდა შეიცავდეს ${LISTING_TEXT_LIMITS.descriptionMin}–${LISTING_TEXT_LIMITS.descriptionMax} სიმბოლოს.`
   }
 
-  if (!price) {
+  if (input.saleType !== "gift" && !price) {
     fieldErrors.price = "შეიყვანე ფასი 0.01 ₾-დან 99 999 999.99 ₾-მდე, მაქსიმუმ ორი ათწილადი ნიშნით."
   }
 
