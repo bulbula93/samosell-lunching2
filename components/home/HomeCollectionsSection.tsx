@@ -37,6 +37,7 @@ function BrandMark({ name, domain }: { name: string; domain: string }) {
 export default function HomeCollectionsSection({ brands }: { brands: PopularBrand[] }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fractionalScrollRef = useRef(0)
   const [paused, setPaused] = useState(false)
 
   void brands
@@ -55,7 +56,13 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
       previous = now
 
       if (!document.hidden) {
-        viewport.scrollLeft += delta * 0.035
+        const distance = fractionalScrollRef.current + delta * 0.035
+        const pixels = Math.floor(distance)
+        fractionalScrollRef.current = distance - pixels
+
+        if (pixels > 0) {
+          viewport.scrollLeft += pixels
+        }
 
         const halfway = viewport.scrollWidth / 2
         if (halfway > 0 && viewport.scrollLeft >= halfway) {
@@ -70,19 +77,22 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
     return () => cancelAnimationFrame(frame)
   }, [paused])
 
-  function pauseTemporarily() {
+  function pauseAutoplay() {
     setPaused(true)
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
-    resumeTimerRef.current = setTimeout(() => setPaused(false), 2200)
+  }
+
+  function resumeAutoplaySoon() {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    resumeTimerRef.current = setTimeout(() => setPaused(false), 1200)
   }
 
   function nudge(direction: "left" | "right") {
     const viewport = viewportRef.current
     if (!viewport) return
-    setPaused(true)
+    pauseAutoplay()
     viewport.scrollBy({ left: direction === "right" ? 420 : -420, behavior: "smooth" })
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
-    resumeTimerRef.current = setTimeout(() => setPaused(false), 1800)
+    resumeAutoplaySoon()
   }
 
   useEffect(
@@ -150,11 +160,15 @@ export default function HomeCollectionsSection({ brands }: { brands: PopularBran
 
           <div
             ref={viewportRef}
-            onMouseEnter={() => setPaused(true)}
+            onMouseEnter={pauseAutoplay}
             onMouseLeave={() => setPaused(false)}
-            onPointerDown={pauseTemporarily}
-            onTouchStart={pauseTemporarily}
-            className="scrollbar-none overflow-x-auto overscroll-x-contain py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onPointerDown={pauseAutoplay}
+            onPointerUp={resumeAutoplaySoon}
+            onPointerCancel={resumeAutoplaySoon}
+            onTouchStart={pauseAutoplay}
+            onTouchEnd={resumeAutoplaySoon}
+            onTouchCancel={resumeAutoplaySoon}
+            className="scrollbar-none touch-pan-x overflow-x-auto overscroll-x-contain py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             <div className="flex w-max gap-3 pr-3">
               {loop.map((brand, index) => (
