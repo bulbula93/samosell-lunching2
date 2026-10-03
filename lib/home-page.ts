@@ -3,7 +3,7 @@ import "server-only"
 import { unstable_cache } from "next/cache"
 import type { User } from "@supabase/supabase-js"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
-import { withQueryTimeout } from "@/lib/supabase/query-timeout"
+import { PUBLIC_QUERY_TIMEOUT_MS, withQueryTimeout } from "@/lib/supabase/query-timeout"
 import type { CatalogListing } from "@/types/marketplace"
 import type { StoryRailData } from "@/types/story"
 
@@ -56,7 +56,7 @@ export type HomePageData = PublicHomePageData & {
   storyRail?: StoryRailData
 }
 
-const HOME_QUERY_BUDGET_MS = 7000
+const HOME_QUERY_BUDGET_MS = PUBLIC_QUERY_TIMEOUT_MS
 const HOME_POOL_LIMIT = 500
 
 async function settleHomeQuery<T>(
