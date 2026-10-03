@@ -16,6 +16,7 @@ export type CatalogFilterValues = {
   condition: string
   gender: string
   vip: string
+  sale_type: string
   sort: string
   min_price: string
   max_price: string
@@ -600,7 +601,7 @@ function PriceAndVip({
       className={
         mobile
           ? "grid gap-3"
-          : "grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]"
+          : "grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]"
       }
     >
       <label className="block">
@@ -627,6 +628,17 @@ function PriceAndVip({
           placeholder="5000 ₾"
           className="ui-input rounded-2xl border-[#dfe8e4] bg-white"
         />
+      </label>
+
+      <label className="flex min-h-12 items-center gap-3 self-end rounded-2xl border border-[#f1dfcf] bg-[#fffaf5] px-4 text-sm font-semibold text-[#b75217] shadow-[0_5px_16px_rgba(232,109,19,0.06)]">
+        <input
+          type="checkbox"
+          name="sale_type"
+          value="gift"
+          defaultChecked={values.sale_type === "gift"}
+          className="h-5 w-5 accent-[#f06f16]"
+        />
+        ჩუქება
       </label>
 
       <label className="flex min-h-12 items-center gap-3 self-end rounded-2xl border border-[#e3ece8] bg-white px-4 text-sm font-semibold text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)]">
