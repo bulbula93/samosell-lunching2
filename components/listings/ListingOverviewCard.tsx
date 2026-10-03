@@ -13,7 +13,7 @@ import ListingSocialShare from "@/components/listings/ListingSocialShare"
 import { ka } from "@/lib/i18n/ka"
 import {
   conditionLabel,
-  formatPrice,
+  listingPriceLabel,
   formatPublishedDate,
   genderLabel,
 } from "@/lib/listings"
@@ -180,7 +180,7 @@ export default function ListingOverviewCard({
           {listing.title}
         </h1>
         <p className="mt-3 text-[1.75rem] font-black tracking-tight text-text sm:mt-4 sm:text-4xl">
-          {formatPrice(listing.price, listing.currency)}
+          {listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
         </p>
       </header>
 
@@ -381,9 +381,9 @@ export default function ListingOverviewCard({
           <ListingSocialShare
             url={shareUrl}
             title={listing.title}
-            text={`${listing.title} — ${formatPrice(listing.price, listing.currency)}`}
+            text={`${listing.title} — ${listingPriceLabel(listing.price, listing.currency, listing.sale_type)}`}
             imageUrl={listing.cover_image_url}
-            priceText={formatPrice(listing.price, listing.currency)}
+            priceText={listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
             className="sm:col-span-2"
           />
 
@@ -392,6 +392,7 @@ export default function ListingOverviewCard({
             listingSlug={listing.slug}
             price={listing.price}
             currency={listing.currency}
+            saleType={listing.sale_type}
             isActive={isActive}
             isOwner={isOwner}
             isAuthenticated={isAuthenticated}
