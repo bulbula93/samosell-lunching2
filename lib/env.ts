@@ -15,12 +15,23 @@ function normalizeUrl(value: string) {
   }
 }
 
+const QA_PROJECT_REF = "ydocqjdjmffysexkzxyc"
+const QA_PUBLISHABLE_KEY = "sb_publishable_GimAu7-NHZn6fbQdl0rTmA_vaDHd4MM"
+
+const supabaseUrl = normalizeUrl(
+  requireNonEmpty("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL),
+)
+
+const configuredPublishableKey = requireNonEmpty(
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+)
+
 const publicEnv = {
-  supabaseUrl: normalizeUrl(requireNonEmpty("NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL)),
-  supabasePublishableKey: requireNonEmpty(
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ),
+  supabaseUrl,
+  supabasePublishableKey: supabaseUrl.includes(QA_PROJECT_REF)
+    ? QA_PUBLISHABLE_KEY
+    : configuredPublishableKey,
   siteUrl: normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000"),
 }
 
