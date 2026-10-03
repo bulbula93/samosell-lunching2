@@ -188,6 +188,14 @@ export default function MobileNavigation({
               </Link>
               {userState.signedIn ? (
                 <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    prefetch={false}
+                    href="/dashboard/listings"
+                    onClick={() => setOpen(false)}
+                    className="ui-btn-secondary col-span-2 justify-center"
+                  >
+                    ჩემი განცხადებები
+                  </Link>
                   <Link prefetch={false} href="/dashboard/notifications" onClick={() => setOpen(false)} className="ui-btn-secondary col-span-2 justify-between">
                     <span>შეტყობინებები</span>
                     {userState.unreadNotifications > 0 ? (
