@@ -23,6 +23,7 @@ export type CatalogListing = {
   price: number
   currency: string
   condition: string
+  sale_type?: string | null
   gender?: string | null
   city: string | null
   material?: string | null
