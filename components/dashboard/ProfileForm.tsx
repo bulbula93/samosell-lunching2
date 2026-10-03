@@ -452,11 +452,11 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           <div>
             <div className="ui-eyebrow">TikTok</div>
             <div className="mt-2 text-xl font-black text-text">TikTok LIVE ნიშანი</div>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-neutral-600">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-text-soft">
               მიუთითე TikTok username. როცა LIVE-ში გახვალ, ჩართე სტატუსი — შენს ავატარზე გამოჩნდება LIVE და დაჭერისას გაიხსნება TikTok-ის LIVE გვერდი. სტატუსი 4 საათში ავტომატურად ქრება.
             </p>
           </div>
-          <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${isTikTokLiveActive(tiktokLiveUntil) ? "bg-[#ff2d55] text-white" : "bg-neutral-100 text-neutral-600"}`}>
+          <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-black ${isTikTokLiveActive(tiktokLiveUntil) ? "bg-[#ff2d55] text-white" : "bg-surface-alt text-text-soft"}`}>
             {isTikTokLiveActive(tiktokLiveUntil) ? "LIVE" : "OFFLINE"}
           </span>
         </div>
@@ -498,10 +498,10 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
 
       {sellerType === "store" ? (
         <>
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-50 p-5">
+          <div className="ui-subcard p-5">
             <div className="ui-eyebrow">მაღაზიის ბრენდინგი</div>
             <div className="mt-2 text-xl font-black text-text">დაამატე მაღაზიის ცალკე ლოგო და cover / banner</div>
-            <div className="mt-1 max-w-3xl text-sm leading-6 text-neutral-600">ლოგო გამოჩნდება საჯარო მაღაზიის პროფილზე და დეტალის გვერდზე. banner კი მაღაზიის გვერდს უფრო პროფესიონალურ იერს მისცემს.</div>
+            <div className="mt-1 max-w-3xl text-sm leading-6 text-text-soft">ლოგო გამოჩნდება საჯარო მაღაზიის პროფილზე და დეტალის გვერდზე. banner კი მაღაზიის გვერდს უფრო პროფესიონალურ იერს მისცემს.</div>
           </div>
 
           <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
@@ -529,7 +529,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             <AssetCard
               title="მაღაზიის cover / banner"
               description="ეს ფართო სურათი გამოჩნდება მაღაზიის საჯარო გვერდის ზედა ნაწილში."
-              preview={<div className="overflow-hidden rounded-[1.25rem] border border-neutral-200"><SmartImage src={visibleStoreBannerUrl} alt={fullName || username || "მაღაზიის banner"} wrapperClassName="h-24 w-56 bg-neutral-100" className="object-cover" fallbackLabel="აქ გამოჩნდება შენი მაღაზიის banner" /></div>}
+              preview={<div className="overflow-hidden rounded-[1.25rem] border border-line"><SmartImage src={visibleStoreBannerUrl} alt={fullName || username || "მაღაზიის banner"} wrapperClassName="h-24 w-56 bg-surface-alt" className="object-cover" fallbackLabel="აქ გამოჩნდება შენი მაღაზიის banner" /></div>}
               onChoose={() => bannerInputRef.current?.click()}
               onRemove={() => {
                 clearSelectedFile(bannerInputRef, selectedBannerPreviewUrl, setSelectedBannerPreviewUrl, setSelectedBannerFile)
@@ -551,7 +551,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           <div className="ui-subcard bg-white p-5">
             <div className="ui-eyebrow">მაღაზიის ინფორმაცია</div>
             <div className="mt-2 text-xl font-black text-text">კონტაქტები, სოციალური ბმულები და მისამართი</div>
-            <div className="mt-1 max-w-3xl text-sm leading-6 text-neutral-600">თუ ეს ველები შეავსე, საჯარო მაღაზიის პროფილზე ცალკე სექციად გამოჩნდება — ტელეფონი, WhatsApp, Telegram, Instagram, სამუშაო საათები, მისამართი და რუკის ჩაშენებული preview.</div>
+            <div className="mt-1 max-w-3xl text-sm leading-6 text-text-soft">თუ ეს ველები შეავსე, საჯარო მაღაზიის პროფილზე ცალკე სექციად გამოჩნდება — ტელეფონი, WhatsApp, Telegram, Instagram, სამუშაო საათები, მისამართი და რუკის ჩაშენებული preview.</div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
