@@ -3,9 +3,8 @@ import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import BuyerSafetyReminder from "@/components/listings/BuyerSafetyReminder"
 import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
-import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
-import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
+import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
 import Avatar from "@/components/shared/Avatar"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
@@ -19,11 +18,9 @@ import {
   genderLabel,
 } from "@/lib/listings"
 import {
-  formatJoinDate,
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
 import type { CatalogListing } from "@/types/marketplace"
 import type { SellerReviewSummary } from "@/types/review"
 
@@ -33,6 +30,7 @@ type ListingOverviewCardProps = {
   sellerLabel: string
   sellerAvatarSrc: string | null
   sellerActiveListingsCount: number
+  sellerSoldListingsCount?: number
   isOwner: boolean
   isAuthenticated: boolean
   canChat: boolean
@@ -107,6 +105,7 @@ export default function ListingOverviewCard({
   sellerLabel,
   sellerAvatarSrc,
   sellerActiveListingsCount,
+  sellerSoldListingsCount = 0,
   isOwner,
   isAuthenticated,
   canChat,
@@ -130,21 +129,12 @@ export default function ListingOverviewCard({
   const statusMessage = getStatusMessage(listing.status)
   const details = buildDetailItems(listing)
   const description = listing.description?.trim() || ""
-  const sellerJoinedAt = formatJoinDate(
-    sellerProfile?.created_at || listing.seller_created_at,
-  )
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
   const listingReturnPath = searchId
     ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}`
     : `/listing/${listing.slug}`
-  const sellerTrustSignals = sellerProfile
-    ? getSellerTrustSignals({
-        profile: sellerProfile,
-        reviewSummary: sellerReviewSummary,
-      }).filter((signal) => signal.key !== "reviews" && signal.key !== "verified")
-    : []
   const messagingUnavailable =
     isActive &&
     !isOwner &&
@@ -310,26 +300,21 @@ export default function ListingOverviewCard({
             </div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
               {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
-              {sellerJoinedAt ? (
-                <span>
-                  {ka.listingDetail.memberSince}: {sellerJoinedAt}
-                </span>
-              ) : null}
-              {sellerActiveListingsCount > 0 ? (
-                <span>
-                  {sellerActiveListingsCount} {ka.listingDetail.activeListings}
-                </span>
-              ) : null}
             </div>
-            {sellerReviewSummary && sellerReviewSummary.reviewCount > 0 ? (
-              <div className="mt-2">
-                <ReviewSummary summary={sellerReviewSummary} compact />
-              </div>
-            ) : null}
           </div>
         </div>
 
-        <SellerTrustBadges signals={sellerTrustSignals} compact className="mt-3" />
+        <span className="sr-only">{sellerActiveListingsCount} აქტიური ნივთები</span>
+        <div className="mt-4">
+          <SellerTrustSummary
+            verified={Boolean(sellerProfile?.is_seller_verified || listing.seller_is_verified)}
+            activeListingsCount={sellerActiveListingsCount}
+            soldListingsCount={sellerSoldListingsCount}
+            reviewSummary={sellerReviewSummary}
+            createdAt={sellerProfile?.created_at || listing.seller_created_at}
+            compact
+          />
+        </div>
 
         {sellerProfile?.bio ? (
           <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-text-soft [overflow-wrap:anywhere]">
