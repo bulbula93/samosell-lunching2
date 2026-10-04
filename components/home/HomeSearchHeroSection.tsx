@@ -52,13 +52,6 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
                 >
                   ნახე კატალოგი
                 </Link>
-                <Link
-                  href="/catalog?sale_type=gift"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-[#ffd5b2] bg-[#fff7ed]/92 px-5 text-sm font-black text-[#d85f0e] shadow-[0_8px_22px_rgba(232,109,19,0.08)] transition hover:-translate-y-0.5 hover:bg-white"
-                >
-                  <span aria-hidden="true">🎁</span>
-                  უფასოდ
-                </Link>
               </div>
 
             </div>
