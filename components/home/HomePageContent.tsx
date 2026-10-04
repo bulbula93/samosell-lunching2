@@ -1,4 +1,3 @@
-import RecommendedForYouRail from "@/components/listings/RecommendedForYouRail"
 import AdCarousel from "@/components/ads/AdCarousel"
 import HomeCollectionsSection from "@/components/home/HomeCollectionsSection"
 import HomeHowItWorks from "@/components/home/HomeHowItWorks"
@@ -15,7 +14,6 @@ export default function HomePageContent({data,heroAds=[]}:{data:PublicHomePageDa
  return <><HomeSearchHeroSection featuredItems={data.heroItems}/><HomeStoriesSlot/>
  <HomeProductsSection title="VIP განცხადებები" description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში." href="/catalog?vip=1&sort=vip" items={data.vipItems} favoriteIds={[]} layout="horizontal"/>
  {data.latestItems.length===0?<HomeMarketplaceEmptyState/>:null}
- <RecommendedForYouRail />
  <HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>
  <HomePromoBanner bannerItems={data.bannerItems}/>
  <HomeProductsSection title={ka.home.popular} description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით" href="/catalog?sort=popular" items={data.popularItems} favoriteIds={[]}/>
