@@ -11,7 +11,6 @@ import type { CatalogListing } from "@/types/marketplace"
 
 type RecentlyViewedRailProps = {
   title?: string
-  emptyText?: string
   excludeId?: string
 }
 
@@ -101,8 +100,7 @@ function parseRecentlyViewedSnapshot(snapshot: string) {
 }
 
 export default function RecentlyViewedRail({
-  title = "ბოლოს ნანახი ნივთები",
-  emptyText = "აქ გამოჩნდება ნივთები, რომლებსაც ბოლოს დაათვალიერებ.",
+  title = "ბოლო ნანახი",
   excludeId,
 }: RecentlyViewedRailProps) {
   const consent = useBrowserConsent()
@@ -134,75 +132,76 @@ export default function RecentlyViewedRail({
   if (!consent?.personalization || (!loading && items.length === 0)) return null
 
   return (
-    <section className="mx-auto w-full max-w-[1440px] px-4 pb-8 sm:px-6 sm:pb-16 lg:px-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mx-auto w-full max-w-[1440px] px-4 pb-8 sm:px-6 sm:pb-10 lg:px-8">
+      <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-[#5f6368]">შენთვის შერჩეული</div>
-          <h2 className="mt-2 text-2xl font-medium leading-8 text-[#2d2d2d] sm:text-[2rem]">{title}</h2>
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5f6368]">შენი ისტორია</div>
+          <h2 className="mt-1 text-xl font-medium leading-7 text-[#2d2d2d] sm:text-2xl">{title}</h2>
         </div>
         <Link
           href="/catalog"
-          className="inline-flex h-11 items-center justify-center rounded-full border border-[#2d2d2d] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:bg-[#f5f5f5]"
+          className="hidden h-10 items-center justify-center rounded-full border border-[#2d2d2d] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:bg-[#f5f5f5] sm:inline-flex"
         >
           სრული კატალოგი
         </Link>
       </div>
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="overflow-hidden rounded-[24px] border border-[#2d2d2d] bg-white p-4">
-              <div className="aspect-[4/5] animate-pulse rounded-[20px] bg-[#ececec]" />
-              <div className="mt-4 h-4 w-2/3 animate-pulse rounded bg-[#ececec]" />
-              <div className="mt-3 h-3 w-1/2 animate-pulse rounded bg-[#ececec]" />
-            </div>
-          ))}
-        </div>
-      ) : items.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-          {items.map((item) => {
-            const badges = activePromotionBadges(item)
-            return (
-              <article key={item.id} className="group overflow-hidden rounded-[24px] border border-[#2d2d2d] bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(31,12,48,0.08)]">
-                <Link href={`/listing/${item.slug}`} className="block aspect-[4/5] bg-[#ececec]">
-                  <SmartImage src={item.cover_image_url} alt={item.title} wrapperClassName="h-full w-full" fallbackLabel="სურათი არ არის" />
-                </Link>
-                <div className="space-y-3 p-4">
-                  {badges.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {badges.map((badge) => (
-                        <span key={badge} className="rounded-full border border-[#2d2d2d] bg-white px-3 py-1 text-[11px] font-semibold text-[#2d2d2d]">
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                  <Link href={`/listing/${item.slug}`} className="block min-w-0">
-                    <div className="line-clamp-2 text-base font-medium text-[#2d2d2d] transition group-hover:text-[#8e3df1] sm:text-lg">{item.title}</div>
-                    <div className="mt-1 line-clamp-1 text-sm text-[#5f6368]">
-                      {[item.brand_name, item.size_label, item.city].filter(Boolean).join(" · ") || item.category_name}
-                    </div>
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-4">
+        {loading
+          ? Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="w-[190px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-[#2d2d2d]/20 bg-white p-3 sm:w-[210px] lg:w-[220px]"
+              >
+                <div className="aspect-[4/5] animate-pulse rounded-[16px] bg-[#ececec]" />
+                <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-[#ececec]" />
+                <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-[#ececec]" />
+              </div>
+            ))
+          : items.map((item) => {
+              const badges = activePromotionBadges(item)
+              return (
+                <article
+                  key={item.id}
+                  className="group w-[190px] shrink-0 snap-start overflow-hidden rounded-[20px] border border-[#2d2d2d]/25 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(31,12,48,0.08)] sm:w-[210px] lg:w-[220px]"
+                >
+                  <Link href={`/listing/${item.slug}`} className="block aspect-[4/5] bg-[#ececec]">
+                    <SmartImage
+                      src={item.cover_image_url}
+                      alt={item.title}
+                      wrapperClassName="h-full w-full"
+                      fallbackLabel="სურათი არ არის"
+                    />
                   </Link>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-lg font-bold text-[#2d2d2d]">{item.price} {item.currency === "GEL" ? "₾" : item.currency}</span>
-                    {(item.favorites_count ?? 0) > 0 ? <span className="rounded-full border border-[#2d2d2d]/15 bg-[#f4f4f4] px-3 py-1 text-[11px] font-semibold text-[#5f6368]">{item.favorites_count} ფავორიტი</span> : null}
+                  <div className="space-y-2 p-3">
+                    {badges.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {badges.map((badge) => (
+                          <span
+                            key={badge}
+                            className="rounded-full border border-[#2d2d2d]/20 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2d2d2d]"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    <Link href={`/listing/${item.slug}`} className="block min-w-0">
+                      <div className="line-clamp-2 text-sm font-medium text-[#2d2d2d] transition group-hover:text-[#8e3df1] sm:text-base">
+                        {item.title}
+                      </div>
+                      <div className="mt-1 line-clamp-1 text-xs text-[#5f6368]">
+                        {[item.brand_name, item.size_label, item.city].filter(Boolean).join(" · ") || item.category_name}
+                      </div>
+                    </Link>
+                    <div className="text-base font-bold text-[#2d2d2d]">
+                      {item.price} {item.currency === "GEL" ? "₾" : item.currency}
+                    </div>
                   </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      ) : (
-        <div className="rounded-[32px] border border-dashed border-[#2d2d2d] bg-white p-8">
-          <div className="text-2xl font-semibold text-[#2d2d2d]">ბოლოს ნანახი ჯერ ცარიელია</div>
-          <p className="mt-3 max-w-2xl leading-7 text-[#5f6368]">{emptyText}</p>
-          <div className="mt-6">
-            <Link href="/catalog" className="inline-flex h-12 items-center justify-center rounded-full border border-[#2d2d2d] bg-[#8e3df1] px-5 text-sm font-semibold text-white transition hover:bg-[#7b2fe0]">
-              კატალოგის ნახვა
-            </Link>
-          </div>
-        </div>
-      )}
+                </article>
+              )
+            })}
+      </div>
     </section>
   )
 }
