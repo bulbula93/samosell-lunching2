@@ -73,17 +73,16 @@ export default function MarketplaceSearch({
   const generatedId = useId()
   const inputId = id || (compact ? `mobile-marketplace-search-${generatedId}` : `marketplace-search-${generatedId}`)
   const rootRef = useRef<HTMLFormElement | null>(null)
+  const recentSearchesLoadedRef = useRef(false)
   const [query, setQuery] = useState(defaultValue)
+  const [previousDefaultValue, setPreviousDefaultValue] = useState(defaultValue)
   const [open, setOpen] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
-  useEffect(() => {
+  if (defaultValue !== previousDefaultValue) {
+    setPreviousDefaultValue(defaultValue)
     setQuery(defaultValue)
-  }, [defaultValue])
-
-  useEffect(() => {
-    setRecentSearches(readRecentSearches())
-  }, [])
+  }
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -141,7 +140,13 @@ export default function MarketplaceSearch({
           autoComplete="off"
           name="q"
           value={query}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (!recentSearchesLoadedRef.current) {
+              setRecentSearches(readRecentSearches())
+              recentSearchesLoadedRef.current = true
+            }
+            setOpen(true)
+          }}
           onChange={(event) => {
             setQuery(event.target.value)
             setOpen(true)
