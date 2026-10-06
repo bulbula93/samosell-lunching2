@@ -1,6 +1,6 @@
 export type ChatThread = {
   id: string
-  chat_type: "listing" | "direct"
+  chat_type: "listing" | "direct" | "support"
   listing_id: string | null
   buyer_id: string
   seller_id: string
