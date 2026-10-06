@@ -10,7 +10,7 @@ function read(path: string) {
 const migration = read(
   "supabase/migrations/20260831010000_add_search_analytics_feedback_loop.sql",
 )
-const catalogPage = read("app/catalog/page.tsx")
+const catalogPage = read("app/catalog/catalog-view.tsx")
 const listingPage = read("app/listing/[slug]/page.tsx")
 const listingOverview = read("components/listings/ListingOverviewCard.tsx")
 const searchAttributionInput = read("components/search/SearchAttributionInput.tsx")

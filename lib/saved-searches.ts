@@ -1,3 +1,5 @@
+
+import { buildCatalogUrl } from "@/lib/catalog-urls"
 import {
   getCatalogItemKeywords,
   TOP_LEVEL_CATEGORY_SLUGS,
@@ -32,8 +34,7 @@ export function buildSavedSearchPath(filters: CatalogFilters) {
     const value = filters[key]
     if (value) params.set(key, value)
   }
-  const query = params.toString()
-  return query ? `/catalog?${query}` : "/catalog"
+  return buildCatalogUrl(params)
 }
 
 export function buildSavedSearchLabel(filters: CatalogFilters) {

@@ -1,3 +1,4 @@
+import { catalogCategoryHref } from "@/lib/catalog-urls"
 import type { MetadataRoute } from "next"
 import { applyCatalogFilters } from "@/lib/catalog-page"
 import { getSiteUrl, INDEXABLE_CATALOG_CATEGORIES } from "@/lib/seo"
@@ -63,7 +64,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const categoryEntries: MetadataRoute.Sitemap = categoryCounts
       .filter(({ count, error }) => !error && count > 0)
       .map(({ category, latestPublishedAt }) => ({
-        url: `${siteUrl}/catalog?category=${category.value}`,
+        url: `${siteUrl}${catalogCategoryHref(category.value)}`,
         ...(latestPublishedAt ? { lastModified: new Date(latestPublishedAt) } : {}),
         changeFrequency: "daily",
         priority: 0.7,

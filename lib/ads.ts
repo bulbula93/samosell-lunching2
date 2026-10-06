@@ -1,3 +1,4 @@
+import { categoryFromCatalogPath } from "@/lib/catalog-urls"
 import { getSafeImageSource } from "@/lib/media"
 
 export const ADVERTISE_WITH_US_HREF = "/advertise"
@@ -58,7 +59,7 @@ export function isAdPagePathAllowed(placementKey: AdPlacementKey, pagePath: stri
       return pagePath.startsWith("/listing/")
     case "catalog_top_left":
     case "catalog_top_right":
-      return pagePath === "/catalog" || pagePath.startsWith("/catalog?")
+      return pagePath === "/catalog" || pagePath.startsWith("/catalog?") || Boolean(categoryFromCatalogPath(pagePath.split("?")[0]))
     case "sell_bottom_left":
     case "sell_bottom_right":
       return pagePath === "/dashboard/listings/new"

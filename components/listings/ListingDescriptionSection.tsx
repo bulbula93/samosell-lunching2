@@ -1,3 +1,4 @@
+import { catalogCategoryHref } from "@/lib/catalog-urls"
 import Link from "next/link"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -10,7 +11,7 @@ export default function ListingDescriptionSection({ listing }: { listing: Catalo
           <h2 className="mt-2 text-2xl font-black sm:text-3xl">ნივთის სრული ინფორმაცია</h2>
         </div>
         <Link
-          href={`/catalog?category=${listing.category_slug ?? ""}`}
+          href={catalogCategoryHref(listing.category_slug)}
           className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700"
         >
           ამ კატეგორიის სხვა ნივთები

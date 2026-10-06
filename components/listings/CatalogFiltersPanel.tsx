@@ -1,5 +1,7 @@
 "use client"
 
+import { buildCatalogUrl } from "@/lib/catalog-urls"
+
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { getCatalogItemLabel, getCatalogItemOptions } from "@/lib/catalog-taxonomy"
@@ -75,8 +77,7 @@ function buildCatalogHref(nextValues: CatalogFiltersPanelProps["values"]) {
     if (key === "sort" && value === "latest") return
     params.set(key, value)
   })
-  const query = params.toString()
-  return query ? `/catalog?${query}` : "/catalog"
+  return buildCatalogUrl(params)
 }
 
 function getActiveLabel(key: keyof CatalogFiltersPanelProps["values"], value: string) {

@@ -11,7 +11,7 @@ export default function CatalogTopSectionsNav({ gender }: { gender?: string }) {
     <section className="border-b border-[#2D2D2D] bg-[#F3F3F3]">
       <div className="mx-auto flex w-full max-w-[1560px] overflow-x-auto px-0">
         {topSections.map((section) => {
-          const href = section.value === gender ? "/catalog" : `/catalog?gender=${section.value}`
+          const href = section.value === gender ? "/catalog" : `/catalog/${section.value}`
           const active = gender === section.value
           return (
             <Link

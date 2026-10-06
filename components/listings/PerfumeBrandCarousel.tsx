@@ -115,7 +115,7 @@ export default function PerfumeBrandCarousel() {
             {loop.map((brand, index) => (
               <Link
                 key={`${brand.name}-${index}`}
-                href={`/catalog?category=perfume&brand=${encodeURIComponent(brand.name)}`}
+                href={`/catalog/perfume?brand=${encodeURIComponent(brand.name)}`}
                 className="group flex h-[104px] w-[150px] shrink-0 flex-col items-center justify-center gap-3 rounded-[22px] border border-[#eadfd7] bg-white px-3 py-3 transition duration-300 hover:-translate-y-1 hover:border-[#e7a16f] hover:shadow-[0_12px_28px_rgba(7,63,59,0.08)] sm:w-[160px]"
               >
                 <BrandLogo name={brand.name} domain={brand.domain} />

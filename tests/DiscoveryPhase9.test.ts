@@ -49,7 +49,7 @@ function listing(
   }
 }
 
-const catalogPage = read("app/catalog/page.tsx")
+const catalogPage = read("app/catalog/catalog-view.tsx")
 const rankingMigration = read(
   "supabase/migrations/20260830234103_add_discovery_search_ranking.sql",
 )
