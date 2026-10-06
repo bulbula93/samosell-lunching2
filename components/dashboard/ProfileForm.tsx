@@ -12,6 +12,7 @@ import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
 
 type ProfileFormProps = {
   userId: string
+  previewOnly?: boolean
   initialProfile: {
     username: string
     full_name: string
@@ -95,7 +96,7 @@ function AssetCard({ title, description, preview, onChoose, onRemove, buttonLabe
   )
 }
 
-export default function ProfileForm({ userId, initialProfile }: ProfileFormProps) {
+export default function ProfileForm({ userId, initialProfile, previewOnly = false }: ProfileFormProps) {
   const [username, setUsername] = useState(initialProfile.username)
   const [fullName, setFullName] = useState(initialProfile.full_name)
   const [bio, setBio] = useState(initialProfile.bio)
@@ -229,6 +230,12 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
       return
     }
 
+    if (previewOnly) {
+      setSuccess("Preview რეჟიმია — ცვლილებები ამ გვერდზე ცოცხლად ჩანს, მაგრამ მონაცემები არ ინახება.")
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
 
     const previousAvatarUrl = avatarUrl
@@ -334,6 +341,12 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
       return
     }
 
+    if (previewOnly) {
+      setTikTokLiveUntil(nextLive ? new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString() : "")
+      setSuccess(nextLive ? "Preview-ში LIVE ნიშანი ჩაირთო." : "Preview-ში LIVE ნიშანი გამოირთო.")
+      return
+    }
+
     setTikTokLoading(true)
     setError("")
     setSuccess("")
@@ -377,7 +390,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
                 : "ფოტოს არჩევისთანავე preview აქვე გამოჩნდება. საჯარო პროფილზე ცვლილება მხოლოდ შენახვის შემდეგ აისახება."}
             </p>
           </div>
-          {username ? (
+          {username && !previewOnly ? (
             <Link
               href={"/seller/" + encodeURIComponent(username)}
               target="_blank"
@@ -808,7 +821,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             : "ცვლილებების დასასრულებლად დააჭირე შენახვას."}
         </div>
         <button type="submit" disabled={loading} className="ui-btn-primary h-12 w-full shrink-0 sm:w-auto disabled:opacity-60">
-          {loading ? "ინახება..." : "ცვლილებების შენახვა"}
+          {previewOnly ? "Preview რეჟიმი — მონაცემები არ ინახება" : loading ? "ინახება..." : "ცვლილებების შენახვა"}
         </button>
       </div>
     </form>
