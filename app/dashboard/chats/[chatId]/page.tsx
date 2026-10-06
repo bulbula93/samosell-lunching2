@@ -10,8 +10,9 @@ import SmartImage from "@/components/shared/SmartImage"
 import {
   CHAT_MESSAGE_PAGE_SIZE,
   canSendChatMessageForStatus,
-  chatCounterpartyName,
+  chatDisplayName,
   isChatUuid,
+  isSupportChatForUser,
 } from "@/lib/chats"
 import { requireAuthenticatedUser } from "@/lib/auth"
 import { formatPrice, listingStatusLabel } from "@/lib/listings"
@@ -87,13 +88,17 @@ export default async function ChatThreadPage({
   await hydrateStoryContexts(supabase, messageRows)
   const hasOlderMessages = messageRows.length > CHAT_MESSAGE_PAGE_SIZE
   const typedMessages = messageRows.slice(0, CHAT_MESSAGE_PAGE_SIZE).reverse()
-  const otherPartyLabel = chatCounterpartyName(typedThread)
+  const isSupportThread = typedThread.chat_type === "support"
+  const isOfficialSupport = isSupportChatForUser(typedThread, user.id)
+  const otherPartyLabel = chatDisplayName(typedThread, user.id)
   const listingStatus = listingStateResult.data?.status ?? typedThread.listing_status
   const canSend =
-    typedThread.chat_type === "direct" || canSendChatMessageForStatus(listingStatus)
+    typedThread.chat_type === "direct" ||
+    typedThread.chat_type === "support" ||
+    canSendChatMessageForStatus(listingStatus)
   const listingIsPublic = listingStatus === "active"
   const role = typedThread.buyer_id === user.id ? "buyer" : "seller"
-  const isBlocked = Boolean(blockResult.data)
+  const isBlocked = isSupportThread ? false : Boolean(blockResult.data)
   const offers: ChatOfferSummary[] = (offersResult.data ?? []).map((offer) => ({
     id: offer.id,
     amount: Number(offer.amount),
@@ -121,7 +126,7 @@ export default async function ChatThreadPage({
           </Link>
 
           <Avatar
-            src={typedThread.counterparty_avatar_url}
+            src={isOfficialSupport ? null : typedThread.counterparty_avatar_url}
             alt={otherPartyLabel}
             fallbackText={otherPartyLabel}
             sizeClassName="h-11 w-11"
@@ -129,21 +134,32 @@ export default async function ChatThreadPage({
           />
 
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-black text-text sm:text-lg">
-              {otherPartyLabel}
-            </h1>
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-base font-black text-text sm:text-lg">
+                {otherPartyLabel}
+              </h1>
+              {isOfficialSupport ? (
+                <span className="shrink-0 rounded-full bg-brand-soft px-2 py-1 text-[10px] font-black text-brand">
+                  ✓ ოფიციალური
+                </span>
+              ) : null}
+            </div>
             <p className="mt-0.5 truncate text-xs text-text-soft">
-              {typedThread.chat_type === "direct"
-                ? "პირადი დიალოგი"
-                : role === "buyer"
-                  ? "გამყიდველი"
-                  : "მყიდველი"}
-              {typedThread.counterparty_city ? ` · ${typedThread.counterparty_city}` : ""}
+              {isOfficialSupport
+                ? "SamoSell-ის ოფიციალური მხარდაჭერა"
+                : isSupportThread
+                  ? "Support მოთხოვნა"
+                  : typedThread.chat_type === "direct"
+                    ? "პირადი დიალოგი"
+                    : role === "buyer"
+                      ? "გამყიდველი"
+                      : "მყიდველი"}
+              {!isSupportThread && typedThread.counterparty_city ? ` · ${typedThread.counterparty_city}` : ""}
             </p>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            {typedThread.counterparty_username ? (
+            {!isOfficialSupport && typedThread.counterparty_username ? (
               <Link
                 href={`/seller/${encodeURIComponent(typedThread.counterparty_username)}`}
                 className="hidden rounded-full border border-line px-3 py-2 text-xs font-bold text-text transition hover:bg-surface-alt sm:inline-flex"
@@ -168,7 +184,7 @@ export default async function ChatThreadPage({
               </button>
             </form>
 
-            {!blockResult.error ? (
+            {!isOfficialSupport && !blockResult.error ? (
               <div className="hidden sm:block">
                 <BlockUserForm
                   blockedId={typedThread.counterparty_id}
@@ -186,7 +202,7 @@ export default async function ChatThreadPage({
                 <span aria-hidden="true">⋯</span>
               </summary>
               <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-60 rounded-2xl border border-line bg-white p-2 shadow-[0_18px_50px_rgba(7,63,59,0.18)]">
-                {typedThread.counterparty_username ? (
+                {!isOfficialSupport && typedThread.counterparty_username ? (
                   <Link
                     href={`/seller/${encodeURIComponent(typedThread.counterparty_username)}`}
                     className="block rounded-xl px-3 py-3 text-sm font-bold text-text transition hover:bg-surface-alt"
@@ -211,7 +227,7 @@ export default async function ChatThreadPage({
                   </button>
                 </form>
 
-                {!blockResult.error ? (
+                {!isOfficialSupport && !blockResult.error ? (
                   <div className="mt-1 border-t border-line pt-2">
                     <BlockUserForm
                       blockedId={typedThread.counterparty_id}
