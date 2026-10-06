@@ -310,6 +310,7 @@ export default async function ChatThreadPage({
           otherPartyLabel={otherPartyLabel}
           canSend={canSend && !isBlocked}
           initialHasMore={hasOlderMessages}
+          isOfficialSupport={isOfficialSupport}
         />
       </div>
     </div>

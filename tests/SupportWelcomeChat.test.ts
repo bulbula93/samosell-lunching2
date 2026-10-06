@@ -10,6 +10,17 @@ const migration = readFileSync(
   ),
   "utf8",
 )
+const copyMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20261006203000_update_welcome_support_copy.sql",
+  ),
+  "utf8",
+)
+const chatThreadClient = readFileSync(
+  join(process.cwd(), "components/chat/ChatThreadClient.tsx"),
+  "utf8",
+)
 
 describe("welcome support chat", () => {
   it("keeps support distinct from ordinary direct chats", () => {
@@ -36,6 +47,15 @@ describe("welcome support chat", () => {
     expect(migration).toContain("v_chat_type not in ('listing', 'direct', 'support')")
     expect(migration).toContain("v_chat_type not in ('listing','direct','support')")
     expect(migration).toContain("send_chat_image_message")
+  })
+
+  it("uses the approved welcome copy and a real add-listing CTA", () => {
+    expect(copyMigration).toContain("მადლობა, რომ შემოუერთდი SamoSell-ს 💛")
+    expect(copyMigration).toContain("მიუთითე შენთვის მისაღები ფასი")
+    expect(copyMigration).toContain("ჩვენი გუნდი მალევე გიპასუხებს")
+    expect(chatThreadClient).toContain('href="/dashboard/listings/new"')
+    expect(chatThreadClient).toContain("დაიწყე ახლავე →")
+    expect(chatThreadClient).toContain("isOfficialSupport && !mine && index === 0")
   })
 
   it("shows the official identity only to the support recipient", () => {
