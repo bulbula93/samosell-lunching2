@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useEffectEvent, useMemo, useState, type ReactNode } from "react"
 import Avatar from "@/components/shared/Avatar"
-import { chatCounterpartyName, formatChatTimestamp, truncateChatText } from "@/lib/chats"
+import { chatDisplayName, formatChatTimestamp, isSupportChatForUser, truncateChatText } from "@/lib/chats"
 import { createClient } from "@/lib/supabase/client"
 import type { ChatThread } from "@/types/chat"
 
@@ -221,7 +221,7 @@ export default function ChatWorkspace({
 
     if (!normalizedQuery) return true
     const haystack = [
-      chatCounterpartyName(thread),
+      chatDisplayName(thread, currentUserId),
       thread.listing_title,
       thread.last_message_body,
     ]
@@ -346,7 +346,8 @@ export default function ChatWorkspace({
               <div className="space-y-1">
                 {visibleThreads.map((thread) => {
                   const active = activeChatId === thread.id
-                  const counterparty = chatCounterpartyName(thread)
+                  const counterparty = chatDisplayName(thread, currentUserId)
+                  const isOfficialSupport = isSupportChatForUser(thread, currentUserId)
                   const hasUnread =
                     thread.unread_count > 0 &&
                     thread.last_message_sender_id !== currentUserId
@@ -367,7 +368,7 @@ export default function ChatWorkspace({
                     >
                       <div className="relative">
                         <Avatar
-                          src={thread.counterparty_avatar_url}
+                          src={isOfficialSupport ? null : thread.counterparty_avatar_url}
                           alt={counterparty}
                           fallbackText={counterparty}
                           sizeClassName="h-12 w-12"
@@ -383,6 +384,11 @@ export default function ChatWorkspace({
                           <span className={`truncate text-sm ${hasUnread ? "font-black text-text" : "font-bold text-text"}`}>
                             {counterparty}
                           </span>
+                          {isOfficialSupport ? (
+                            <span className="shrink-0 rounded-full bg-brand-soft px-1.5 py-0.5 text-[9px] font-black text-brand">
+                              ✓ ოფიციალური
+                            </span>
+                          ) : null}
                           {thread.chat_type === "listing" && thread.listing_title ? (
                             <span className="truncate text-[11px] font-semibold text-text-soft">
                               · {thread.listing_title}
