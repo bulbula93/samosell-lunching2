@@ -1,12 +1,16 @@
 import ProfileForm from "@/components/dashboard/ProfileForm"
-import SiteHeader from "@/components/layout/SiteHeader"
 
 export const dynamic = "force-dynamic"
 
 export default function StoreProfileSetupPreviewPage() {
   return (
     <main className="min-h-screen bg-bg text-text">
-      <SiteHeader />
+      <div className="border-b border-line bg-white">
+        <div className="ui-container flex h-16 items-center justify-between">
+          <div className="text-xl font-black tracking-tight">samo$ell</div>
+          <div className="ui-pill bg-surface-alt text-text-soft">UI Preview • DB გამორთულია</div>
+        </div>
+      </div>
       <section className="ui-container py-8 sm:py-12">
         <div className="mx-auto max-w-5xl">
           <div className="mb-6 rounded-[1.5rem] border border-brand/15 bg-brand-soft/35 p-5 sm:p-6">
