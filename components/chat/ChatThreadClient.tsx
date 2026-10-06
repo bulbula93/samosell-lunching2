@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import {
   useCallback,
   useEffect,
@@ -74,6 +75,7 @@ export default function ChatThreadClient({
   otherPartyLabel,
   canSend,
   initialHasMore,
+  isOfficialSupport = false,
 }: {
   chatId: string
   currentUserId: string
@@ -81,6 +83,7 @@ export default function ChatThreadClient({
   otherPartyLabel: string
   canSend: boolean
   initialHasMore: boolean
+  isOfficialSupport?: boolean
 }) {
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -504,6 +507,14 @@ export default function ChatThreadClient({
                         <p className={`${message.message_type === "image" ? "mt-2" : ""} whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-5`}>
                           {message.body}
                         </p>
+                      ) : null}
+                      {isOfficialSupport && !mine && index === 0 ? (
+                        <Link
+                          href="/dashboard/listings/new"
+                          className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-brand px-4 py-2 text-sm font-black text-white shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                        >
+                          დაიწყე ახლავე →
+                        </Link>
                       ) : null}
                       <time
                         suppressHydrationWarning
