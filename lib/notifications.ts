@@ -14,7 +14,7 @@ type ChatRow = {
   buyer_id: string
   seller_id: string
   listing_id: string | null
-  chat_type: "listing" | "direct"
+  chat_type: "listing" | "direct" | "support"
 }
 
 type ListingRow = {
@@ -115,7 +115,10 @@ export async function notifyChatMessage(input: NotifyChatMessageInput) {
 
   const listing = listingData as ListingRow | null
   const sender = senderData as ProfileRow | null
-  const senderLabel = sender?.full_name || sender?.username || "მომხმარებელი"
+  const senderLabel =
+    chat.chat_type === "support" && input.senderId === chat.seller_id
+      ? "SamoSell Help"
+      : sender?.full_name || sender?.username || "მომხმარებელი"
   const listingTitle = listing?.title || "განცხადება"
   const href = `/dashboard/chats/${chat.id}`
   const firstMessage = chat.chat_type === "listing" && input.firstMessage && input.senderId === chat.buyer_id
