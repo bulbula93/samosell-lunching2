@@ -72,6 +72,27 @@ export function chatCounterpartyName(thread: { counterparty_full_name?: string |
   return thread.counterparty_full_name || thread.counterparty_username || "მომხმარებელი"
 }
 
+export function isSupportChatForUser(
+  thread: { chat_type?: string | null; buyer_id?: string | null },
+  currentUserId: string,
+) {
+  return thread.chat_type === "support" && thread.buyer_id === currentUserId
+}
+
+export function chatDisplayName(
+  thread: {
+    chat_type?: string | null
+    buyer_id?: string | null
+    counterparty_full_name?: string | null
+    counterparty_username?: string | null
+  },
+  currentUserId: string,
+) {
+  return isSupportChatForUser(thread, currentUserId)
+    ? "SamoSell Help"
+    : chatCounterpartyName(thread)
+}
+
 export function formatChatTimestamp(value?: string | null) {
   if (!value) return ""
   const date = new Date(value)
