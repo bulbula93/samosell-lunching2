@@ -6,6 +6,7 @@ import ChatCommercePanel, { type ChatOfferSummary } from "@/components/chat/Chat
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
 import BlockUserForm from "@/components/moderation/BlockUserForm"
 import Avatar from "@/components/shared/Avatar"
+import SupportChatAvatar from "@/components/chat/SupportChatAvatar"
 import SmartImage from "@/components/shared/SmartImage"
 import {
   CHAT_MESSAGE_PAGE_SIZE,
@@ -125,13 +126,13 @@ export default async function ChatThreadPage({
             </svg>
           </Link>
 
-          <Avatar
-            src={isOfficialSupport ? null : typedThread.counterparty_avatar_url}
+          {isOfficialSupport ? <SupportChatAvatar sizeClassName="h-11 w-11" /> : <Avatar
+            src={typedThread.counterparty_avatar_url}
             alt={otherPartyLabel}
             fallbackText={otherPartyLabel}
             sizeClassName="h-11 w-11"
             textClassName="text-sm"
-          />
+          />}
 
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">
