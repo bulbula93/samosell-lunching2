@@ -66,32 +66,65 @@ type AssetCardProps = {
   buttonLabel: string
   hint: string
   status?: string
+  previewKind?: "logo" | "banner" | "avatar"
 }
 
-function AssetCard({ title, description, preview, onChoose, onRemove, buttonLabel, hint, status }: AssetCardProps) {
+function AssetCard({
+  title,
+  description,
+  preview,
+  onChoose,
+  onRemove,
+  buttonLabel,
+  hint,
+  status,
+  previewKind = "logo",
+}: AssetCardProps) {
+  const previewStageClass =
+    previewKind === "banner"
+      ? "h-40 sm:h-44"
+      : "h-40 sm:h-44"
+
   return (
-    <div className="ui-subcard bg-white p-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="ui-eyebrow">{title}</div>
-          <div className="mt-2 text-xl font-black text-text">{description}</div>
+    <div className="rounded-[1.4rem] border border-line/90 bg-white p-4 shadow-[0_10px_30px_rgba(23,23,23,0.035)] sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[15px] font-extrabold leading-5 text-text">{title}</div>
+          <p className="mt-1 max-w-md text-[13px] leading-5 text-text-soft">{description}</p>
         </div>
-        <div className="shrink-0">{preview}</div>
+        {status ? (
+          <span className="shrink-0 rounded-full border border-line bg-surface-alt px-2.5 py-1 text-[11px] font-bold text-text-soft">
+            {status}
+          </span>
+        ) : null}
       </div>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" onClick={onChoose} className="ui-btn-primary">
+
+      <div
+        className={`mt-4 flex ${previewStageClass} w-full items-center justify-center overflow-hidden rounded-[1.15rem] border border-dashed border-line bg-surface-alt/65 p-3`}
+      >
+        <div className={previewKind === "banner" ? "h-full w-full" : "flex h-full w-full items-center justify-center"}>
+          {preview}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onChoose}
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-brand px-4 text-sm font-extrabold text-white transition hover:opacity-90"
+        >
           {buttonLabel}
         </button>
-        <button type="button" onClick={onRemove} className="ui-btn-secondary">
+        <button
+          type="button"
+          onClick={onRemove}
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-line bg-white px-4 text-sm font-bold text-text-soft transition hover:bg-surface-alt"
+        >
           წაშლა
         </button>
       </div>
-      {status ? (
-        <div className="mt-3 inline-flex rounded-full border border-brand/15 bg-brand-soft/45 px-3 py-1.5 text-xs font-bold text-brand">
-          {status}
-        </div>
-      ) : null}
-      <div className="mt-3 text-xs leading-5 text-text-soft">{hint}</div>
+
+      <div className="mt-3 text-[11px] leading-5 text-text-soft">{hint}</div>
     </div>
   )
 }
@@ -476,22 +509,22 @@ export default function ProfileForm({ userId, initialProfile, previewOnly = fals
           <section className="space-y-4">
             <div>
               <div className="ui-eyebrow">2. მაღაზიის ვიზუალი</div>
-              <h3 className="mt-2 text-xl font-black text-text">ლოგო და cover / banner</h3>
+              <h3 className="mt-2 text-lg font-extrabold text-text">ლოგო და ქავერი</h3>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-text-soft">
-                ლოგო იქნება მაღაზიის მთავარი avatar. banner კი გამოჩნდება საჯარო მაღაზიის გვერდის თავში. ფაილის არჩევა ჯერ მხოლოდ preview-ია — საბოლოოდ ქვემოთ უნდა შეინახო.
+                აირჩიე მთავარი ლოგო და ფართო ქავერი. ორივე სურათი არჩევისთანავე გამოჩნდება preview-ში.
               </p>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="grid gap-4 md:grid-cols-2">
               <AssetCard
                 title="მაღაზიის ლოგო"
-                description="მთავარი მრგვალი ფოტო მაღაზიის გვერდზე და განცხადებებთან."
+                description="გამოჩნდება პროფილზე და შენს განცხადებებთან."
                 preview={
                   <Avatar
                     src={visibleStoreLogoUrl || visibleAvatarUrl}
                     alt={fullName || username || "მაღაზიის ლოგო"}
                     fallbackText={fullName || username || "SS"}
-                    sizeClassName="h-20 w-20"
+                    sizeClassName="h-24 w-24"
                     textClassName="text-xl"
                   />
                 }
@@ -502,8 +535,9 @@ export default function ProfileForm({ userId, initialProfile, previewOnly = fals
                   setSuccess("")
                 }}
                 buttonLabel={selectedLogoFile ? "სხვა ლოგოს არჩევა" : "ლოგოს არჩევა"}
-                status={selectedLogoFile ? "არჩეულია — ჯერ არ არის შენახული" : visibleStoreLogoUrl ? "ლოგო შენახულია" : "ლოგო ჯერ არ არის დამატებული"}
-                hint={"მაქსიმალური ზომაა " + MAX_BRANDING_FILE_SIZE_MB + "MB. სასურველია კვადრატული ფოტო."}
+                status={selectedLogoFile ? "არჩეულია" : visibleStoreLogoUrl ? "შენახულია" : "არ არის დამატებული"}
+                hint={"PNG/JPG • მაქს. " + MAX_BRANDING_FILE_SIZE_MB + "MB • სასურველია 1:1"}
+                previewKind="logo"
               />
               <input
                 ref={logoInputRef}
@@ -520,18 +554,16 @@ export default function ProfileForm({ userId, initialProfile, previewOnly = fals
               />
 
               <AssetCard
-                title="Cover / banner"
-                description="ფართო სურათი, რომელიც მაღაზიის საჯარო გვერდის ზედა ნაწილში გამოჩნდება."
+                title="ქავერი"
+                description="ფართო ფოტო მაღაზიის საჯარო გვერდის ზედა ნაწილისთვის."
                 preview={
-                  <div className="overflow-hidden rounded-[1.25rem] border border-line">
-                    <SmartImage
-                      src={visibleStoreBannerUrl}
-                      alt={fullName || username || "მაღაზიის banner"}
-                      wrapperClassName="h-28 w-64 bg-surface-alt sm:h-32 sm:w-80"
-                      className="object-cover"
-                      fallbackLabel="banner preview"
-                    />
-                  </div>
+                  <SmartImage
+                    src={visibleStoreBannerUrl}
+                    alt={fullName || username || "მაღაზიის ქავერი"}
+                    wrapperClassName="h-full w-full bg-surface-alt"
+                    className="object-cover"
+                    fallbackLabel="ქავერის preview"
+                  />
                 }
                 onChoose={() => bannerInputRef.current?.click()}
                 onRemove={() => {
@@ -539,9 +571,10 @@ export default function ProfileForm({ userId, initialProfile, previewOnly = fals
                   setRemoveStoreBanner(true)
                   setSuccess("")
                 }}
-                buttonLabel={selectedBannerFile ? "სხვა banner-ის არჩევა" : "banner-ის არჩევა"}
-                status={selectedBannerFile ? "არჩეულია — ჯერ არ არის შენახული" : visibleStoreBannerUrl ? "banner შენახულია" : "banner ჯერ არ არის დამატებული"}
-                hint={"მაქსიმალური ზომაა " + MAX_BRANDING_FILE_SIZE_MB + "MB. სასურველია დაახლოებით 3:1 ან 16:5 ფართო ფორმატი."}
+                buttonLabel={selectedBannerFile ? "სხვა ქავერის არჩევა" : "ქავერის არჩევა"}
+                status={selectedBannerFile ? "არჩეულია" : visibleStoreBannerUrl ? "შენახულია" : "არ არის დამატებული"}
+                hint={"PNG/JPG • მაქს. " + MAX_BRANDING_FILE_SIZE_MB + "MB • სასურველია 3:1"}
+                previewKind="banner"
               />
               <input
                 ref={bannerInputRef}
