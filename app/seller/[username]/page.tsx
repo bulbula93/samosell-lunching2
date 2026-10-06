@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { cache } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import AdSlotRow from "@/components/ads/AdSlotRow"
@@ -37,7 +38,7 @@ function formatJoinDate(value?: string | null) {
   return new Intl.DateTimeFormat("ka-GE", { year: "numeric", month: "long" }).format(new Date(value))
 }
 
-async function fetchSeller(username: string) {
+const fetchSeller = cache(async (username: string) => {
   const supabase = await createClient()
   const { data: profile } = await supabase
     .from("profiles")
@@ -46,7 +47,7 @@ async function fetchSeller(username: string) {
     .maybeSingle()
   if (!profile || profile.is_suspended) return null
   return profile
-}
+})
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params
@@ -67,11 +68,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 export default async function SellerPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const supabase = await createClient()
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
-    .eq("username", username)
-    .maybeSingle()
+  const profile = await fetchSeller(username)
   if (!profile || profile.is_suspended) notFound()
 
   const {

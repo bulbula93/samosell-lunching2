@@ -1,7 +1,7 @@
 import { resolveCatalogSeo, type CatalogPageParams } from "@/lib/catalog-seo"
 import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
 import { randomUUID } from "node:crypto"
-import { unstable_cache } from "next/cache"
+import { getCachedCatalogFilterOptions } from "@/lib/catalog-filter-options"
 import { after } from "next/server"
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
@@ -25,7 +25,6 @@ import {
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import { withQueryTimeout } from "@/lib/supabase/query-timeout"
-import { createPublicServerClient } from "@/lib/supabase/public-server"
 import type { CatalogListing } from "@/types/marketplace"
 
 
@@ -46,50 +45,6 @@ type SearchExperimentAssignment = {
 const CATALOG_LISTING_SELECT =
   "id, public_id, slug, title, price, currency, condition, sale_type, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
 
-type CatalogFilterOptions = {
-  sizes: Array<{ label: string; group_name: string; sort_order: number }>
-  colors: string[]
-  cities: string[]
-}
-
-const getCachedCatalogFilterOptions = unstable_cache(
-  async (): Promise<CatalogFilterOptions> => {
-    const supabase = createPublicServerClient()
-    const [sizesResponse, facetsResponse] = await Promise.all([
-      withQueryTimeout(supabase
-        .from("sizes")
-        .select("label, group_name, sort_order")
-        .order("group_name", { ascending: true })
-        .order("sort_order", { ascending: true })),
-      withQueryTimeout(supabase.rpc("get_catalog_public_facets")),
-    ])
-
-    const publicOptionsError = sizesResponse.error || facetsResponse.error
-    if (publicOptionsError) {
-      throw new Error(`catalog_public_options_failed:${publicOptionsError.message}`)
-    }
-
-    const facets = (facetsResponse.data ?? {}) as {
-      colors?: unknown
-      cities?: unknown
-    }
-    const normalizeList = (value: unknown) =>
-      Array.isArray(value)
-        ? value.map((item) => String(item ?? "").trim()).filter(Boolean)
-        : []
-
-    return {
-      sizes: (sizesResponse.data ?? []) as CatalogFilterOptions["sizes"],
-      colors: normalizeList(facets.colors),
-      cities: normalizeList(facets.cities),
-    }
-  },
-  ["catalog-public-filter-options-v1"],
-  {
-    revalidate: 300,
-    tags: ["catalog-public-filter-options"],
-  },
-)
 
 function optionalNumber(value: string) {
   if (!value) return null
@@ -152,13 +107,8 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   let listingsQuery = applyCatalogFilters(
     supabase
       .from("listings_catalog")
-      .select(CATALOG_LISTING_SELECT)
+      .select(CATALOG_LISTING_SELECT, { count: "exact" })
       .eq("status", "active"),
-    filters
-  )
-
-  const countQuery = applyCatalogFilters(
-    supabase.from("listings_catalog").select("id", { count: "exact", head: true }).eq("status", "active"),
     filters
   )
 
@@ -203,21 +153,15 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     : Promise.resolve({ data: null, error: null })
 
   const listingsPromise = useRankedSearch
-    ? Promise.resolve({ data: [] as CatalogListing[], error: null })
+    ? Promise.resolve({ data: [] as CatalogListing[], count: 0, error: null })
     : withQueryTimeout(listingsQuery.range(rangeFrom, rangeTo))
-  const countPromise = useRankedSearch
-    ? Promise.resolve({ count: 0, error: null })
-    : withQueryTimeout(countQuery)
-
   const [
     rankedSearchResponse,
     listingsResponse,
-    countResponse,
     favoritesResponse,
   ] = await Promise.all([
     rankedSearchPromise,
     listingsPromise,
-    countPromise,
     user
       ? withQueryTimeout(supabase.from("favorites").select("listing_id").eq("user_id", user.id))
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
@@ -252,7 +196,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     : (listingsResponse.data ?? []) as CatalogListing[]
   const totalCount = useRankedSearch
     ? Math.max(0, Number(rankedPayload?.total_count ?? 0))
-    : countResponse.count ?? 0
+    : listingsResponse.count ?? 0
   const rescueMode = useRankedSearch && typeof rankedPayload?.rescue_mode === "string"
     ? rankedPayload.rescue_mode
     : "none"
@@ -265,7 +209,6 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const queryError =
     rankedSearchResponse.error ||
     listingsResponse.error ||
-    countResponse.error ||
     favoritesResponse.error
 
   if (queryError) {

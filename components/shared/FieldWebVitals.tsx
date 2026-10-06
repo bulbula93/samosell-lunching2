@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import { allowsAnalytics } from "@/lib/browser-preferences"
 import { useReportWebVitals } from "next/web-vitals"
 
@@ -59,8 +60,11 @@ function sendMetric(payload: {
   }).catch(() => undefined)
 }
 
+// Module lifetime survives consent component remounts; bounded per document.
+const submittedMetrics = new Map<string, string>()
+
 export default function FieldWebVitals() {
-  useReportWebVitals((metric) => {
+  const report = useCallback<Parameters<typeof useReportWebVitals>[0]>((metric) => {
     if (navigator.webdriver || !allowsAnalytics()) return
     if (!["LCP", "INP", "CLS", "FCP", "TTFB"].includes(metric.name)) return
 
@@ -68,6 +72,13 @@ export default function FieldWebVitals() {
     const routeGroup = classifyRoute(pathname, window.location.search)
 
     if (!["home", "catalog", "search", "listing"].includes(routeGroup)) return
+
+    if (!Number.isFinite(metric.value) || metric.value < 0) return
+    const key = `${metric.name}:${metric.id}`
+    const signature = `${metric.value}:${metric.rating}`
+    if (submittedMetrics.get(key) === signature) return
+    submittedMetrics.set(key, signature)
+    if (submittedMetrics.size > 1000) submittedMetrics.delete(submittedMetrics.keys().next().value!)
 
     const viewport = getViewportContext()
 
@@ -79,7 +90,8 @@ export default function FieldWebVitals() {
       pathname,
       ...viewport,
     })
-  })
+  }, [])
+  useReportWebVitals(report)
 
   return null
 }

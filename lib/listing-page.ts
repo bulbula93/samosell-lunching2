@@ -248,7 +248,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
   const supabase = await createClient()
   const [authResponse, listingResponse] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("listings_catalog").select(listingSelect).eq("slug", slug).maybeSingle(),
+    fetchMetadataListing(slug).then((data) => ({ data, error: null })),
   ])
 
   if (listingResponse.error) {

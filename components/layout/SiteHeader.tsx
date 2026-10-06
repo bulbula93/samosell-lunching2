@@ -130,9 +130,9 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
-        .is("read_at", null).not("type", "in", "(chat_started,chat_message)"),
+        .eq("user_id", user.id).is("read_at", null).not("type", "in", "(chat_started,chat_message)"),
       supabase.from("notifications").select("id", { count: "exact", head: true })
-        .is("read_at", null).in("type", ["chat_started", "chat_message"]),
+        .eq("user_id", user.id).is("read_at", null).in("type", ["chat_started", "chat_message"]),
     ])
 
     profile = profileResponse.data

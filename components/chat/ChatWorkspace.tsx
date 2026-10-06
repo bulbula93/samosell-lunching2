@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useEffectEvent, useMemo, useState, type ReactNode } from "react"
 import Avatar from "@/components/shared/Avatar"
 import { chatCounterpartyName, formatChatTimestamp, truncateChatText } from "@/lib/chats"
 import { createClient } from "@/lib/supabase/client"
@@ -142,7 +142,45 @@ export default function ChatWorkspace({
     }
   }, [threadOpen])
 
+  const handleMessage = useEffectEvent((payload: { new: unknown }) => {
+    if (!isRealtimeMessage(payload.new)) return
+    const incoming = payload.new
+    const baseThread = initialThreads.find(
+      (thread) => thread.id === incoming.chat_id,
+    )
+
+    if (!baseThread) {
+      router.refresh()
+      return
+    }
+
+    setThreadUpdates((current) => {
+      const existingUpdate = current[incoming.chat_id] ?? {}
+      const existing = { ...baseThread, ...existingUpdate }
+      const nextUnread =
+        incoming.sender_id !== currentUserId && activeChatId !== incoming.chat_id
+          ? existing.unread_count + 1
+          : activeChatId === incoming.chat_id
+            ? 0
+            : existing.unread_count
+
+      return {
+        ...current,
+        [incoming.chat_id]: {
+          ...existingUpdate,
+          last_message_body: incoming.body,
+          last_message_sender_id: incoming.sender_id,
+          last_message_created_at: incoming.created_at,
+          last_message_at: incoming.created_at,
+          sort_at: incoming.created_at,
+          unread_count: nextUnread,
+        },
+      }
+    })
+  })
+
   useEffect(() => {
+    let cancelled = false
     const channel = supabase
       .channel(`chat-inbox:${currentUserId}`)
       .on(
@@ -152,49 +190,15 @@ export default function ChatWorkspace({
           schema: "public",
           table: "messages",
         },
-        (payload) => {
-          if (!isRealtimeMessage(payload.new)) return
-          const incoming = payload.new
-          const baseThread = initialThreads.find(
-            (thread) => thread.id === incoming.chat_id,
-          )
-
-          if (!baseThread) {
-            router.refresh()
-            return
-          }
-
-          setThreadUpdates((current) => {
-            const existingUpdate = current[incoming.chat_id] ?? {}
-            const existing = { ...baseThread, ...existingUpdate }
-            const nextUnread =
-              incoming.sender_id !== currentUserId && activeChatId !== incoming.chat_id
-                ? existing.unread_count + 1
-                : activeChatId === incoming.chat_id
-                  ? 0
-                  : existing.unread_count
-
-            return {
-              ...current,
-              [incoming.chat_id]: {
-                ...existingUpdate,
-                last_message_body: incoming.body,
-                last_message_sender_id: incoming.sender_id,
-                last_message_created_at: incoming.created_at,
-                last_message_at: incoming.created_at,
-                sort_at: incoming.created_at,
-                unread_count: nextUnread,
-              },
-            }
-          })
-        },
+        (payload) => { if (!cancelled) handleMessage(payload) },
       )
       .subscribe()
 
     return () => {
+      cancelled = true
       void supabase.removeChannel(channel)
     }
-  }, [activeChatId, currentUserId, initialThreads, router, supabase])
+  }, [currentUserId, supabase])
 
   function markThreadLocallyRead(chatId: string) {
     setThreadUpdates((current) => {
