@@ -65,7 +65,9 @@ assert.equal(descriptions.size, 8)
 for (const query of ["size=M", "sort=price_asc", "q=zara"]) {
   await verify(`/catalog/women?${query}`, "https://samosell.ge/catalog/women", false)
 }
-await verify("/catalog/accessories?page=2", "https://samosell.ge/catalog/accessories?page=2", true)
+// Women currently spans several pages; accessories currently fits on page one.
+await verify("/catalog/women?page=2", "https://samosell.ge/catalog/women?page=2", true)
+await verify("/catalog/accessories?page=999999", "https://samosell.ge/catalog/accessories", false)
 for (const path of ["/catalog/not-a-real-category", "/catalog/Women", "/&", "/$"]) {
   const { response } = await read(path)
   assert.equal(response.status, 404, `${path}: true 404`)

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation"
 import CatalogView from "../catalog-view"
 import { isCatalogCategory } from "@/lib/catalog-urls"
-import { buildCatalogMetadata, type CatalogPageParams } from "@/lib/catalog-seo"
+import { type CatalogPageParams } from "@/lib/catalog-seo"
+import { buildServerCatalogMetadata } from "@/lib/catalog-seo-server"
 
 type Props = {
   params: Promise<{ category: string }>
@@ -16,7 +17,7 @@ async function resolveParams(props: Props) {
 }
 
 export async function generateMetadata(props: Props) {
-  return buildCatalogMetadata(await resolveParams(props))
+  return buildServerCatalogMetadata(await resolveParams(props))
 }
 
 export default async function CategoryPage(props: Props) {

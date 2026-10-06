@@ -1,10 +1,11 @@
 import CatalogView from "./catalog-view"
-import { buildCatalogMetadata, type CatalogPageParams } from "@/lib/catalog-seo"
+import { type CatalogPageParams } from "@/lib/catalog-seo"
+import { buildServerCatalogMetadata } from "@/lib/catalog-seo-server"
 
 type Props = { searchParams?: Promise<CatalogPageParams> }
 
 export async function generateMetadata({ searchParams }: Props) {
-  return buildCatalogMetadata((await searchParams) ?? {})
+  return buildServerCatalogMetadata((await searchParams) ?? {})
 }
 
 export default async function CatalogPage({ searchParams }: Props) {

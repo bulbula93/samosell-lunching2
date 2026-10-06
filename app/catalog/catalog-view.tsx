@@ -285,7 +285,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const catalogSeo = resolveCatalogSeo(params)
-  const catalogStructuredData = catalogSeo.indexable
+  const catalogStructuredData = catalogSeo.indexable && page <= totalPages
     ? buildCatalogStructuredData({
         canonicalPath: catalogSeo.canonicalPath,
         title: catalogSeo.title,
