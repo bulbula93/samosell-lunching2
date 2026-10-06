@@ -38,10 +38,10 @@ describe("Google discovery metadata", () => {
     ).toEqual({ canonicalPath: "/catalog", indexable: true, categoryLabel: "" })
     expect(
       buildCatalogCanonicalPath({ page: 3, category: "women", hasOtherFilters: false, hasSortParameter: false, hasTransientState: false }),
-    ).toEqual({ canonicalPath: "/catalog?category=women&page=3", indexable: true, categoryLabel: "ქალებისთვის" })
+    ).toEqual({ canonicalPath: "/catalog/women?page=3", indexable: true, categoryLabel: "ქალებისთვის" })
     expect(
       buildCatalogCanonicalPath({ page: 3, category: "women", hasOtherFilters: true, hasSortParameter: false, hasTransientState: false }),
-    ).toEqual({ canonicalPath: "/catalog?category=women", indexable: false, categoryLabel: "ქალებისთვის" })
+    ).toEqual({ canonicalPath: "/catalog/women", indexable: false, categoryLabel: "ქალებისთვის" })
     expect(
       buildCatalogCanonicalPath({ page: 1, hasOtherFilters: false, hasSortParameter: true, hasTransientState: false }),
     ).toEqual({ canonicalPath: "/catalog", indexable: false, categoryLabel: "" })

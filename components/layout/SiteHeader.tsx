@@ -1,3 +1,4 @@
+import { catalogCategoryHref } from "@/lib/catalog-urls"
 import type { User } from "@supabase/supabase-js"
 import { unstable_cache } from "next/cache"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
@@ -8,25 +9,25 @@ import { createClient } from "@/lib/supabase/server"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 
 const supportingItems: MarketplaceNavItem[] = [
-  { label: "ბავშვებისთვის", href: "/catalog?category=kids" },
-  { label: getCatalogItemLabel("footwear"), href: "/catalog?category=footwear" },
-  { label: getCatalogItemLabel("bags"), href: "/catalog?category=bags" },
+  { label: "ბავშვებისთვის", href: "/catalog/kids" },
+  { label: getCatalogItemLabel("footwear"), href: "/catalog/footwear" },
+  { label: getCatalogItemLabel("bags"), href: "/catalog/bags" },
 ]
 
 const perfumeItem: MarketplaceNavItem = {
   label: "პარფიუმერია",
-  href: "/catalog?category=perfume",
+  href: "/catalog/perfume",
 }
 
 const marketplaceNavOrder = [
-  "/catalog?category=women",
-  "/catalog?category=men",
-  "/catalog?category=kids",
-  "/catalog?category=footwear",
-  "/catalog?category=bags",
-  "/catalog?category=vintage",
-  "/catalog?category=accessories",
-  "/catalog?category=perfume",
+  "/catalog/women",
+  "/catalog/men",
+  "/catalog/kids",
+  "/catalog/footwear",
+  "/catalog/bags",
+  "/catalog/vintage",
+  "/catalog/accessories",
+  "/catalog/perfume",
 ] as const
 
 export const getMarketplaceNavigationItems = unstable_cache(
@@ -43,14 +44,14 @@ export const getMarketplaceNavigationItems = unstable_cache(
       .filter((item) => item.slug && item.name)
       .map((item) => ({
         label: item.navigation_label || item.name,
-        href: `/catalog?category=${encodeURIComponent(item.slug)}`,
+        href: catalogCategoryHref(item.slug),
       }))
 
     const hasPerfume = databaseItems.some((item) => item.href === perfumeItem.href)
     const databaseWithPerfume = hasPerfume
       ? databaseItems
       : databaseItems.flatMap((item) =>
-          item.href === "/catalog?category=accessories"
+          item.href === "/catalog/accessories"
             ? [item, perfumeItem]
             : [item],
         )
@@ -71,7 +72,7 @@ export const getMarketplaceNavigationItems = unstable_cache(
       return aOrder - bOrder
     })
   },
-  ["marketplace-header-navigation-v3"],
+  ["marketplace-header-navigation-v4-clean-categories"],
   {
     revalidate: 600,
     tags: ["marketplace-navigation"],

@@ -1,10 +1,11 @@
+import { catalogCategoryHref } from "@/lib/catalog-urls"
 import Link from "next/link"
 import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
 export default function ListingBreadcrumbs({ listing }: { listing: CatalogListing }) {
   const categoryHref = listing.category_slug
-    ? `/catalog?category=${encodeURIComponent(listing.category_slug)}`
+    ? catalogCategoryHref(listing.category_slug)
     : null
 
   return (

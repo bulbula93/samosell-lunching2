@@ -1,7 +1,20 @@
-import { type NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 import { updateSession } from "@/lib/supabase/proxy"
+import { categoryFromCatalogPath, getCatalogRedirectPath } from "@/lib/catalog-urls"
 
 export async function proxy(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl
+  if (request.method === "GET" || request.method === "HEAD") {
+    const destination = getCatalogRedirectPath(pathname, searchParams)
+    if (destination) return NextResponse.redirect(new URL(destination, request.url), 308)
+    if (pathname.startsWith("/catalog/") && !categoryFromCatalogPath(pathname)) {
+      // loading.tsx can otherwise commit a streamed 200 before notFound() runs.
+      const url = request.nextUrl.clone()
+      url.pathname = "/catalog-not-found"
+      url.search = ""
+      return NextResponse.rewrite(url, { status: 404 })
+    }
+  }
   return await updateSession(request)
 }
 

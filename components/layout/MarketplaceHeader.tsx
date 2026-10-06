@@ -230,7 +230,7 @@ export default function MarketplaceHeader({
               ([key, value]) => searchParams?.get(key) === value,
             )
             const active = pathMatches && queryMatches && target.searchParams.size > 0
-            const isPerfume = item.href === "/catalog?category=perfume"
+            const isPerfume = item.href === "/catalog/perfume"
 
             return (
               <Link

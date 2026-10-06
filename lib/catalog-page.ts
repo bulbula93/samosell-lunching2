@@ -1,3 +1,4 @@
+import { buildCatalogUrl } from "@/lib/catalog-urls"
 import {
   getCatalogItemKeywords,
   getCatalogItemLabel,
@@ -181,8 +182,7 @@ export function getCatalogPath(params: URLSearchParams, page: number) {
   const next = new URLSearchParams(params)
   if (page <= 1) next.delete("page")
   else next.set("page", String(page))
-  const query = next.toString()
-  return query ? `/catalog?${query}` : "/catalog"
+  return buildCatalogUrl(next)
 }
 
 export function summarizeFilters(filters: Record<string, string>) {

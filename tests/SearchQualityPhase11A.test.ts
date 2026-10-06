@@ -21,7 +21,7 @@ const thresholdHardening = read(
 const compoundRescue = read(
   "supabase/migrations/20260831060050_improve_compound_search_rescue_phase_11a1.sql",
 )
-const catalogPage = read("app/catalog/page.tsx")
+const catalogPage = read("app/catalog/catalog-view.tsx")
 const adminPage = read("app/admin/search/page.tsx")
 const adminActions = read("app/admin/search/actions.ts")
 

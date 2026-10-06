@@ -11,7 +11,7 @@ type Orientation = "portrait" | "landscape"
 function classifyRoute(pathname: string, search: string): RouteGroup {
   if (pathname === "/") return "home"
   if (pathname.startsWith("/listing/")) return "listing"
-  if (pathname === "/catalog") {
+  if (pathname === "/catalog" || pathname.startsWith("/catalog/")) {
     const params = new URLSearchParams(search)
     const query = String(params.get("q") ?? "").trim()
     return query ? "search" : "catalog"

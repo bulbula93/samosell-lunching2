@@ -1,5 +1,7 @@
 "use client"
 
+import { buildCatalogUrl } from "@/lib/catalog-urls"
+
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import CatalogFilterFields, {
@@ -30,8 +32,7 @@ function buildCatalogHref(values: CatalogFilterValues, nextSort: string) {
 
   if (nextSort && nextSort !== "latest") params.set("sort", nextSort)
 
-  const query = params.toString()
-  return query ? `/catalog?${query}` : "/catalog"
+  return buildCatalogUrl(params)
 }
 
 function FilterIcon() {

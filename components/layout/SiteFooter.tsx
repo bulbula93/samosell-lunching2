@@ -10,9 +10,9 @@ const footerGroups = [
     title: "აღმოაჩინე",
     links: [
       { href: "/catalog", label: "კატალოგი" },
-      { href: "/catalog?category=women", label: "ქალებისთვის" },
-      { href: "/catalog?category=accessories", label: "აქსესუარები" },
-      { href: "/catalog?category=vintage", label: "ვინტაჟი" },
+      { href: "/catalog/women", label: "ქალებისთვის" },
+      { href: "/catalog/accessories", label: "აქსესუარები" },
+      { href: "/catalog/vintage", label: "ვინტაჟი" },
       { href: "/sell-fast", label: "როგორ გავყიდო" },
     ],
   },

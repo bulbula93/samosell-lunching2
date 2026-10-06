@@ -1,3 +1,5 @@
+
+import { buildCatalogUrl } from "@/lib/catalog-urls"
 import Link from "next/link"
 import CatalogFilterFields, {
   type CatalogFilterOptions,
@@ -14,8 +16,7 @@ function buildCatalogHref(values: CatalogFilterValues) {
   for (const [key, value] of Object.entries(values)) {
     if (value && !(key === "sort" && value === "latest")) params.set(key, value)
   }
-  const query = params.toString()
-  return query ? `/catalog?${query}` : "/catalog"
+  return buildCatalogUrl(params)
 }
 
 export default function CatalogLandingFilters({

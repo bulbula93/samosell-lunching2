@@ -149,7 +149,7 @@ export default function MobileNavigation({
                 {ka.nav.catalog}
               </Link>
               {items.map((item) => {
-                const isPerfume = item.href === "/catalog?category=perfume"
+                const isPerfume = item.href === "/catalog/perfume"
                 return (
                   <Link
                     key={`${item.label}-${item.href}`}

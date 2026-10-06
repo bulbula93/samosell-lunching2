@@ -8,14 +8,14 @@ export type MarketplaceSearchSuggestion = {
 }
 
 const SEARCH_CATEGORIES: MarketplaceSearchSuggestion[] = [
-  { kind: "category", label: "ქალებისთვის", href: "/catalog?category=women", keywords: ["ქალი", "ქალის", "women"] },
-  { kind: "category", label: "მამაკაცებისთვის", href: "/catalog?category=men", keywords: ["კაცი", "კაცის", "men", "მამაკაცი"] },
-  { kind: "category", label: "ბავშვებისთვის", href: "/catalog?category=kids", keywords: ["ბავშვი", "საბავშვო", "kids"] },
-  { kind: "category", label: "ფეხსაცმელი", href: "/catalog?category=footwear", keywords: ["ფეხსაცმელი", "shoe", "shoes", "sneakers", "კედი", "ბოტასი"] },
-  { kind: "category", label: "ჩანთები", href: "/catalog?category=bags", keywords: ["ჩანთა", "bag", "bags", "backpack"] },
-  { kind: "category", label: "ვინტაჟი", href: "/catalog?category=vintage", keywords: ["ვინტაჟი", "vintage"] },
-  { kind: "category", label: "აქსესუარები", href: "/catalog?category=accessories", keywords: ["აქსესუარი", "accessories", "სამკაული", "ქამარი", "სათვალე"] },
-  { kind: "category", label: "პარფიუმერია", href: "/catalog?category=perfume", keywords: ["პარფიუმერია", "სუნამო", "perfume", "parfum"] },
+  { kind: "category", label: "ქალებისთვის", href: "/catalog/women", keywords: ["ქალი", "ქალის", "women"] },
+  { kind: "category", label: "მამაკაცებისთვის", href: "/catalog/men", keywords: ["კაცი", "კაცის", "men", "მამაკაცი"] },
+  { kind: "category", label: "ბავშვებისთვის", href: "/catalog/kids", keywords: ["ბავშვი", "საბავშვო", "kids"] },
+  { kind: "category", label: "ფეხსაცმელი", href: "/catalog/footwear", keywords: ["ფეხსაცმელი", "shoe", "shoes", "sneakers", "კედი", "ბოტასი"] },
+  { kind: "category", label: "ჩანთები", href: "/catalog/bags", keywords: ["ჩანთა", "bag", "bags", "backpack"] },
+  { kind: "category", label: "ვინტაჟი", href: "/catalog/vintage", keywords: ["ვინტაჟი", "vintage"] },
+  { kind: "category", label: "აქსესუარები", href: "/catalog/accessories", keywords: ["აქსესუარი", "accessories", "სამკაული", "ქამარი", "სათვალე"] },
+  { kind: "category", label: "პარფიუმერია", href: "/catalog/perfume", keywords: ["პარფიუმერია", "სუნამო", "perfume", "parfum"] },
 ]
 
 const BRAND_SUGGESTIONS: MarketplaceSearchSuggestion[] = POPULAR_BRANDS.map((brand) => ({

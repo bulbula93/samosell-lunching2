@@ -43,7 +43,7 @@ export default function PwaInstallPrompt() {
   const [ios, setIos] = useState(false)
   const [showIosSteps, setShowIosSteps] = useState(false)
 
-  const eligibleRoute = pathname === "/" || pathname === "/catalog"
+  const eligibleRoute = pathname === "/" || pathname === "/catalog" || pathname.startsWith("/catalog/")
 
   useEffect(() => {
     if (!eligibleRoute || isStandalone() || wasRecentlyDismissed()) return
