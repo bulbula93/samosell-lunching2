@@ -28,9 +28,12 @@ export default function SmartImage({
   const [failed, setFailed] = useState(false)
   const revealImmediately = loading === "eager"
 
+  const rawSrc = useMemo(() => String(src ?? "").trim(), [src])
+  const isLocalPreview = rawSrc.startsWith("blob:")
   const safeSrc = useMemo(() => {
-    return getSafeImageSource(src) ?? ""
-  }, [src])
+    if (isLocalPreview) return rawSrc
+    return getSafeImageSource(rawSrc) ?? ""
+  }, [isLocalPreview, rawSrc])
 
   if (!safeSrc || failed) {
     return (
@@ -50,6 +53,7 @@ export default function SmartImage({
         src={safeSrc}
         alt={alt}
         fill
+        unoptimized={isLocalPreview}
         sizes={sizes}
         loading={loading}
         fetchPriority={revealImmediately ? "high" : "auto"}
