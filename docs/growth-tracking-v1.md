@@ -143,7 +143,7 @@ spend reporting; Meta Ads spend API connection is separate future work.
 ## Review Preview
 
 This branch's Preview reads only the already-public catalog from Production. It has no
-active Growth collector or checkout. Login/account creation/listing mutations are blocked
+active Growth collector or checkout. External OAuth authorization is blocked before redirect; login/account creation/listing mutations are blocked
 both at the Next proxy and Supabase transport. This avoids accidental production writes
 when following `/sell` CTA. Auth links preserve `/dashboard/listings/new`, but cannot
 complete real login on this review deployment. The dashboard remains admin-only;

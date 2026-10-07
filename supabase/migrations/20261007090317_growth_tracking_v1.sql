@@ -149,7 +149,7 @@ begin
   end if;
   select coalesce(jsonb_agg(to_jsonb(e)),'[]') into v_result from (
     select * from public.growth_events where marketing_consent and occurred_at>now()-interval '5 minutes'
-    and (event_id=p_event->>'event_id' or (user_id=v_user and event_name in ('registration_completed','listing_published','boost_checkout_started','boost_purchase_completed'))) order by occurred_at desc limit 10
+    and ((event_id=p_event->>'event_id' and anonymous_id=v_anon) or (user_id=v_user and event_name in ('registration_completed','listing_published','boost_checkout_started','boost_purchase_completed'))) order by occurred_at desc limit 10
   ) e;
   return v_result;
 end $$;

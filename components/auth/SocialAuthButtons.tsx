@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react"
 import type { Provider } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/client"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 
 type SocialAuthButtonsProps = {
   mode: "login" | "register"
@@ -37,6 +38,10 @@ export default function SocialAuthButtons({ mode, nextPath }: SocialAuthButtonsP
   const [error, setError] = useState("")
 
   async function handleOAuthSignIn(provider: SupportedProvider) {
+    if (isReadOnlyPreview()) {
+      setError("ეს Preview მხოლოდ სანახავადაა. ავტორიზაციის შესამოწმებლად იზოლირებული ბაზაა საჭირო.")
+      return
+    }
     setLoadingProvider(provider)
     setError("")
 

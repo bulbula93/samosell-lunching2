@@ -27,6 +27,11 @@ describe("Growth ingestion security", () => {
     for (const name of ["boost_purchase_completed", "registration_completed", "listing_published"]) expect((await POST(request({ ...event(), event_name: name }))).status).toBe(400)
     expect(state.rpc).not.toHaveBeenCalled()
   })
+  it("cannot use identify as a lookup for another seller's public conversion key", async () => {
+    const result = await POST(request({ ...event(), event_name: "identify", event_id: `listing_published:${anon}` }))
+    expect(result.status).toBe(400)
+    expect(state.rpc).not.toHaveBeenCalled()
+  })
   it("rejects unauthenticated listing starts and accepts a real form interaction", async () => {
     const body = { ...event(), event_name: "listing_started", event_id: `listing_started:${anon}`, attempt_id: anon, path: "/dashboard/listings/new" }
     expect((await POST(request(body))).status).toBe(403)

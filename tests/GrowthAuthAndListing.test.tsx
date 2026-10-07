@@ -36,6 +36,15 @@ describe("Growth auth continuation and seller start", () => {
     await user.click(screen.getByRole("button", { name: /Google/ }))
     expect(auth.oauth).toHaveBeenCalledWith(expect.objectContaining({ provider: "google", options: expect.objectContaining({ redirectTo: expect.stringContaining("next=%2Fdashboard%2Flistings%2Fnew") }) }))
   })
+  it("blocks external OAuth authorization before a read-only Preview can contact production Auth", async () => {
+    vi.stubEnv("NEXT_PUBLIC_PREVIEW_READ_ONLY", "true"); vi.stubEnv("VERCEL_ENV", "preview")
+    try {
+      const user = userEvent.setup(); render(<SocialAuthButtons mode="login" nextPath="/dashboard/listings/new" />)
+      await user.click(screen.getByRole("button", { name: /Google/ }))
+      expect(auth.oauth).not.toHaveBeenCalled()
+      expect(screen.getByText(/ეს Preview მხოლოდ სანახავადაა/)).toBeVisible()
+    } finally { vi.unstubAllEnvs() }
+  })
   it("opening the wizard is not a start; selecting a photo is a real start and retries reuse the event ID", async () => {
     saveBrowserConsent(false, true)
     const view = render(<CreateListingWizard categories={[]} brands={[]} sizes={[]} initialSellerPhone="555123456" userId="user-one" />)

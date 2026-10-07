@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   if (!consent?.analytics || /bot|crawler|spider|lighthouse|pagespeed/i.test(request.headers.get("user-agent") ?? "")) return Response.json({ conversions: [] }, { headers })
   const context = parseContext(JSON.stringify(body.context))
   if (!context || !["page_view", "listing_started", "listing_publish_failed", "identify"].includes(String(body.event_name))) return Response.json({ error: "invalid_event" }, { status: 400, headers })
-  if (body.event_name !== "identify" && !uuid(body.event_id) && !(body.event_name === "listing_started" && uuid(body.attempt_id) && body.event_id === `listing_started:${body.attempt_id}`)) return Response.json({ error: "invalid_id" }, { status: 400, headers })
+  if (!uuid(body.event_id) && !(body.event_name === "listing_started" && uuid(body.attempt_id) && body.event_id === `listing_started:${body.attempt_id}`)) return Response.json({ error: "invalid_id" }, { status: 400, headers })
   const path = safePath(body.path)
   if (["listing_started", "listing_publish_failed"].includes(String(body.event_name)) && (!user || path !== "/dashboard/listings/new")) return Response.json({ error: "unauthorized" }, { status: 403, headers })
   try {
