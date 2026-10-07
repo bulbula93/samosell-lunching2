@@ -11,7 +11,7 @@ import GrowthInstrumentation from "@/components/growth/GrowthInstrumentation"
 import { previewSafeFetch } from "@/lib/preview-read-only"
 
 const nav = vi.hoisted(() => ({ path: "/sell", query: new URLSearchParams() }))
-vi.mock("next/navigation", () => ({ usePathname: () => nav.path, useSearchParams: () => nav.query }))
+vi.mock("next/navigation", () => ({ usePathname: () => nav.path, useSearchParams: () => nav.query, useRouter: () => ({ refresh: vi.fn() }) }))
 vi.mock("next/headers", () => ({ cookies: vi.fn() }))
 const pixel = "123456789"
 beforeEach(() => {
@@ -149,6 +149,6 @@ describe("Meta readiness", () => {
 it("shows unavailable metrics instead of fake zeros and has a spend empty state", () => {
   render(<GrowthDashboard summary={null} period="7" />)
   expect(screen.getByRole("heading", { name: "Growth / Analytics" })).toBeInTheDocument()
-  expect(screen.getByText("Meta Ads spend data not connected")).toBeInTheDocument()
+  expect(screen.getByText(/Not connected · Meta spend/)).toBeInTheDocument()
   expect(screen.queryByLabelText("Growth metrics")).not.toBeInTheDocument()
 })
