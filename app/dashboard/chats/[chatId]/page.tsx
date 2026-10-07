@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
 import ChatCommercePanel, { type ChatOfferSummary } from "@/components/chat/ChatCommercePanel"
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
+import SamoSellSupportAvatar from "@/components/chat/SamoSellSupportAvatar"
 import BlockUserForm from "@/components/moderation/BlockUserForm"
 import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
@@ -125,13 +126,17 @@ export default async function ChatThreadPage({
             </svg>
           </Link>
 
-          <Avatar
-            src={isOfficialSupport ? null : typedThread.counterparty_avatar_url}
-            alt={otherPartyLabel}
-            fallbackText={otherPartyLabel}
-            sizeClassName="h-11 w-11"
-            textClassName="text-sm"
-          />
+          {isOfficialSupport ? (
+            <SamoSellSupportAvatar sizeClassName="h-11 w-11" iconSize={38} />
+          ) : (
+            <Avatar
+              src={typedThread.counterparty_avatar_url}
+              alt={otherPartyLabel}
+              fallbackText={otherPartyLabel}
+              sizeClassName="h-11 w-11"
+              textClassName="text-sm"
+            />
+          )}
 
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-2">

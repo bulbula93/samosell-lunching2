@@ -21,6 +21,18 @@ const chatThreadClient = readFileSync(
   join(process.cwd(), "components/chat/ChatThreadClient.tsx"),
   "utf8",
 )
+const chatWorkspace = readFileSync(
+  join(process.cwd(), "components/chat/ChatWorkspace.tsx"),
+  "utf8",
+)
+const chatThreadPage = readFileSync(
+  join(process.cwd(), "app/dashboard/chats/[chatId]/page.tsx"),
+  "utf8",
+)
+const supportAvatar = readFileSync(
+  join(process.cwd(), "components/chat/SamoSellSupportAvatar.tsx"),
+  "utf8",
+)
 
 describe("welcome support chat", () => {
   it("keeps support distinct from ordinary direct chats", () => {
@@ -56,6 +68,15 @@ describe("welcome support chat", () => {
     expect(chatThreadClient).toContain('href="/dashboard/listings/new"')
     expect(chatThreadClient).toContain("დაიწყე ახლავე →")
     expect(chatThreadClient).toContain("isOfficialSupport && !mine && index === 0")
+  })
+
+  it("uses the SamoSell brand logo instead of initials for official support", () => {
+    expect(supportAvatar).toContain("BrandLogo")
+    expect(supportAvatar).toContain("iconOnly")
+    expect(chatWorkspace).toContain("SamoSellSupportAvatar")
+    expect(chatThreadPage).toContain("SamoSellSupportAvatar")
+    expect(chatWorkspace).not.toContain("src={isOfficialSupport ? null")
+    expect(chatThreadPage).not.toContain("src={isOfficialSupport ? null")
   })
 
   it("shows the official identity only to the support recipient", () => {
