@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useEffectEvent, useMemo, useState, type ReactNode } from "react"
 import Avatar from "@/components/shared/Avatar"
+import SamoSellSupportAvatar from "@/components/chat/SamoSellSupportAvatar"
 import { chatDisplayName, formatChatTimestamp, isSupportChatForUser, truncateChatText } from "@/lib/chats"
 import { createClient } from "@/lib/supabase/client"
 import type { ChatThread } from "@/types/chat"
@@ -367,13 +368,17 @@ export default function ChatWorkspace({
                       }`}
                     >
                       <div className="relative">
-                        <Avatar
-                          src={isOfficialSupport ? null : thread.counterparty_avatar_url}
-                          alt={counterparty}
-                          fallbackText={counterparty}
-                          sizeClassName="h-12 w-12"
-                          textClassName="text-sm"
-                        />
+                        {isOfficialSupport ? (
+                          <SamoSellSupportAvatar sizeClassName="h-12 w-12" iconSize={42} />
+                        ) : (
+                          <Avatar
+                            src={thread.counterparty_avatar_url}
+                            alt={counterparty}
+                            fallbackText={counterparty}
+                            sizeClassName="h-12 w-12"
+                            textClassName="text-sm"
+                          />
+                        )}
                         {hasUnread ? (
                           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-brand" />
                         ) : null}
