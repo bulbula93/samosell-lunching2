@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 const countResponse = vi.hoisted(() => ({ count: 49, error: null as null | { message: string } }))
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }))
 vi.mock("@/lib/supabase/public-server", () => ({ createPublicServerClient: () => ({ from: () => {
-  const query = { select: () => query, eq: () => query, or: () => query, abortSignal: () => Promise.resolve(countResponse) }
+  const query = { select: () => query, eq: () => query, or: () => query, limit: () => query, abortSignal: () => Promise.resolve(countResponse) }
   return query
 } }) }))
 

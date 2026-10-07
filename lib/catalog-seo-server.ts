@@ -9,9 +9,9 @@ import { PAGE_SIZE } from "@/lib/catalog-page"
 const getCategoryCount = unstable_cache(async (category: string) => {
   const client = createPublicServerClient()
   const response = await withQueryTimeout(applyCatalogFilters(
-    client.from("listings_catalog").select("id", { count: "exact", head: true }).eq("status", "active"),
+    client.from("listings_catalog").select("id", { count: "exact" }).eq("status", "active"),
     { category },
-  ))
+  ).limit(1))
   if (response.error) throw new Error("catalog_seo_count_failed")
   return response.count ?? 0
 }, ["catalog-seo-pagination-count-v2"], { revalidate: 300, tags: ["catalog-seo-pagination-count"] })
