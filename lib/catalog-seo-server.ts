@@ -18,16 +18,29 @@ const getCategoryCount = unstable_cache(async (category: string) => {
 
 export async function buildServerCatalogMetadata(params: CatalogPageParams = {}) {
   const { filters, page } = resolveCatalogState(params)
-  if (page > 1 && resolveCatalogSeo(params).indexable) {
+  const resolvedSeo = resolveCatalogSeo(params)
+
+  if (filters.category && resolvedSeo.categorySeo && resolvedSeo.indexable) {
     try {
       const count = await getCategoryCount(filters.category)
-      if ((page - 1) * PAGE_SIZE >= count) {
+
+      // A category with confirmed zero inventory is useful for navigation but
+      // should not compete in search as a thin landing page.
+      if (page === 1 && count === 0) {
+        return buildCatalogMetadata({ ...params, inventory_empty: "1" })
+      }
+
+      if (page > 1 && (page - 1) * PAGE_SIZE >= count) {
         return buildCatalogMetadata({ ...params, pagination_empty: "1" })
       }
     } catch {
-      // Avoid indexing an unverified pagination URL during an upstream outage.
-      return buildCatalogMetadata({ ...params, pagination_unverified: "1" })
+      // Keep established category roots stable during an upstream outage, but
+      // avoid indexing an unverified pagination URL.
+      if (page > 1) {
+        return buildCatalogMetadata({ ...params, pagination_unverified: "1" })
+      }
     }
   }
+
   return buildCatalogMetadata(params)
 }
