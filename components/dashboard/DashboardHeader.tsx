@@ -7,11 +7,13 @@ export default function DashboardHeader({
   isAdmin = false,
   unreadMessages = 0,
   favoriteCount = 0,
+  supportUnreadConversations = 0,
 }: {
   email?: string
   isAdmin?: boolean
   unreadMessages?: number
   favoriteCount?: number
+  supportUnreadConversations?: number
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 backdrop-blur">
@@ -30,6 +32,11 @@ export default function DashboardHeader({
             <Link href="/dashboard/chats" className="rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700">
               შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}
             </Link>
+            {isAdmin ? (
+              <Link href="/admin/support/chats" className="rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">
+                Support{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
+              </Link>
+            ) : null}
             <Link href="/dashboard/listings/new" className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">
               ახალი განცხადება
             </Link>
@@ -64,9 +71,14 @@ export default function DashboardHeader({
                   <Link href="/dashboard/reports" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">რეპორტები</Link>
                   <Link href="/dashboard/billing" className="rounded-2xl border border-neutral-200 px-4 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50">VIP განთავსება</Link>
                   {isAdmin ? (
-                    <Link href="/admin" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
-                      ადმინისტრირება
-                    </Link>
+                    <>
+                      <Link href="/admin/support/chats" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+                        Support Inbox{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
+                      </Link>
+                      <Link href="/admin" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
+                        ადმინისტრირება
+                      </Link>
+                    </>
                   ) : null}
                   <div className="pt-2">
                     <SignOutButton />
@@ -87,9 +99,14 @@ export default function DashboardHeader({
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">VIP განთავსება</Link>
           <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-transparent px-3 py-2 hover:border-neutral-200 hover:bg-neutral-50">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           {isAdmin ? (
-            <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 px-4 py-2 text-amber-900">
-              ადმინისტრირება
-            </Link>
+            <>
+              <Link href="/admin/support/chats" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-amber-900">
+                Support{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
+              </Link>
+              <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 px-4 py-2 text-amber-900">
+                ადმინისტრირება
+              </Link>
+            </>
           ) : null}
         </nav>
 
@@ -100,7 +117,14 @@ export default function DashboardHeader({
           <Link href="/dashboard/favorites" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">ფავორიტები{favoriteCount > 0 ? ` · ${favoriteCount}` : ""}</Link>
           <Link href="/dashboard/chats" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">შეტყობინებები{unreadMessages > 0 ? ` · ${unreadMessages}` : ""}</Link>
           <Link href="/dashboard/billing" className="whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700">VIP განთავსება</Link>
-          {isAdmin ? <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">ადმინისტრირება</Link> : null}
+          {isAdmin ? (
+            <>
+              <Link href="/admin/support/chats" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">
+                Support{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
+              </Link>
+              <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">ადმინისტრირება</Link>
+            </>
+          ) : null}
         </div>
       </div>
     </header>
