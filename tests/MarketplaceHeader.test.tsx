@@ -54,7 +54,8 @@ describe("MarketplaceHeader", () => {
     expect(screen.getByRole("link", { name: "კაბინეტი" })).toHaveAttribute("href", "/dashboard")
     expect(screen.getByRole("link", { name: "VIP განთავსება" })).toHaveAttribute("href", "/dashboard/billing")
     expect(screen.getByRole("button", { name: "გასვლა" })).toBeInTheDocument()
-    expect(screen.getByText("ნინო")).toBeInTheDocument()
+    expect(screen.getAllByText("ნინო").length).toBeGreaterThan(0)
+    expect(screen.getByRole("link", { name: "პროფილი — ნინო" })).toHaveAttribute("href", "/dashboard/profile")
     expect(screen.queryByRole("link", { name: ka.nav.login })).not.toBeInTheDocument()
   })
 
