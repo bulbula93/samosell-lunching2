@@ -75,7 +75,7 @@ describe("catalog states", () => {
     errorSpy.mockRestore()
   })
 
-  it("renders top-level category and item type values as removable Georgian filter chips", () => {
+  it("preserves the routed category while allowing search and item filters to be removed", () => {
     render(
       <CatalogLandingFilters
         categories={[{ slug: "women", name: "ქალებისთვის" }]}
@@ -101,9 +101,10 @@ describe("catalog states", () => {
     )
 
     expect(screen.getByRole("link", { name: "ძებნა: კაბა ფილტრის მოხსნა" })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "ქალებისთვის ფილტრის მოხსნა" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "ქალებისთვის ფილტრის მოხსნა" })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "კაბები ფილტრის მოხსნა" })).toBeInTheDocument()
-    expect(screen.getByRole("combobox", { name: "კატეგორია" })).toBeInTheDocument()
-    expect(screen.getByRole("combobox", { name: "ნივთის ტიპი" })).toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "კატეგორია" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "კაბები ფილტრის მოხსნა" })).toHaveAttribute("href", "/catalog/women?q=%E1%83%99%E1%83%90%E1%83%91%E1%83%90&sort=price_asc")
+    expect(screen.getAllByRole("button", { name: /^კაბები/ }).length).toBeGreaterThan(0)
   })
 })

@@ -1,5 +1,6 @@
 "use server"
 
+import { recordGrowthCheckout } from "@/lib/growth/server"
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
 import { redirect, unstable_rethrow } from "next/navigation"
@@ -266,6 +267,7 @@ export async function createBoostOrderAction(formData: FormData) {
       }
 
       revalidatePath("/dashboard/billing")
+      await recordGrowthCheckout(user.id, orderId, "boost")
       redirect(checkoutUrl)
     }
 
@@ -348,6 +350,7 @@ export async function createBoostOrderAction(formData: FormData) {
       }
 
       revalidatePath("/dashboard/billing")
+      await recordGrowthCheckout(user.id, orderId, "boost")
       redirect(checkoutUrl)
     }
 

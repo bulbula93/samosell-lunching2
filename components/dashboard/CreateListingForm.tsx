@@ -284,6 +284,7 @@ export default function CreateListingForm({
   initialSellerPhone = "",
 }: CreateListingFormProps) {
   const router = useRouter()
+  const growthEditIdRef = useRef<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const isEdit = mode === "edit"
   const canChangePublication = !isEdit || initialData.status === "active" || initialData.status === "draft"
@@ -551,6 +552,7 @@ export default function CreateListingForm({
         mode,
         listingId: preparation.listingId,
         form: formInput,
+        growthEditId: growthEditIdRef.current ??= crypto.randomUUID(),
         images: images.map((image) => {
           if (image.kind === "existing") return { kind: "existing" as const, id: image.id }
           const path = pathByClientId.get(image.id)
@@ -577,6 +579,7 @@ export default function CreateListingForm({
         ? "განცხადება შენახულია. ერთი ძველი ფაილის ავტომატური გასუფთავება მოგვიანებით განმეორდება."
         : isEdit ? "განცხადება განახლდა." : "განცხადება შეიქმნა.")
       completed = true
+      growthEditIdRef.current = null
       const hasPrivateDetail = !["active", "reserved", "sold"].includes(result.status)
       router.push(hasPrivateDetail ? "/dashboard/listings" : `/listing/${result.slug}`)
       router.refresh()

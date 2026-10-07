@@ -75,6 +75,7 @@ export default function DashboardHeader({
                       <Link href="/admin/support/chats" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
                         Support Inbox{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
                       </Link>
+                      <Link href="/admin/growth" className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-brand">Growth / Analytics</Link>
                       <Link href="/admin" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100">
                         ადმინისტრირება
                       </Link>
@@ -103,7 +104,8 @@ export default function DashboardHeader({
               <Link href="/admin/support/chats" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-amber-900">
                 Support{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
               </Link>
-              <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 px-4 py-2 text-amber-900">
+              <Link href="/admin/growth" className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-brand">Growth / Analytics</Link>
+                      <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 px-4 py-2 text-amber-900">
                 ადმინისტრირება
               </Link>
             </>
@@ -122,7 +124,8 @@ export default function DashboardHeader({
               <Link href="/admin/support/chats" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">
                 Support{supportUnreadConversations > 0 ? ` · ${supportUnreadConversations}` : ""}
               </Link>
-              <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">ადმინისტრირება</Link>
+              <Link href="/admin/growth" className="whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium text-brand">Growth / Analytics</Link>
+                      <Link href="/admin" className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900">ადმინისტრირება</Link>
             </>
           ) : null}
         </div>

@@ -77,13 +77,11 @@ export default function MarketplaceSearch({
   const [open, setOpen] = useState(false)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
-  useEffect(() => {
+  const [previousDefault, setPreviousDefault] = useState(defaultValue)
+  if (previousDefault !== defaultValue) {
+    setPreviousDefault(defaultValue)
     setQuery(defaultValue)
-  }, [defaultValue])
-
-  useEffect(() => {
-    setRecentSearches(readRecentSearches())
-  }, [])
+  }
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -141,14 +139,13 @@ export default function MarketplaceSearch({
           autoComplete="off"
           name="q"
           value={query}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { setRecentSearches(readRecentSearches()); setOpen(true) }}
           onChange={(event) => {
             setQuery(event.target.value)
             setOpen(true)
           }}
           placeholder={ka.nav.searchPlaceholder}
           className="h-10 w-0 min-w-0 flex-1 rounded-full bg-transparent pl-10 pr-1 text-[16px] text-text placeholder:text-text-soft/80 md:text-sm"
-          aria-expanded={showPanel}
           aria-controls={`${inputId}-suggestions`}
           style={{ outline: "none" }}
         />

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import BrandCombobox from "@/components/dashboard/BrandCombobox"
+import { trackGrowth, listingAttempt, clearListingAttempt } from "@/lib/growth/client"
 import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
@@ -281,6 +282,13 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [draggingImageId, setDraggingImageId] = useState("")
 
   const consent = useBrowserConsent()
+  const growthAttempt = useRef<string | null>(null)
+  function markListingStarted() {
+    if (!consent?.analytics || growthAttempt.current) return
+    const id = listingAttempt(userId)
+    growthAttempt.current = id
+    void trackGrowth("listing_started", `listing_started:${id}`, id)
+  }
   const [pendingDraft, setPendingDraft] = useState<ListingDraft | null>(null)
   const [draftChecked, setDraftChecked] = useState(false)
   const [draftStatus, setDraftStatus] = useState("")
@@ -518,6 +526,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }
 
   async function handleFilesSelected(fileList: FileList | null) {
+    if (fileList?.length) markListingStarted()
     if (!fileList?.length) return
     const incoming = Array.from(fileList)
     if (images.length + incoming.length > MAX_LISTING_IMAGES) {
@@ -710,6 +719,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
       uploadedPaths = []
       completed = true
+      clearListingAttempt(userId)
+      if (result.status === "active") void trackGrowth("identify")
       publishedRef.current = true
       if (userId) await deleteListingDraft(userId).catch(() => undefined)
       setUploadingImageIndex(null)
@@ -727,6 +738,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       setLoading(false)
       router.refresh()
     } catch (error) {
+      if (publishNow) void trackGrowth("listing_publish_failed")
       if (listingId && uploadedPaths.length > 0) await abortListingUploadsAction(listingId, uploadedPaths)
       const message = error instanceof Error ? error.message : ""
       setFormError(/[\u10a0-\u10ff]/i.test(message) ? message : "ოპერაცია ვერ შესრულდა. მონაცემები შენარჩუნებულია — სცადე ხელახლა.")
@@ -792,7 +804,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-5xl space-y-5">
+    <form onChangeCapture={markListingStarted} onSubmit={handleSubmit} noValidate className="mx-auto w-full max-w-5xl space-y-5">
       {pendingDraft ? <section aria-label="შენახული მონახაზი" className="ui-card border-brand/25 bg-brand-soft p-4">
         <h2 className="font-black">შენახული მონახაზი იპოვე</h2>
         <p className="mt-1 text-sm leading-6">{pendingDraft.fields.title || "დაუსრულებელი განცხადება"} · {pendingDraft.images.length} ფოტო. აღადგინო ტექსტი და ფოტოები?</p>

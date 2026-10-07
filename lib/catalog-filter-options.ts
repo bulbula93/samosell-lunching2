@@ -2,6 +2,7 @@ import "server-only"
 import { unstable_cache } from "next/cache"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { withQueryTimeout } from "@/lib/supabase/query-timeout"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 
 type CatalogFilterOptions = {
   sizes: Array<{ label: string; group_name: string; sort_order: number }>
@@ -18,7 +19,7 @@ export const getCachedCatalogFilterOptions = unstable_cache(
         .select("label, group_name, sort_order")
         .order("group_name", { ascending: true })
         .order("sort_order", { ascending: true })),
-      withQueryTimeout(supabase.rpc("get_catalog_public_facets")),
+      withQueryTimeout(supabase.rpc("get_catalog_public_facets", {}, { get: isReadOnlyPreview() })),
     ])
 
     const publicOptionsError = sizesResponse.error || facetsResponse.error
@@ -47,4 +48,3 @@ export const getCachedCatalogFilterOptions = unstable_cache(
     tags: ["catalog-public-filter-options"],
   },
 )
-

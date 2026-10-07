@@ -1,3 +1,4 @@
+import { previewFetchOptions } from "@/lib/preview-read-only"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { getPublicEnv } from "@/lib/env"
 
@@ -12,6 +13,7 @@ function requireServiceRoleKey() {
 export function createAdminClient() {
   const env = getPublicEnv()
   return createSupabaseClient(env.supabaseUrl, requireServiceRoleKey(), {
+    ...previewFetchOptions(),
     auth: { persistSession: false, autoRefreshToken: false },
   })
 }

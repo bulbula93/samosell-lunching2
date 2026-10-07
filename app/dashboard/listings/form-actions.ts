@@ -1,5 +1,6 @@
 "use server"
 
+import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -57,6 +58,7 @@ export type SaveListingInput = {
   listingId: string
   form: ListingFormInput
   images: ListingImageOrderItem[]
+  growthEditId?: string
 }
 
 export type SaveListingResult =
@@ -709,6 +711,8 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     if (ownedListing?.slug && ownedListing.slug !== slug) revalidatePath(`/listing/${ownedListing.slug}`)
     revalidatePath(`/listing/${slug}`)
 
+    if (firstPublication) await recordListingOutcome("listing_published", user.id, input.listingId)
+    if (input.mode === "edit") await recordListingOutcome("listing_edit_completed", user.id, input.listingId, isUuid(input.growthEditId ?? "") ? input.growthEditId : undefined)
     return { ok: true, listingId: input.listingId, slug, status, cleanupWarning }
   } catch (error) {
     if (insertedListing) {

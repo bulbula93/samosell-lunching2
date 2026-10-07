@@ -29,7 +29,7 @@ export default async function RegisterPage({
     <AuthCard
       title="ახალი ანგარიში"
       subtitle="შექმენი პროფილი, განათავსე ტანსაცმელი და მართე შენი განცხადებები."
-      altHref="/login"
+      altHref={`/login?next=${encodeURIComponent(next)}`}
       altText="უკვე გაქვს ანგარიში?"
       altLabel="შესვლა"
     >

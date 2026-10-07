@@ -1,5 +1,6 @@
 "use server"
 
+import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -411,6 +412,7 @@ export async function updateListingStatusAction(
     })
   }
 
+  if (updatedListing.status === "active" && !ownedListing.published_at) await recordListingOutcome("listing_published", user.id, listingId)
   revalidatePath("/")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")

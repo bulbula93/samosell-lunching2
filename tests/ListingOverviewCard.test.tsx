@@ -78,7 +78,8 @@ describe("ListingOverviewCard", () => {
     ).toBeInTheDocument()
     expect(screen.queryByText(/\+995 555 000 000/)).not.toBeInTheDocument()
     expect(screen.queryByText("პირადი მისამართი")).not.toBeInTheDocument()
-    expect(screen.queryByText(/4\.3|rating|checkout|ყიდვა/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/4\.3|rating|checkout/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /ყიდვა|გადახდა/ })).not.toBeInTheDocument()
   })
 
   it("omits missing optional fields instead of inventing placeholders", () => {

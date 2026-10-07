@@ -1,3 +1,4 @@
+import { previewFetchOptions } from "@/lib/preview-read-only"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { getPublicEnv } from "@/lib/env"
@@ -7,6 +8,7 @@ export async function createClient() {
   const env = getPublicEnv()
 
   return createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
+    ...previewFetchOptions(),
     cookies: {
       getAll() {
         return cookieStore.getAll()

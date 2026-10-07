@@ -18,7 +18,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }))
 
 const props = {
-  categories: [{ id: 1, name: "ტანსაცმელი" }],
+  categories: [{ id: 1, slug: "women", name: "ქალებისთვის" }],
   brands: [],
   sizes: [],
   initialSellerPhone: "+995 555 12 34 56",

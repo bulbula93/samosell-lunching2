@@ -1,5 +1,6 @@
 import "server-only"
 
+import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getTbcPaymentDetails, isTbcCheckoutEnabled, isTbcFinalStatus } from "@/lib/tbc"
 import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
@@ -38,6 +39,7 @@ export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostP
   if (applyError) throw applyError
   const applied = appliedData as Applied
 
+  if (applied.outcome === "applied") scheduleGrowthMetaDelivery()
   if (applied.outcome === "applied" && applied.activated) {
     await notifyAdminBoostPurchase(claim.id, "TBC")
   }
