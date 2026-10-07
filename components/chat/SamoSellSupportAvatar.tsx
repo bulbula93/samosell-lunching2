@@ -1,18 +1,20 @@
-import BrandLogo from "@/components/shared/BrandLogo"
-
 export default function SamoSellSupportAvatar({
   sizeClassName = "h-12 w-12",
-  iconSize = 42,
 }: {
   sizeClassName?: string
-  iconSize?: number
 }) {
   return (
     <div
       aria-label="SamoSell Help"
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand/15 bg-white shadow-[0_8px_24px_rgba(7,63,59,0.08)] ${sizeClassName}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand/15 bg-white px-1.5 shadow-[0_8px_24px_rgba(7,63,59,0.08)] ${sizeClassName}`}
     >
-      <BrandLogo iconOnly iconSize={iconSize} />
+      <img
+        src="/brand/samosell-header-logo.svg"
+        alt="Samo$ell"
+        width={164}
+        height={50}
+        className="h-auto w-full object-contain"
+      />
     </div>
   )
 }
