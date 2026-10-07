@@ -32,19 +32,27 @@ export async function recordGrowthOutcome(event: GrowthEvent) {
     return true
   } catch { console.warn("[growth] outcome unavailable"); return false }
 }
+async function optionalGrowthContext() {
+  try {
+    return await requestGrowthContext()
+  } catch {
+    // Operational outcomes must survive missing/malformed optional analytics context.
+    return { marketing_consent: false as const }
+  }
+}
+
 export async function recordListingOutcome(name: GrowthEventName, userId: string, listingId: string, editId?: string) {
   if (!growthWritesEnabled()) return
-  try {
-    const context = await requestGrowthContext()
-    await recordGrowthOutcome({ ...context, event_name: name, event_id: name === "listing_published" ? `${name}:${listingId}` : `${name}:${listingId}:${editId ?? crypto.randomUUID()}`, user_id: userId, listing_id: listingId, path: "/dashboard/listings/new", route_group: "create_listing" })
-  } catch { console.warn("[growth] listing outcome unavailable") }
+  const context = await optionalGrowthContext()
+  const recorded = await recordGrowthOutcome({ ...context, event_name: name, event_id: name === "listing_published" ? `${name}:${listingId}` : `${name}:${listingId}:${editId ?? crypto.randomUUID()}`, user_id: userId, listing_id: listingId, path: "/dashboard/listings/new", route_group: "create_listing" })
+  if (!recorded) console.warn("[growth] listing outcome unavailable", { event: name })
 }
+
 export async function recordGrowthCheckout(userId: string, orderId: string, kind: "boost" | "banner") {
   if (!growthWritesEnabled()) return
-  try {
-    const context = await requestGrowthContext()
-    await recordGrowthOutcome({ ...context, event_name: "boost_checkout_started", event_id: `boost_checkout_started:${kind}:${orderId}`, user_id: userId, order_id: orderId, product_type: kind, path: kind === "boost" ? "/dashboard/billing" : "/advertise", route_group: "checkout" })
-  } catch { console.warn("[growth] checkout outcome unavailable") }
+  const context = await optionalGrowthContext()
+  const recorded = await recordGrowthOutcome({ ...context, event_name: "boost_checkout_started", event_id: `boost_checkout_started:${kind}:${orderId}`, user_id: userId, order_id: orderId, product_type: kind, path: kind === "boost" ? "/dashboard/billing" : "/advertise", route_group: "checkout" })
+  if (!recorded) console.warn("[growth] checkout outcome unavailable", { kind })
 }
 
 export function scheduleGrowthMetaDelivery(userId?: string) {
