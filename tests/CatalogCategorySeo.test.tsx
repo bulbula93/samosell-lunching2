@@ -16,7 +16,7 @@ describe("clean category URLs and SEO", () => {
     expect(meta.robots).toEqual({ index: true, follow: true })
     expect(meta.title).toBe(CATEGORY_SEO[value].title)
     expect(meta.description).toBe(CATEGORY_SEO[value].description)
-    render(<CatalogPageHeader totalCount={5} category={value} categorySeo={CATEGORY_SEO[value]} />)
+    render(<CatalogPageHeader totalCount={5} categorySeo={CATEGORY_SEO[value]} />)
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1)
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(CATEGORY_SEO[value].h1)
   })
