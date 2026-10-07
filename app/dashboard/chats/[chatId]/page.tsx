@@ -127,7 +127,7 @@ export default async function ChatThreadPage({
           </Link>
 
           {isOfficialSupport ? (
-            <SamoSellSupportAvatar sizeClassName="h-11 w-11" iconSize={38} />
+            <SamoSellSupportAvatar sizeClassName="h-11 w-11" />
           ) : (
             <Avatar
               src={typedThread.counterparty_avatar_url}
