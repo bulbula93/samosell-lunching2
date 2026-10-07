@@ -14,7 +14,7 @@ const getCategoryCount = unstable_cache(async (category: string) => {
   ))
   if (response.error) throw new Error("catalog_seo_count_failed")
   return response.count ?? 0
-}, ["catalog-seo-pagination-count-v1"], { revalidate: 300, tags: ["catalog-seo-pagination-count"] })
+}, ["catalog-seo-pagination-count-v2"], { revalidate: 300, tags: ["catalog-seo-pagination-count"] })
 
 export async function buildServerCatalogMetadata(params: CatalogPageParams = {}) {
   const { filters, page } = resolveCatalogState(params)
