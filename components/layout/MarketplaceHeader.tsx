@@ -207,7 +207,26 @@ export default function MarketplaceHeader({
             <span aria-hidden="true">✉</span>
             {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}
           </Link>
-          <NotificationBell count={userState.unreadNotifications} />
+          <div className="ml-auto flex min-w-0 items-center gap-2 md:ml-0">
+            <NotificationBell count={userState.unreadNotifications} />
+            <Link
+              prefetch={false}
+              href="/dashboard/profile"
+              aria-label={`პროფილი — ${userState.profileLabel}`}
+              title={userState.profileLabel}
+              className="flex h-11 min-w-0 max-w-[108px] items-center gap-1.5 rounded-xl border border-line bg-white px-1.5 pr-2 text-text transition hover:border-brand/40 hover:bg-brand-soft sm:hidden"
+            >
+              <Avatar
+                src={userState.profileImage}
+                alt={userState.profileLabel}
+                fallbackText={userState.profileLabel}
+                sizeClassName="h-8 w-8"
+                textClassName="text-[10px]"
+                className="shrink-0 border-0 shadow-none ring-0"
+              />
+              <span className="min-w-0 truncate text-xs font-semibold">{userState.profileLabel}</span>
+            </Link>
+          </div>
         </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
           <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
