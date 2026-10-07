@@ -11,7 +11,7 @@ describe("chat route states", () => {
   it("announces inbox and thread loading states", () => {
     const { unmount } = render(<ChatsLoading />)
     expect(screen.getByRole("status")).toHaveTextContent(
-      "შეტყობინებები იტვირთება.",
+      "შეტყობინებები იტვირთება",
     )
     unmount()
     render(<ThreadLoading />)

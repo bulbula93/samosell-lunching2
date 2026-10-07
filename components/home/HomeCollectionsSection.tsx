@@ -8,10 +8,6 @@ import { POPULAR_BRANDS } from "@/lib/popular-brands"
 
 
 
-function normalizeBrand(value: string) {
-  return value.trim().toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, "")
-}
-
 function BrandMark({ name, domain }: { name: string; domain: string }) {
   const [failed, setFailed] = useState(false)
 

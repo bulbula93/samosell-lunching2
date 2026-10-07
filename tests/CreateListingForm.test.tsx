@@ -33,7 +33,7 @@ vi.mock("@/lib/supabase/client", () => ({
 }))
 
 const props = {
-  categories: [{ id: 1, name: "ტანსაცმელი" }],
+  categories: [{ id: 1, slug: "women", name: "ქალებისთვის" }],
   brands: [{ id: "177f3329-6c04-4c40-8f33-873ab3ee4f76", name: "Zara" }],
   sizes: [{ id: "277f3329-6c04-4c40-8f33-873ab3ee4f76", label: "M" }],
   initialSellerPhone: "+995 555 12 34 56",
@@ -77,7 +77,7 @@ describe("CreateListingForm", () => {
 
     expect(screen.getByRole("heading", { name: "გაყიდე ნივთი მარტივად" })).toBeInTheDocument()
     expect(screen.getByLabelText(/^სათაური/)).toBeRequired()
-    expect(screen.getByLabelText(/^კატეგორია/)).toContainHTML("ტანსაცმელი")
+    expect(screen.getByLabelText(/^კატეგორია/)).toContainHTML("ქალებისთვის")
     expect(screen.getByLabelText(/^გამყიდველის ტელეფონი/)).toBeRequired()
     expect(screen.getByLabelText(/^გამყიდველის ტელეფონი/)).toHaveValue("+995 555 12 34 56")
     expect(screen.getByLabelText("განცხადების სურათების არჩევა")).toHaveAttribute(

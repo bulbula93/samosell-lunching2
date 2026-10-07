@@ -44,7 +44,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
   })
 
   it("keeps homepage reads bounded and avoids caching a false empty marketplace", () => {
-    expect(homeData).toContain("HOME_QUERY_BUDGET_MS = 7000")
+    expect(homeData).toContain("HOME_QUERY_BUDGET_MS = PUBLIC_QUERY_TIMEOUT_MS")
     expect(homeData).toContain("settleHomeQuery")
     expect(homeData).toContain("HOME_POOL_LIMIT = 500")
     expect(homeData).toContain('["home-public-data-v5"]')

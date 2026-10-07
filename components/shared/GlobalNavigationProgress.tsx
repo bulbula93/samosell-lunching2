@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 
 const COMPLETE_HIDE_DELAY_MS = 180
@@ -15,7 +15,7 @@ export default function GlobalNavigationProgress() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousRouteRef = useRef("")
 
-  function clearTimers() {
+  const clearTimers = useCallback(() => {
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current)
       progressTimerRef.current = null
@@ -24,9 +24,9 @@ export default function GlobalNavigationProgress() {
       clearTimeout(hideTimerRef.current)
       hideTimerRef.current = null
     }
-  }
+  }, [])
 
-  function startProgress() {
+  const startProgress = useCallback(() => {
     clearTimers()
     activeRef.current = true
     setActive(true)
@@ -39,7 +39,7 @@ export default function GlobalNavigationProgress() {
         return Math.min(88, current + Math.max(1.5, remaining * 0.12))
       })
     }, 220)
-  }
+  }, [clearTimers])
 
   function completeProgress() {
     if (!activeRef.current) return
@@ -115,7 +115,7 @@ export default function GlobalNavigationProgress() {
       window.removeEventListener("popstate", handlePopState)
       clearTimers()
     }
-  }, [])
+  }, [clearTimers, startProgress])
 
   return (
     <div

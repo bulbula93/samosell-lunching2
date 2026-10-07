@@ -8,14 +8,14 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 vi.mock("@/app/dashboard/listings/form-actions", () => ({ prepareListingUploadsAction: vi.fn(), saveListingAction: vi.fn(), abortListingUploadsAction: vi.fn() }))
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ storage: { from: vi.fn() } }) }))
 vi.mock("@/lib/listing-draft", () => ({ readListingDraft: vi.fn(), saveListingDraft: vi.fn(() => Promise.resolve(true)), deleteListingDraft: vi.fn(() => Promise.resolve()) }))
-const props = { categories: [{ id: 1, name: "ტანსაცმელი" }], brands: [], sizes: [], initialSellerPhone: "+995 555 12 34 56", userId: "owner-a" }
+const props = { categories: [{ id: 1, slug: "women", name: "ქალებისთვის" }], brands: [], sizes: [], initialSellerPhone: "+995 555 12 34 56", userId: "owner-a" }
 beforeEach(() => {
   localStorage.clear(); document.cookie = "samosell_browser_consent=; Max-Age=0; Path=/"; vi.clearAllMocks(); saveBrowserConsent(true, false)
   Element.prototype.scrollIntoView = vi.fn()
   URL.createObjectURL = vi.fn(() => "blob:restored")
   URL.revokeObjectURL = vi.fn()
   vi.mocked(readListingDraft).mockResolvedValue({ userId: "owner-a", updatedAt: Date.now(), sizeType: "clothing",
-    fields: { title: "შენახული ქურთუკი", description: "კარგ მდგომარეობაშია.", price: "25", categoryId: 1, brandId: "", sizeId: "", condition: "good", saleType: "sell", gender: "unisex", color: "", material: "", city: "თბილისი", publishNow: true },
+    fields: { title: "შენახული ქურთუკი", description: "კარგ მდგომარეობაშია.", price: "25", categoryId: 1, brandId: "", customBrand: "", sizeId: "", condition: "good", saleType: "sell", gender: "unisex", color: "", material: "", city: "თბილისი", publishNow: true },
     images: [{ id: "photo-1", name: "item.jpg", type: "image/jpeg", lastModified: 1, blob: new Blob([new Uint8Array([0xff,0xd8,0xff])], { type: "image/jpeg" }) }] })
 })
 it("asks before restoration and restores the selected photo and text without publishing", async () => {
