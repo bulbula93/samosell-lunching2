@@ -21,6 +21,7 @@ export type MetaSpendRow = {
   clicks: number | null
   synced_at: string
 }
+export type MetaSpendPoint = { date: string; usd: number; gel: number | null }
 export type MetaSpendSummary = {
   status: "ready" | "not_connected" | "unavailable" | "incomplete"
   spendUsd: number | null
@@ -31,6 +32,7 @@ export type MetaSpendSummary = {
   daysExpected: number
   stale: boolean
   lastError: string | null
+  dailySpend?: MetaSpendPoint[]
 }
 
 // All periods use the same calendar boundaries as the authoritative Growth summary.
@@ -51,7 +53,7 @@ export function summarizeMetaSpend(rows: MetaSpendRow[], period: string, now = n
   if (selected.some(row => row.ad_account_id !== META_AD_ACCOUNT_ID || row.account_name !== META_AD_ACCOUNT_NAME || row.spend_currency !== "USD" || !Number.isFinite(Number(row.spend_amount)) || Number(row.spend_amount) < 0 || !Number.isFinite(Date.parse(row.synced_at)))) return { ...empty, status: "unavailable" }
   const syncedAt = selected.map(row => row.synced_at).sort()[0]
   const hasFx = selected.every(row => row.spend_gel !== null && Number.isFinite(Number(row.spend_gel)) && Number(row.spend_gel) >= 0 && row.fx_rate_to_gel !== null && Number(row.fx_rate_to_gel) > 0 && row.fx_source === "NBG" && Boolean(row.fx_rate_date))
-  return { ...empty, status: "ready", spendUsd: selected.reduce((sum, row) => sum + Number(row.spend_amount), 0), spendGel: hasFx ? selected.reduce((sum, row) => sum + Number(row.spend_gel), 0) : null, fxStatus: hasFx ? "available" : "unavailable", syncedAt, stale: now.getTime() - Date.parse(syncedAt) > 26 * 3600_000 }
+  return { ...empty, status: "ready", spendUsd: selected.reduce((sum, row) => sum + Number(row.spend_amount), 0), spendGel: hasFx ? selected.reduce((sum, row) => sum + Number(row.spend_gel), 0) : null, fxStatus: hasFx ? "available" : "unavailable", syncedAt, stale: now.getTime() - Date.parse(syncedAt) > 26 * 3600_000, dailySpend: [...selected].sort((a, b) => a.date.localeCompare(b.date)).map(row => ({ date: row.date, usd: Number(row.spend_amount), gel: hasFx ? Number(row.spend_gel) : null })) }
 }
 
 export function metaAcquisitionMetrics(spend: MetaSpendSummary, growth: GrowthSummary | null) {

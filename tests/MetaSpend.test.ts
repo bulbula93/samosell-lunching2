@@ -35,6 +35,13 @@ describe("Meta spend calendar and financial definitions", () => {
     const spend = summarizeMetaSpend(input, "7", now)
     expect(spend).toMatchObject({ spendUsd: 14, spendGel: null, fxStatus: "unavailable" })
     expect(Object.values(metaAcquisitionMetrics(spend, growth))).toEqual([null, null, null, null, null])
+    expect(spend.dailySpend?.every(point => point.gel === null)).toBe(true)
+  })
+  it("provides chart points in calendar order for only the selected period", () => {
+    const spend = summarizeMetaSpend(rows().reverse(), "7", now)
+    expect(spend.dailySpend?.map(point => point.date)).toEqual(metaSpendDates("7", now))
+    expect(spend.dailySpend?.[0]).toEqual({ date: "2026-10-01", usd: 2, gel: 5 })
+    expect(summarizeMetaSpend(rows().slice(0, 29), "7", now).dailySpend).toBeUndefined()
   })
   it("computes all costs and account-level blended ROAS from confirmed Growth counts", () => {
     expect(metaAcquisitionMetrics(summarizeMetaSpend(rows(), "today", now), growth)).toEqual({ registration: 1, listing: 0.5, newSeller: 1.25, payingSeller: 2.5, roas: 20 })

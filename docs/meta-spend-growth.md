@@ -14,12 +14,11 @@ Only account `948841811174019` / `SamoSell Ads` / `USD` / `Asia/Tbilisi` is allo
 Before each import the API must confirm all four attributes. The old account is
 rejected by configuration, source validation and database constraints.
 
-Meta access is read-only (`ads_read`). Prefer a system user token scoped to the
-approved account and owned Marketing API app. Do not reuse CAPI tokens or grant
-ads management permissions just to read spend. Existing `samosell` app
-`1343375101144479` was observed with the Facebook Login use case; its Add more
-use cases dialog only offered an app install ads use case explicitly without
-Marketing API access. A compatible Marketing API app/token remains required.
+Meta access is read-only (`ads_read`). The user created the Marketing API app
+`Samosell Growth` (`3054135721598772`) and securely supplied its token to Vercel.
+Prefer a system user token scoped to the approved account for unattended production
+sync. The configured token's lifetime still needs verification before cron activation.
+Do not reuse CAPI tokens or grant ads management permissions just to read spend.
 
 ## Credentials and Preview
 
@@ -40,10 +39,9 @@ Vercel project `samosell-lunching2`, Preview branch-specific variables:
 | GROWTH_TRACKING_ENABLED | `true` after QA Growth schema verification |
 | NEXT_PUBLIC_PREVIEW_READ_ONLY | `false` on isolated QA; `true` for a review-only environment |
 
-Empty branch-specific Meta token and QA server key intentionally override
-any shared credentials. Vercel cannot return a sensitive key's plaintext, so the
-existing QA Growth branch's sensitive service key cannot be copied via the connector.
-Set the same QA secret directly on this branch. Never send secrets in chat, commit
+Branch-specific Meta token and QA server key are configured as sensitive secrets.
+Vercel cannot return a sensitive key's plaintext; configure any replacements directly
+in Vercel and redeploy this Preview branch. Never send secrets in chat, commit
 them, put them in NEXT_PUBLIC variables, or copy a Production service key here.
 Checkout and CAPI are disabled on this Preview. Scheduled spend sync is disabled.
 
@@ -111,6 +109,22 @@ account-level blended ROAS, not campaign-attributed ROAS; names are never used
 to infer campaign attribution.
 
 ## Release gate
+
+The QA Preview completed two real Meta API syncs on 2026-10-07 at 19:16:09 and
+19:18:06 Asia/Tbilisi. The validated account reported no spend for 2026-09-08
+through 2026-10-07. All 30 unique dates have saved NBG FX. A repeated sync retained
+30 rows and identical FX snapshots. Production remains unchanged.
+
+## Graphical dashboard
+
+The daily USD/GEL chart uses those same validated rows in date order. It is an
+interactive SVG with currency buttons, day selection, a mobile range control and
+an accessible daily table. Missing FX disables GEL; an incomplete spend period
+produces no series. Zero reported spend stays a flat zero series.
+The funnel uses the original same-cohort counts. Source/campaign bars visualize
+visitor counts and shares, never attributed revenue. Cost bars use the same CAC
+formulas; null and zero remain distinct. No chart dependency or new database
+query/schema is introduced. All charts remain behind the existing admin access.
 
 Before READY: securely configure QA server key and Meta credentials, redeploy
 Preview, sign in as a QA administrator, run the real sync, verify API account
