@@ -369,7 +369,7 @@ export default function ChatWorkspace({
                     >
                       <div className="relative">
                         {isOfficialSupport ? (
-                          <SamoSellSupportAvatar sizeClassName="h-12 w-12" iconSize={42} />
+                          <SamoSellSupportAvatar sizeClassName="h-12 w-12" />
                         ) : (
                           <Avatar
                             src={thread.counterparty_avatar_url}
