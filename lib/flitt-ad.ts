@@ -1,5 +1,6 @@
 import "server-only"
 
+import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export type FlittAdFinalizeResult = {
@@ -28,6 +29,7 @@ export async function finalizeFlittAdPayment(orderId: string) {
   })
 
   if (error) throw error
+  scheduleGrowthMetaDelivery()
   return data as FlittAdFinalizeResult
 }
 

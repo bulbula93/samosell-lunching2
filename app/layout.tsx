@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import SiteFooter from "@/components/layout/SiteFooter"
 import PwaRuntime from "@/components/pwa/PwaRuntime"
 import PwaInstallPrompt from "@/components/pwa/PwaInstallPrompt"
+import GrowthInstrumentation from "@/components/growth/GrowthInstrumentation"
 import ClientInstrumentation from "@/components/shared/ClientInstrumentation"
 import GlobalNavigationProgress from "@/components/shared/GlobalNavigationProgress"
 import BrowserConsentPanel from "@/components/privacy/BrowserConsentPanel"
@@ -83,6 +84,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <ClientInstrumentation />
         </Suspense>
+        <Suspense fallback={null}><GrowthInstrumentation /></Suspense>
         <div className="flex min-h-screen flex-col">
           <div id="main-content" className="flex-1" tabIndex={-1}>{children}</div>
           <SiteFooter />

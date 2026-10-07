@@ -1,5 +1,6 @@
 import "server-only"
 
+import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
 
@@ -31,6 +32,7 @@ export async function finalizeFlittBoostPayment(orderId: string) {
   if (error) throw error
   const result = data as FlittBoostFinalizeResult
 
+  scheduleGrowthMetaDelivery()
   if (result.activated) {
     await notifyAdminBoostPurchase(safeOrderId, "Flitt")
   }

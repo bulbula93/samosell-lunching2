@@ -47,7 +47,7 @@ export default async function LoginPage({
           <span className="font-bold text-brand">პროფილი და ჩატები.</span>
         </>
       }
-      altHref="/register"
+      altHref={`/register?next=${encodeURIComponent(next)}`}
       altText="ანგარიში არ გაქვს?"
       altLabel="რეგისტრაცია"
     >

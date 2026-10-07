@@ -1,9 +1,13 @@
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 import { NextResponse, type NextRequest } from "next/server"
 import { updateSession } from "@/lib/supabase/proxy"
 import { categoryFromCatalogPath, getCatalogRedirectPath } from "@/lib/catalog-urls"
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  if (isReadOnlyPreview() && (!["GET", "HEAD", "OPTIONS"].includes(request.method) || (pathname === "/auth/callback" && searchParams.has("code")))) {
+    return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
+  }
   if (request.method === "GET" || request.method === "HEAD") {
     const destination = getCatalogRedirectPath(pathname, searchParams)
     if (destination) return NextResponse.redirect(new URL(destination, request.url), 308)

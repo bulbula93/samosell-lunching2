@@ -1,5 +1,6 @@
 "use server"
 
+import { recordGrowthCheckout } from "@/lib/growth/server"
 import { randomUUID } from "node:crypto"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
@@ -235,5 +236,6 @@ export async function submitSelfServiceAdAction(formData: FormData) {
     userEmail: user.email,
   })
 
+  await recordGrowthCheckout(user.id, orderId, "banner")
   redirect(checkoutUrl)
 }

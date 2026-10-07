@@ -5,7 +5,7 @@ export const SETTINGS_EVENT = "samosell:open-browser-settings"
 export const PERSONALIZATION_KEYS = ["samosell-recently-viewed", "samosell:catalog-filters:v1"]
 export const CONSENT_TTL_MS = 180 * 24 * 60 * 60 * 1000
 export const PREFERENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000
-export type BrowserConsent = { version: 1; personalization: boolean; analytics: boolean; updatedAt: number }
+export type BrowserConsent = { version: 1; personalization: boolean; analytics: boolean; marketing?: boolean; updatedAt: number }
 let memoryConsent: string | null = null
 let memoryOverridesStorage = false
 
@@ -14,7 +14,7 @@ export function parseConsent(raw: string | null): BrowserConsent | null {
     const value = JSON.parse(raw ?? "null")
     if (value?.version !== 1 || typeof value.personalization !== "boolean" || typeof value.analytics !== "boolean" ||
       !Number.isFinite(value.updatedAt) || value.updatedAt > Date.now() || Date.now() - value.updatedAt > CONSENT_TTL_MS) return null
-    return value
+    return { ...value, marketing: value.marketing === true }
   } catch { return null }
 }
 
@@ -55,8 +55,8 @@ export function subscribePreferences(listener: () => void) {
   }
 }
 
-export function saveBrowserConsent(personalization: boolean, analytics: boolean) {
-  const value: BrowserConsent = { version: 1, personalization, analytics, updatedAt: Date.now() }
+export function saveBrowserConsent(personalization: boolean, analytics: boolean, marketing = false) {
+  const value: BrowserConsent = { version: 1, personalization, analytics, marketing: marketing && analytics, updatedAt: Date.now() }
   const raw = JSON.stringify(value)
   memoryConsent = raw
   try { document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(raw)}; Path=/; Max-Age=${CONSENT_TTL_MS / 1000}; SameSite=Lax${window.location.protocol === "https:" ? "; Secure" : ""}` }

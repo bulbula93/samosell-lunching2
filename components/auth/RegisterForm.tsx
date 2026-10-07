@@ -1,11 +1,14 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons"
 
 export default function RegisterForm({ nextPath }: { nextPath?: string }) {
   const supabase = createClient()
+  const router = useRouter()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -21,10 +24,11 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
     setError("")
     setSuccess("")
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getSafeAuthRedirectPath(nextPath))}`,
         data: {
           username,
           full_name: fullName,
@@ -38,6 +42,7 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
       return
     }
 
+    if (data?.session) { router.push(getSafeAuthRedirectPath(nextPath)); router.refresh(); setLoading(false); return }
     setSuccess(
       "გადაამოწმე ელფოსტა და დაადასტურე ანგარიში გამოგზავნილი ბმულით."
     )

@@ -1,3 +1,4 @@
+import { previewFetchOptions } from "@/lib/preview-read-only"
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
@@ -31,6 +32,7 @@ export async function updateSession(request: NextRequest) {
   const env = getPublicEnv()
 
   const supabase = createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
+    ...previewFetchOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll()
