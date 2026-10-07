@@ -217,6 +217,7 @@ export default async function AdminSupportPage({
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link href="/admin/support/chats" className="ui-btn-primary">Live Support Chat</Link>
             <Link href="/admin/audit" className="ui-btn-secondary">Audit Log</Link>
             <Link href="/admin/system" className="ui-btn-secondary">System Status</Link>
             <Link href="/admin" className="ui-btn-secondary">ადმინისტრირების მთავარი</Link>
