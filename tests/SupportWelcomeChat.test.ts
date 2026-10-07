@@ -71,8 +71,8 @@ describe("welcome support chat", () => {
   })
 
   it("uses the SamoSell brand logo instead of initials for official support", () => {
-    expect(supportAvatar).toContain("BrandLogo")
-    expect(supportAvatar).toContain("iconOnly")
+    expect(supportAvatar).toContain('src="/brand/samosell-header-logo.svg"')
+    expect(supportAvatar).toContain('alt="Samo$ell"')
     expect(chatWorkspace).toContain("SamoSellSupportAvatar")
     expect(chatThreadPage).toContain("SamoSellSupportAvatar")
     expect(chatWorkspace).not.toContain("src={isOfficialSupport ? null")
