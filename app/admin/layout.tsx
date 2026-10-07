@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const chatFilter = `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
   const [unreadThreadsResponse, supportThreadsResponse] = await Promise.all([
-    supabase.from("chat_threads").select("unread_count").or(chatFilter).eq("is_archived", false),
+    supabase.from("chat_threads").select("unread_count").or(chatFilter).neq("chat_type", "support").eq("is_archived", false),
     supabase.from("chat_threads").select("unread_count").eq("chat_type", "support").eq("is_archived", false),
   ])
   const unreadMessages = (unreadThreadsResponse.data ?? []).reduce((sum, item) => sum + (item.unread_count ?? 0), 0)
