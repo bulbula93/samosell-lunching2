@@ -1,9 +1,11 @@
 import Link from "next/link"
 import { ratio, average, type GrowthSummary, type Breakdown } from "@/lib/growth/dashboard"
+import { summarizeMetaSpend, type MetaSpendSummary } from "@/lib/growth/meta-spend"
+import MetaSpendPanel from "./MetaSpendPanel"
 function BreakdownTable({ title, rows }: { title: string; rows: Breakdown[] }) {
   return <section className="ui-card min-w-0 p-5"><h2 className="text-lg font-semibold">{title}</h2>{rows.length ? <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-line"><th className="pb-3">წყარო</th><th className="pb-3 text-right">Visitors</th><th className="pb-3 text-right">Views</th></tr></thead><tbody>{rows.map(row => <tr key={row.label} className="border-b border-line/50"><td className="max-w-40 break-words py-3 pr-2">{row.label}</td><td className="text-right">{row.visitors}</td><td className="text-right">{row.page_views}</td></tr>)}</tbody></table></div> : <p className="mt-4 text-sm text-text-soft">ამ პერიოდში მონაცემები ჯერ არ არის.</p>}</section>
 }
-export default function GrowthDashboard({ summary, period, unavailable }: { summary: GrowthSummary | null; period: string; unavailable?: string }) {
+export default function GrowthDashboard({ summary, period, unavailable, metaSpend, metaConfigurationIssue = "meta_credentials_missing" }: { summary: GrowthSummary | null; period: string; unavailable?: string; metaSpend?: MetaSpendSummary; metaConfigurationIssue?: string | null }) {
   const c = summary?.counts
   const metrics: [string, string | number][] = c ? [
     ["Unique visitors", c.visitors], ["Sessions", c.sessions], ["Page views", c.page_views], ["Registrations", c.registrations],
@@ -24,6 +26,6 @@ export default function GrowthDashboard({ summary, period, unavailable }: { summ
       <div className="grid gap-4 md:grid-cols-2"><BreakdownTable title="UTM Source · first touch" rows={summary.sources} /><BreakdownTable title="UTM Campaign · first touch" rows={summary.campaigns} /></div>
       <p className="text-sm leading-6 text-text-soft">Revenue არის დადასტურებული live გადახდების ჯამი, დაბრუნებული თანხების გამოკლებამდე. Test / pending / failed გადახდები არ ითვლება. Listing views-ის არსებული მთლიანი counter პერიოდის მიხედვით სანდო არ არის და აქ არ გამოიყენება.</p>
     </>}
-    <section className="ui-card p-5"><h2 className="text-lg font-semibold">CAC / ROAS</h2><p className="mt-3 text-sm text-text-soft">Meta Ads spend data not connected</p><p className="mt-2 text-sm leading-6 text-text-soft">Cost per Registration, Cost per Published Listing, Cost per Paying Seller, CAC და ROAS გამოჩნდება ხარჯების დაკავშირების შემდეგ.</p></section>
+    <MetaSpendPanel spend={metaSpend ?? summarizeMetaSpend([], period)} growth={summary} configurationIssue={metaConfigurationIssue} />
   </main>
 }

@@ -101,8 +101,9 @@ reliably answer period-specific views. Source/campaign show top 30 first-touch g
 first/last conversion attribution is stored for future richer reporting.
 
 Missing schema/disabled tracking displays an unavailable state, not fabricated zeros.
-Ad spend remains `Meta Ads spend data not connected`; CAC/ROAS and cost-per metrics
-have no invented numbers.
+Meta spend / CAC / blended ROAS are implemented on the separate
+`preview/meta-spend-growth-20261007` integration; see [Meta spend setup](meta-spend-growth.md).
+Missing source credentials or FX retain explicit unavailable states, without invented numbers.
 
 ## Environment variables
 
