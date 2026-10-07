@@ -286,7 +286,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
       <SiteHeader authenticatedUser={user} />
       <main className="min-h-screen bg-bg text-text">
         <section className="ui-container py-7 sm:py-10">
-          <CatalogPageHeader totalCount={totalCount} giftActive={sale_type === "gift"} categorySeo={catalogSeo.categorySeo} category={category} />
+          <CatalogPageHeader totalCount={totalCount} categorySeo={catalogSeo.categorySeo} />
 
           <CatalogLandingFilters
             categories={categories}
