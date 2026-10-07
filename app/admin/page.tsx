@@ -179,8 +179,11 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/search" className="ui-btn-secondary">
               Search Analytics
             </Link>
+            <Link href="/admin/support/chats" className="ui-btn-primary">
+              Live Support Chat
+            </Link>
             <Link href="/admin/support" className="ui-btn-secondary">
-              Support Inbox
+              Support Tickets
             </Link>
             <Link href="/admin/system" className="ui-btn-secondary">
               System Status
