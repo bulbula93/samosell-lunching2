@@ -68,8 +68,8 @@ def main():
         r = request(BASE + path)
         item = {"status": r["status"], "final_url": r["url"], "error": r["error"]}
         if path == "/robots.txt":
-            item["has_sitemap_directive"] = bool(re.search(r"(?im)^\\s*sitemap\\s*:", r["text"]))
-            item["disallow_rules"] = re.findall(r"(?im)^\\s*disallow\\s*:\\s*(.*)$", r["text"])[:30]
+            item["has_sitemap_directive"] = bool(re.search(r"(?im)^\s*sitemap\s*:", r["text"]))
+            item["disallow_rules"] = re.findall(r"(?im)^\s*disallow\s*:\s*(.*)$", r["text"])[:30]
         if path == "/sitemap.xml" and r["status"] == 200:
             try:
                 root = ET.fromstring(r["text"])
