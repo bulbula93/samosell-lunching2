@@ -1,0 +1,55 @@
+name: SamoSell SEO Daily Health
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 8 * * *'
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+jobs:
+  seo-health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Google OIDC authentication
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/webmasters.readonly
+      - name: Restore previous successful snapshot (if available)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p seo-monitor-previous
+          artifact_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name == "seo-snapshot" and .expired == false)] | sort_by(.created_at) | reverse | .[0].id // empty' || true)"
+          if [[ -n "$artifact_id" ]]; then
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > /tmp/seo-snapshot.zip
+            unzip -oq /tmp/seo-snapshot.zip -d seo-monitor-previous
+          else
+            echo "No prior snapshot: this run establishes a baseline."
+          fi
+      - name: Run read-only SEO checks
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: python3 scripts/seo_monitor.py
+      - name: Publish human-readable report
+        if: always()
+        run: |
+          if [ -f seo-monitor-output/report.md ]; then
+            cat seo-monitor-output/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Store report and baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-snapshot
+          path: seo-monitor-output/
+          retention-days: 90
+          if-no-files-found: warn
