@@ -1,5 +1,7 @@
 import { isValidSellerPhone, normalizeSellerPhone } from "@/lib/phone"
 
+export const OTHER_BRAND_LABEL = "სხვა"
+
 export const LISTING_TEXT_LIMITS = {
   titleMin: 3,
   titleMax: 120,
@@ -134,7 +136,8 @@ export function validateListingInput(input: ListingFormInput): ListingValidation
     fieldErrors.brandId = "არჩეული ბრენდი არასწორია."
   }
 
-  const customBrand = normalizeOptionalText(input.customBrand ?? "")
+  const brandText = normalizeOptionalText(input.customBrand ?? "")
+  const customBrand = brandText === OTHER_BRAND_LABEL ? null : brandText
   if (customBrand && textLength(customBrand) > LISTING_TEXT_LIMITS.brandMax) {
     fieldErrors.customBrand = `ბრენდის სახელი არ უნდა აღემატებოდეს ${LISTING_TEXT_LIMITS.brandMax} სიმბოლოს.`
   }

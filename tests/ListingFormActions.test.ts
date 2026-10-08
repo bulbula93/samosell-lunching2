@@ -136,7 +136,7 @@ describe("listing form server actions", () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  it("derives seller and status server-side and ignores injected internal fields", async () => {
+  it.each(["", "სხვა"])("derives seller and status without creating an optional brand (%s)", async (customBrand) => {
     let insertedPayload: Record<string, unknown> | null = null
     const listings = {
       insert: vi.fn((payload: Record<string, unknown>) => {
@@ -170,6 +170,7 @@ describe("listing form server actions", () => {
 
     const maliciousForm = {
       ...validForm,
+      customBrand,
       seller_id: "attacker",
       owner_id: "attacker",
       status: "sold",
@@ -193,6 +194,8 @@ describe("listing form server actions", () => {
       currency: "GEL",
       cover_image_url: `https://storage.example/${uploadedImagePath}`,
     })
+    expect(insertedPayload).toMatchObject({ brand_id: null })
+    expect(mocks.rateLimit).not.toHaveBeenCalledWith(expect.anything(), "brand_create")
     expect(insertedPayload).not.toHaveProperty("owner_id")
     expect(insertedPayload).not.toHaveProperty("views_count")
     expect(insertedPayload).not.toHaveProperty("is_vip")

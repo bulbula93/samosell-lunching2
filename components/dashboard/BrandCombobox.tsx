@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { OTHER_BRAND_LABEL } from "@/lib/listing-form"
 import { POPULAR_BRAND_NAMES } from "@/lib/popular-brands"
 
 export type BrandOption = {
@@ -42,7 +43,8 @@ export default function BrandCombobox({
 
   const suggestions = useMemo(() => {
     const seen = new Set<string>()
-    const next: string[] = []
+    const next: string[] = [OTHER_BRAND_LABEL]
+    seen.add(normalize(OTHER_BRAND_LABEL))
 
     for (const name of [...extraSuggestions, ...POPULAR_BRAND_NAMES, ...knownBrands.map((brand) => brand.name)]) {
       const key = normalize(name)
@@ -56,6 +58,10 @@ export default function BrandCombobox({
 
   function handleChange(nextValue: string) {
     const normalized = normalize(nextValue)
+    if (normalized === normalize(OTHER_BRAND_LABEL)) {
+      onChange({ brandId: "", customBrand: OTHER_BRAND_LABEL })
+      return
+    }
     const exact = knownBrands.find((brand) => normalize(brand.name) === normalized)
 
     if (exact) {
@@ -68,13 +74,13 @@ export default function BrandCombobox({
 
   return (
     <label className="block min-w-0">
-      <span className="mb-1.5 block text-xs font-bold text-text-soft">ბრენდი</span>
+      <span className="mb-1.5 block text-xs font-bold text-text-soft">ბრენდი (არასავალდებულო)</span>
       <input
         id={id}
         list={`${id}-suggestions`}
         value={value}
         onChange={(event) => handleChange(event.target.value)}
-        placeholder="აირჩიე ან ჩაწერე ბრენდი"
+        placeholder="აირჩიე ბრენდი ან სხვა"
         autoComplete="off"
         className={`ui-input ${error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : ""}`}
         aria-invalid={Boolean(error)}
@@ -87,8 +93,9 @@ export default function BrandCombobox({
         ))}
       </datalist>
       <span className="mt-1.5 block text-[11px] leading-5 text-text-soft">
-        აირჩიე სიიდან ან ჩაწერე სხვა ბრენდი ხელით.
+        შეგიძლია დატოვო ცარიელი ან აირჩიო „სხვა“ — ბრენდის მითითება აუცილებელი არ არის.
       </span>
+      <button type="button" onClick={() => handleChange(OTHER_BRAND_LABEL)} className="ui-btn-secondary mt-2 min-h-11" aria-pressed={value === OTHER_BRAND_LABEL}>სხვა</button>
       {error ? (
         <p id={`${id}-error`} className="mt-1 text-sm font-medium text-red-700">
           {error}

@@ -23,6 +23,10 @@ const validInput = {
 }
 
 describe("listing form validation", () => {
+  it.each(["", "სხვა", " სხვა "])("accepts optional/other brand %s without custom brand creation", (customBrand) => {
+    const result = validateListingInput({ ...validInput, customBrand })
+    expect(result).toMatchObject({ ok: true, data: { brandId: null, customBrand: null } })
+  })
   it("normalizes a valid GEL price without floating-point conversion", () => {
     const result = validateListingInput({ ...validInput, price: "00120,5" })
     expect(result).toEqual({
