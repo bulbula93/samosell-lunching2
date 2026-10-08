@@ -90,6 +90,15 @@ describe("Admin-only manual sync and disabled scheduled sync", () => {
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ ok: false, error: "meta_sync_failed" })
   })
+  it("returns an actionable token-expiry reason while storing the existing safe error code", async () => {
+    state.source.mockRejectedValue(new MetaSpendError("meta_authorization_failed", "meta_token_expired"))
+    const response = await POST(request())
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ ok: false, error: "meta_authorization_failed", reason: "meta_token_expired" })
+    expect(state.rpc).toHaveBeenCalledWith("fail_meta_ads_spend_sync", { p_run_id: expect.any(String), p_error: "meta_authorization_failed" })
+    expect(state.fx).not.toHaveBeenCalled()
+    expect(state.rpc.mock.calls.some(([fn]) => fn === "commit_meta_ads_spend_sync")).toBe(false)
+  })
   it("does no cron work without explicit enablement and a matching secret", async () => {
     vi.stubEnv("CRON_SECRET", "test-secret"); vi.stubEnv("META_ADS_SPEND_CRON_ENABLED", "false")
     expect((await GET(new Request("https://preview.example/sync", { headers: { authorization: "Bearer test-secret" } }))).status).toBe(401)

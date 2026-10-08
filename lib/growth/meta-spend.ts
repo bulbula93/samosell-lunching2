@@ -57,7 +57,7 @@ export function summarizeMetaSpend(rows: MetaSpendRow[], period: string, now = n
 }
 
 export function metaAcquisitionMetrics(spend: MetaSpendSummary, growth: GrowthSummary | null) {
-  const gel = spend.status === "ready" ? spend.spendGel : null
+  const gel = spend.status === "ready" && !spend.lastError && !spend.stale ? spend.spendGel : null
   const cost = (denominator: number) => gel !== null && denominator > 0 ? gel / denominator : null
   return {
     registration: growth ? cost(growth.counts.registrations) : null,

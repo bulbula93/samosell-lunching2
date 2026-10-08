@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto"
 import { META_AD_ACCOUNT_ID, META_AD_ACCOUNT_NAME, META_AD_ACCOUNT_TIMEZONE } from "./meta-spend"
 
 export class MetaSpendError extends Error {
-  constructor(public readonly code: string) { super(code) }
+  constructor(public readonly code: string, public readonly reason?: "meta_token_expired" | "meta_token_invalid" | "meta_permission_denied" | "meta_account_access_denied") { super(code) }
 }
 type DailyInsight = { date: string; spend: string; impressions: number; clicks: number }
 type MetaConfig = { token: string; version: string; appSecret?: string }
@@ -24,6 +24,9 @@ async function graph(config: MetaConfig, path: string, params: Record<string, st
     const body: unknown = await response.json()
     if (!response.ok || !isRecord(body) || body.error) {
       const error = isRecord(body) && isRecord(body.error) ? body.error : null
+      if (error?.code === 190) throw new MetaSpendError("meta_authorization_failed", error.error_subcode === 463 ? "meta_token_expired" : "meta_token_invalid")
+      if (error?.code === 10 || error?.code === 200) throw new MetaSpendError("meta_authorization_failed", "meta_permission_denied")
+      if (error?.code === 100 && error.error_subcode === 33) throw new MetaSpendError("meta_authorization_failed", "meta_account_access_denied")
       throw new MetaSpendError(response.status === 401 || response.status === 403 || error?.code === 190 || error?.code === 200 ? "meta_authorization_failed" : "meta_api_unavailable")
     }
     return body

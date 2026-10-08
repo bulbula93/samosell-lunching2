@@ -28,4 +28,13 @@ describe("Meta spend dashboard states", () => {
     expect(screen.getByText(/FX unavailable/)).toBeVisible()
     expect(screen.getAllByText("—")).toHaveLength(6)
   })
+  it("puts the connection warning before cached zero spend and withholds cost ratios", () => {
+    const spend = { ...summarizeMetaSpend(zeroRows(), "7", now), lastError: "meta_authorization_failed" }
+    render(<MetaSpendPanel spend={spend} growth={{ ...growth, counts: { ...growth.counts, registrations: 1 } }} configurationIssue={null} />)
+    const warning = screen.getByText(/Meta-სთან წვდომა ვერ დადასტურდა/)
+    expect(warning.compareDocumentPosition(screen.getByText("0.00 USD")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getAllByText("0.00 GEL")).toHaveLength(1)
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(5)
+    expect(screen.getByText(/მიმდინარე ხარჯი დაუდასტურებელია/)).toBeVisible()
+  })
 })
