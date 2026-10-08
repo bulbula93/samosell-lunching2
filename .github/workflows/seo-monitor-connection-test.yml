@@ -1,0 +1,43 @@
+name: SamoSell SEO Monitor - Connection Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  search-console-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate with Google
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/webmasters.readonly
+      - name: Verify Search Console property access
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          url = 'https://www.googleapis.com/webmasters/v3/sites'
+          req = urllib.request.Request(url, headers={'Authorization':'Bearer '+os.environ['ACCESS_TOKEN']})
+          try:
+              with urllib.request.urlopen(req, timeout=25) as response:
+                  payload = json.load(response)
+              sites = payload.get('siteEntry', [])
+              expected = {'https://samosell.ge/', 'sc-domain:samosell.ge'}
+              matched = [s for s in sites if s.get('siteUrl') in expected]
+              print('Accessible properties:', len(sites))
+              print('SamoSell property accessible:', bool(matched))
+              if not matched:
+                  raise SystemExit('SamoSell property missing from API response')
+              print('Permission:', matched[0].get('permissionLevel','unknown'))
+          except urllib.error.HTTPError as exc:
+              print('Search Console API HTTP error:', exc.code)
+              raise SystemExit(1)
+          PY
