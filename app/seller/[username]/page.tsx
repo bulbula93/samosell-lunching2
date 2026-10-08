@@ -100,8 +100,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const sellerListings = (listings ?? []) as CatalogListing[]
   const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
-  const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
-  const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
   const boostedListings = sellerListings.filter((item) => item.is_vip || item.is_promoted || item.is_featured).length
   const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
   const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
@@ -292,7 +290,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <section aria-label="გამყიდველის შეფასებები" className="mt-5 rounded-2xl border border-line bg-[#fbfcfc] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-base font-semibold">☆ შეფასებები</h3>
-                  <a href="#seller-reviews" className="shrink-0 text-xs font-semibold text-brand hover:underline">ყველა შეფასება →</a>
+                  <a href="#seller-reviews-heading" className="shrink-0 text-xs font-semibold text-brand hover:underline">ყველა შეფასება →</a>
                 </div>
                 {sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? (
                   <div className="mt-4">
