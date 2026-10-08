@@ -68,6 +68,6 @@ export async function syncMetaSpend() {
   } catch (error) {
     const code = error instanceof MetaSpendError ? error.code : "meta_sync_failed"
     try { await admin.rpc("fail_meta_ads_spend_sync", { p_run_id: runId, p_error: code }) } catch { /* Lease expires if storage is unavailable. */ }
-    throw new MetaSpendError(code)
+    throw error instanceof MetaSpendError ? error : new MetaSpendError(code)
   }
 }

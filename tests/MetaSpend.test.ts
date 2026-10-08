@@ -58,6 +58,13 @@ describe("Meta spend calendar and financial definitions", () => {
   it("marks old successful snapshots stale without inventing a new sync timestamp", () => {
     expect(summarizeMetaSpend(rows().map(row => ({ ...row, synced_at: "2026-10-06T00:00:00Z" })), "7", now)).toMatchObject({ stale: true, syncedAt: "2026-10-06T00:00:00Z" })
   })
+  it("retains historical spend but withholds current cost ratios after a failed or stale sync", () => {
+    const spend = summarizeMetaSpend(rows(), "7", now)
+    for (const state of [{ ...spend, lastError: "meta_authorization_failed" }, { ...spend, stale: true }]) {
+      expect(state.spendUsd).toBe(14)
+      expect(Object.values(metaAcquisitionMetrics(state, growth))).toEqual([null, null, null, null, null])
+    }
+  })
 })
 
 describe("Meta account isolation and complete source reports", () => {
@@ -78,6 +85,17 @@ describe("Meta account isolation and complete source reports", () => {
   it.each([{ account_id: "71020156" }, { currency: "GEL" }, { timezone_name: "UTC" }, { name: "Wrong account" }])("rejects metadata mismatch %j before importing insights", async mismatch => {
     const fetcher = vi.fn().mockResolvedValueOnce(json({ ...account, ...mismatch }))
     await expect(fetchMetaDailySpend(config, dates, fetcher)).rejects.toThrow("meta_account_mismatch")
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+  it.each([
+    [{ code: 190, error_subcode: 463 }, "meta_token_expired"],
+    [{ code: 190, error_subcode: 467 }, "meta_token_invalid"],
+    [{ code: 200 }, "meta_permission_denied"],
+    [{ code: 10 }, "meta_permission_denied"],
+    [{ code: 100, error_subcode: 33 }, "meta_account_access_denied"],
+  ])("classifies access failure %j without disclosing the provider payload", async (error, reason) => {
+    const fetcher = vi.fn().mockResolvedValue(json({ error: { ...error, message: "private token detail" } }, 400))
+    await expect(fetchMetaDailySpend(config, dates, fetcher)).rejects.toMatchObject({ code: "meta_authorization_failed", reason, message: "meta_authorization_failed" })
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
   it("accepts a genuinely empty successful report, while API failure is not zero spend", async () => {

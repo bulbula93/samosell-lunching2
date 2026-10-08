@@ -16,6 +16,6 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, ...await syncMetaSpend() }, { headers: { "Cache-Control": "no-store" } })
   } catch (error) {
     const code = error instanceof MetaSpendError ? error.code : "meta_sync_failed"
-    return Response.json({ ok: false, error: code }, { status: code === "meta_sync_busy" ? 409 : 503, headers: { "Cache-Control": "no-store" } })
+    return Response.json({ ok: false, error: code, ...(error instanceof MetaSpendError && error.reason ? { reason: error.reason } : {}) }, { status: code === "meta_sync_busy" ? 409 : 503, headers: { "Cache-Control": "no-store" } })
   }
 }
