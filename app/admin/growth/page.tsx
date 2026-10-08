@@ -21,5 +21,5 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
       else unavailable = "Growth მონაცემების წაკითხვა ვერ მოხერხდა. სცადე მოგვიანებით."
     } catch { unavailable = "Growth მონაცემების კავშირი ჯერ არ არის მზად." }
   }
-  return <GrowthDashboard summary={summary} period={period} unavailable={unavailable} metaSpend={await metaSpendPromise} metaConfigurationIssue={metaSpendConfigurationStatus()} />
+  return <GrowthDashboard generatedAt={now.toISOString()} summary={summary} period={period} unavailable={unavailable} metaSpend={await metaSpendPromise} metaConfigurationIssue={metaSpendConfigurationStatus()} />
 }
