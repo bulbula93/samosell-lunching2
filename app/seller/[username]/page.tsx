@@ -392,8 +392,8 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </section>
               ) : null}
 
-              <a href="#seller-listings" className="mt-7 flex min-h-12 items-center justify-center rounded-full bg-[#ff7a00] px-5 py-3 text-center text-sm font-bold text-[#073f3b] transition hover:bg-[#ef6e00] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff7a00]">
-                განცხადებების ნახვა →
+              <a href="#seller-listings" className="mt-7 flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#075a53] bg-[#075a53] px-5 py-3 text-center text-sm font-bold text-white shadow-[0_6px_18px_rgba(7,90,83,0.12)] transition-colors hover:border-[#064a45] hover:bg-[#064a45] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075a53]">
+                განცხადებების ნახვა <span aria-hidden="true" className="text-[#ffb172]">→</span>
               </a>
             </div>
           </div>
