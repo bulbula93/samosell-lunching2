@@ -19,20 +19,19 @@ export default async function ChatsLayout({
   // `/dashboard/chats/{chatId}` as its post-login destination.
   if (!user) return children
 
-  const participantFilter = `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
-  // Official welcome/support threads are user-facing in the regular inbox only.
-  // The support/admin side is handled in /admin/support/chats, so automated
-  // welcome conversations do not flood the admin's personal Messenger-like list.
-  const visibleThreadFilter =
-    `chat_type.neq.support,and(chat_type.eq.support,buyer_id.eq.${user.id})`
+  // Keep regular conversations for either participant. Official welcome/support
+  // threads stay in a user's inbox only when that user is the support buyer.
+  // The admin/support side belongs in /admin/support/chats, so registrations do
+  // not flood the admin's personal Messenger-like inbox.
+  const visibleParticipantFilter =
+    `and(chat_type.neq.support,or(buyer_id.eq.${user.id},seller_id.eq.${user.id})),and(chat_type.eq.support,buyer_id.eq.${user.id})`
 
   const { data, error } = await supabase
     .from("chat_threads")
     .select(
       "id, chat_type, listing_id, buyer_id, seller_id, created_at, last_message_at, buyer_last_read_at, seller_last_read_at, listing_slug, listing_title, price, currency, listing_status, cover_image_url, counterparty_id, counterparty_username, counterparty_full_name, counterparty_city, last_message_body, last_message_sender_id, last_message_created_at, unread_count, sort_at, is_archived, counterparty_avatar_url",
     )
-    .or(participantFilter)
-    .or(visibleThreadFilter)
+    .or(visibleParticipantFilter)
     .order("sort_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(CHAT_SIDEBAR_LIMIT)
