@@ -25,6 +25,9 @@ export default function ListingReviewsSection({
   const feedback = reviewFeedbackMessage(feedbackCode)
   const feedbackIsError = Boolean(feedbackCode && feedbackCode !== "saved")
 
+  // Most open listings cannot yet be reviewed. Avoid a large empty card.
+  if (!canReview && reviews.length === 0 && !feedback) return null
+
   return (
     <section className="ui-container pb-12 sm:pb-16" aria-labelledby="listing-reviews-heading">
       <div className="ui-card p-5 sm:p-7">
