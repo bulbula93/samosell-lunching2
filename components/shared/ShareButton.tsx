@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ka } from "@/lib/i18n/ka"
+import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 
 type ShareButtonProps = {
   url: string
@@ -9,6 +10,7 @@ type ShareButtonProps = {
   text?: string
   className?: string
   compact?: boolean
+  variant?: "default" | "profile"
 }
 
 type ShareStatus = "idle" | "sharing" | "shared" | "copied" | "error"
@@ -19,6 +21,7 @@ export default function ShareButton({
   text,
   className = "",
   compact = false,
+  variant = "default",
 }: ShareButtonProps) {
   const [status, setStatus] = useState<ShareStatus>("idle")
   const label =
@@ -75,15 +78,17 @@ export default function ShareButton({
         onClick={handleClick}
         disabled={status === "sharing"}
         className={[
-          compact
-            ? "rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-text transition hover:bg-surface-alt disabled:cursor-wait disabled:opacity-65"
-            : "rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:border-brand/40 hover:bg-brand-soft/40 disabled:cursor-wait disabled:opacity-65",
+          variant === "profile"
+            ? "flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl border border-[#c9dcd6] bg-white px-1.5 text-[11px] font-bold text-[#075a53] transition hover:border-[#075a53] hover:bg-[#eff8f6] disabled:cursor-wait disabled:opacity-65 sm:gap-2 sm:px-3 sm:text-sm"
+            : compact
+              ? "rounded-xl border border-line bg-white px-4 py-2 text-sm font-semibold text-text transition hover:bg-surface-alt disabled:cursor-wait disabled:opacity-65"
+              : "rounded-xl border border-line bg-white px-5 py-3 text-sm font-semibold text-text transition hover:border-brand/40 hover:bg-brand-soft/40 disabled:cursor-wait disabled:opacity-65",
           className,
         ]
           .filter(Boolean)
           .join(" ")}
       >
-        {label}
+        {variant === "profile" ? <><SellerActionIcon name="share" /><span className="min-w-0 truncate">გაზიარება</span></> : label}
       </button>
       <span className="ui-sr-status" role="status" aria-live="polite" aria-atomic="true">
         {status === "shared" || status === "copied" || status === "error"
