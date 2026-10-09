@@ -1,5 +1,6 @@
 import { upsertListingReviewAction } from "@/app/reviews/actions"
 import ReviewSubmitButton from "@/components/reviews/ReviewSubmitButton"
+import ReviewScorePicker from "@/components/reviews/ReviewScorePicker"
 import { REVIEW_COMMENT_MAX_LENGTH, reviewCopy } from "@/lib/reviews"
 import type { PublicSellerReview } from "@/types/review"
 
@@ -33,25 +34,7 @@ export default function ReviewForm({
         <p id={scoreHintId} className="mt-1 text-sm leading-6 text-text-soft">
           {compact ? "შეაფასე გამყიდველთან ურთიერთობის გამოცდილება." : reviewCopy.eligibleHint}
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {[1, 2, 3, 4, 5].map((score) => (
-            <label
-              key={score}
-              className="relative inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-[#eadbd0] bg-white px-3 text-xl text-amber-500 transition hover:border-amber-400 has-[:checked]:border-[#075a53] has-[:checked]:bg-[#075a53] has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#075a53] has-[:focus-visible]:ring-offset-2"
-            >
-              <input
-                type="radio"
-                name="score"
-                value={score}
-                defaultChecked={existingReview?.score === score}
-                required
-                className="sr-only"
-              />
-              <span aria-hidden="true">★</span>
-              <span className="sr-only">{score} ვარსკვლავი</span>
-            </label>
-          ))}
-        </div>
+        <ReviewScorePicker initialScore={existingReview?.score ?? 0} />
       </fieldset>
 
       <div className="mt-5">
