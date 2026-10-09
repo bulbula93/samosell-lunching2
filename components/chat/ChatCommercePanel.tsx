@@ -132,6 +132,13 @@ export default function ChatCommercePanel({
           <span className="rounded-full bg-[#eef8f4] px-3 py-2 text-xs font-semibold text-[#075a53]">✓ გაყიდვა დასრულებულია</span>
         ) : null}
       </div>
+      <div
+        role={feedbackError ? "alert" : "status"}
+        aria-live="polite"
+        className={feedback ? `mt-4 text-sm font-bold ${feedbackError ? "text-red-700" : "text-brand"}` : "sr-only"}
+      >
+        {feedback || `მზადაა ${currentUserId ? "" : ""}`}
+      </div>
       <details className="group mt-1">
         <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-text-soft transition hover:bg-surface-alt [&::-webkit-details-marker]:hidden">
           <span aria-hidden="true">⋯</span> {pendingOffer && role === "seller" ? "ფასის შეთავაზება" : "ფასი, ჯავშანი და სხვა"}
@@ -269,13 +276,7 @@ export default function ChatCommercePanel({
         </div>
       ) : null}
 
-      <div
-        role={feedbackError ? "alert" : "status"}
-        aria-live="polite"
-        className={feedback ? `mt-4 text-sm font-bold ${feedbackError ? "text-red-700" : "text-brand"}` : "sr-only"}
-      >
-        {feedback || `მზადაა ${currentUserId ? "" : ""}`}
-      </div>
+
     </section>
         </div>
       </details>
