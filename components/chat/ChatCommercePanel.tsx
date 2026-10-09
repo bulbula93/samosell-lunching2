@@ -112,14 +112,41 @@ export default function ChatCommercePanel({
   }
 
   return (
-    <section aria-labelledby="chat-commerce-title" className="ui-card p-6">
-      <div className="ui-eyebrow">შეთანხმება</div>
-      <h2 id="chat-commerce-title" className="mt-2 text-xl font-black text-text">
-        სწრაფი მოქმედებები
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-text-soft">
-        ფასი, ჯავშანი და გაყიდვის დასრულება ამავე ჩათიდან მართე.
-      </p>
+    <div className="mt-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {role === "seller" && (listingStatus === "active" || reservationForThisBuyer) ? (
+          <button
+            type="button"
+            disabled={Boolean(busyKey)}
+            onClick={() => {
+              if (window.confirm("ნამდვილად მიჰყიდე ნივთი ამ მყიდველს? ის შეძლებს შენს შეფასებას.")) {
+                void run("sold", () => completeChatSaleAction(chatId))
+              }
+            }}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#075a53] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#064a45] disabled:opacity-60"
+          >
+            <span aria-hidden="true">✓</span> {busyKey === "sold" ? "მუშავდება…" : "გაყიდვის დასრულება"}
+          </button>
+        ) : null}
+        {soldToThisBuyer ? (
+          <span className="rounded-full bg-[#eef8f4] px-3 py-2 text-xs font-semibold text-[#075a53]">✓ გაყიდვა დასრულებულია</span>
+        ) : null}
+      </div>
+      <div
+        role={feedbackError ? "alert" : "status"}
+        aria-live="polite"
+        className={feedback ? `mt-4 text-sm font-bold ${feedbackError ? "text-red-700" : "text-brand"}` : "sr-only"}
+      >
+        {feedback || `მზადაა ${currentUserId ? "" : ""}`}
+      </div>
+      <details className="group mt-1">
+        <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-text-soft transition hover:bg-surface-alt [&::-webkit-details-marker]:hidden">
+          <span aria-hidden="true">⋯</span> {pendingOffer && role === "seller" ? "ფასის შეთავაზება" : "ფასი, ჯავშანი და სხვა"}
+          <span aria-hidden="true" className="group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="max-h-[32dvh] overflow-y-auto border-t border-line pt-2">
+    <section aria-labelledby="chat-commerce-title" className="rounded-xl border border-line bg-white p-3 sm:p-4">
+      <h2 id="chat-commerce-title" className="text-sm font-bold text-[#073f3b]">დამატებითი მოქმედებები</h2>
 
       <div className="mt-4 flex flex-wrap gap-2" aria-label="სწრაფი შეტყობინებები">
         {quickMessages.map((text) => (
@@ -198,18 +225,6 @@ export default function ChatCommercePanel({
           >
             {busyKey === "reserve" ? "მუშავდება…" : "ამ მყიდველისთვის დაჯავშნა"}
           </button>
-          <button
-            type="button"
-            disabled={Boolean(busyKey)}
-            onClick={() => {
-              if (window.confirm("ნივთი ნამდვილად ამ მყიდველს მიჰყიდე? გაყიდულად მონიშვნის შემდეგ მას შეფასების დატოვება შეეძლება.")) {
-                void run("sold", () => completeChatSaleAction(chatId))
-              }
-            }}
-            className="ui-btn-primary"
-          >
-            {busyKey === "sold" ? "მუშავდება…" : "გაყიდულად მონიშვნა"}
-          </button>
         </div>
       ) : null}
 
@@ -226,18 +241,6 @@ export default function ChatCommercePanel({
               >
                 {busyKey === "release" ? "მუშავდება…" : "ჯავშნის მოხსნა"}
               </button>
-              <button
-                type="button"
-                disabled={Boolean(busyKey)}
-                onClick={() => {
-                  if (window.confirm("დაადასტურე, რომ ნივთი ამ მყიდველს მიჰყიდე.")) {
-                    void run("sold", () => completeChatSaleAction(chatId))
-                  }
-                }}
-                className="ui-btn-primary"
-              >
-                {busyKey === "sold" ? "მუშავდება…" : "გაყიდულად მონიშვნა"}
-              </button>
             </div>
           ) : (
             <p className="mt-1">გამყიდველმა ნივთი შენთვის შეინახა.</p>
@@ -252,9 +255,7 @@ export default function ChatCommercePanel({
       ) : null}
 
       {soldToThisBuyer ? (
-        <p className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold leading-6 text-emerald-900">
-          გაყიდვა ამ მყიდველთან დასრულებულია. მყიდველს შეფასების მოთხოვნა შეტყობინებებში გაეგზავნა.
-        </p>
+        <p className="mt-3 rounded-xl bg-[#f0f8f5] px-3 py-2 text-xs text-[#075a53]">მყიდველს შეფასების მოწვევა გაეგზავნა.</p>
       ) : listingStatus === "sold" ? (
         <p className="mt-5 rounded-xl border border-line bg-surface-alt px-4 py-3 text-sm leading-6 text-text-soft">
           განცხადება უკვე გაყიდულია.
@@ -275,13 +276,10 @@ export default function ChatCommercePanel({
         </div>
       ) : null}
 
-      <div
-        role={feedbackError ? "alert" : "status"}
-        aria-live="polite"
-        className={feedback ? `mt-4 text-sm font-bold ${feedbackError ? "text-red-700" : "text-brand"}` : "sr-only"}
-      >
-        {feedback || `მზადაა ${currentUserId ? "" : ""}`}
-      </div>
+
     </section>
+        </div>
+      </details>
+    </div>
   )
 }

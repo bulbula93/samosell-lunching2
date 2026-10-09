@@ -4,6 +4,8 @@ import { reviewCopy } from "@/lib/reviews"
 import type { SellerReviewData } from "@/types/review"
 
 export default function SellerReviewsSection({ data }: { data: SellerReviewData }) {
+  // The profile summary already explains that there are no reviews.
+  if (data.reviews.length === 0) return null
   return (
     <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6" aria-labelledby="seller-reviews-heading">
       <div className="ui-card p-5 sm:p-7">

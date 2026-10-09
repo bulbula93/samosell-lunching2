@@ -67,4 +67,36 @@ describe("seller reviews UI", () => {
     expect(screen.getByRole("button", { name: reviewCopy.update })).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent(reviewCopy.saved)
   })
+  it("keeps listings without reviews visually quiet until a buyer can rate", () => {
+    const { container } = render(
+      <ListingReviewsSection
+        listingId="277f3329-6c04-4c40-8f33-873ab3ee4f76"
+        listingSlug="linen-jacket"
+        summary={{ reviewCount: 0, averageScore: null }}
+        reviews={[]}
+        canReview={false}
+        viewerId={null}
+      />,
+    )
+    expect(container.querySelector("section")).toBeNull()
+  })
+
+  it("offers five accessible stars and highlights the selected score", () => {
+    render(
+      <ListingReviewsSection
+        listingId="277f3329-6c04-4c40-8f33-873ab3ee4f76"
+        listingSlug="linen-jacket"
+        summary={{ reviewCount: 0, averageScore: null }}
+        reviews={[]}
+        canReview
+        viewerId="buyer-1"
+      />,
+    )
+    const score = screen.getByRole("radio", { name: "4 ვარსკვლავი" })
+    expect(score).not.toBeChecked()
+    // User interaction updates the cumulative star state.
+    score.click()
+    expect(score).toBeChecked()
+  })
+
 })
