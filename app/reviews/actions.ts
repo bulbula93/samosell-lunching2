@@ -20,6 +20,13 @@ export async function upsertListingReviewAction(formData: FormData) {
     : "/catalog"
   const requestedChatId = String(formData.get("chatId") || "")
   const chatId = isChatUuid(requestedChatId) ? requestedChatId : null
+  const validation = validateReviewInput(formData.get("score"), formData.get("comment"))
+
+  // Keep ordinary listing-form validation immediate and backwards compatible.
+  if (!chatId && (!isUuid(listingId) || !validation.ok)) {
+    redirect(withSafeFeedback(fallback, "review", validation.ok ? "error" : validation.error))
+  }
+
   const loginReturnPath = chatId ? `/dashboard/chats/${chatId}` : fallback
   const { supabase, user } = await requireAuthenticatedUser(loginReturnPath)
 
@@ -39,10 +46,6 @@ export async function upsertListingReviewAction(formData: FormData) {
     nextPath = `/dashboard/chats/${chatId}`
   }
 
-  const validation = validateReviewInput(
-    formData.get("score"),
-    formData.get("comment"),
-  )
   if (!isUuid(listingId) || !validation.ok) {
     redirect(withSafeFeedback(nextPath, "review", validation.ok ? "error" : validation.error))
   }
