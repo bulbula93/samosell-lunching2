@@ -3,6 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { updateChatVisibilityAction } from "@/app/dashboard/chats/actions"
 import ChatCommercePanel, { type ChatOfferSummary } from "@/components/chat/ChatCommercePanel"
+import ChatReviewCard from "@/components/chat/ChatReviewCard"
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
 import SamoSellSupportAvatar from "@/components/chat/SamoSellSupportAvatar"
 import BlockUserForm from "@/components/moderation/BlockUserForm"
@@ -21,10 +22,14 @@ import type { ChatMessage, ChatThread } from "@/types/chat"
 
 export default async function ChatThreadPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ chatId: string }>
+  searchParams?: Promise<{ review?: string | string[] }>
 }) {
   const { chatId } = await params
+  const search = (await searchParams) ?? {}
+  const reviewFeedback = Array.isArray(search.review) ? search.review[0] : search.review
   if (!isChatUuid(chatId)) notFound()
 
   const { supabase, user } = await requireAuthenticatedUser(`/dashboard/chats/${chatId}`)
@@ -100,6 +105,24 @@ export default async function ChatThreadPage({
   const listingIsPublic = listingStatus === "active"
   const role = typedThread.buyer_id === user.id ? "buyer" : "seller"
   const isBlocked = isSupportThread ? false : Boolean(blockResult.data)
+  const mayReview = typedThread.chat_type === "listing"
+    && role === "buyer"
+    && listingStatus === "sold"
+    && listingStateResult.data?.sold_to_user_id === user.id
+    && !isBlocked
+    && Boolean(typedThread.listing_id && typedThread.listing_slug)
+
+  const existingReviewResult = mayReview
+    ? await supabase.from("listing_reviews")
+      .select("score, comment")
+      .eq("listing_id", typedThread.listing_id!)
+      .eq("reviewer_id", user.id)
+      .maybeSingle()
+    : { data: null, error: null }
+  if (existingReviewResult.error) {
+    throw new Error("CHAT_BUYER_REVIEW_QUERY_FAILED", { cause: existingReviewResult.error })
+  }
+
   const offers: ChatOfferSummary[] = (offersResult.data ?? []).map((offer) => ({
     id: offer.id,
     amount: Number(offer.amount),
@@ -284,25 +307,18 @@ export default async function ChatThreadPage({
         listingStatus &&
         typedThread.price !== null &&
         typedThread.currency ? (
-          <details className="mt-2 rounded-xl border border-line bg-white">
-            <summary className="cursor-pointer select-none px-3 py-2 text-xs font-black text-text">
-              შეთავაზება / გარიგების მართვა
-            </summary>
-            <div className="max-h-72 overflow-y-auto border-t border-line bg-surface-alt/40 p-3">
-              <ChatCommercePanel
-                chatId={typedThread.id}
-                role={role}
-                buyerId={typedThread.buyer_id}
-                currentUserId={user.id}
-                listingStatus={listingStatus}
-                listingPrice={Number(typedThread.price)}
-                currency={typedThread.currency}
-                reservedForUserId={listingStateResult.data?.reserved_for_user_id ?? null}
-                soldToUserId={listingStateResult.data?.sold_to_user_id ?? null}
-                initialOffers={offers}
-              />
-            </div>
-          </details>
+          <ChatCommercePanel
+            chatId={typedThread.id}
+            role={role}
+            buyerId={typedThread.buyer_id}
+            currentUserId={user.id}
+            listingStatus={listingStatus}
+            listingPrice={Number(typedThread.price)}
+            currency={typedThread.currency}
+            reservedForUserId={listingStateResult.data?.reserved_for_user_id ?? null}
+            soldToUserId={listingStateResult.data?.sold_to_user_id ?? null}
+            initialOffers={offers}
+          />
         ) : null}
       </header>
 
@@ -316,6 +332,15 @@ export default async function ChatThreadPage({
           canSend={canSend && !isBlocked}
           initialHasMore={hasOlderMessages}
           isOfficialSupport={isOfficialSupport}
+          reviewPrompt={mayReview && typedThread.listing_id && typedThread.listing_slug ? (
+            <ChatReviewCard
+              chatId={typedThread.id}
+              listingId={typedThread.listing_id}
+              listingSlug={typedThread.listing_slug}
+              existingReview={existingReviewResult.data}
+              feedbackCode={reviewFeedback}
+            />
+          ) : null}
         />
       </div>
     </div>
