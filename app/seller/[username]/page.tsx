@@ -238,7 +238,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
                   <div className="flex flex-wrap items-center gap-2">
                     {user?.id !== profile.id ? (
-                      user ? (
+                      user && !user.is_anonymous ? (
                         <ProfileChatButton userId={profile.id} variant="profile" />
                       ) : (
                         <Link
@@ -249,7 +249,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                         </Link>
                       )
                     ) : null}
-                    {user && user.id !== profile.id ? <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /> : null}
+                    {user && !user.is_anonymous && user.id !== profile.id ? <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /> : null}
                     <ShareButton compact url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${SITE_NAME}-ზე`} />
                   </div>
                 </div>
