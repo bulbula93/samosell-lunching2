@@ -12,6 +12,7 @@ import SmartImage from "@/components/shared/SmartImage"
 import FollowButton from "@/components/stories/FollowButton"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
+import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
@@ -236,22 +237,39 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    {user?.id !== profile.id ? (
-                      user && !user.is_anonymous ? (
-                        <ProfileChatButton userId={profile.id} variant="profile" />
-                      ) : (
-                        <Link
-                          href={`/login?next=${encodeURIComponent(`/seller/${username}`)}`}
-                          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#badbd4] bg-white px-4 py-2.5 text-sm font-semibold text-[#075a53] transition hover:bg-[#eff8f6]"
-                        >
-                          ჩათი
-                        </Link>
-                      )
-                    ) : null}
-                    {user && !user.is_anonymous && user.id !== profile.id ? <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} /> : null}
-                    <ShareButton compact url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${SITE_NAME}-ზე`} />
-                  </div>
+                </div>
+
+                <div
+                  aria-label="გამყიდველის მოქმედებები"
+                  className={`mt-5 grid w-full min-w-0 gap-1.5 sm:gap-2 ${user?.id === profile.id ? "max-w-44 grid-cols-1" : "grid-cols-3"}`}
+                >
+                  {user?.id !== profile.id ? (
+                    user && !user.is_anonymous ? (
+                      <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} variant="profile" />
+                    ) : (
+                      <Link
+                        href={`/login?next=${encodeURIComponent(`/seller/${username}`)}`}
+                        className="flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl bg-[#075a53] px-1.5 text-[11px] font-bold text-white transition hover:bg-[#064a45] sm:gap-2 sm:px-3 sm:text-sm"
+                      >
+                        <SellerActionIcon name="follow" />
+                        <span className="min-w-0 truncate">გამოწერა</span>
+                      </Link>
+                    )
+                  ) : null}
+                  {user?.id !== profile.id ? (
+                    user && !user.is_anonymous ? (
+                      <ProfileChatButton userId={profile.id} variant="profile" />
+                    ) : (
+                      <Link
+                        href={`/login?next=${encodeURIComponent(`/seller/${username}`)}`}
+                        className="flex min-h-11 w-full min-w-0 items-center justify-center gap-1 rounded-xl border border-[#b8d9d2] bg-white px-1.5 text-[11px] font-bold text-[#075a53] transition hover:bg-[#eff8f6] sm:gap-2 sm:px-3 sm:text-sm"
+                      >
+                        <SellerActionIcon name="chat" />
+                        <span className="min-w-0 truncate">ჩათი</span>
+                      </Link>
+                    )
+                  ) : null}
+                  <ShareButton variant="profile" url={shareUrl} title={sellerName} text={`ნახე ${sellerName} ${SITE_NAME}-ზე`} />
                 </div>
 
                 {profile.bio ? (
