@@ -6,6 +6,10 @@ import { listingPriceLabel } from "@/lib/listings"
 type MobileListingActionBarProps = {
   listingId: string
   listingSlug: string
+  sellerLabel?: string
+  sellerAvatarSrc?: string | null
+  listingTitle?: string
+  listingImageSrc?: string | null
   price: number
   currency: string
   saleType?: string | null
@@ -20,6 +24,10 @@ type MobileListingActionBarProps = {
 export default function MobileListingActionBar({
   listingId,
   listingSlug,
+  sellerLabel,
+  sellerAvatarSrc,
+  listingTitle,
+  listingImageSrc,
   price,
   currency,
   saleType,
@@ -58,6 +66,11 @@ export default function MobileListingActionBar({
           <StartChatButton
             listingId={listingId}
             listingSlug={listingSlug}
+            sellerLabel={sellerLabel}
+            sellerAvatarSrc={sellerAvatarSrc}
+            listingTitle={listingTitle}
+            listingImageSrc={listingImageSrc}
+            priceLabel={listingPriceLabel(price, currency, saleType)}
             presentation="responsive"
             className="ui-btn-primary min-h-11 shrink-0 px-4 md:min-h-12 md:w-full md:shadow-md"
             label={ka.listingDetail.messageSeller}

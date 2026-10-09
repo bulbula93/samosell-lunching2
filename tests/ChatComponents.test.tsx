@@ -83,7 +83,7 @@ describe("chat components", () => {
     )
 
     expect(
-      screen.getByRole("heading", { name: "პირველი შეტყობინება" }),
+      screen.getByRole("heading", { name: "გამყიდველი" }),
     ).toBeInTheDocument()
     expect(screen.getByLabelText("შეტყობინება")).toHaveAttribute(
       "maxlength",
@@ -129,9 +129,25 @@ describe("chat components", () => {
     expect(dialog).toHaveStyle({ width: "374px", left: "8px", top: "120px" })
     expect(mocks.startChatAction).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole("button", { name: "გაუქმება" }))
+    await user.click(screen.getByRole("button", { name: "შეტყობინების ფორმის დახურვა" }))
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     expect(document.body.style.overflow).toBe(previousOverflow)
+  })
+
+  it("keeps the first-message draft when a suggested message cannot be sent", async () => {
+    const user = userEvent.setup()
+    mocks.startChatAction.mockResolvedValue({ ok: false, message: "დროებით ვერ გაიგზავნა." })
+    render(<StartChatButton listingId={listingId} listingSlug="linen-jacket" sellerLabel="ნინო" listingTitle="შავი ქურთუკი" priceLabel="55 ₾" />)
+    await user.click(screen.getByRole("button", { name: "მიწერე გამყიდველს" }))
+    expect(screen.getByRole("heading", { name: "ნინო" })).toBeInTheDocument()
+    expect(screen.getByText("შავი ქურთუკი")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "გაგზავნა" })).toBeDisabled()
+    await user.click(screen.getByRole("button", { name: "ჯერ კიდევ იყიდება?" }))
+    expect(mocks.startChatAction).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("button", { name: "გაგზავნა" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("დროებით ვერ გაიგზავნა.")
+    expect(screen.getByLabelText("შეტყობინება")).toHaveValue("ჯერ კიდევ იყიდება?")
+    expect(mocks.startChatAction.mock.calls[0][1].get("body")).toBe("ჯერ კიდევ იყიდება?")
   })
 
   it("renders HTML-like message input as text and identifies the sender without color alone", () => {
