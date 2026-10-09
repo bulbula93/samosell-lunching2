@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react"
+import { useActionState, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import {
   startChatAction,
@@ -60,10 +60,21 @@ export default function StartChatButton({
     INITIAL_STATE,
   )
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || !sheetMode) return
-    const previousOverflow = document.body.style.overflow
+    const pageX = window.scrollX
+    const pageY = window.scrollY
+    const body = document.body
+    const root = document.documentElement
+    const bodyProperties = ["position", "top", "left", "width", "height", "overflow", "overscroll-behavior"]
+    const rootProperties = ["overflow", "overscroll-behavior"]
+    const previousBody = bodyProperties.map((property) => [property, body.style.getPropertyValue(property), body.style.getPropertyPriority(property)])
+    const previousRoot = rootProperties.map((property) => [property, root.style.getPropertyValue(property), root.style.getPropertyPriority(property)])
     const viewport = window.visualViewport
+    const fullHeight = Math.max(window.innerHeight, viewport?.height ?? 0)
+    let frame = 0
+    let settleTimer = 0
+    let touchY = 0
     const updateViewport = () => {
       const sheet = sheetRef.current
       if (!sheet) return
@@ -73,18 +84,56 @@ export default function StartChatButton({
       const height = viewport?.height ?? window.innerHeight
       sheet.style.height = `${height}px`
       sheet.dataset.compact = String(height < 420)
+      // iOS keeps the home-indicator inset even while the keyboard is visible.
+      sheet.style.setProperty("--chat-bottom-inset", height < fullHeight - 150 ? "0px" : "env(safe-area-inset-bottom)")
+    }
+    const scheduleViewport = () => {
+      updateViewport()
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(updateViewport)
+      window.clearTimeout(settleTimer)
+      settleTimer = window.setTimeout(updateViewport, 350)
+    }
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 1) touchY = event.touches[0].clientY
+    }
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return
+      const delta = event.touches[0].clientY - touchY
+      touchY = event.touches[0].clientY
+      const target = event.target instanceof Element ? event.target : null
+      const scroller = target?.closest<HTMLElement>("[data-chat-scrollable]")
+      if (scroller && sheetRef.current?.contains(scroller)) {
+        const maxScroll = scroller.scrollHeight - scroller.clientHeight
+        if (maxScroll > 1 && ((delta < 0 && scroller.scrollTop < maxScroll - 1) || (delta > 0 && scroller.scrollTop > 0))) return
+      }
+      // Stop scroll chaining and rubber-banding into the listing on iOS.
+      if (event.cancelable) event.preventDefault()
     }
 
-    document.body.style.overflow = "hidden"
+    Object.assign(body.style, { position: "fixed", top: `${-pageY}px`, left: `${-pageX}px`, width: "100%", height: "100%", overflow: "hidden", overscrollBehavior: "none" })
+    Object.assign(root.style, { overflow: "hidden", overscrollBehavior: "none" })
     updateViewport()
-    window.addEventListener("resize", updateViewport)
-    viewport?.addEventListener("resize", updateViewport)
-    viewport?.addEventListener("scroll", updateViewport)
+    window.addEventListener("resize", scheduleViewport)
+    viewport?.addEventListener("resize", scheduleViewport)
+    viewport?.addEventListener("scroll", scheduleViewport)
+    document.addEventListener("focusin", scheduleViewport)
+    document.addEventListener("focusout", scheduleViewport)
+    document.addEventListener("touchstart", onTouchStart, { passive: true })
+    document.addEventListener("touchmove", onTouchMove, { passive: false })
     return () => {
-      window.removeEventListener("resize", updateViewport)
-      viewport?.removeEventListener("resize", updateViewport)
-      viewport?.removeEventListener("scroll", updateViewport)
-      document.body.style.overflow = previousOverflow
+      cancelAnimationFrame(frame)
+      window.clearTimeout(settleTimer)
+      window.removeEventListener("resize", scheduleViewport)
+      viewport?.removeEventListener("resize", scheduleViewport)
+      viewport?.removeEventListener("scroll", scheduleViewport)
+      document.removeEventListener("focusin", scheduleViewport)
+      document.removeEventListener("focusout", scheduleViewport)
+      document.removeEventListener("touchstart", onTouchStart)
+      document.removeEventListener("touchmove", onTouchMove)
+      for (const [property, value, priority] of previousBody) body.style.setProperty(property, value, priority)
+      for (const [property, value, priority] of previousRoot) root.style.setProperty(property, value, priority)
+      window.scrollTo({ left: pageX, top: pageY, behavior: "instant" })
     }
   }, [open, sheetMode])
 
@@ -168,7 +217,7 @@ export default function StartChatButton({
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+      <div data-chat-scrollable className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <div className="flex min-h-full flex-col items-center justify-center px-6 py-8 text-center">
           <SellerAvatar src={sellerAvatarSrc} label={sellerLabel} large />
           <p className="mt-4 max-w-full break-words text-lg font-semibold text-text">მიწერე {sellerLabel === "გამყიდველი" ? "გამყიდველს" : sellerLabel + "-ს"}</p>
@@ -192,12 +241,13 @@ export default function StartChatButton({
 
       <div
         className="shrink-0 border-t border-line/50 bg-white px-3 pt-3"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "max(0.75rem, var(--chat-bottom-inset, env(safe-area-inset-bottom)))" }}
       >
         <div className="flex items-end gap-2">
           <label htmlFor="first-message-body" className="sr-only">შეტყობინება</label>
           <textarea
             ref={textareaRef}
+            data-chat-scrollable
             id="first-message-body"
             name="body"
             rows={1}
@@ -243,14 +293,16 @@ export default function StartChatButton({
   if (sheetMode) {
     // The action bar's backdrop-filter creates a containing block for fixed children.
     return createPortal(
-      <div
-        ref={sheetRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="პირველი შეტყობინება"
-        className="group/chat-composer fixed left-0 top-0 z-[120] flex h-[100dvh] w-full items-end"
-      >
-        {composer}
+      <div data-chat-screen className="fixed inset-0 z-[120] overflow-hidden overscroll-none bg-white">
+        <div
+          ref={sheetRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="პირველი შეტყობინება"
+          className="group/chat-composer absolute left-0 top-0 flex h-[100dvh] w-full items-end bg-white"
+        >
+          {composer}
+        </div>
       </div>,
       document.body,
     )

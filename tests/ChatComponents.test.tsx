@@ -58,6 +58,7 @@ describe("chat components", () => {
     vi.clearAllMocks()
     mocks.createClient.mockReturnValue(realtimeClient())
     mocks.markChatReadAction.mockResolvedValue({ ok: true })
+    vi.stubGlobal("scrollTo", vi.fn())
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       callback(0)
       return 1
@@ -102,6 +103,8 @@ describe("chat components", () => {
     })
     vi.stubGlobal("visualViewport", viewport)
     vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    vi.stubGlobal("scrollY", 240)
+    const previousTop = document.body.style.top
     const previousOverflow = document.body.style.overflow
     const { container } = render(
       <div style={{ backdropFilter: "blur(8px)" }}>
@@ -115,14 +118,32 @@ describe("chat components", () => {
 
     await user.click(screen.getByRole("button", { name: "მიწერე გამყიდველს" }))
     const dialog = screen.getByRole("dialog", { name: "პირველი შეტყობინება" })
-    expect(dialog.parentElement).toBe(document.body)
+    expect(dialog.parentElement?.parentElement).toBe(document.body)
+    expect(dialog.parentElement).toHaveAttribute("data-chat-screen")
     expect(container).not.toContainElement(dialog)
     expect(dialog).toHaveStyle({ width: "390px", height: "844px", top: "0px" })
     expect(document.body.style.overflow).toBe("hidden")
+    expect(document.body).toHaveStyle({ position: "fixed", top: "-240px" })
+    expect(document.documentElement.style.overflow).toBe("hidden")
 
     Object.assign(viewport, { offsetTop: 96, height: 360 })
     viewport.dispatchEvent(new Event("resize"))
     expect(dialog).toHaveStyle({ width: "390px", height: "360px", top: "96px" })
+    expect(dialog.style.getPropertyValue("--chat-bottom-inset")).toBe("0px")
+
+    fireEvent.touchStart(dialog, { touches: [{ clientY: 100 }] })
+    const overscroll = new Event("touchmove", { bubbles: true, cancelable: true })
+    Object.defineProperty(overscroll, "touches", { value: [{ clientY: 80 }] })
+    dialog.dispatchEvent(overscroll)
+    expect(overscroll.defaultPrevented).toBe(true)
+
+    const field = screen.getByLabelText("შეტყობინება")
+    Object.defineProperties(field, { scrollHeight: { value: 200 }, clientHeight: { value: 44 } })
+    fireEvent.touchStart(field, { touches: [{ clientY: 100 }] })
+    const innerScroll = new Event("touchmove", { bubbles: true, cancelable: true })
+    Object.defineProperty(innerScroll, "touches", { value: [{ clientY: 80 }] })
+    field.dispatchEvent(innerScroll)
+    expect(innerScroll.defaultPrevented).toBe(false)
 
     Object.assign(viewport, { offsetTop: 120, offsetLeft: 8, width: 374 })
     viewport.dispatchEvent(new Event("scroll"))
@@ -132,6 +153,10 @@ describe("chat components", () => {
     await user.click(screen.getByRole("button", { name: "შეტყობინების ფორმის დახურვა" }))
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     expect(document.body.style.overflow).toBe(previousOverflow)
+    expect(document.body.style.position).toBe("")
+    expect(document.body.style.top).toBe(previousTop)
+    expect(document.documentElement.style.overflow).toBe("")
+    expect(window.scrollTo).toHaveBeenCalledWith({ left: 0, top: 240, behavior: "instant" })
   })
 
   it("keeps the first-message draft when a suggested message cannot be sent", async () => {
