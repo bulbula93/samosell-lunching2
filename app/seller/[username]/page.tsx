@@ -6,8 +6,6 @@ import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import CatalogListingCard from "@/components/listings/CatalogListingCard"
 import SellerReviewsSection from "@/components/reviews/SellerReviewsSection"
-import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
-import SellerTrustSummary from "@/components/sellers/SellerTrustSummary"
 import Avatar from "@/components/shared/Avatar"
 import ShareButton from "@/components/shared/ShareButton"
 import SmartImage from "@/components/shared/SmartImage"
@@ -19,7 +17,7 @@ import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
-import { getSellerTrustSignals } from "@/lib/seller-trust"
+import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
@@ -101,8 +99,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const sellerListings = (listings ?? []) as CatalogListing[]
   const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
-  const totalViews = sellerListings.reduce((sum, item) => sum + (item.views_count ?? 0), 0)
-  const totalFavorites = sellerListings.reduce((sum, item) => sum + (item.favorites_count ?? 0), 0)
   const boostedListings = sellerListings.filter((item) => item.is_vip || item.is_promoted || item.is_featured).length
   const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
   const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
@@ -200,16 +196,16 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   }
 
   return (
-    <main className="min-h-screen bg-bg text-text">
+    <main className="min-h-screen bg-[#fcfaf7] text-text">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(sellerStructuredData) }}
       />
       <SiteHeader />
       <section className="ui-container py-10 sm:py-14">
-        <div className="overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-[0_24px_90px_rgba(23,23,23,0.08)]">
+        <div className="overflow-hidden rounded-[1.5rem] border border-[#f1e4d9] bg-white shadow-[0_20px_70px_rgba(90,55,27,0.07)]">
           <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(245,245,243,0.98),_rgba(232,243,239,0.95))] p-6 sm:p-8 lg:p-10">
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-[#fffaf6] to-[#fff0e1] p-6 sm:p-8 lg:p-10">
               {profile.seller_type === "store" && profile.store_banner_url ? (
                 <>
                   <div className="absolute inset-x-0 top-0 h-36 overflow-hidden border-b border-white/50 sm:h-44">
@@ -219,7 +215,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </>
               ) : null}
               <div className="absolute -left-12 top-0 h-40 w-40 rounded-full bg-white/80 blur-3xl" />
-              <div className="absolute right-0 top-16 h-56 w-56 rounded-full bg-neutral-200/80 blur-3xl" />
+              <div className="absolute right-0 top-16 h-56 w-56 rounded-full bg-[#ffe5ce]/60 blur-3xl" />
               <div className={`relative z-10 ${profile.seller_type === "store" && profile.store_banner_url ? "pt-16 sm:pt-20" : ""}`}>
                 <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">{profile.seller_type === "store" ? "მაღაზიის პროფილი" : "გამყიდველის პროფილი"}</div>
                 <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -275,43 +271,63 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               </div>
             </div>
 
-            <div className="border-t border-neutral-200 bg-brand px-6 py-7 text-white lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
-              <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">ნდობა და სიგნალები</div>
-              <SellerTrustSummary
-                verified={Boolean(profile.is_seller_verified)}
-                activeListingsCount={activeListingsCount}
-                soldListingsCount={soldListingsCount}
-                reviewSummary={sellerReviewData.summary}
-                createdAt={profile.created_at}
-                variant="dark"
-              />
+            <div className="border-t border-[#f0e0d1] bg-white px-6 py-8 text-text lg:border-l lg:border-t-0 lg:px-8 lg:py-10">
+              <div aria-hidden="true" className="mb-4 h-1.5 w-11 rounded-full bg-[#ff7a00]" />
+              <h2 className="text-2xl font-semibold tracking-tight text-[#073f3b] sm:text-[1.75rem]">გამყიდველის შესახებ</h2>
+              <p className="mt-2 text-sm text-text-soft">აქტივობა, შეფასებები და სანდოობის ნიშნები</p>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-white/65">
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ნახვები: {totalViews}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">ფავორიტები: {totalFavorites}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">VIP: {boostedListings}</span>
+              <div className="mt-7 grid grid-cols-2 gap-3 rounded-2xl border border-[#ffe5ce] bg-[#fff5ec] p-4 sm:p-5">
+                <div className="min-w-0">
+                  <div className="text-2xl font-semibold text-[#b94e00]">{activeListingsCount}</div>
+                  <p className="mt-1 text-sm text-text-soft">აქტიური განცხადება</p>
+                </div>
+                <div className="min-w-0 border-l border-[#ffd4b4] pl-4">
+                  <div className="text-base font-semibold text-[#073f3b]">{formatSellerTenure(profile.created_at) || "—"}</div>
+                  <p className="mt-1 text-sm text-text-soft">SamoSell-ზე</p>
+                </div>
               </div>
+
+              <section aria-label="გამყიდველის შეფასებები" className="mt-5 rounded-2xl border border-[#f0e4da] bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-[#073f3b]"><span aria-hidden="true" className="text-[#ff7a00]">☆</span> შეფასებები</h3>
+                  <a href="#seller-reviews-heading" className="shrink-0 text-xs font-semibold text-[#a94400] hover:underline">ყველა შეფასება →</a>
+                </div>
+                {sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? (
+                  <div className="mt-4">
+                    <p className="text-2xl font-semibold text-[#b94e00]">★ {sellerReviewData.summary.averageScore.toFixed(1)}</p>
+                    <p className="mt-1 text-sm text-text-soft">{sellerReviewData.summary.reviewCount} შეფასება</p>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <p className="text-base font-semibold">ჯერ არ აქვს შეფასებები</p>
+                    <p className="mt-1 text-sm leading-6 text-text-soft">შეფასებები აქ გამოჩნდება, როცა მყიდველები გამყიდველს შეაფასებენ.</p>
+                  </div>
+                )}
+              </section>
 
               {trustSignals.length > 0 ? (
-                <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">დადასტურებული სიგნალები</div>
-                  <SellerTrustBadges signals={trustSignals} variant="dark" className="mt-4" />
-                  <p className="mt-4 text-xs leading-5 text-white/55">
-                    ტელეფონის მითითება არ ნიშნავს ნომრის ვერიფიკაციას; გაყიდვების მაჩვენებელი ეფუძნება გაყიდულად მონიშნულ განცხადებებს.
-                  </p>
-                </div>
+                <section aria-label="სანდოობის ნიშნები" className="mt-7">
+                  <h3 className="mb-3 text-base font-semibold text-[#073f3b]">სანდოობის ნიშნები</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {trustSignals.map((signal) => (
+                      <span
+                        key={signal.key}
+                        title={signal.detail}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold ${signal.key === "verified" ? "border-[#ffc99f] bg-[#ffecd9] text-[#743500]" : "border-[#f0e0d2] bg-[#fff9f3] text-[#073f3b]"}`}
+                      >
+                        <span aria-hidden="true" className="text-[#d15e00]">
+                          {signal.key === "reviews" ? "★" : signal.key === "phone" ? "☎" : signal.key === "tenure" ? "◷" : "✓"}
+                        </span>
+                        <span>{signal.label}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
               ) : null}
 
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/catalog" className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-text transition hover:opacity-90">
-                  კატალოგის ნახვა
-                </Link>
-                {profile.city ? (
-                  <Link href={`/catalog?city=${encodeURIComponent(profile.city)}`} className="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    {profile.city}-ის შეთავაზებები
-                  </Link>
-                ) : null}
-              </div>
+              <a href="#seller-listings" className="mt-8 flex min-h-12 items-center justify-center gap-3 rounded-full bg-[#ff7a00] px-5 py-3 text-center text-sm font-bold text-[#073f3b] transition hover:bg-[#f06e00] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff7a00]">
+                განცხადებების ნახვა <span aria-hidden="true">→</span>
+              </a>
             </div>
           </div>
         </div>
