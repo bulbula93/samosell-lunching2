@@ -16,6 +16,7 @@ import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
+import { normalizeSellerUsernameParam } from "@/lib/seller-username"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
 import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
@@ -34,17 +35,22 @@ type PublicSellerListingCounts = {
 
 const fetchSeller = cache(async (username: string) => {
   const supabase = await createClient()
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
     .eq("username", username)
     .maybeSingle()
+  if (error) {
+    console.error("[seller profile] lookup failed", { code: error.code })
+    throw new Error("SELLER_PROFILE_LOOKUP_FAILED", { cause: error })
+  }
   if (!profile || profile.is_suspended) return null
   return profile
 })
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
-  const { username } = await params
+  const { username: rawUsername } = await params
+  const username = normalizeSellerUsernameParam(rawUsername)
   const profile = await fetchSeller(username)
   if (!profile) return { title: "გამყიდველი ვერ მოიძებნა", robots: { index: false, follow: false } }
   const title = `${profile.full_name || profile.username} — ${SITE_NAME} სელერი`
@@ -60,7 +66,8 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 }
 
 export default async function SellerPage({ params }: { params: Promise<{ username: string }> }) {
-  const { username } = await params
+  const { username: rawUsername } = await params
+  const username = normalizeSellerUsernameParam(rawUsername)
   const supabase = await createClient()
   const profile = await fetchSeller(username)
   if (!profile || profile.is_suspended) notFound()
@@ -104,7 +111,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   })
   const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
   const sellerName = profile.full_name || profile.username
-  const shareUrl = absoluteUrl(`/seller/${username}`)
+  const shareUrl = absoluteUrl(`/seller/${encodeURIComponent(profile.username)}`)
   const sellerAvatarSrc = getUserAvatar(profile)
   const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
