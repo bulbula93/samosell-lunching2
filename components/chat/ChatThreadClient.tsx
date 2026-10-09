@@ -11,6 +11,7 @@ import {
   type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from "react"
 import {
   abortChatImageUploadAction,
@@ -76,6 +77,7 @@ export default function ChatThreadClient({
   canSend,
   initialHasMore,
   isOfficialSupport = false,
+  reviewPrompt,
 }: {
   chatId: string
   currentUserId: string
@@ -84,6 +86,7 @@ export default function ChatThreadClient({
   canSend: boolean
   initialHasMore: boolean
   isOfficialSupport?: boolean
+  reviewPrompt?: ReactNode
 }) {
   const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
@@ -552,6 +555,8 @@ export default function ChatThreadClient({
           </button>
         ) : null}
       </div>
+
+      {reviewPrompt ? <div className="shrink-0 border-t border-[#ecede9] bg-white">{reviewPrompt}</div> : null}
 
       <form
         ref={formRef}
