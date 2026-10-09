@@ -12,7 +12,7 @@ import type { ChatThread } from "@/types/chat"
 type InboxFilter = "inbox" | "unread" | "archived"
 
 const FILTERS: Array<{ key: InboxFilter; label: string }> = [
-  { key: "inbox", label: "შემოსული" },
+  { key: "inbox", label: "ყველა" },
   { key: "unread", label: "წაუკითხავი" },
   { key: "archived", label: "არქივი" },
 ]
@@ -285,9 +285,9 @@ export default function ChatWorkspace({
       <div className="flex min-h-0 flex-1 overflow-hidden bg-white md:min-h-[620px] md:rounded-2xl md:border md:border-line md:shadow-[0_18px_60px_rgba(7,63,59,0.08)] lg:h-[calc(100dvh-8rem)]">
         <aside
           aria-label="მიმოწერების სია"
-          className={`${threadOpen ? "hidden lg:flex" : "flex"} min-w-0 w-full flex-col border-line bg-white lg:w-[350px] lg:shrink-0 lg:border-r`}
+          className={`${threadOpen ? "hidden lg:flex" : "flex"} h-full min-h-0 min-w-0 w-full flex-col overflow-hidden border-line bg-white lg:w-[350px] lg:shrink-0 lg:border-r`}
         >
-          <div className="border-b border-line px-4 pb-4 pt-5">
+          <div className="shrink-0 border-b border-line px-4 pb-4 pt-5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-text-soft">
@@ -342,7 +342,7 @@ export default function ChatWorkspace({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain p-2 [scrollbar-gutter:stable] [scrollbar-width:thin] [-webkit-overflow-scrolling:touch]">
             {visibleThreads.length > 0 ? (
               <div className="space-y-1">
                 {visibleThreads.map((thread) => {
@@ -435,7 +435,7 @@ export default function ChatWorkspace({
             )}
           </div>
 
-          <div className="border-t border-line p-3">
+          <div className="shrink-0 border-t border-line p-3">
             <Link href="/catalog" className="ui-btn-secondary w-full">
               ნივთების ნახვა
             </Link>
