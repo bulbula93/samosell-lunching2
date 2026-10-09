@@ -314,7 +314,7 @@ export default function ChatWorkspace({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="ძებნა"
-                  className="min-w-0 flex-1 bg-transparent py-2 text-sm text-text outline-none placeholder:text-text-soft"
+                  className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-text shadow-none outline-none ring-0 placeholder:text-text-soft focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 />
               </div>
             </label>
