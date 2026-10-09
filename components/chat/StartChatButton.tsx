@@ -1,6 +1,7 @@
 "use client"
 
-import { useActionState, useEffect, useState, type ReactNode } from "react"
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import {
   startChatAction,
   type StartChatState,
@@ -28,6 +29,7 @@ export default function StartChatButton({
   const [open, setOpen] = useState(false)
   const [clientRequestId, setClientRequestId] = useState("")
   const [sheetMode, setSheetMode] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
   const [state, formAction, pending] = useActionState(
     startChatAction,
     INITIAL_STATE,
@@ -36,8 +38,25 @@ export default function StartChatButton({
   useEffect(() => {
     if (!open || !sheetMode) return
     const previousOverflow = document.body.style.overflow
+    const viewport = window.visualViewport
+    const updateViewport = () => {
+      const sheet = sheetRef.current
+      if (!sheet) return
+      sheet.style.top = `${viewport?.offsetTop ?? 0}px`
+      sheet.style.left = `${viewport?.offsetLeft ?? 0}px`
+      sheet.style.width = `${viewport?.width ?? window.innerWidth}px`
+      sheet.style.height = `${viewport?.height ?? window.innerHeight}px`
+    }
+
     document.body.style.overflow = "hidden"
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+    viewport?.addEventListener("resize", updateViewport)
+    viewport?.addEventListener("scroll", updateViewport)
     return () => {
+      window.removeEventListener("resize", updateViewport)
+      viewport?.removeEventListener("resize", updateViewport)
+      viewport?.removeEventListener("scroll", updateViewport)
       document.body.style.overflow = previousOverflow
     }
   }, [open, sheetMode])
@@ -71,8 +90,8 @@ export default function StartChatButton({
       action={formAction}
       className={
         sheetMode
-          ? "relative w-full max-h-[88vh] overflow-y-auto rounded-t-3xl border-t border-line bg-bg p-5 shadow-[0_-24px_60px_rgba(7,63,59,0.2)]"
-          : "w-full rounded-2xl border border-brand/20 bg-brand-soft/45 p-4 sm:p-5"
+          ? "relative min-w-0 w-full max-w-full max-h-[min(88dvh,100%)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-3xl border-t border-line bg-bg p-5 shadow-[0_-24px_60px_rgba(7,63,59,0.2)]"
+          : "min-w-0 w-full rounded-2xl border border-brand/20 bg-brand-soft/45 p-4 sm:p-5"
       }
       style={
         sheetMode
@@ -91,7 +110,7 @@ export default function StartChatButton({
       ) : null}
 
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1 break-words">
           <h3 id="first-message-title" className="text-base font-black text-text">
             პირველი შეტყობინება
           </h3>
@@ -121,7 +140,7 @@ export default function StartChatButton({
         maxLength={CHAT_MESSAGE_MAX_LENGTH}
         aria-describedby="first-message-hint first-message-feedback"
         placeholder="მაგალითად: გამარჯობა, ნივთი ისევ ხელმისაწვდომია?"
-        className="mt-2 min-h-28 w-full resize-y rounded-xl border border-line bg-white px-4 py-3 text-sm leading-6 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft"
+        className="mt-2 min-h-28 w-full max-w-full resize-y rounded-xl border border-line bg-white px-4 py-3 text-base leading-6 text-text outline-none transition placeholder:text-text-soft focus:border-brand focus:ring-4 focus:ring-brand-soft"
       />
       <div id="first-message-hint" className="mt-2 text-xs leading-5 text-text-soft">
         მხოლოდ ტექსტი · მაქსიმუმ {CHAT_MESSAGE_MAX_LENGTH} სიმბოლო
@@ -153,8 +172,15 @@ export default function StartChatButton({
   )
 
   if (sheetMode) {
-    return (
-      <div className="fixed inset-0 z-[120] flex items-end">
+    // The action bar's backdrop-filter creates a containing block for fixed children.
+    return createPortal(
+      <div
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="first-message-title"
+        className="fixed left-0 top-0 z-[120] flex h-[100dvh] w-full items-end"
+      >
         <button
           type="button"
           aria-label="შეტყობინების ფორმის დახურვა"
@@ -162,7 +188,8 @@ export default function StartChatButton({
           onClick={() => setOpen(false)}
         />
         {composer}
-      </div>
+      </div>,
+      document.body,
     )
   }
 

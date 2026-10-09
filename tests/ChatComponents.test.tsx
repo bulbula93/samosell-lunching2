@@ -1,7 +1,7 @@
 import React from "react"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import ChatThreadClient from "@/components/chat/ChatThreadClient"
 import StartChatButton from "@/components/chat/StartChatButton"
 import { CHAT_MESSAGE_MAX_LENGTH } from "@/lib/chats"
@@ -64,6 +64,10 @@ describe("chat components", () => {
     })
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it("does not create a conversation when the listing CTA only opens", async () => {
     const user = userEvent.setup()
     render(
@@ -86,6 +90,48 @@ describe("chat components", () => {
       String(CHAT_MESSAGE_MAX_LENGTH),
     )
     expect(mocks.startChatAction).not.toHaveBeenCalled()
+  })
+
+  it("opens the sheet outside its action bar and follows the keyboard viewport", async () => {
+    const user = userEvent.setup()
+    const viewport = Object.assign(new EventTarget(), {
+      offsetTop: 0,
+      offsetLeft: 0,
+      width: 390,
+      height: 844,
+    })
+    vi.stubGlobal("visualViewport", viewport)
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: true }))
+    const previousOverflow = document.body.style.overflow
+    const { container } = render(
+      <div style={{ backdropFilter: "blur(8px)" }}>
+        <StartChatButton
+          listingId={listingId}
+          listingSlug="linen-jacket"
+          presentation="responsive"
+        />
+      </div>,
+    )
+
+    await user.click(screen.getByRole("button", { name: "მიწერე გამყიდველს" }))
+    const dialog = screen.getByRole("dialog", { name: "პირველი შეტყობინება" })
+    expect(dialog.parentElement).toBe(document.body)
+    expect(container).not.toContainElement(dialog)
+    expect(dialog).toHaveStyle({ width: "390px", height: "844px", top: "0px" })
+    expect(document.body.style.overflow).toBe("hidden")
+
+    Object.assign(viewport, { offsetTop: 96, height: 360 })
+    viewport.dispatchEvent(new Event("resize"))
+    expect(dialog).toHaveStyle({ width: "390px", height: "360px", top: "96px" })
+
+    Object.assign(viewport, { offsetTop: 120, offsetLeft: 8, width: 374 })
+    viewport.dispatchEvent(new Event("scroll"))
+    expect(dialog).toHaveStyle({ width: "374px", left: "8px", top: "120px" })
+    expect(mocks.startChatAction).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole("button", { name: "გაუქმება" }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe(previousOverflow)
   })
 
   it("renders HTML-like message input as text and identifies the sender without color alone", () => {
