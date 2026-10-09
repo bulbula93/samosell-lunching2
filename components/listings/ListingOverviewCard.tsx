@@ -404,6 +404,10 @@ export default function ListingOverviewCard({
           <MobileListingActionBar
             listingId={listing.id}
             listingSlug={listing.slug}
+            sellerLabel={sellerLabel}
+            sellerAvatarSrc={sellerAvatarSrc}
+            listingTitle={listing.title}
+            listingImageSrc={listing.cover_image_url}
             price={listing.price}
             currency={listing.currency}
             saleType={listing.sale_type}
