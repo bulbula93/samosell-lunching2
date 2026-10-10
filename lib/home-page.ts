@@ -57,7 +57,7 @@ export type HomePageData = PublicHomePageData & {
 }
 
 const HOME_QUERY_BUDGET_MS = PUBLIC_QUERY_TIMEOUT_MS
-const HOME_POOL_LIMIT = 500
+const HOME_POOL_LIMIT = 200
 
 async function settleHomeQuery<T>(
   query: PromiseLike<T>,
@@ -149,7 +149,7 @@ export const getPublicHomePageData = unstable_cache(
     const response = await settleHomeQuery(
       withQueryTimeout(supabase
         .from("listings_catalog")
-        .select(HOME_LISTING_SELECT, { count: "exact" })
+        .select(HOME_LISTING_SELECT, { count: "estimated" })
         .eq("status", "active")
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(HOME_POOL_LIMIT), HOME_QUERY_BUDGET_MS),
@@ -233,7 +233,7 @@ export const getPublicHomePageData = unstable_cache(
       activeCount: response.count ?? rows.length,
     }
   },
-  ["home-public-data-v5"],
+  ["home-public-data-v6"],
   {
     revalidate: 60,
     tags: ["home-public-data"],
