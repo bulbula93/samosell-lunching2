@@ -40,11 +40,13 @@ export async function GET() {
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .is("read_at", null)
       .not("type", "in", "(chat_started,chat_message)"),
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .is("read_at", null)
       .in("type", ["chat_started", "chat_message"]),
     supabase
