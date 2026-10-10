@@ -240,7 +240,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
       })
     : null
 
-  if (searchId) {
+  if (searchId && !queryError) {
     after(async () => {
       const { data: recorded, error: analyticsError } = await supabase.rpc("record_search_impression", {
         p_search_id: searchId,
@@ -287,7 +287,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
       <SiteHeader authenticatedUser={user} />
       <main className="min-h-screen bg-bg text-text">
         <section className="ui-container py-7 sm:py-10">
-          <CatalogPageHeader totalCount={totalCount} categorySeo={catalogSeo.categorySeo} />
+          {!queryError ? <CatalogPageHeader totalCount={totalCount} categorySeo={catalogSeo.categorySeo} /> : null}
 
           <CatalogLandingFilters
             categories={categories}
