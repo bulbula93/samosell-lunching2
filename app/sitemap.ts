@@ -1,8 +1,88 @@
-import { catalogCategoryHref } from "@/lib/catalog-urls"
 import type { MetadataRoute } from "next"
-import { applyCatalogFilters } from "@/lib/catalog-page"
-import { getSiteUrl, INDEXABLE_CATALOG_CATEGORIES } from "@/lib/seo"
-import { createClient } from "@/lib/supabase/server"
+import { unstable_cache } from "next/cache"
+import { catalogCategoryHref, INDEXABLE_CATALOG_CATEGORIES } from "@/lib/catalog-urls"
+import { getSiteUrl } from "@/lib/seo"
+import { createPublicServerClient } from "@/lib/supabase/public-server"
+import { withQueryTimeout } from "@/lib/supabase/query-timeout"
+import lastKnownGood from "@/lib/seo-sitemap-snapshot.json"
+
+// Never freeze the sitemap at build time. Cache only the validated DB inventory;
+// Next keeps the previous cached value if its background refresh throws.
+export const dynamic = "force-dynamic"
+
+type ListingEntry = { slug: string | null; updated_at: string | null }
+type SellerEntry = { seller_username: string | null; published_at: string | null }
+type SitemapInventory = { listings: ListingEntry[]; sellers: SellerEntry[] }
+
+const getCachedInventory = unstable_cache(
+  async (): Promise<SitemapInventory> => {
+    const supabase = createPublicServerClient()
+    const [listingsResult, sellersResult] = await Promise.all([
+      withQueryTimeout(
+        supabase.from("listings")
+          .select("slug, updated_at")
+          .eq("status", "active")
+          .order("updated_at", { ascending: false, nullsFirst: false })
+          .limit(1000),
+      ),
+      withQueryTimeout(
+        supabase.from("listings_catalog")
+          .select("seller_username, published_at")
+          .eq("status", "active")
+          .limit(1000),
+      ),
+    ])
+
+    // A partial/failed result must not replace the last good inventory in the cache.
+    if (listingsResult.error || sellersResult.error ||
+        !Array.isArray(listingsResult.data) || !Array.isArray(sellersResult.data)) {
+      throw new Error("seo_sitemap_inventory_unavailable")
+    }
+
+    return {
+      listings: listingsResult.data,
+      sellers: sellersResult.data,
+    }
+  },
+  ["seo-sitemap-inventory-v1"],
+  { revalidate: 900, tags: ["seo-sitemap-inventory"] },
+)
+
+function validDate(value: string | null | undefined): Date | undefined {
+  if (!value) return undefined
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? date : undefined
+}
+
+function inventoryEntries(siteUrl: string, inventory: SitemapInventory): MetadataRoute.Sitemap {
+  const listingEntries: MetadataRoute.Sitemap = inventory.listings
+    .filter((row): row is ListingEntry & { slug: string } => Boolean(row.slug))
+    .map((row) => ({
+      url: `${siteUrl}/listing/${encodeURIComponent(row.slug)}`,
+      ...(validDate(row.updated_at) ? { lastModified: validDate(row.updated_at) } : {}),
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    }))
+
+  const latestBySeller = new Map<string, string | null>()
+  for (const row of inventory.sellers) {
+    const username = row.seller_username?.trim()
+    if (!username) continue
+    const previous = latestBySeller.get(username)
+    if (!previous || (row.published_at && row.published_at > previous)) {
+      latestBySeller.set(username, row.published_at)
+    }
+  }
+
+  const sellers: MetadataRoute.Sitemap = Array.from(latestBySeller, ([username, publishedAt]) => ({
+    url: `${siteUrl}/seller/${encodeURIComponent(username)}`,
+    ...(validDate(publishedAt) ? { lastModified: validDate(publishedAt) } : {}),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }))
+
+  return [...listingEntries, ...sellers]
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl()
@@ -19,95 +99,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${siteUrl}/payment-terms`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${siteUrl}/refund-policy`, changeFrequency: "yearly", priority: 0.3 },
+    // These canonical pages exist independently of the count-query health.
+    ...INDEXABLE_CATALOG_CATEGORIES.map((category) => ({
+      url: `${siteUrl}${catalogCategoryHref(category.value)}`,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+    })),
   ]
 
+  let inventory: SitemapInventory
   try {
-    const supabase = await createClient()
-    const categoryCountPromises = INDEXABLE_CATALOG_CATEGORIES.map(async (category) => {
-      const baseQuery = supabase
-        .from("listings_catalog")
-        .select("published_at", { count: "exact" })
-        .eq("status", "active")
-      const response = await applyCatalogFilters(baseQuery, {
-        category: category.value,
-      })
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(1)
-      return {
-        category,
-        count: response.count ?? 0,
-        latestPublishedAt: response.data?.[0]?.published_at ?? null,
-        error: response.error,
-      }
-    })
-
-    const [listingsResponse, sellersResponse, categoryCounts] = await Promise.all([
-      supabase
-        .from("listings")
-        .select("slug, updated_at")
-        .eq("status", "active")
-        .order("updated_at", { ascending: false, nullsFirst: false })
-        .limit(1_000),
-      supabase
-        .from("listings_catalog")
-        .select("seller_username, published_at")
-        .eq("status", "active")
-        .limit(1_000),
-      Promise.all(categoryCountPromises),
-    ])
-
-    if (listingsResponse.error || sellersResponse.error) {
-      throw listingsResponse.error ?? sellersResponse.error
-    }
-
-    const listings = listingsResponse.data ?? []
-    const sellers = sellersResponse.data ?? []
-
-    const categoryEntries: MetadataRoute.Sitemap = categoryCounts
-      .filter(({ count, error }) => !error && count > 0)
-      .map(({ category, latestPublishedAt }) => ({
-        url: `${siteUrl}${catalogCategoryHref(category.value)}`,
-        ...(latestPublishedAt ? { lastModified: new Date(latestPublishedAt) } : {}),
-        changeFrequency: "daily",
-        priority: 0.7,
-      }))
-
-    const listingEntries: MetadataRoute.Sitemap = listings
-      .filter((item) => item.slug)
-      .map((item) => ({
-        url: `${siteUrl}/listing/${item.slug}`,
-        ...(item.updated_at ? { lastModified: new Date(item.updated_at) } : {}),
-        changeFrequency: "daily",
-        priority: 0.8,
-      }))
-
-    const sellerLatestPublishedAt = new Map<string, string>()
-    for (const item of sellers) {
-      const username = item.seller_username?.trim()
-      if (!username || !item.published_at) continue
-      const previous = sellerLatestPublishedAt.get(username)
-      if (!previous || item.published_at > previous) {
-        sellerLatestPublishedAt.set(username, item.published_at)
-      }
-    }
-
-    const sellerEntries: MetadataRoute.Sitemap = Array.from(
-      new Set(
-        sellers
-          .map((item) => item.seller_username?.trim())
-          .filter((username): username is string => Boolean(username)),
-      ),
-    ).map((username) => ({
-      url: `${siteUrl}/seller/${encodeURIComponent(username)}`,
-      ...(sellerLatestPublishedAt.get(username)
-        ? { lastModified: new Date(sellerLatestPublishedAt.get(username)!) }
-        : {}),
-      changeFrequency: "weekly",
-      priority: 0.6,
-    }))
-
-    return [...routes, ...categoryEntries, ...sellerEntries, ...listingEntries]
-  } catch {
-    return routes
+    inventory = await getCachedInventory()
+  } catch (error) {
+    console.warn("seo_sitemap_using_last_known_good", error instanceof Error ? error.message : "unknown")
+    // The snapshot is public active listing/seller URLs captured on 2026-10-10.
+    // Refresh it after major listing removals; do not treat a transient DB outage
+    // as proof that active URLs should be deleted from the sitemap.
+    inventory = lastKnownGood
   }
+
+  const seen = new Set<string>()
+  return [...routes, ...inventoryEntries(siteUrl, inventory)].filter((entry) => {
+    if (seen.has(entry.url)) return false
+    seen.add(entry.url)
+    return true
+  })
 }
