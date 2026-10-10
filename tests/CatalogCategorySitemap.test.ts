@@ -4,6 +4,7 @@ import { describe, expect, it, beforeEach, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   listingsFailed: false,
   sellersFailed: false,
+  transportRejected: false,
   listings: [{ slug: "test-listing", updated_at: "2026-10-06T00:00:00Z" }],
   sellers: [{ seller_username: "test-seller", published_at: "2026-10-06T00:00:00Z" }],
 }))
@@ -20,9 +21,12 @@ vi.mock("@/lib/supabase/public-server", () => ({
         eq: () => query,
         order: () => query,
         limit: () => query,
-        abortSignal: async () => table === "listings"
+        abortSignal: async () => {
+          if (mocks.transportRejected) throw new Error("network timeout")
+          return table === "listings"
           ? { data: mocks.listings, error: mocks.listingsFailed ? { message: "timeout" } : null }
-          : { data: mocks.sellers, error: mocks.sellersFailed ? { message: "timeout" } : null },
+          : { data: mocks.sellers, error: mocks.sellersFailed ? { message: "timeout" } : null }
+        },
       }
       return query
     },
@@ -34,6 +38,7 @@ import sitemap from "@/app/sitemap"
 beforeEach(() => {
   mocks.listingsFailed = false
   mocks.sellersFailed = false
+  mocks.transportRejected = false
 })
 
 describe("SEO sitemap outage resistance", () => {
@@ -61,6 +66,13 @@ describe("SEO sitemap outage resistance", () => {
     expect(result).toContain("https://samosell.ge/listing/zara-9d595c9d")
     expect(result.some((url) => url.startsWith("https://samosell.ge/seller/"))).toBe(true)
     expect(result.length).toBeGreaterThan(70)
+  })
+
+  it("retains the last-known-good URLs after a thrown network abort", async () => {
+    mocks.transportRejected = true
+    const result = await urls()
+    expect(result).toContain("https://samosell.ge/catalog/women")
+    expect(result).toContain("https://samosell.ge/listing/zara-9d595c9d")
   })
 
   it("does not publish a stale snapshot when a healthy DB confirms no active listings", async () => {
