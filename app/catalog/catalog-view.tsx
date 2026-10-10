@@ -80,7 +80,10 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const supabase = await createClient()
   const [authResponse, filterOptions] = await Promise.all([
     supabase.auth.getUser(),
-    getCachedCatalogFilterOptions(),
+    getCachedCatalogFilterOptions().catch((error) => {
+      console.warn("catalog_optional_facets_unavailable", error instanceof Error ? error.message : "unknown")
+      return { sizes: [], colors: [], cities: [] }
+    }),
   ])
   const user = authResponse.data.user
 
@@ -206,10 +209,8 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const rescueMessage = rescueMode !== "none" ? rescueLabel(rescueMode, resolvedQuery, q) : ""
   const sizes = filterOptions.sizes
 
-  const queryError =
-    rankedSearchResponse.error ||
-    listingsResponse.error ||
-    favoritesResponse.error
+  const queryError = rankedSearchResponse.error || listingsResponse.error
+  if (favoritesResponse.error) console.warn("catalog_favorites_unavailable", favoritesResponse.error.message)
 
   if (queryError) {
     console.error("catalog_data_failed", {
@@ -218,7 +219,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
       page,
       sort,
     })
-    throw new Error("catalog_data_failed")
+    // Preserve route availability and show an explicit retry state below.
   }
 
   const categories = CATALOG_SECTION_OPTIONS.map((item) => ({ slug: item.value, name: item.label }))
@@ -228,7 +229,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const favoriteIds = (favoritesResponse.data ?? []).map((item) => item.listing_id)
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
   const catalogSeo = resolveCatalogSeo(params)
-  const catalogStructuredData = catalogSeo.indexable && page <= totalPages
+  const catalogStructuredData = !queryError && catalogSeo.indexable && page <= totalPages
     ? buildCatalogStructuredData({
         canonicalPath: catalogSeo.canonicalPath,
         title: catalogSeo.title,
@@ -312,14 +313,20 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
             contained={false}
           />
 
-          <div className="mt-8">
+          {queryError ? (
+            <section role="alert" className="mt-8 rounded-2xl border border-border bg-surface p-6 text-center">
+              <h2 className="text-lg font-bold">განცხადებები დროებით ვერ ჩაიტვირთა</h2>
+              <p className="mt-2 text-sm">სერვერთან კავშირი შეფერხებულია. სცადე გვერდის განახლება.</p>
+              <a href={currentPath} className="mt-4 inline-flex rounded-xl bg-brand px-5 py-3 font-bold text-white">ხელახლა ცდა</a>
+            </section>
+          ) : <div className="mt-8">
             <CatalogResultsGrid
               listings={listings}
               currentPath={currentPath}
               favoriteIds={favoriteIds}
               searchId={searchId}
             />
-          </div>
+          </div>}
 
           <div className="mt-10">
             <CatalogPagination page={page} totalPages={totalPages} totalItems={totalCount} pageSize={PAGE_SIZE} pageHref={(nextPage: number) => getCatalogPath(queryParams, nextPage)} />
