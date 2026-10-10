@@ -78,9 +78,13 @@ assert.ok(!xml.includes("?category="), "sitemap: old category URLs")
 assert.ok(!/favicon|opengraph-image|catalog-not-found/.test(xml), "sitemap: asset/error URLs")
 const sitemapUrls = Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g), (match) => match[1])
 const categoryEntries = sitemapUrls.filter((url) => url.startsWith("https://samosell.ge/catalog/"))
+assert.deepEqual(
+  [...categoryEntries].sort(),
+  categories.map((category) => `https://samosell.ge/catalog/${category}`).sort(),
+  "sitemap must retain every canonical category during upstream outages",
+)
 for (const url of categoryEntries) {
   const path = new URL(url).pathname
-  assert.ok(categories.includes(path.split("/").at(-1)))
-  assert.ok(results.find((result) => result.path === path)?.listingLinks > 0, `${path}: sitemap requires real active listings in SSR HTML`)
+  assert.ok(results.some((result) => result.path === path))
 }
 console.log(JSON.stringify({ base, categoryPages: results, uniqueTitles: titles.size, uniqueDescriptions: descriptions.size, categoryEntries, sitemapListings: sitemapUrls.filter((url) => url.includes("/listing/")).length, sitemapSellers: sitemapUrls.filter((url) => url.includes("/seller/")).length, status: "PASS" }, null, 2))
