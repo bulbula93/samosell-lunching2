@@ -5,6 +5,16 @@ import { categoryFromCatalogPath, getCatalogRedirectPath } from "@/lib/catalog-u
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  // This production-backed preview permits only public page reads.
+  // Block API, cron, callbacks, server actions and authenticated routes, even when GET.
+  if (isReadOnlyPreview()) {
+    const publicPage = pathname === "/" || pathname === "/catalog" ||
+      pathname.startsWith("/catalog/") || pathname.startsWith("/listing/") ||
+      pathname === "/listing-not-found" || pathname === "/catalog-not-found"
+    if (!publicPage || !["GET", "HEAD"].includes(request.method)) {
+      return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
+    }
+  }
   if (isReadOnlyPreview() && (!["GET", "HEAD", "OPTIONS"].includes(request.method) || (pathname === "/auth/callback" && searchParams.has("code")))) {
     return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
   }
