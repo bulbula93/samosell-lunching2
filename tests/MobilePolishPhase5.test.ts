@@ -48,7 +48,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
     expect(homeData).toContain("settleHomeQuery")
     expect(homeData).toContain("HOME_POOL_LIMIT = 200")
     expect(homeData).toContain('["home-public-data-v6"]')
-    expect(homeData).toContain('select(HOME_LISTING_SELECT, { count: "exact" })')
+    expect(homeData).toContain('select(HOME_LISTING_SELECT, { count: "estimated" })')
     expect(homeData).toContain("home_public_data_unavailable")
   })
 
