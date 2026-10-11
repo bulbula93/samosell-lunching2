@@ -17,8 +17,8 @@ describe("SEO guide landing pages", () => {
   it("defines five distinct indexable evergreen landing pages", () => {
     expect(guides).toHaveLength(5)
     expect(new Set(guides.map((guide) => guide.path)).size).toBe(5)
-    expect(new Set(guides.map((guide) => guide.title)).size).toBe(4)
-    expect(new Set(guides.map((guide) => guide.description)).size).toBe(4)
+    expect(new Set(guides.map((guide) => guide.title)).size).toBe(5)
+    expect(new Set(guides.map((guide) => guide.description)).size).toBe(5)
 
     for (const guide of guides) {
       const metadata = buildSeoGuideMetadata(guide)
