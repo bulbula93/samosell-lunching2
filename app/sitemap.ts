@@ -93,6 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/faq`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/safety`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${siteUrl}/sell-fast`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${siteUrl}/where-to-sell-clothes`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${siteUrl}/vintage-georgia`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${siteUrl}/sustainable-fashion`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/privacy-policy`, changeFrequency: "yearly", priority: 0.3 },
