@@ -64,7 +64,7 @@ def main():
     entries = properties.get("siteEntry", [])
     selected = next((s["siteUrl"] for s in entries if s.get("siteUrl") in (BASE + "/", "sc-domain:samosell.ge")), None)
     checks = {}
-    for path in ("/robots.txt", "/sitemap.xml", "/", "/catalog/women", "/catalog/accessories", "/catalog/perfume", "/catalog?category=women"):
+    for path in ("/robots.txt", "/sitemap.xml", "/", "/catalog/women", "/catalog/men", "/catalog/kids", "/catalog/accessories", "/catalog/perfume", "/catalog?category=women", "/catalog?category=men", "/catalog?category=kids", "/catalog?category=accessories"):
         r = request(BASE + path)
         item = {"status": r["status"], "final_url": r["url"], "error": r["error"]}
         if path == "/robots.txt":
@@ -76,6 +76,7 @@ def main():
                 locs = [x.text for x in root.iter() if x.tag.endswith("}loc") or x.tag == "loc"]
                 item["loc_count"] = len(locs)
                 item["loc_sample"] = locs[:10]
+                item["loc_urls"] = sorted(set(x for x in locs if x))
                 item["is_sitemap_index"] = root.tag.endswith("sitemapindex")
             except ET.ParseError:
                 item["xml_parse_error"] = True
@@ -108,6 +109,20 @@ def main():
             for key in ("status", "final_url", "canonicals", "robots_meta"):
                 if key in old and old[key] != current.get(key):
                     changes.append(f"{path}: {key}: {old[key]} -> {current.get(key)}")
+        current_urls = set(checks.get("/sitemap.xml", {}).get("loc_urls", []))
+        old_urls = set(previous.get("checks", {}).get("/sitemap.xml", {}).get("loc_urls", []))
+        if "loc_urls" in previous.get("checks", {}).get("/sitemap.xml", {}):
+            for url in sorted(current_urls - old_urls):
+                changes.append("Sitemap added: " + url)
+            for url in sorted(old_urls - current_urls):
+                changes.append("Sitemap removed: " + url)
+        else:
+            changes.append("Previous snapshot lacks full sitemap URLs; URL-level diff begins with this run.")
+        for path, current in inspection.items():
+            old = previous.get("url_inspection_sample", {}).get(path, {})
+            for key in ("verdict", "coverageState", "indexingState", "lastCrawlTime"):
+                if key in old and old[key] != current.get(key):
+                    changes.append(f"URL Inspection {path}: {key}: {old[key]} -> {current.get(key)}")
     else:
         changes.append("First baseline: no previous snapshot available; changes cannot yet be calculated.")
     warnings = []
@@ -122,6 +137,8 @@ def main():
     for path, info in checks.items():
         lines.append(f"- \`{path}\`: HTTP {info['status']}, final \`{info['final_url']}\`" + (f", canonical {info['canonicals']}" if "canonicals" in info else ""))
     lines += ["", "## Changes since previous snapshot", ""] + ["- " + x for x in changes]
+    if not changes:
+        changes.append("No changes detected in monitored fields.")
     lines += ["", "## Warnings", ""] + (["- " + x for x in warnings] if warnings else ["- No basic HTTP failures detected"])
     lines += ["", "## Caveats", "", "- Search Analytics is delayed and does not prove indexation.", "- URL Inspection is a small sample, not a complete indexed URL count.", "- A 200 response does not by itself mean that a page is indexable.", "- Sitemap and canonical checks are diagnostic signals, not full crawling."]
     (OUT / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
