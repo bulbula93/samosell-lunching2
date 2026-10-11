@@ -14,9 +14,9 @@ function read(path: string) {
 describe("SEO guide landing pages", () => {
   const guides = Object.values(SEO_GUIDES)
 
-  it("defines four distinct indexable evergreen landing pages", () => {
-    expect(guides).toHaveLength(4)
-    expect(new Set(guides.map((guide) => guide.path)).size).toBe(4)
+  it("defines five distinct indexable evergreen landing pages", () => {
+    expect(guides).toHaveLength(5)
+    expect(new Set(guides.map((guide) => guide.path)).size).toBe(5)
     expect(new Set(guides.map((guide) => guide.title)).size).toBe(4)
     expect(new Set(guides.map((guide) => guide.description)).size).toBe(4)
 
@@ -41,7 +41,7 @@ describe("SEO guide landing pages", () => {
     }
   })
 
-  it("keeps all four guides discoverable through sitemap and internal links", () => {
+  it("keeps all five guides discoverable through sitemap and internal links", () => {
     const sitemap = read("app/sitemap.ts")
     const footer = read("components/layout/SiteFooter.tsx")
     const sell = read("app/sell-fast/page.tsx")
@@ -53,7 +53,20 @@ describe("SEO guide landing pages", () => {
 
     expect(footer).toContain("/vintage-georgia")
     expect(footer).toContain("/sustainable-fashion")
+    expect(footer).toContain("/where-to-sell-clothes")
     expect(sell).toContain("SEO_GUIDES.sellFast")
     expect(safety).toContain("SEO_GUIDES.safety")
   })
+  it("separates where-to-sell intent from how-to-sell and cross-links responsibly", () => {
+    const where = SEO_GUIDES.whereToSell
+    const how = SEO_GUIDES.sellFast
+    expect(where.path).not.toBe(how.path)
+    expect(where.h1).toContain("სად გავყიდო")
+    expect(where.sections.some((section) => section.text.includes("სოციალურ") || section.title.includes("სოციალურ"))).toBe(true)
+    expect(where.sections.some((section) => section.text.includes("საკომისიო"))).toBe(true)
+    expect(where.relatedLinks.some((link) => link.href === "/sell-fast")).toBe(true)
+    expect(how.relatedLinks.some((link) => link.href === "/where-to-sell-clothes")).toBe(true)
+    expect(read("app/where-to-sell-clothes/page.tsx")).toContain("SEO_GUIDES.whereToSell")
+  })
+
 })
