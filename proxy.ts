@@ -5,6 +5,22 @@ import { categoryFromCatalogPath, getCatalogRedirectPath } from "@/lib/catalog-u
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  // This performance/SEO Preview reads Production's public data.
+  // Deny all API, admin, authentication, callbacks, cron and mutations.
+  if (isReadOnlyPreview()) {
+    const publicPage =
+      pathname === "/" ||
+      pathname === "/sitemap.xml" ||
+      pathname === "/robots.txt" ||
+      pathname === "/catalog" ||
+      pathname.startsWith("/catalog/") ||
+      pathname.startsWith("/listing/") ||
+      pathname.startsWith("/seller/") ||
+      ["/contact", "/faq", "/safety", "/sell-fast", "/vintage-georgia", "/sustainable-fashion", "/listing-not-found", "/catalog-not-found"].includes(pathname)
+    if (!publicPage || !["GET", "HEAD"].includes(request.method)) {
+      return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
+    }
+  }
   if (isReadOnlyPreview() && (!["GET", "HEAD", "OPTIONS"].includes(request.method) || (pathname === "/auth/callback" && searchParams.has("code")))) {
     return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
   }
