@@ -14,6 +14,7 @@ const footerGroups = [
       { href: "/catalog/accessories", label: "აქსესუარები" },
       { href: "/catalog/vintage", label: "ვინტაჟი" },
       { href: "/sell-fast", label: "როგორ გავყიდო" },
+      { href: "/where-to-sell-clothes", label: "სად გავყიდო ტანსაცმელი" },
       { href: "/vintage-georgia", label: "ვინტაჟის გზამკვლევი" },
       { href: "/sustainable-fashion", label: "მდგრადი მოდა" },
     ],
