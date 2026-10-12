@@ -83,17 +83,22 @@ describe("Listing view daily migration", () => {
     expect(n.rows[0]?.hits).toBe(40)
   })
 
-  it("limits high-frequency request bursts across listings", async () => {
+  it("limits high-frequency request bursts across different listings", async () => {
     const source = "e".repeat(64)
     let rejected = 0
     for (let i = 0; i < 65; i++) {
+      const anotherListing = `10000000-0000-4000-8000-${String(i).padStart(12, "0")}`
+      await db.query(
+        "insert into public.listings(id,seller_id,status) values ($1,$2,'active')",
+        [anotherListing,"99da275c-d3ab-4b57-95f2-3e1e9d17cf94"],
+      )
       const result = await db.query<{ counted: boolean }>(
         "select public.record_distinct_listing_view($1,$2,$3) as counted",
-        [listingId,"b".repeat(63)+i.toString(16).slice(-1),source],
+        [anotherListing,"b".repeat(64),source],
       )
       if (!result.rows[0]?.counted) rejected++
     }
-    expect(rejected).toBeGreaterThan(0)
+    expect(rejected).toBe(5)
     const n = await db.query<{ hits: number }>(
       "select hits from public.listing_view_rate_windows where scope='minute' and rate_key=$1",
       [source],
