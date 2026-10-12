@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import FollowButton from "@/components/stories/FollowButton"
 import StoriesRail from "@/components/stories/StoriesRail"
@@ -38,15 +39,16 @@ describe("Stories and Following UI", () => {
   })
   it("loads the unseen Story sequence and supports keyboard next/close", async () => {
     const onClose = vi.fn()
+    const user = userEvent.setup()
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ stories: [
       { id: "477f3329-6c04-4c40-8f33-873ab3ee4f76", ownerId: owner.id, mediaPath: "one.webp", mediaUrl: "https://cdn.test/one.webp", mediaType: "image", caption: "პირველი", createdAt: "2026-09-08T08:00:00Z", expiresAt: "2026-09-09T08:00:00Z", durationMs: null, linkedListing: null, viewed: false },
       { id: "577f3329-6c04-4c40-8f33-873ab3ee4f76", ownerId: owner.id, mediaPath: "two.webp", mediaUrl: "https://cdn.test/two.webp", mediaType: "image", caption: "მეორე", createdAt: "2026-09-08T08:01:00Z", expiresAt: "2026-09-09T08:01:00Z", durationMs: null, linkedListing: null, viewed: false },
     ] }) }))
     render(<StoryViewer owners={[owner]} initialOwnerIndex={0} currentUserId={null} onClose={onClose} />)
     expect(await screen.findByText("პირველი")).toBeInTheDocument()
-    fireEvent.keyDown(window, { key: "ArrowRight" })
+    await user.keyboard("{ArrowRight}")
     expect(await screen.findByText("მეორე")).toBeInTheDocument()
-    fireEvent.keyDown(window, { key: "Escape" })
+    await user.keyboard("{Escape}")
     expect(onClose).toHaveBeenCalled()
   })
 })

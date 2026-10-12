@@ -1,4 +1,14 @@
-import type { BoostProduct, PromotionState } from "@/types/boost"
+import type { BoostOrder, BoostProduct, PromotionState } from "@/types/boost"
+
+export function canResumeManualBoostCheckout(order: Pick<BoostOrder, "status" | "payment_method" | "payment_provider" | "provider_payment_id" | "provider_checkout_url" | "paid_at" | "approved_at">) {
+  return order.status === "pending_payment"
+    && ["bank_transfer", "manual_cash"].includes(order.payment_method)
+    && !order.payment_provider
+    && !order.provider_payment_id
+    && !order.provider_checkout_url
+    && !order.paid_at
+    && !order.approved_at
+}
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000
 

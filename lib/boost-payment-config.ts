@@ -33,9 +33,9 @@ export function getBoostPaymentConfig() {
     paymentContactEmail: readOptionalEnv("BOOST_PAYMENT_CONTACT_EMAIL", support.supportEmail),
     externalPaymentUrl,
     hasExternalPaymentUrl: Boolean(externalPaymentUrl),
-    hasBankDetails: Boolean(bankName || accountNumber || accountHolder),
+    hasBankDetails: Boolean(accountNumber && accountHolder),
     tbcCheckoutEnabled: isTbcCheckoutEnabled(),
-    flittCheckoutEnabled: flitt.sandboxEnabled,
+    flittCheckoutEnabled: flitt.mode === "live" ? flitt.liveEnabled : flitt.sandboxEnabled,
     flittMode: flitt.mode,
   }
 }
