@@ -32,7 +32,7 @@ describe("Lossy listing image preprocessing for future uploads",()=>{
       expect(optimized.size).toBe(250_000)
       expect(optimized.lastModified).toBe(42)
       expect(ctx.drawImage).toHaveBeenCalledOnce()
-      expect(getContext.mock.instances[0].width).toBeLessThanOrEqual(LISTING_IMAGE_MAX_EDGE)
+      expect((getContext.mock.contexts[0] as HTMLCanvasElement).width).toBeLessThanOrEqual(LISTING_IMAGE_MAX_EDGE)
       expect(closed).toHaveBeenCalledOnce()
     } finally {getContext.mockRestore();blob.mockRestore()}
   })
