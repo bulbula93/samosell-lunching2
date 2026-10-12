@@ -45,6 +45,7 @@ export default function CatalogLandingFilters({
     chips.push({ key: "gender", label: genderLabels[values.gender] || values.gender })
   }
   if (values.vip === "1") chips.push({ key: "vip", label: "VIP" })
+  if (values.recent === "7") chips.push({ key: "recent", label: "ბოლო 7 დღე" })
   if (values.sale_type === "gift") chips.push({ key: "sale_type", label: "🎁 ჩუქება" })
   if (values.min_price || values.max_price) chips.push({ key: "price", label: `${values.min_price || "0"}–${values.max_price || "∞"} ₾` })
   const activeCount = chips.length
@@ -54,6 +55,7 @@ export default function CatalogLandingFilters({
       <MobileFiltersDrawer options={options} values={values} activeCount={activeCount} />
 
       <form action="/catalog" className="ui-card hidden p-3 lg:block">
+        {values.recent === "7" ? <input type="hidden" name="recent" value="7" /> : null}
         <div className="mb-3 flex items-end gap-3">
           <label className="min-w-0 flex-1">
             <span className="mb-1.5 block text-xs font-semibold text-text-soft">ძებნა</span>
