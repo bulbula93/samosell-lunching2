@@ -5,7 +5,7 @@ import { redirect, unstable_rethrow } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
 import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
-import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
+import { finalizeFlittBoostPayment, reconcileUnpaidFlittBoostFailure, isVerifiedUnpaidFlittTerminal, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { isTbcCheckoutEnabled } from "@/lib/tbc"
 import { requestProviderRefund } from "@/lib/tbc-refunds"
@@ -118,6 +118,8 @@ export async function refreshFlittPaymentAttemptAction(formData: FormData) {
         await finalizeFlittBoostPayment(attempt.boost_order_id)
       } else if (verified.nextStatus === "reversed") {
         await reverseFlittBoostPayment(attempt.boost_order_id)
+      } else if (isVerifiedUnpaidFlittTerminal(verified)) {
+        await reconcileUnpaidFlittBoostFailure(attempt.boost_order_id, verified)
       }
     }
 
