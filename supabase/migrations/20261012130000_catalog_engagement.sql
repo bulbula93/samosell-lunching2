@@ -84,6 +84,8 @@ as $$
 begin
   delete from public.catalog_engagement_events where occurred_at < now()-interval '35 days';
   delete from public.catalog_engagement_rate_windows where window_minute < now()-interval '2 days';
+  delete from public.listing_view_daily where created_at < now()-interval '35 days';
+  delete from public.listing_view_rate_windows where window_start < now()-interval '2 days';
 end;
 $$;
 revoke all on function public.prune_catalog_engagement() from public,anon,authenticated;
