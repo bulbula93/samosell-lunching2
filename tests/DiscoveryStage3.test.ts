@@ -35,6 +35,15 @@ describe("Discovery phase 3: search and fresh supply",()=> {
     expect(catalog).not.toContain('supabase.rpc("search_catalog_rescue"')
   })
 
+  it("allows read-only ranking on a production-linked preview without writing analytics",()=> {
+    expect(catalog).toContain('get: isReadOnlyPreview()')
+    expect(catalog).toContain('analyticsAllowed && !isReadOnlyPreview()')
+    const previewFetch = readFileSync("lib/preview-read-only.ts", "utf8")
+    expect(previewFetch).toContain('if (isReadOnlyPreview() && !["GET", "HEAD", "OPTIONS"].includes(method))')
+    const proxy = readFileSync("proxy.ts","utf8")
+    expect(proxy).toContain('return NextResponse.json({ error: "preview_read_only" }, { status: 403 })')
+  })
+
   it("filters browse results to the last seven days but never overrides a relevance search",()=> {
     const browse=resolveCatalogState({category:"women",recent:"7"})
     expect(browse.filters.recent).toBe("7")
