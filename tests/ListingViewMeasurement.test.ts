@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 
 const migration = readFileSync("supabase/migrations/20261012110000_listing_view_daily.sql", "utf8")
+const resilient = readFileSync("supabase/migrations/20261012143500_resilient_listing_view_totals.sql", "utf8")
 const route = readFileSync("app/api/listing-view/route.ts", "utf8")
 const tracker = readFileSync("components/listings/RecentlyViewedTracker.tsx", "utf8")
 
@@ -10,10 +11,13 @@ describe("Listing view measurement guardrails", () => {
     expect(migration).toContain("primary key (listing_id, viewer_hash, viewed_on)")
     expect(migration).toContain("on conflict do nothing")
     expect(migration).toContain("if not found then return false")
-    expect(migration).toContain("set views_count=coalesce(views_count,0)+1")
+    expect(resilient).toContain("insert into public.listing_view_totals")
+    expect(resilient).toContain("measured_views=public.listing_view_totals.measured_views+1")
   })
 
   it("allows only service role to invoke the counter", () => {
+    expect(resilient).toContain("alter table public.listing_view_totals enable row level security")
+    expect(resilient).toContain("revoke all on public.listing_view_totals from public,anon,authenticated")
     expect(migration).toContain("alter table public.listing_view_daily enable row level security")
     expect(migration).toContain("alter table public.listing_view_rate_windows enable row level security")
     expect(migration).toContain("revoke all on public.listing_view_rate_windows from public, anon, authenticated")
