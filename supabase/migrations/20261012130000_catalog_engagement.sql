@@ -55,12 +55,12 @@ begin
 
   for v_event in select value from jsonb_array_elements(p_items)
   loop
-    v_event_key := v_event->>'event_key';
-    v_kind := v_event->>'event_kind';
+    v_event_key := coalesce(v_event->>'event_key','');
+    v_kind := coalesce(v_event->>'event_kind','');
     if v_event_key is null or v_event_key !~ '^[0-9a-f]{64}$'
       or v_kind not in ('impression','click')
-      or (v_event->>'listing_id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      or (v_event->>'position') !~ '^[0-9]{1,3}$'
+      or coalesce(v_event->>'listing_id','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      or coalesce(v_event->>'position','') !~ '^[0-9]{1,3}$'
     then continue; end if;
     v_position := (v_event->>'position')::integer;
     if v_position < 1 or v_position > 100 then continue; end if;
