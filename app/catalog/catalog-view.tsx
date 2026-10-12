@@ -1,5 +1,6 @@
 import { resolveCatalogSeo, type CatalogPageParams } from "@/lib/catalog-seo"
 import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 import { randomUUID } from "node:crypto"
 import { getCachedCatalogFilterOptions } from "@/lib/catalog-filter-options"
 import { after } from "next/server"
@@ -74,7 +75,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   const databaseFilters = getCatalogDatabaseFilters(filters)
   const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance" && !sale_type)
   const analyticsAllowed = await serverAllowsAnalytics()
-  const searchId = q && analyticsAllowed ? randomUUID() : null
+  const searchId = q && analyticsAllowed && !isReadOnlyPreview() ? randomUUID() : null
 
   const rangeFrom = (page - 1) * PAGE_SIZE
   const rangeTo = rangeFrom + PAGE_SIZE - 1
@@ -154,7 +155,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   }
 
   const rankedSearchPromise = useRankedSearch
-    ? withQueryTimeout(supabase.rpc("search_catalog_ranked", rankedArgs))
+    ? withQueryTimeout(supabase.rpc("search_catalog_ranked", rankedArgs, { get: isReadOnlyPreview() }))
     : Promise.resolve({ data: null, error: null })
 
   const listingsPromise = useRankedSearch
