@@ -36,6 +36,17 @@ export type AdRecord = {
 
 export type AdsByPlacement = Partial<Record<AdPlacementKey, AdRecord>>
 
+export function shouldCollapseEmptyCatalogPlacements(
+  keys: readonly AdPlacementKey[],
+  ads: AdsByPlacement,
+  fallback = false,
+) {
+  return keys.length === 2 &&
+    keys[0] === "catalog_top_left" &&
+    keys[1] === "catalog_top_right" &&
+    (fallback || keys.every((key) => !ads[key]))
+}
+
 const placementKeySet = new Set<string>(AD_PLACEMENT_KEYS)
 
 export function isAdPlacementKey(value: unknown): value is AdPlacementKey {
