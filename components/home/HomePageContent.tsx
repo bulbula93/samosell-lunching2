@@ -1,3 +1,4 @@
+import Link from "next/link"
 import AdCarousel from "@/components/ads/AdCarousel"
 import HomeCollectionsSection from "@/components/home/HomeCollectionsSection"
 import HomeHowItWorks from "@/components/home/HomeHowItWorks"
@@ -10,11 +11,11 @@ import { ka } from "@/lib/i18n/ka"
 import type { PublicHomePageData } from "@/lib/home-page"
 import type { AdRecord } from "@/lib/ads"
 
-export default function HomePageContent({data,heroAds=[]}:{data:PublicHomePageData;heroAds?:AdRecord[]}) {
- return <><HomeSearchHeroSection featuredItems={data.heroItems}/><HomeStoriesSlot/>
+export default function HomePageContent({data,heroAds=[],catalogUnavailable=false}:{data:PublicHomePageData;heroAds?:AdRecord[];catalogUnavailable?:boolean}) {
+ return <><HomeSearchHeroSection featuredItems={data.heroItems}/>{catalogUnavailable ? <section role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-4 text-center text-sm text-amber-900"><p>განცხადებების ნაწილი დროებით ვერ ჩაიტვირთა. შეგიძლიათ გახსნათ <Link href="/catalog" className="font-semibold underline underline-offset-4">კატალოგი</Link> ან განაახლოთ გვერდი მოგვიანებით.</p></section> : null}<HomeStoriesSlot/>
  <HomeProductsSection title="VIP განცხადებები" description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში." href="/catalog?vip=1&sort=vip" items={data.vipItems} favoriteIds={[]} layout="horizontal"/>
- {data.latestItems.length===0?<HomeMarketplaceEmptyState/>:null}
- <HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>
+ {!catalogUnavailable&&data.latestItems.length===0?<HomeMarketplaceEmptyState/>:null}
+ {!catalogUnavailable?<HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>:null}
  <HomePromoBanner bannerItems={data.bannerItems}/>
  <HomeProductsSection title={ka.home.popular} description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით" href="/catalog?sort=popular" items={data.popularItems} favoriteIds={[]}/>
  <section aria-label="რეკლამა" className="border-b border-line bg-white py-8 sm:py-10"><div className="ui-container"><AdCarousel ads={heroAds} pagePath="/" fallbackPlacement="home_hero_left"/></div></section>

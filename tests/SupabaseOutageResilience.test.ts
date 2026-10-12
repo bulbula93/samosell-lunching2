@@ -23,7 +23,9 @@ describe("Supabase outage resilience", () => {
     const home = source("lib", "home-page.ts")
     expect(home).toContain("HOME_POOL_LIMIT = 500")
     expect(home).toContain('select(HOME_LISTING_SELECT, { count: "exact" })')
-    expect(home.match(/from\("listings_catalog"\)/g)).toHaveLength(1)
+    expect(home.match(/from\("listings_catalog"\)/g)).toHaveLength(2)
+    expect(home).toContain("home_public_data_retry")
+    expect(home).toContain("if (!response || response.error)")
   })
 
   it("skips Supabase auth refresh for guest public routes", () => {
