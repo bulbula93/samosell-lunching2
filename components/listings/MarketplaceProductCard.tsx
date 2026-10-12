@@ -67,6 +67,7 @@ export default function MarketplaceProductCard({
   return (
     <article className="group relative flex h-full min-w-0 flex-col rounded-[20px] border border-line bg-white p-2 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] sm:rounded-[22px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
       <Link
+        data-catalog-open=""
         href={listingHref}
         aria-label={`${item.title} — ${priceLabel}`}
         className="absolute inset-0 z-10 rounded-[20px] sm:rounded-[22px]"
