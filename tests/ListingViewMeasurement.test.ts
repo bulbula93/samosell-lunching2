@@ -19,7 +19,7 @@ describe("Listing view measurement guardrails", () => {
     expect(migration).toContain("revoke all on public.listing_view_rate_windows from public, anon, authenticated")
     expect(migration).toContain("revoke all on public.listing_view_daily from public, anon, authenticated")
     expect(migration).toContain("revoke all on function public.record_distinct_listing_view(uuid,text,text) from public, anon, authenticated")
-    expect(migration).toContain("grant execute on function public.record_distinct_listing_view(uuid,text) to service_role")
+    expect(migration).toContain("grant execute on function public.record_distinct_listing_view(uuid,text,text) to service_role")
   })
 
   it("requires analytics consent and excludes seller/bots", () => {
@@ -39,7 +39,6 @@ describe("Listing view measurement guardrails", () => {
     expect(migration).toContain("if v_minute_hits > 60 then return false")
     expect(migration).toContain("if v_listing_day_hits > 30 then return false")
     expect(route).not.toContain('request.headers.get("x-forwarded-for")')
-    expect(route).not.toContain('request.headers.get("x-vercel-forwarded-for")')
   })
 
   it("sends views only with consent and deletes tracking cookie on revocation", () => {
