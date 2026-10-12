@@ -77,7 +77,7 @@ describe("global ad system", () => {
     expect(link.getAttribute("href")).toContain("/api/ads/click?")
   })
 
-  it("uses a one-column mobile layout and two columns from tablet width", async () => {
+  it("collapses two empty catalog ad slots into one full-width CTA", async () => {
     const ui = await AdSlotRow({
       placementKeys: ["catalog_top_left", "catalog_top_right"],
       pagePath: "/catalog",
@@ -86,7 +86,23 @@ describe("global ad system", () => {
     const { container } = render(ui)
 
     expect(container.querySelector(".grid-cols-1")).toHaveClass("md:grid-cols-2")
-    expect(screen.getAllByText("განათავსე რეკლამა ჩვენს გვერდზე")).toHaveLength(2)
+    expect(container.querySelector(".md\\:col-span-2")).toBeInTheDocument()
+    expect(screen.getAllByText("განათავსე რეკლამა ჩვენს გვერდზე")).toHaveLength(1)
+  })
+
+  it("preserves both separately sold catalog ad slots", () => {
+    render(<AdSlotRow
+      placementKeys={["catalog_top_left", "catalog_top_right"]}
+      pagePath="/catalog"
+      contained={false}
+      ads={{
+        catalog_top_left: makeAd({ placement_key: "catalog_top_left" }),
+        catalog_top_right: makeAd({ id: "22222222-2222-4222-8222-222222222222", placement_key: "catalog_top_right" }),
+      }}
+    />)
+
+    expect(screen.getAllByText("შემოდგომის კოლექცია")).toHaveLength(2)
+    expect(screen.queryByText("განათავსე რეკლამა ჩვენს გვერდზე")).not.toBeInTheDocument()
   })
 
   it("queries only the placement keys supplied by the row", () => {

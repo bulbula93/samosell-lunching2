@@ -208,6 +208,7 @@ export default function MobileFiltersDrawer({
             {panel === "filters" ? (
               <form action="/catalog" className="max-h-[calc(88dvh-88px)] overflow-y-auto px-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {values.q ? <input type="hidden" name="q" value={values.q} /> : null}
+                {values.recent === "7" ? <input type="hidden" name="recent" value="7" /> : null}
 
                 <div className="pb-24 pt-2">
                   <CatalogFilterFields

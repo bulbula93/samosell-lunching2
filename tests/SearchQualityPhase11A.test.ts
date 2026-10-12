@@ -30,8 +30,10 @@ describe("phase 11A search quality infrastructure", () => {
     expect(migration).toContain("public.search_catalog_ranked")
     expect(migration).toContain("public.search_catalog_rescue")
     expect(catalogPage).toContain('supabase.rpc("search_catalog_ranked"')
-    expect(catalogPage).toContain('"search_catalog_rescue"')
-    expect(catalogPage).toContain("total_count ?? 0)) === 0")
+    const wrapper = read("supabase/migrations/20260831003836_integrate_search_rescue_into_ranked_rpc.sql")
+    expect(wrapper).toContain("public.search_catalog_rescue")
+    expect(catalogPage).not.toContain('supabase.rpc("search_catalog_rescue"')
+    expect(catalogPage).toContain("search_catalog_ranked already calls search_catalog_rescue")
   })
 
   it("supports aliases and Latin to Georgian transliteration", () => {
