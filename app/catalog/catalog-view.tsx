@@ -314,7 +314,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
           {!q ? (
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Link href={recentHref}
-                aria-pressed={recent === "7"}
+                aria-current={recent === "7" ? "page" : undefined}
                 className={`inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-sm font-semibold transition ${recent === "7" ? "border-brand bg-brand text-white" : "border-brand/20 bg-white text-brand hover:bg-brand-soft"}`}>
                 {recent === "7" ? "✓ ბოლო 7 დღეში დამატებული" : "✦ ახალი განცხადებები · 7 დღე"}
               </Link>
@@ -351,7 +351,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
               favoriteIds={favoriteIds}
               searchId={searchId}
             />
-          </div>}
+          </div> : null}
 
           {q && !queryError && totalCount === 0 && page === 1 ? (
             <section className="mt-8 space-y-4" aria-label="ალტერნატიული განცხადებები">
