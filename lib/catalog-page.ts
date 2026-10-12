@@ -17,6 +17,7 @@ export type CatalogSearchParams = {
   city?: string | string[]
   condition?: string | string[]
   new_only?: string | string[]
+  recent?: string | string[]
   gender?: string | string[]
   vip?: string | string[]
   sale_type?: string | string[]
@@ -37,6 +38,7 @@ export type CatalogFilters = {
   condition: string
   gender: string
   vip: string
+  recent: string
   sale_type: string
   min_price: string
   max_price: string
@@ -76,7 +78,7 @@ export function formatCount(value: number) {
 type CatalogFilterable = {
   or: (filters: string) => unknown
   eq: (column: string, value: string | boolean) => unknown
-  gte: (column: string, value: number) => unknown
+  gte: (column: string, value: number | string) => unknown
   lte: (column: string, value: number) => unknown
 }
 
@@ -165,6 +167,11 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
     next = next.eq("gender", databaseFilters.gender) as T & CatalogFilterable
   }
   if (filters.vip === "1") next = next.eq("is_vip", true) as T & CatalogFilterable
+  // Offer recent inventory as a deliberate browse opt-in. VIP/featured ranking
+  // stays exactly as it was; publication age never supersedes promotion tier.
+  if (filters.recent === "7" && !databaseFilters.query) {
+    next = next.gte("published_at", new Date(Date.now() - 7 * 86400_000).toISOString()) as T & CatalogFilterable
+  }
   if (filters.sale_type) next = next.eq("sale_type", filters.sale_type) as T & CatalogFilterable
   if (filters.min_price) {
     const minPrice = Number.parseInt(filters.min_price, 10)
@@ -199,6 +206,7 @@ export function summarizeFilters(filters: Record<string, string>) {
   if (filters.condition) active.push(`მდგომარეობა: ${conditionLabels[filters.condition] ?? filters.condition}`)
   if (filters.gender) active.push(`სექცია: ${genderLabels[filters.gender] ?? filters.gender}`)
   if (filters.vip === "1") active.push("მხოლოდ VIP")
+  if (filters.recent === "7") active.push("ბოლო 7 დღეში დამატებული")
   if (filters.sale_type === "gift") active.push("ჩუქება")
   if (filters.min_price || filters.max_price) active.push(`ფასი: ${filters.min_price || "0"}-${filters.max_price || "∞"} ₾`)
   return active
@@ -216,6 +224,8 @@ export function resolveCatalogState(params: CatalogSearchParams = {}) {
     condition: readParam(params.condition) || (readParam(params.new_only) ? "new" : ""),
     gender: readParam(params.gender),
     vip: readParam(params.vip),
+    // Relevance searches have their own ranking; recent is browse-only.
+    recent: readParam(params.q) ? "" : (readParam(params.recent) === "7" ? "7" : ""),
     sale_type: readParam(params.sale_type),
     min_price: readParam(params.min_price),
     max_price: readParam(params.max_price),
