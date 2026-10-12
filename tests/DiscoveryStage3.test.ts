@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
-import { describe, expect, it, vi } from "vitest"
-import { applyCatalogFilters, getCatalogDatabaseFilters, resolveCatalogState } from "@/lib/catalog-page"
+import { describe, expect, it } from "vitest"
+import { applyCatalogFilters, resolveCatalogState } from "@/lib/catalog-page"
 
 const catalog = readFileSync("app/catalog/catalog-view.tsx","utf8")
 const sql = readFileSync("supabase/migrations/20261012173000_discovery_jacket_synonym.sql","utf8")
