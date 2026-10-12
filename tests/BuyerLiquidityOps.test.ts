@@ -60,6 +60,21 @@ describe("Buyer liquidity admin summary SQL",()=>{
     expect(r.rows[0].snapshot.detail_views).toBe(0)
     expect(r.rows[0].snapshot.active_listings).toBe(2)
   })
+  it("retains historical period events after the viewed listing becomes archived",async()=>{
+    await db.query("update public.listings set status='archived' where id=$1",[listing])
+    try {
+      const r=await db.query<{snapshot:Record<string,unknown>}>(`
+        select public.get_buyer_liquidity_snapshot('2026-10-12T00:00:00Z','2026-10-13T00:00:00Z') as snapshot
+      `)
+      const summary=r.rows[0].snapshot
+      expect(summary.active_listings).toBe(1)
+      expect(summary.impressions).toBe(2)
+      expect(summary.clicks).toBe(1)
+      expect(summary.detail_views).toBe(1)
+    } finally {
+      await db.query("update public.listings set status='active' where id=$1",[listing])
+    }
+  })
   it("denies direct API roles",async()=>{
     const r=await db.query<{anon:boolean,auth:boolean,service:boolean}>(`
       select
