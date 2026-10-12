@@ -344,7 +344,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
               <p className="mt-2 text-sm">სერვერთან კავშირი შეფერხებულია. სცადე გვერდის განახლება.</p>
               <a href={currentPath} className="mt-4 inline-flex rounded-xl bg-brand px-5 py-3 font-bold text-white">ხელახლა ცდა</a>
             </section>
-          ) : <div className="mt-8">
+          ) : (listings.length > 0 || !q || page > 1) ? <div className="mt-8">
             <CatalogResultsGrid
               listings={listings}
               currentPath={currentPath}
