@@ -37,8 +37,10 @@ describe("Listing view measurement guardrails", () => {
   })
 
   it("sends views only with consent and deletes tracking cookie on revocation", () => {
-    expect(tracker).toContain("consent?.analytics === false")
-    expect(tracker).toContain('method: "DELETE"')
+    const preferences = readFileSync("lib/browser-preferences.ts", "utf8")
+    expect(preferences).toContain("previouslyAllowedAnalytics && !analytics")
+    expect(preferences).toContain('fetch("/api/listing-view", { method: "DELETE"')
+    expect(tracker).toContain("consent?.analytics !== true")
     expect(tracker).toContain('fetch("/api/listing-view"')
     expect(tracker).toContain("NEXT_PUBLIC_PREVIEW_READ_ONLY")
   })
