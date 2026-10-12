@@ -95,8 +95,8 @@ describe("Listing view daily migration", () => {
     for (let i = 0; i < 65; i++) {
       const anotherListing = `10000000-0000-4000-8000-${String(i).padStart(12, "0")}`
       await db.query(
-        "insert into public.listings(id,seller_id,status) values ($1,$2,'active')",
-        [anotherListing,"99da275c-d3ab-4b57-95f2-3e1e9d17cf94"],
+        "insert into public.listings(id,seller_id,status,description) values ($1,$2,'active',$3)",
+        [anotherListing,"99da275c-d3ab-4b57-95f2-3e1e9d17cf94","A valid longer test listing description"],
       )
       const result = await db.query<{ counted: boolean }>(
         "select public.record_distinct_listing_view($1,$2,$3) as counted",
