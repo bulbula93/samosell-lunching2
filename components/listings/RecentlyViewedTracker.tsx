@@ -12,16 +12,21 @@ export default function RecentlyViewedTracker({ listingId }: { listingId: string
   }, [listingId, consent?.personalization])
 
   useEffect(() => {
-    if (consent?.analytics !== true || process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY === "true") return
-    const controller = new AbortController()
+    if (process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY === "true") return
+    if (consent?.analytics === false) {
+      void fetch("/api/listing-view", {
+        method: "DELETE", credentials: "same-origin", keepalive: true,
+      }).catch(() => undefined)
+      return
+    }
+    if (consent?.analytics !== true) return
     void fetch("/api/listing-view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
+      keepalive: true,
       body: JSON.stringify({ listingId }),
-      signal: controller.signal,
     }).catch(() => undefined)
-    return () => controller.abort()
   }, [listingId, consent?.analytics])
 
   return null
