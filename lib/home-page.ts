@@ -156,13 +156,36 @@ export const getPublicHomePageData = unstable_cache(
       "catalog_pool",
     )
 
+    // PostgREST occasionally aborts at the application timeout even though the
+    // underlying SQL is normally fast. Retry once without the expensive exact
+    // count. Never persist a fabricated empty catalog into unstable_cache.
+    let recovered: typeof response = null
     if (!response || response.error) {
-      const message = response?.error?.message ?? "catalog_pool_timeout"
-      console.error("home_public_data_unavailable", message)
+      console.warn("home_public_data_retry", {
+        reason: response?.error?.message ?? "catalog_pool_timeout",
+      })
+      recovered = await settleHomeQuery(
+        withQueryTimeout(supabase
+          .from("listings_catalog")
+          .select(HOME_LISTING_SELECT)
+          .eq("status", "active")
+          .order("published_at", { ascending: false, nullsFirst: false })
+          .limit(HOME_POOL_LIMIT), 6000),
+        "catalog_pool_retry",
+      ) as typeof response
+    }
+
+    const usable = response && !response.error ? response :
+      recovered && !recovered.error ? recovered : null
+    if (!usable) {
+      const message = recovered?.error?.message ?? response?.error?.message ?? "catalog_pool_timeout"
+      console.warn("home_public_data_unavailable", message)
+      // Throw only within the cache loader: Next can retain a previous cache
+      // value, while the route renders a non-cached degradation state on a miss.
       throw new Error(`home_public_data_unavailable:${message}`)
     }
 
-    const rows = (response.data ?? []) as unknown as HomeListingRow[]
+    const rows = (usable.data ?? []) as unknown as HomeListingRow[]
     const newestFirst = [...rows].sort(
       (a, b) => dateValue(b.published_at) - dateValue(a.published_at),
     )
@@ -230,7 +253,7 @@ export const getPublicHomePageData = unstable_cache(
       affordableItems,
       vintageItems,
       popularBrands: popularBrandsFromRows(rows),
-      activeCount: response.count ?? rows.length,
+      activeCount: usable.count ?? rows.length,
     }
   },
   ["home-public-data-v5"],
