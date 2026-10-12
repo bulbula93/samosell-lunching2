@@ -13,12 +13,6 @@ export default function RecentlyViewedTracker({ listingId }: { listingId: string
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY === "true") return
-    if (consent?.analytics === false) {
-      void fetch("/api/listing-view", {
-        method: "DELETE", credentials: "same-origin", keepalive: true,
-      }).catch(() => undefined)
-      return
-    }
     if (consent?.analytics !== true) return
     void fetch("/api/listing-view", {
       method: "POST",
