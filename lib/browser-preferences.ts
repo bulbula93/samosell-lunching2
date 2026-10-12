@@ -56,6 +56,7 @@ export function subscribePreferences(listener: () => void) {
 }
 
 export function saveBrowserConsent(personalization: boolean, analytics: boolean, marketing = false) {
+  const previouslyAllowedAnalytics = getBrowserConsent()?.analytics === true
   const value: BrowserConsent = { version: 1, personalization, analytics, marketing: marketing && analytics, updatedAt: Date.now() }
   const raw = JSON.stringify(value)
   memoryConsent = raw
@@ -68,6 +69,11 @@ export function saveBrowserConsent(personalization: boolean, analytics: boolean,
   } catch { memoryOverridesStorage = true /* Honor the new choice when storage is full or blocked. */ }
   window.dispatchEvent(new Event(PREFERENCES_EVENT))
   window.dispatchEvent(new Event("recently-viewed-updated"))
+  // Remove the HttpOnly listing-view identity immediately on analytics withdrawal,
+  // including when the visitor is not currently on a listing page.
+  if (previouslyAllowedAnalytics && !analytics && process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY !== "true") {
+    void fetch("/api/listing-view", { method: "DELETE", credentials: "same-origin", keepalive: true }).catch(() => undefined)
+  }
   return value
 }
 
