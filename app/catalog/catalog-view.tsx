@@ -172,7 +172,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
       : Promise.resolve({ data: [] as { listing_id: string }[], error: null }),
   ])
 
-  let rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
+  const rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
 
   // search_catalog_ranked already calls search_catalog_rescue when the
   // primary match count is zero. A second rescue RPC here doubled latency
