@@ -59,11 +59,11 @@ with
  )
 select jsonb_build_object(
  'active_listings',(select count(*) from metrics),
- 'impressions',(select coalesce(sum(impressions),0) from metrics),
- 'clicks',(select coalesce(sum(clicks),0) from metrics),
- 'detail_views',(select coalesce(sum(detail_views),0) from metrics),
- 'listings_with_impressions',(select count(*) from metrics where impressions>0),
- 'listings_with_views',(select count(*) from metrics where detail_views>0),
+ 'impressions',(select coalesce(sum(impressions),0) from e),
+ 'clicks',(select coalesce(sum(clicks),0) from e),
+ 'detail_views',(select coalesce(sum(detail_views),0) from v),
+ 'listings_with_impressions',(select count(*) from e where impressions>0),
+ 'listings_with_views',(select count(*) from v where detail_views>0),
  'lifetime_measured_views',(select coalesce(sum(measured_views),0) from public.listing_view_totals),
  'top_listings',coalesce((
     select jsonb_agg(to_jsonb(top))
