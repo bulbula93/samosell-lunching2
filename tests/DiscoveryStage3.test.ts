@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { applyCatalogFilters, resolveCatalogState } from "@/lib/catalog-page"
+import { compactReadOnlyRpcArgs } from "@/lib/search/read-only-rpc-args"
+import { shouldCollapseEmptyCatalogPlacements, type AdRecord } from "@/lib/ads"
 
 const catalog = readFileSync("app/catalog/catalog-view.tsx","utf8")
 const sql = readFileSync("supabase/migrations/20261012173000_discovery_jacket_synonym.sql","utf8")
@@ -42,6 +44,30 @@ describe("Discovery phase 3: search and fresh supply",()=> {
     expect(previewFetch).toContain('if (isReadOnlyPreview() && !["GET", "HEAD", "OPTIONS"].includes(method))')
     const proxy = readFileSync("proxy.ts","utf8")
     expect(proxy).toContain('return NextResponse.json({ error: "preview_read_only" }, { status: 403 })')
+  })
+
+  it("avoids PostgREST 22P02: strips GET RPC nulls while keeping meaningful arguments",()=> {
+    const args = {
+      p_query:"Prada",p_category_slug:null,p_item_keywords:[],
+      p_vip:null,p_min_price:null,p_max_price:null,
+      p_offset:0,p_limit:24,p_ranking_version:null,p_false:false,
+    }
+    expect(compactReadOnlyRpcArgs(args)).toEqual({
+      p_query:"Prada",p_item_keywords:[],p_offset:0,p_limit:24,p_false:false,
+    })
+    expect(catalog).toContain("compactReadOnlyRpcArgs(rankedArgs)")
+    // Optional omitted args use the SQL function's defaults, never literal "null".
+    expect(catalog).toContain("get: isReadOnlyPreview()")
+  })
+
+  it("shows only one catalog advert invitation when both slots are vacant, but never collapses paid slots",()=> {
+    const keys = ["catalog_top_left","catalog_top_right"] as const
+    expect(shouldCollapseEmptyCatalogPlacements(keys,{})).toBe(true)
+    expect(shouldCollapseEmptyCatalogPlacements(keys,{},true)).toBe(true)
+    const ad = {id:"paid"} as AdRecord
+    expect(shouldCollapseEmptyCatalogPlacements(keys,{catalog_top_left:ad})).toBe(false)
+    expect(shouldCollapseEmptyCatalogPlacements(keys,{catalog_top_left:ad,catalog_top_right:ad})).toBe(false)
+    expect(shouldCollapseEmptyCatalogPlacements(["home_hero_left","home_hero_right"],{})).toBe(false)
   })
 
   it("filters browse results to the last seven days but never overrides a relevance search",()=> {
