@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ code: "invalid_json" }, { status: 400 })
   }
-  if (typeof body.listingId !== "string" || !UUID.test(body.listingId)) {
+  if (!body || typeof body.listingId !== "string" || !UUID.test(body.listingId)) {
     return NextResponse.json({ code: "invalid_listing" }, { status: 400 })
   }
 
