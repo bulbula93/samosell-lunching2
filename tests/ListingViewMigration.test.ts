@@ -37,13 +37,13 @@ describe("Listing view daily migration", () => {
     const digestOne = "a".repeat(64)
     const digestTwo = "b".repeat(64)
     const first = await db.query<{ counted: boolean }>(
-      "select public.record_distinct_listing_view($1,$2) as counted", [listingId,digestOne],
+      "select public.record_distinct_listing_view($1,$2,$3) as counted", [listingId,digestOne,"d".repeat(64)],
     )
     const duplicate = await db.query<{ counted: boolean }>(
-      "select public.record_distinct_listing_view($1,$2) as counted", [listingId,digestOne],
+      "select public.record_distinct_listing_view($1,$2,$3) as counted", [listingId,digestOne,"d".repeat(64)],
     )
     const second = await db.query<{ counted: boolean }>(
-      "select public.record_distinct_listing_view($1,$2) as counted", [listingId,digestTwo],
+      "select public.record_distinct_listing_view($1,$2,$3) as counted", [listingId,digestTwo,"d".repeat(64)],
     )
     expect(first.rows[0]?.counted).toBe(true)
     expect(duplicate.rows[0]?.counted).toBe(false)
@@ -54,12 +54,61 @@ describe("Listing view daily migration", () => {
 
   it("rejects invalid hashes and inactive listings", async () => {
     const invalidHash = await db.query<{ counted: boolean }>(
-      "select public.record_distinct_listing_view($1,$2) as counted", [listingId,"not-a-hash"],
+      "select public.record_distinct_listing_view($1,$2,$3) as counted", [listingId,"not-a-hash","d".repeat(64)],
     )
     const inactive = await db.query<{ counted: boolean }>(
-      "select public.record_distinct_listing_view($1,$2) as counted", [inactiveId,"c".repeat(64)],
+      "select public.record_distinct_listing_view($1,$2,$3) as counted", [inactiveId,"c".repeat(64),"d".repeat(64)],
     )
     expect(invalidHash.rows[0]?.counted).toBe(false)
     expect(inactive.rows[0]?.counted).toBe(false)
   })
+
+  it("enforces an atomic per-network per-listing daily cap even if browsers reset cookies", async () => {
+    const source = "f".repeat(64)
+    let counted = 0
+    // One network creates many different signed cookie identifiers for the same listing.
+    for (let index = 0; index < 40; index++) {
+      const digest = index.toString(16).padStart(64, "0")
+      const result = await db.query<{ counted: boolean }>(
+        "select public.record_distinct_listing_view($1,$2,$3) as counted",
+        [listingId,digest,source],
+      )
+      if (result.rows[0]?.counted) counted++
+    }
+    expect(counted).toBe(30)
+    const n = await db.query<{ hits: number }>(
+      "select hits from public.listing_view_rate_windows where scope='listing_day' and rate_key=$1",
+      [source + ":" + listingId],
+    )
+    expect(n.rows[0]?.hits).toBe(40)
+  })
+
+  it("limits high-frequency request bursts across listings", async () => {
+    const source = "e".repeat(64)
+    let rejected = 0
+    for (let i = 0; i < 65; i++) {
+      const result = await db.query<{ counted: boolean }>(
+        "select public.record_distinct_listing_view($1,$2,$3) as counted",
+        [listingId,"b".repeat(63)+i.toString(16).slice(-1),source],
+      )
+      if (!result.rows[0]?.counted) rejected++
+    }
+    expect(rejected).toBeGreaterThan(0)
+    const n = await db.query<{ hits: number }>(
+      "select hits from public.listing_view_rate_windows where scope='minute' and rate_key=$1",
+      [source],
+    )
+    expect(n.rows[0]?.hits).toBe(65)
+  })
+
+  it("keeps direct browser role RPC access closed", async () => {
+    const response = await db.query<{ anon: boolean; authenticated: boolean; service: boolean }>(`
+      select
+        has_function_privilege('anon','public.record_distinct_listing_view(uuid,text,text)','EXECUTE') as anon,
+        has_function_privilege('authenticated','public.record_distinct_listing_view(uuid,text,text)','EXECUTE') as authenticated,
+        has_function_privilege('service_role','public.record_distinct_listing_view(uuid,text,text)','EXECUTE') as service
+    `)
+    expect(response.rows[0]).toEqual({ anon: false, authenticated: false, service: true })
+  })
+
 })
