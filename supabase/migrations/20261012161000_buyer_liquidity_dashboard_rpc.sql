@@ -47,7 +47,7 @@ with
    group by 1
  ),
  daily as (
-   select day::date as day,coalesce(ed.impressions,0) as impressions,
+   select days.day::date as day,coalesce(ed.impressions,0) as impressions,
      coalesce(ed.clicks,0) as clicks,coalesce(vd.detail_views,0) as detail_views
    from generate_series(
      (p_from at time zone 'Asia/Tbilisi')::date,
