@@ -1,7 +1,8 @@
--- Discovery Phase 3: one verified lexical rescue for a Georgian jacket term.
--- Live inventory audit: searching "ჯაკეტი" returns zero while "ქურთუკი"
--- has 5 active listings. This is a synonym, not a fabricated brand match.
--- No search ranking weights, promotion tiers, VIP rules or user data change.
+-- Discovery Phase 3: Georgian terminology correction.
+-- "ჟაკეტი" means a blazer/jacket ("პიჯაკი"), not an outdoor coat
+-- ("ქურთუკი"). The production dictionary already has the correct alias;
+-- this migration merely ensures it exists in environments missing it.
+-- It is idempotent: never overwrite any existing alias or alter VIP ranking.
 insert into public.search_query_aliases (canonical_term,alias,kind)
-values ('ქურთუკი','ჯაკეტი','synonym')
+values ('პიჯაკი','ჟაკეტი','synonym')
 on conflict (alias_normalized) do nothing;
