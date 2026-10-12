@@ -1,5 +1,6 @@
 import Link from "next/link"
 import MarketplaceProductCard from "@/components/listings/MarketplaceProductCard"
+import CatalogEngagementObserver from "@/components/listings/CatalogEngagementObserver"
 import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -26,17 +27,20 @@ export default function CatalogResultsGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4 xl:grid-cols-5">
-      {listings.map((item, index) => (
-        <MarketplaceProductCard
-          key={item.id}
-          item={item}
-          currentPath={currentPath}
-          isFavorited={favoriteIds.includes(item.id)}
-          searchId={searchId}
-          imageLoading={index === 0 ? "eager" : "lazy"}
-        />
-      ))}
-    </div>
+    <CatalogEngagementObserver>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-7 lg:grid-cols-4 xl:grid-cols-5">
+        {listings.map((item, index) => (
+          <div key={item.id} data-catalog-listing-id={item.id} data-catalog-position={index + 1} className="min-w-0">
+            <MarketplaceProductCard
+              item={item}
+              currentPath={currentPath}
+              isFavorited={favoriteIds.includes(item.id)}
+              searchId={searchId}
+              imageLoading={index === 0 ? "eager" : "lazy"}
+            />
+          </div>
+        ))}
+      </div>
+    </CatalogEngagementObserver>
   )
 }
