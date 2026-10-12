@@ -5,6 +5,8 @@ import { getCachedCatalogFilterOptions } from "@/lib/catalog-filter-options"
 import { after } from "next/server"
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
+import Link from "next/link"
+import { buildCatalogUrl } from "@/lib/catalog-urls"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import PerfumeBrandCarousel from "@/components/listings/PerfumeBrandCarousel"
 import CatalogPagination from "@/components/listings/CatalogPagination"
@@ -67,8 +69,8 @@ function rescueLabel(mode: string, resolvedQuery: string, originalQuery: string)
 
 export default async function CatalogView({ params = {} }: { params?: CatalogPageParams }) {
   const { filters, sort, page, queryParams, currentPath } = resolveCatalogState(params)
-  const { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, min_price, max_price } = filters
-  const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, sort, min_price, max_price }
+  const { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, min_price, max_price, recent } = filters
+  const filterValues = { q, category, item_type, brand, size, color, city, condition, gender, vip, sale_type, sort, min_price, max_price, recent }
   const databaseFilters = getCatalogDatabaseFilters(filters)
   const useRankedSearch = Boolean(databaseFilters.query && sort === "relevance" && !sale_type)
   const analyticsAllowed = await serverAllowsAnalytics()
@@ -172,25 +174,9 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
 
   let rankedPayload = (rankedSearchResponse.data ?? null) as RankedSearchPayload | null
 
-  if (
-    useRankedSearch &&
-    !rankedSearchResponse.error &&
-    Math.max(0, Number(rankedPayload?.total_count ?? 0)) === 0
-  ) {
-    const { data: rescueData, error: rescueError } = await withQueryTimeout(supabase.rpc(
-      "search_catalog_rescue",
-      rankedArgs,
-    ))
-
-    if (rescueError) {
-      console.error("[search-quality] rescue failed", rescueError.message)
-    } else {
-      const rescuePayload = (rescueData ?? null) as RankedSearchPayload | null
-      if (Math.max(0, Number(rescuePayload?.total_count ?? 0)) > 0) {
-        rankedPayload = rescuePayload
-      }
-    }
-  }
+  // search_catalog_ranked already calls search_catalog_rescue when the
+  // primary match count is zero. A second rescue RPC here doubled latency
+  // for precisely the searches most likely to need help.
 
   const listings = useRankedSearch
     ? Array.isArray(rankedPayload?.items)
@@ -221,6 +207,35 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     })
     // Preserve route availability and show an explicit retry state below.
   }
+
+  // Empty search result: show a clearly separate browse recommendation set.
+  // These are NOT query matches and MUST NOT affect the zero-result count,
+  // analytics search attribution, paging or the canonical URL.
+  let suggestedListings: CatalogListing[] = []
+  if (!queryError && q && totalCount === 0 && page === 1) {
+    let suggestedQuery = supabase.from("listings_catalog")
+      .select(CATALOG_LISTING_SELECT)
+      .eq("status", "active")
+    if (vip === "1") suggestedQuery = suggestedQuery.eq("is_vip", true)
+    if (sale_type) suggestedQuery = suggestedQuery.eq("sale_type", sale_type)
+    const { data: suggestions, error: suggestError } = await withQueryTimeout(
+      suggestedQuery
+        .order("promotion_tier", { ascending: false })
+        .order("featured_slot", { ascending: true, nullsFirst: false })
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .limit(8),
+      5000,
+    ).catch(() => ({ data: null, error: { message: "suggestions_timeout" } }))
+    if (suggestError) {
+      console.warn("catalog_empty_suggestions_unavailable", suggestError.message)
+    } else suggestedListings = (suggestions ?? []) as CatalogListing[]
+  }
+
+  const recentParams = new URLSearchParams(queryParams)
+  if (recent === "7") recentParams.delete("recent")
+  else recentParams.set("recent", "7")
+  recentParams.delete("page")
+  const recentHref = buildCatalogUrl(recentParams)
 
   const categories = CATALOG_SECTION_OPTIONS.map((item) => ({ slug: item.value, name: item.label }))
   const uniqueColors = filterOptions.colors
@@ -296,6 +311,16 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
             cities={cityOptions}
             values={filterValues}
           />
+          {!q ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Link href={recentHref}
+                aria-pressed={recent === "7"}
+                className={`inline-flex min-h-10 items-center rounded-full border px-4 py-2 text-sm font-semibold transition ${recent === "7" ? "border-brand bg-brand text-white" : "border-brand/20 bg-white text-brand hover:bg-brand-soft"}`}>
+                {recent === "7" ? "✓ ბოლო 7 დღეში დამატებული" : "✦ ახალი განცხადებები · 7 დღე"}
+              </Link>
+              <span className="text-xs text-text-soft">VIP და გამორჩეული განცხადებები ამ ფილტრშიც პრიორიტეტულია.</span>
+            </div>
+          ) : null}
 
           {category === "perfume" ? <PerfumeBrandCarousel /> : null}
 
@@ -327,6 +352,22 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
               searchId={searchId}
             />
           </div>}
+
+          {q && !queryError && totalCount === 0 && page === 1 ? (
+            <section className="mt-8 space-y-4" aria-label="ალტერნატიული განცხადებები">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
+                <h2 className="font-bold">„{q}“ — ზუსტი შედეგი ვერ მოიძებნა</h2>
+                <p className="mt-1 leading-6">შეგიძლიათ შეცვალოთ საძიებო სიტყვა ან ნახოთ სხვა აქტიური ნივთები. ქვემოთ ნაჩვენები განცხადებები არ არის ამ ძიების შედეგები.</p>
+                <Link href="/catalog" className="mt-3 inline-flex font-semibold text-brand underline underline-offset-4">ყველა განცხადების ნახვა →</Link>
+              </div>
+              {suggestedListings.length > 0 ? (
+                <>
+                  <h3 className="text-lg font-bold text-text">სხვა ახალი და გამორჩეული ნივთები</h3>
+                  <CatalogResultsGrid listings={suggestedListings} currentPath={currentPath} favoriteIds={favoriteIds} />
+                </>
+              ) : null}
+            </section>
+          ) : null}
 
           <div className="mt-10">
             <CatalogPagination page={page} totalPages={totalPages} totalItems={totalCount} pageSize={PAGE_SIZE} pageHref={(nextPage: number) => getCatalogPath(queryParams, nextPage)} />
