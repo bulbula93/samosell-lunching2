@@ -28,6 +28,7 @@ import {
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
 import { withQueryTimeout } from "@/lib/supabase/query-timeout"
+import { compactReadOnlyRpcArgs } from "@/lib/search/read-only-rpc-args"
 import type { CatalogListing } from "@/types/marketplace"
 
 
@@ -155,7 +156,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
   }
 
   const rankedSearchPromise = useRankedSearch
-    ? withQueryTimeout(supabase.rpc("search_catalog_ranked", rankedArgs, { get: isReadOnlyPreview() }))
+    ? withQueryTimeout(supabase.rpc("search_catalog_ranked", isReadOnlyPreview() ? compactReadOnlyRpcArgs(rankedArgs) : rankedArgs, { get: isReadOnlyPreview() }))
     : Promise.resolve({ data: null, error: null })
 
   const listingsPromise = useRankedSearch
