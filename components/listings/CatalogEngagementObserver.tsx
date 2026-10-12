@@ -25,15 +25,17 @@ export default function CatalogEngagementObserver({ children }: { children: Reac
       return
     }
     if (!pageId.current || queued.current.length === 0) return
-    const pending = queued.current.splice(0, 20)
-    void fetch("/api/catalog-engagement", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      keepalive: true,
-      body: JSON.stringify({ pageId: pageId.current, events: pending }),
-    }).catch(() => undefined)
-    if (queued.current.length > 0) flushTimer.current = setTimeout(flush, 400)
+    const pending = queued.current.splice(0)
+    for (let offset = 0; offset < pending.length; offset += 20) {
+      const events = pending.slice(offset, offset + 20)
+      void fetch("/api/catalog-engagement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+        body: JSON.stringify({ pageId: pageId.current, events }),
+      }).catch(() => undefined)
+    }
   }, [])
 
   const queueEvent = useCallback((event: Engagement, immediate: boolean) => {
