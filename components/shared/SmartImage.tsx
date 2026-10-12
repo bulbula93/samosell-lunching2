@@ -12,6 +12,7 @@ type SmartImageProps = {
   className?: string
   fallbackLabel?: string
   loading?: "eager" | "lazy"
+  priority?: boolean
   sizes?: string
 }
 
@@ -22,11 +23,12 @@ export default function SmartImage({
   className = "",
   fallbackLabel = ka.product.imageUnavailable,
   loading = "lazy",
+  priority = false,
   sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw",
 }: SmartImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
-  const revealImmediately = loading === "eager"
+  const revealImmediately = loading === "eager" || priority
 
   const rawSrc = useMemo(() => String(src ?? "").trim(), [src])
   const isLocalPreview = rawSrc.startsWith("blob:")
@@ -55,7 +57,8 @@ export default function SmartImage({
         fill
         unoptimized={isLocalPreview}
         sizes={sizes}
-        loading={loading}
+        loading={priority ? "eager" : loading}
+        priority={priority}
         fetchPriority={revealImmediately ? "high" : "auto"}
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
