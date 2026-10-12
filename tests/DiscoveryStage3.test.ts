@@ -24,8 +24,10 @@ function queryCalls(filters:Record<string,string>) {
 }
 
 describe("Discovery phase 3: search and fresh supply",()=> {
-  it("adds a verified Georgian jacket synonym idempotently, without modifying VIP weights",()=> {
-    expect(sql).toContain("('ქურთუკი','ჯაკეტი','synonym')")
+  it("preserves correct Georgian terminology: ჟაკეტი maps to პიჯაკი, not ქურთუკი",()=> {
+    expect(sql).toContain("('პიჯაკი','ჟაკეტი','synonym')")
+    expect(sql).not.toContain("('ქურთუკი','ჯაკეტი','synonym')")
+    expect(sql).not.toContain("('ქურთუკი','ჟაკეტი','synonym')")
     expect(sql).toContain("on conflict (alias_normalized) do nothing")
     expect(sql).not.toContain("search_ranking_config")
   })
