@@ -103,6 +103,7 @@ beforeAll(async () => {
     values ('${refs.listingId}','${refs.sellerId}','active');
   `)
   await database.exec(readFileSync("supabase/migrations/20261012110000_listing_view_daily.sql", "utf8"))
+  await database.exec(readFileSync("supabase/migrations/20261012143500_resilient_listing_view_totals.sql", "utf8"))
 }, 30000)
 beforeEach(async () => {
   vi.unstubAllEnvs()
@@ -111,17 +112,16 @@ beforeEach(async () => {
   refs.userId = null
   refs.status = "active"
   await database.exec(`
-    truncate table public.listing_view_daily, public.listing_view_rate_windows;
-    update public.listings set views_count=0;
+    truncate table public.listing_view_daily, public.listing_view_rate_windows, public.listing_view_totals;
   `)
 })
 afterAll(async () => { vi.unstubAllEnvs(); await database?.close() })
 
 async function counted() {
-  const r = await database.query<{ views_count: number }>(
-    "select views_count from public.listings where id=$1", [refs.listingId],
+  const r = await database.query<{ measured_views: number }>(
+    "select measured_views from public.listing_view_totals where listing_id=$1", [refs.listingId],
   )
-  return r.rows[0]?.views_count ?? -1
+  return r.rows[0]?.measured_views ?? 0
 }
 
 describe("listing view API with in-memory PostgreSQL", () => {
