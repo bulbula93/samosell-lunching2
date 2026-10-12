@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { optimizeListingUploadImage,LISTING_IMAGE_MAX_EDGE,LISTING_IMAGE_OPTIMIZE_THRESHOLD_BYTES } from "@/lib/listing-image-optimization"
@@ -43,7 +44,6 @@ describe("Lossy listing image preprocessing for future uploads",()=>{
   it("is used by both seller listing entry points, before creating the draft preview",()=>{
     // Ensures the signed-upload plan and the original preview are based on the
     // same smaller File object rather than uploading an oversized original.
-    const {readFileSync}=require("node:fs") as typeof import("node:fs")
     for(const path of ["components/dashboard/CreateListingWizard.tsx","components/dashboard/CreateListingForm.tsx"]){
       const source=readFileSync(path,"utf8")
       expect(source).toContain("await optimizeListingUploadImage(file)")
