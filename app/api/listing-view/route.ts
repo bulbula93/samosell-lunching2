@@ -53,7 +53,8 @@ export async function DELETE(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (isReadOnlyPreview()) {
+  // Never write from a preview deployment using a possibly production-linked backend.
+  if (isReadOnlyPreview() || process.env.VERCEL_ENV === "preview") {
     return NextResponse.json({ code: "preview_read_only" }, { status: 403 })
   }
   if (!sameOrigin(request)) {
@@ -101,10 +102,22 @@ export async function POST(request: Request) {
       : `browser:${visitor}`
     const hash = createHmac("sha256", secret).update(`listing-view-v1:${actor}`).digest("hex")
 
+    // Vercel overwrites x-vercel-forwarded-for at its edge; do not accept a
+    // client-provided IP in JSON or cookies. Fail closed if the header is absent
+    // on a Vercel deployment. Local Node tests use a loopback placeholder.
+    const networkIp = process.env.VERCEL_ENV
+      ? request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim()
+      : "127.0.0.1"
+    if (!networkIp || networkIp.length > 64 || !/^[0-9a-fA-F:.]+$/.test(networkIp)) {
+      return NextResponse.json({ code: "network_unavailable" }, { status: 503 })
+    }
+    const networkHash = createHmac("sha256", secret)
+      .update(`listing-rate-v1:${networkIp}`).digest("hex")
     const admin = createAdminClient()
     const { data, error } = await admin.rpc("record_distinct_listing_view", {
       p_listing_id: listing.id,
       p_viewer_hash: hash,
+      p_network_hash: networkHash,
     })
     if (error) throw error
     const response = NextResponse.json({ counted: data === true }, {
