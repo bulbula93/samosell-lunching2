@@ -6,7 +6,7 @@ const route = readFileSync("app/api/listing-view/route.ts", "utf8")
 const tracker = readFileSync("components/listings/RecentlyViewedTracker.tsx", "utf8")
 
 describe("Listing view measurement guardrails", () => {
-  it("deduplicates atomically per viewer, listing and UTC date", () => {
+  it("deduplicates atomically per visitor, listing and UTC day", () => {
     expect(migration).toContain("primary key (listing_id, viewer_hash, viewed_on)")
     expect(migration).toContain("on conflict do nothing")
     expect(migration).toContain("if not found then return false")
@@ -20,16 +20,25 @@ describe("Listing view measurement guardrails", () => {
     expect(migration).toContain("grant execute on function public.record_distinct_listing_view(uuid,text) to service_role")
   })
 
-  it("enforces consent, active status and seller exclusion on server", () => {
+  it("requires analytics consent and excludes seller/bots", () => {
     expect(route).toContain('cookieConsent(request.headers.get("cookie"))?.analytics !== true')
     expect(route).toContain('listing.status !== "active"')
     expect(route).toContain("authResponse.data.user?.id === listing.seller_id")
-    expect(route).toContain('createHmac("sha256", secret)')
-    expect(route).toContain('origin !== new URL(request.url).origin')
+    expect(route).toContain('origin === new URL(request.url).origin')
+    expect(route).toContain("BOT_UA.test(userAgent)")
   })
 
-  it("never posts views without analytics consent", () => {
-    expect(tracker).toContain("consent?.analytics !== true")
+  it("identifies anonymous browsers via signed, HttpOnly cookies, never shared IPs", () => {
+    expect(route).toContain('response.cookies.set(VISITOR_COOKIE')
+    expect(route).toContain("timingSafeEqual")
+    expect(route).toContain('createHmac("sha256", key)')
+    expect(route).not.toContain('request.headers.get("x-forwarded-for")')
+    expect(route).not.toContain('request.headers.get("x-vercel-forwarded-for")')
+  })
+
+  it("sends views only with consent and deletes tracking cookie on revocation", () => {
+    expect(tracker).toContain("consent?.analytics === false")
+    expect(tracker).toContain('method: "DELETE"')
     expect(tracker).toContain('fetch("/api/listing-view"')
     expect(tracker).toContain("NEXT_PUBLIC_PREVIEW_READ_ONLY")
   })
