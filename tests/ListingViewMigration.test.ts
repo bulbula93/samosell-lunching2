@@ -4,6 +4,7 @@ import { PGlite } from "@electric-sql/pglite"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 const migration = readFileSync("supabase/migrations/20261012110000_listing_view_daily.sql", "utf8")
+const resilient = readFileSync("supabase/migrations/20261012143500_resilient_listing_view_totals.sql", "utf8")
 const listingId = "43ddc03a-73b6-4d11-993d-046640413655"
 const inactiveId = "872c4d33-facb-4f1c-9755-24f9a3f38c92"
 let db: PGlite
@@ -26,6 +27,9 @@ beforeAll(async () => {
       ('${inactiveId}', '99da275c-d3ab-4b57-95f2-3e1e9d17cf94', 'draft');
   `)
   await db.exec(migration)
+  await db.exec(resilient)
+  // Existing legacy listings can violate newer checks yet remain active.
+  await db.exec("alter table public.listings add column description text default 'short'; alter table public.listings add constraint description_guard check(length(description)>20) not valid;")
 }, 30000)
 
 afterAll(async () => {
@@ -48,8 +52,10 @@ describe("Listing view daily migration", () => {
     expect(first.rows[0]?.counted).toBe(true)
     expect(duplicate.rows[0]?.counted).toBe(false)
     expect(second.rows[0]?.counted).toBe(true)
-    const result = await db.query<{ views_count: number }>("select views_count from public.listings where id=$1", [listingId])
-    expect(result.rows[0]?.views_count).toBe(2)
+    const result = await db.query<{ measured_views: number }>("select measured_views from public.listing_view_totals where listing_id=$1", [listingId])
+    expect(result.rows[0]?.measured_views).toBe(2)
+    const legacy = await db.query<{ views_count: number }>("select views_count from public.listings where id=$1", [listingId])
+    expect(legacy.rows[0]?.views_count).toBe(0)
   })
 
   it("rejects invalid hashes and inactive listings", async () => {
@@ -89,8 +95,8 @@ describe("Listing view daily migration", () => {
     for (let i = 0; i < 65; i++) {
       const anotherListing = `10000000-0000-4000-8000-${String(i).padStart(12, "0")}`
       await db.query(
-        "insert into public.listings(id,seller_id,status) values ($1,$2,'active')",
-        [anotherListing,"99da275c-d3ab-4b57-95f2-3e1e9d17cf94"],
+        "insert into public.listings(id,seller_id,status,description) values ($1,$2,'active',$3)",
+        [anotherListing,"99da275c-d3ab-4b57-95f2-3e1e9d17cf94","A valid longer test listing description"],
       )
       const result = await db.query<{ counted: boolean }>(
         "select public.record_distinct_listing_view($1,$2,$3) as counted",
