@@ -164,8 +164,11 @@ export const getPublicHomePageData = unstable_cache(
       console.warn("home_public_data_retry", {
         reason: response?.error?.message ?? "catalog_pool_timeout",
       })
+      // A fresh stateless client avoids carrying a connection/request state
+      // from an aborted primary PostgREST call into the one bounded retry.
+      const retryClient = createPublicServerClient()
       recovered = await settleHomeQuery(
-        withQueryTimeout(supabase
+        withQueryTimeout(retryClient
           .from("listings_catalog")
           .select(HOME_LISTING_SELECT)
           .eq("status", "active")
