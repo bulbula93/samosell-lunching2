@@ -23,6 +23,21 @@ function RowLayout({
   ads: AdsByPlacement
   fallback?: boolean
 }) {
+  // Two paid catalog placements remain independent. When neither is sold,
+  // show one full-width self-service invitation instead of two identical ads.
+  const emptyCatalogPair = placementKeys[0] === "catalog_top_left" &&
+    placementKeys[1] === "catalog_top_right" &&
+    (fallback || placementKeys.every((key) => !ads[key]))
+  if (emptyCatalogPair) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+        <div className="md:col-span-2">
+          <AdPlaceholder placementKey="catalog_top_left" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
       {placementKeys.map((placementKey) => (
