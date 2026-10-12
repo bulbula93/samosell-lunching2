@@ -5,6 +5,7 @@ import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import UiPageHeader from "@/components/shared/UiPageHeader"
 import UiEmptyState from "@/components/shared/UiEmptyState"
+import BoostCheckoutRecovery from "@/components/payments/BoostCheckoutRecovery"
 import { boostProductName, boostStatusLabel, formatDateOnly, paymentMethodLabel } from "@/lib/boosts"
 import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 import { getBoostPaymentConfig } from "@/lib/boost-payment-config"
@@ -29,6 +30,14 @@ const tabs = [
 
 function flashLabel(value?: string) {
   switch (value) {
+    case "confirm_unpaid":
+      return "ბარათით გაგრძელებამდე დაადასტურე, რომ ამ შეკვეთაზე ჯერ არ გადაგიხდია."
+    case "checkout_unavailable":
+      return "ამ მოთხოვნის ბარათით განახლება ვერ შესრულდა. გადაამოწმე მისი მიმდინარე სტატუსი ან მიმართე მხარდაჭერას."
+    case "checkout_listing_inactive":
+      return "გადახდის გაგრძელებისთვის განცხადება გამოქვეყნებული და აქტიური უნდა იყოს."
+    case "checkout_failed":
+      return "გადახდის გვერდი ვერ გაიხსნა. გადაამოწმე შეკვეთის სტატუსი ან მიმართე მხარდაჭერას; ხელახლა ნუ გადაიხდი, თუ თანხა უკვე ჩამოგეჭრა."
     case "tbc_activated":
       return "TBC Checkout გადახდა დადასტურდა და VIP განთავსება ავტომატურად გააქტიურდა."
     case "tbc_success":
@@ -170,7 +179,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
           <h2 className="mt-2 text-2xl font-black text-amber-950">დარჩენილი მოთხოვნები</h2>
           <div className="mt-3 space-y-2 text-sm leading-6 text-amber-900">
             <p>აქტიური მოლოდინის რეჟიმში მყოფი მოთხოვნები: <span className="font-bold">{pendingOrders.length}</span></p>
-            <p>გამოიყენე შესაბამისი payment reference გადახდის დანიშნულებაში და დაელოდე დადასტურებას. TBC Checkout წარმატებული გადახდები ავტომატურად აქტიურდება, ხოლო ხელით დამუშავებადი მეთოდები მუშავდება დაახლოებით {payment.approvalTime}-ში.</p>
+            <p>გააგრძელე გადახდა შესაბამისი შეკვეთიდან. ბარათით გადახდის დადასტურების შემდეგ პაკეტი ავტომატურად გააქტიურდება; საბანკო გადარიცხვას ადმინი ადასტურებს.</p>
             <p>თუ გადახდა უკვე გააკეთე და სტატუსი ჯერ არ შეცვლილა, მოგვწერე <a href={`mailto:${payment.paymentContactEmail}`} className="font-semibold underline underline-offset-4">{payment.paymentContactEmail}</a>-ზე.</p>
           </div>
         </section>
@@ -185,7 +194,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
             <p>1. განცხადების VIP განთავსების გვერდიდან ქმნი ახალ მოთხოვნას.</p>
             <p>2. აქ ამოწმებ შეკვეთას და მის რეფერენსს.</p>
             <p>3. იხდი ხელმისაწვდომი გადახდის მეთოდით.</p>
-            <p>4. {payment.tbcCheckoutEnabled ? "წარმატებული TBC Checkout გადახდის შემდეგ VIP განთავსება ავტომატურად აქტიურდება" : "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"}, ხელით მეთოდებზე კი დადასტურება მოდერატორის მხრიდან ხდება.</p>
+            <p>4. {payment.flittCheckoutEnabled || payment.tbcCheckoutEnabled ? "ბარათით გადახდის დადასტურების შემდეგ VIP განთავსება ავტომატურად აქტიურდება." : "ბარათით გადახდა დროებით მიუწვდომელია."}</p>
           </div>
         </div>
         <div className="ui-card p-5">
@@ -201,7 +210,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
                 </a>
               </p>
             ) : null}
-            <p>{payment.note}</p>
+            {payment.hasBankDetails ? <p>{payment.note}</p> : <p>გადახდის გასაგრძელებლად გამოიყენე შესაბამისი შეკვეთის ბარათი.</p>}
           </div>
         </div>
       </section>
@@ -225,13 +234,13 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
                 <div>აქტივაციის სტატუსი: <span className="font-medium text-text">{boostStatusLabel(order.status, order.ends_at)}</span></div>
                 <div>დაწყება: {order.starts_at ? formatDateOnly(order.starts_at) : "—"}</div>
                 <div>დასრულება: {order.ends_at ? formatDateOnly(order.ends_at) : "—"}</div>
-                {order.provider_status ? <div>გადახდის სტატუსი (TBC): <span className="font-medium text-text">{tbcProviderStatusLabel(order.provider_status)}</span></div> : <div>გადახდის სტატუსი: <span className="font-medium text-text">{order.approved_at ? "დადასტურებული" : "მოლოდინში"}</span></div>}
+                {order.provider_status ? <div>გადახდის სტატუსი: <span className="font-medium text-text">{order.payment_provider === "tbc_checkout" ? tbcProviderStatusLabel(order.provider_status) : order.provider_status}</span></div> : <div>გადახდის სტატუსი: <span className="font-medium text-text">{order.approved_at ? "დადასტურებული" : "მოლოდინში"}</span></div>}
                 {order.checkout_session_started_at ? <div>Checkout დაიწყო: {formatDateOnly(order.checkout_session_started_at)}</div> : null}
                 {order.last_payment_sync_at ? <div>ბოლო სინქი: {formatDateOnly(order.last_payment_sync_at)}</div> : null}
                 {order.paid_at ? <div>გადახდილია: {formatDateOnly(order.paid_at)}</div> : null}
                 {order.cancelled_at ? <div>გაუქმდა: {formatDateOnly(order.cancelled_at)}</div> : null}
               </div>
-              {order.failure_reason ? <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">TBC მიზეზი: {order.failure_reason}</div> : null}
+              {order.failure_reason ? <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">გადახდის მიზეზი: {order.failure_reason}</div> : null}
               {order.notes ? <div className="mt-3 rounded-2xl bg-surface-alt px-3 py-2 text-sm text-text-soft">შენი შენიშვნა: {order.notes}</div> : null}
               {order.admin_note ? <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900">ადმინის შენიშვნა: {order.admin_note}</div> : null}
               {refundMap.get(order.id) ? <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">დაბრუნების სტატუსი: {refundStatusLabel(refundMap.get(order.id)?.status)}</div> : null}
@@ -239,6 +248,11 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
             </div>
             <div className="flex flex-col gap-2 lg:items-end">
               <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft">{boostStatusLabel(order.status, order.ends_at)}</span>
+              <BoostCheckoutRecovery order={order} nextPath={activeTab === "all" ? "/dashboard/billing" : `/dashboard/billing?status=${activeTab}`} enabled={payment.flittCheckoutEnabled} />
+              {payment.flittCheckoutEnabled && order.payment_provider === "flitt" ? <>
+                {order.provider_checkout_url && order.status === "pending_payment" ? <a href={order.provider_checkout_url} className="ui-btn-primary">ბარათით გადახდის გაგრძელება</a> : null}
+                <Link href={`/payment/result?order=${encodeURIComponent(order.id)}`} className="ui-btn-secondary">გადახდის სტატუსის გადამოწმება</Link>
+              </> : null}
               {payment.tbcCheckoutEnabled && order.payment_method === "tbc_checkout" && order.provider_checkout_url && order.status === "pending_payment" ? (
                 <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">TBC-ით გადახდის გაგრძელება</a>
               ) : null}
