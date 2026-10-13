@@ -13,7 +13,7 @@ const targets = [
   { build: 'preview', origin: 'https://' + auth.previewHost, commit: process.env.QA_PREVIEW_COMMIT ?? 'b70b7a6d98c323f90f5fa0530a608f2173b4b819' },
 ]
 const pages = ['/', '/catalog', '/catalog?q=Zara', '/listing/pekhsatsmeli-9454b0c8']
-const configuration = { viewport: { width: 390, height: 844 }, cpu: 4, latencyMs: 150, downloadBytesPerSec: 200000, uploadBytesPerSec: 93750, repeats: 5, labOnly: true }
+const configuration = { viewport: { width: 390, height: 844 }, cpu: 4, latencyMs: 150, downloadBytesPerSec: 200000, uploadBytesPerSec: 93750, repeats: 5, minimumObservationMs: 20000, labOnly: true }
 fs.writeFileSync(path.join(out, 'configuration.json'), JSON.stringify({ configuration, targets, pages }, null, 2))
 const browser = await chromium.launch({ executablePath: process.env.QA_CHROMIUM_EXECUTABLE, headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
@@ -36,7 +36,9 @@ try {
       // caching. Playwright route interception would disable HTTP caching.
       await cdp.send('Network.setBlockedURLs', { urls: ['*/api/listing-view', '*/api/growth/events', '*/api/web-vitals', '*/api/catalog-events', '*/api/ads/impression', '*/api/ads/click'] })
       if (target.build === 'preview') {
-        const response = await page.goto(target.origin + '/?_vercel_share=' + encodeURIComponent(auth.secret), { waitUntil: 'domcontentloaded', timeout: 45000 })
+        // Authenticate through a text resource, avoiding font/image decoding or
+        // application hydration before the cold navigation.
+        const response = await page.goto(target.origin + '/robots.txt?_vercel_share=' + encodeURIComponent(auth.secret), { waitUntil: 'load', timeout: 45000 })
         if (response.status() !== 200 || new URL(page.url()).hostname !== auth.previewHost) throw new Error('preview_authentication_failed')
       }
       await page.goto('about:blank')
@@ -63,12 +65,10 @@ try {
           const response = cache === 'cold' ? await page.goto(target.origin + route, { waitUntil: 'load', timeout: 45000 }) : await page.reload({ waitUntil: 'load', timeout: 45000 })
           status = response?.status()
         } catch (error) { navigationError = String(error.message).split('\n')[0] }
-        // At least 8s observation; continue until stable for 3s, capped at 30s after navigation.
-        while (Date.now() - started < 30000) {
-          const quiet = await page.evaluate(() => performance.now() - (window.__qa?.lastChange ?? 0))
-          if (Date.now() - started >= 8000 && quiet >= 3000) break
-          await sleep(500)
-        }
+        // Use the same observation window in both builds, including delayed
+        // personalization. Keep three seconds after load if the load was slow.
+        const captureAt = Math.max(started + configuration.minimumObservationMs, Date.now() + 3000)
+        while (Date.now() < captureAt) await sleep(Math.min(500, captureAt - Date.now()))
         const metrics = await page.evaluate(() => {
           const q = window.__qa, nav = performance.getEntriesByType('navigation')[0]
           let max = 0, session = 0, first = 0, last = 0
@@ -82,8 +82,16 @@ try {
             heading: document.querySelector('h1')?.textContent?.trim(), degradation: !!document.querySelector('[role="status"]'), observedMs: performance.now(), supportedEvents: q.supported.includes('event') }
         })
         if (repeat === 1 && cache === 'cold') await page.screenshot({ path: path.join(out, `${target.build}-${pages.indexOf(route)}.png`) })
-        // Standardized, non-submitting keyboard interactions; this is a synthetic interaction sample, not field INP.
-        for (let key = 0; key < 5; key++) { await page.keyboard.press('Tab'); await sleep(100) }
+        // Same real search-field interaction on each page; do not submit a
+        // search, favorite, payment or any other user-data mutation.
+        const search = page.locator('input[type="search"]:visible').first()
+        if (await search.count()) {
+          await search.click()
+          await search.press('z')
+          await search.press('Backspace')
+        } else {
+          for (let key = 0; key < 5; key++) { await page.keyboard.press('Tab'); await sleep(100) }
+        }
         await sleep(200)
         const interactions = await page.evaluate(() => window.__qa.events)
         const inp = interactions.length ? Math.max(...interactions.map(e => e.duration)) : null
