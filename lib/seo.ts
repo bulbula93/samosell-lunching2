@@ -304,7 +304,8 @@ export function buildListingStructuredData(
       [listing.category_name, listing.brand_name].filter(Boolean).join(" · "),
     sku: listing.public_id || listing.id,
     url: listingUrl,
-    category: listing.category_name,
+    // Avoid emitting broad marketplace audience labels as Product categories.
+    // Google may reject values such as "ქალებისთვის" in merchant listing markup.
     itemCondition: condition,
     offers: {
       "@type": "Offer",
