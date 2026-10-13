@@ -107,6 +107,13 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
         </section>
 
         <section id="discover-stores" className="ui-container scroll-mt-28 py-10 sm:py-14">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-[#bfd3c5] bg-[#edf3e9] p-4 sm:p-5">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-[#ac764e]">DESIGN LAB</p>
+              <p className="mt-1 text-sm font-bold text-[#075a53]">იხილე მაღაზიების გვერდის კიდევ 3 დიზაინის ვარიანტი</p>
+            </div>
+            <Link href="/stores/concepts" className="inline-flex min-h-11 items-center rounded-full bg-[#075a53] px-5 text-xs font-bold text-white">ვარიანტების ნახვა ↗</Link>
+          </div>
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#ce7442]">DISCOVER</p>
