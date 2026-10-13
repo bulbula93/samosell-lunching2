@@ -18,6 +18,14 @@ fs.writeFileSync(path.join(out, 'configuration.json'), JSON.stringify({ configur
 const browser = await chromium.launch({ executablePath: process.env.QA_CHROMIUM_EXECUTABLE, headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined })
+configuration.chromiumVersion = browser.version()
+const fontContext = await browser.newContext()
+const fontPage = await fontContext.newPage()
+await fontPage.setContent('<h1 style="font:32px sans-serif">Font preflight აბგ ABC</h1>')
+const fontBox = await fontPage.locator('h1').boundingBox()
+await fontContext.close()
+if (!fontBox || fontBox.height < 20) { await browser.close(); throw new Error('Font rendering backend is missing; install fontconfig, libfontconfig1 and libfreetype6') }
+fs.writeFileSync(path.join(out, 'configuration.json'), JSON.stringify({ configuration, targets, pages, fontPreflight: fontBox }, null, 2))
 const results = []
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 const redactUrl = url => { try { const u = new URL(url); return u.origin + u.pathname } catch { return 'unknown' } }
@@ -58,7 +66,16 @@ try {
         const onFail = req => failures.push({ url: redactUrl(req.url()), method: req.method(), error: req.failure()?.errorText })
         const onResponse = res => { if (res.status() >= 400) statuses.push({ url: redactUrl(res.url()), status: res.status(), method: res.request().method() }) }
         const onFinish = info => downloads.set(info.requestId, info.encodedDataLength)
-        page.on('pageerror', onError); page.on('console', onConsole); page.on('requestfailed', onFail); page.on('response', onResponse); cdp.on('Network.loadingFinished', onFinish)
+        let documentRequestId = null, documentStartedAt = null, documentHeadersAt = null
+        const onDocumentRequest = info => {
+          if (info.type === 'Document' && info.request.url === target.origin + route) {
+            documentRequestId = info.requestId; documentStartedAt = info.timestamp
+          }
+        }
+        const onDocumentResponse = info => {
+          if (info.requestId === documentRequestId && info.type === 'Document') documentHeadersAt = info.timestamp
+        }
+        page.on('pageerror', onError); page.on('console', onConsole); page.on('requestfailed', onFail); page.on('response', onResponse); cdp.on('Network.loadingFinished', onFinish); cdp.on('Network.requestWillBeSent', onDocumentRequest); cdp.on('Network.responseReceived', onDocumentResponse)
         const started = Date.now()
         let status = null, navigationError = null
         try {
@@ -71,6 +88,8 @@ try {
         while (Date.now() < captureAt) await sleep(Math.min(500, captureAt - Date.now()))
         const metrics = await page.evaluate(() => {
           const q = window.__qa, nav = performance.getEntriesByType('navigation')[0]
+          const visibleHeading = [...document.querySelectorAll('h1')].find(e => e.getBoundingClientRect().height > 0)
+          const headingBox = visibleHeading?.getBoundingClientRect()
           let max = 0, session = 0, first = 0, last = 0
           for (const shift of q.shifts) { if (shift.at - last > 1000 || shift.at - first > 5000) { session = shift.value; first = shift.at } else session += shift.value; last = shift.at; max = Math.max(max, session) }
           return { lcp_ms: q.lcp, lcpElement: q.lcpElement, cls: max, shifts: q.shifts,
@@ -79,8 +98,9 @@ try {
             width: innerWidth, height: innerHeight, overflow: document.documentElement.scrollWidth > innerWidth,
             listingLinks: document.querySelectorAll('a[href^="/listing/"]').length,
             images: [...document.images].map(img => { const r=performance.getEntriesByName(img.currentSrc).at(-1); return { alt: img.alt, url: new URL(img.currentSrc || img.src, location.href).pathname, bytes: r?.transferSize ?? null, decodedBytes: r?.decodedBodySize ?? null, complete: img.complete, naturalWidth: img.naturalWidth, width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height, loading: img.loading, priority: img.fetchPriority } }),
-            heading: document.querySelector('h1')?.textContent?.trim(), degradation: !!document.querySelector('[role="status"]'), observedMs: performance.now(), supportedEvents: q.supported.includes('event') }
+            heading: visibleHeading?.textContent?.trim(), renderedText: !!headingBox && headingBox.height > 0, headingHeight: headingBox?.height ?? 0, degradation: !!document.querySelector('[role="status"]'), observedMs: performance.now(), supportedEvents: q.supported.includes('event') }
         })
+        if (status !== 200 || !metrics.renderedText || !metrics.heading) throw new Error('Page did not render valid visible content')
         if (repeat === 1 && cache === 'cold') await page.screenshot({ path: path.join(out, `${target.build}-${pages.indexOf(route)}.png`) })
         // Same real search-field interaction on each page; do not submit a
         // search, favorite, payment or any other user-data mutation.
@@ -95,11 +115,11 @@ try {
         await sleep(200)
         const interactions = await page.evaluate(() => window.__qa.events)
         const inp = interactions.length ? Math.max(...interactions.map(e => e.duration)) : null
-        const result = { build: target.build, commit: target.commit, route, repeat, cache, status, navigationError, at: new Date().toISOString(), ...metrics, synthetic_inp_ms: inp, interactions, transferBytesCDP: [...downloads.values()].reduce((a,b) => a+b,0), errors, failures, statuses }
+        const result = { build: target.build, commit: target.commit, route, repeat, cache, status, navigationError, at: new Date().toISOString(), ...metrics, ttfb_final_headers_ms: documentStartedAt !== null && documentHeadersAt !== null ? (documentHeadersAt - documentStartedAt) * 1000 : null, synthetic_inp_ms: inp, interactions, transferBytesCDP: [...downloads.values()].reduce((a,b) => a+b,0), errors, failures, statuses }
         results.push(result)
         fs.appendFileSync(path.join(out, 'runs.jsonl'), JSON.stringify(result) + '\n')
         console.log(JSON.stringify({ n: results.length, build: target.build, route, repeat, cache, status, lcp: metrics.lcp_ms, cls: metrics.cls, errors: errors.length, failures: failures.length }))
-        page.off('pageerror', onError); page.off('console', onConsole); page.off('requestfailed', onFail); page.off('response', onResponse); cdp.off('Network.loadingFinished', onFinish)
+        page.off('pageerror', onError); page.off('console', onConsole); page.off('requestfailed', onFail); page.off('response', onResponse); cdp.off('Network.loadingFinished', onFinish); cdp.off('Network.requestWillBeSent', onDocumentRequest); cdp.off('Network.responseReceived', onDocumentResponse)
       }
       await context.close()
     }
