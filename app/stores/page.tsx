@@ -12,22 +12,21 @@ type StoreProfile = {
   city: string | null
   store_logo_url: string | null
   store_banner_url: string | null
-  store_instagram: string | null
 }
 
-type StoreParams = { demo?: string; q?: string }
+type StoreParams = { demo?: string | string[]; q?: string | string[] }
 
-const sampleStores = [
-  { name: "Studio Archive", city: "თბილისი", kind: "Vintage", initials: "SA", color: "bg-[#e8d8ca]", description: "გამორჩეული ვინტაჟური სამოსი და აქსესუარები" },
-  { name: "Second Chapter", city: "თბილისი", kind: "Second-hand", initials: "SC", color: "bg-[#d3dfd6]", description: "მეორე სიცოცხლე შენს საყვარელ ნივთებს" },
-  { name: "Sunday Edit", city: "ბათუმი", kind: "Curated fashion", initials: "SE", color: "bg-[#e7dbbd]", description: "შერჩეული სტილი ყოველდღიური გარდერობისთვის" },
+const demoStores = [
+  { name: "Studio Archive", city: "თბილისი", kind: "CURATED VINTAGE", description: "გამორჩეული ვინტაჟური სამოსი და აქსესუარები", photo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1000&q=75", initials: "SA", backdrop: "#ddd2c2" },
+  { name: "Second Chapter", city: "თბილისი", kind: "SECOND-HAND", description: "მეორე სიცოცხლე შენს საყვარელ ნივთებს", photo: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=75", initials: "SC", backdrop: "#d7e4d9" },
+  { name: "Sunday Edit", city: "ბათუმი", kind: "PRE-LOVED STYLE", description: "შერჩეული სტილი ყოველდღიური გარდერობისთვის", photo: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1000&q=75", initials: "SE", backdrop: "#e8d5bc" },
 ]
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<StoreParams> }): Promise<Metadata> {
   const { demo } = (await searchParams) ?? {}
   return {
     title: "მაღაზიები — აღმოაჩინე შერჩეული მაღაზიები",
-    description: "აღმოაჩინე დამოუკიდებელი მაღაზიები და მათი განცხადებები SamoSell-ზე.",
+    description: "აღმოაჩინე ქართული მაღაზიები და მათი განცხადებები SamoSell-ზე.",
     alternates: { canonical: "/stores" },
     ...(demo === "1" ? { robots: { index: false, follow: false } } : {}),
   }
@@ -36,7 +35,7 @@ export async function generateMetadata({ searchParams }: { searchParams?: Promis
 export default async function StoresPage({ searchParams }: { searchParams?: Promise<StoreParams> }) {
   const params = (await searchParams) ?? {}
   const demo = params.demo === "1"
-  const q = typeof params.q === "string" ? params.q.trim().slice(0, 80) : ""
+  const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 80)
   let stores: StoreProfile[] = []
   let temporarilyUnavailable = false
 
@@ -45,7 +44,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
       const supabase = createPublicServerClient()
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, full_name, bio, city, store_logo_url, store_banner_url, store_instagram")
+        .select("id, username, full_name, bio, city, store_logo_url, store_banner_url")
         .eq("seller_type", "store")
         .eq("is_suspended", false)
         .order("created_at", { ascending: false })
@@ -60,165 +59,169 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
 
   const search = q.toLocaleLowerCase("ka")
   const shownStores = stores.filter((store) =>
-    !search || [store.full_name, store.username, store.city, store.bio].some((part) => String(part ?? "").toLocaleLowerCase("ka").includes(search))
+    !search || [store.full_name, store.username, store.city, store.bio].some((text) => String(text ?? "").toLocaleLowerCase("ka").includes(search))
   )
-  const shownSamples = sampleStores.filter((store) =>
-    !search || [store.name, store.city, store.kind, store.description].some((part) => part.toLocaleLowerCase("ka").includes(search))
+  const shownDemo = demoStores.filter((store) =>
+    !search || [store.name, store.city, store.description, store.kind].some((text) => text.toLocaleLowerCase("ka").includes(search))
   )
 
   return (
     <>
       <SiteHeader />
-      <main className="min-h-screen bg-[#faf9f6] text-[#073f3b]">
-        <section className="relative overflow-hidden border-b border-[#e7ebe4] bg-[#f1f3ec]">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-28 h-96 w-96 rounded-full bg-[#dfecdf] opacity-80 blur-3xl" />
-          <div className="ui-container relative grid gap-10 py-12 sm:py-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:py-20">
-            <div>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#ceded1] bg-white/80 px-4 py-2 text-xs font-bold tracking-wide text-[#075a53]">
-                <span className="h-2 w-2 rounded-full bg-[#ef853f]" />
-                SAMOSELL SHOPS
-              </p>
-              <h1 className="max-w-2xl text-4xl font-black leading-[1.12] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
-                გამორჩეული ნივთები.
-                <span className="block text-[#dc763a]">საკუთარი ისტორია.</span>
+      <main className="min-h-screen bg-[#f8f5ee] text-[#28362e]">
+        <div className="ui-container pt-7 pb-14 sm:pt-11 sm:pb-20">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[#c6c1b5] py-4 text-[10px] font-semibold uppercase tracking-[0.17em] sm:text-[11px]">
+            <span>THE SAMOSELL EDIT</span>
+            <span className="hidden sm:block">PRE-LOVED / RE-IMAGINED</span>
+            <span>GEORGIA · SHOPS</span>
+          </div>
+
+          <section className="grid gap-9 py-9 lg:grid-cols-[1fr_0.95fr] lg:items-center lg:gap-14 lg:py-12">
+            <div className="flex flex-col justify-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#aa684f]">THE LOCAL WARDROBE JOURNAL</p>
+              <h1 className="mt-6 font-serif text-[clamp(3.7rem,8vw,7.9rem)] leading-[0.96] tracking-[-0.055em]">
+                შენი <span className="italic text-[#ae795f]">ახალი</span>
+                <span className="block">აღმოჩენა.</span>
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-8 text-[#4c625b]">
-                აღმოაჩინე პატარა ქართული მაღაზიები, ვინტაჟური კოლექციები და ახალი აღმოჩენები ერთ სივრცეში.
+              <p className="mt-7 max-w-md text-base leading-8 text-[#677068]">
+                ქართული მაღაზიები, გამორჩეული კოლექციები და ნივთები, რომლებსაც ახალი ისტორიის დაწყება შეუძლიათ.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#discover-stores" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#075a53] px-6 text-sm font-bold text-white transition hover:bg-[#06453f]">
-                  აღმოაჩინე მაღაზიები <span aria-hidden="true" className="ml-2">↗</span>
+                <a href="#discover-stores" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#293f37] px-7 text-sm font-semibold text-white transition hover:bg-[#375747]">
+                  აღმოაჩინე მაღაზიები ↗
                 </a>
-                <Link href="/for-stores" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#aac4b6] bg-white px-6 text-sm font-bold text-[#075a53] transition hover:bg-[#e5f1ea]">
-                  გაქვს მაღაზია?
+                <Link href="/for-stores" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#bcb5a8] px-7 text-sm font-semibold transition hover:bg-[#eee6d9]">
+                  გახსენი მაღაზია
                 </Link>
               </div>
-            </div>
-            <div aria-hidden="true" className="relative hidden h-72 lg:block">
-              <div className="absolute left-12 top-1 h-64 w-52 rotate-[-12deg] rounded-[2rem] border border-white bg-[#d7e4d9] shadow-xl" />
-              <div className="absolute left-36 top-4 flex h-64 w-48 rotate-[8deg] flex-col justify-between rounded-[2rem] bg-[#f9ead9] p-7 shadow-xl">
-                <span className="text-4xl">✳</span>
-                <span className="text-4xl font-black leading-tight tracking-tight text-[#075a53]">Style<br />again.</span>
-                <span className="text-sm font-semibold text-[#cc7747]">SHOP THE STORY ↗</span>
+              <div className="mt-11 flex flex-wrap gap-x-8 gap-y-2 border-t border-[#cfc9bc] pt-5 text-[11px] uppercase tracking-[0.15em] text-[#817e75]">
+                <span>Vintage</span><span>Second-hand</span><span>Independent stores</span>
               </div>
-              <div className="absolute bottom-0 left-4 flex h-28 w-28 items-center justify-center rounded-full border-8 border-[#f1f3ec] bg-[#eeab6b] text-5xl text-white shadow-lg">✦</div>
             </div>
-          </div>
-        </section>
 
-        <section id="discover-stores" className="ui-container scroll-mt-28 py-10 sm:py-14">
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-[#bfd3c5] bg-[#edf3e9] p-4 sm:p-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-[#ac764e]">DESIGN LAB</p>
-              <p className="mt-1 text-sm font-bold text-[#075a53]">იხილე მაღაზიების გვერდის კიდევ 3 დიზაინის ვარიანტი</p>
+            <div className="relative mx-auto h-[390px] w-full max-w-xl sm:h-[530px]">
+              <div
+                role="img"
+                aria-label="საჩვენებელი მოდის ფოტო, რომელიც SamoSell-ის მაღაზიებს არ ეკუთვნის"
+                className="absolute inset-x-5 top-0 bottom-12 rounded-t-[8rem] rounded-b-xl bg-[#e1d7ca] bg-cover bg-center sm:left-[9%]"
+                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1100&q=75')" }}
+              />
+              <div className="absolute bottom-0 left-0 max-w-[78%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
+                <p className="font-serif text-2xl italic sm:text-3xl">Find your next favourite.</p>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.17em] text-[#827469]">PRE-LOVED, ALWAYS LOVED</p>
+              </div>
+              <div className="absolute right-1 top-7 rounded-full border border-[#f6f0e8] bg-[#293f37] px-4 py-2 text-[10px] font-bold tracking-[0.14em] text-white">THE EDIT · SHOPS</div>
             </div>
-            <Link href="/stores/concepts" className="inline-flex min-h-11 items-center rounded-full bg-[#075a53] px-5 text-xs font-bold text-white">ვარიანტების ნახვა ↗</Link>
-          </div>
-          <div className="flex flex-wrap items-end justify-between gap-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#ce7442]">DISCOVER</p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">მაღაზიები</h2>
-              <p className="mt-3 text-sm leading-7 text-[#687a71]">იპოვე მაღაზია, დაათვალიერე მისი ნივთები და დაუკავშირდი პირდაპირ.</p>
-            </div>
-            <Link href={demo ? "/stores" : "/stores?demo=1"} className="rounded-full border border-[#cbd9cf] px-4 py-2 text-xs font-bold text-[#075a53] transition hover:bg-white">
-              {demo ? "რეალური მაღაზიების ნახვა" : "დიზაინის დემოს ნახვა"} ↗
-            </Link>
-          </div>
+          </section>
 
-          {demo ? (
-            <div role="status" className="mt-7 rounded-2xl border border-[#ecca9c] bg-[#fff6e6] px-5 py-4 text-sm leading-6 text-[#885b22]">
-              დიზაინის დემო — ქვემოთ მოცემული მაღაზიები და აღწერები გამოგონილია. რეალური განცხადებები არ განთავსებულა.
-            </div>
-          ) : null}
-
-          <form action="/stores" method="GET" className="mt-8 flex flex-col gap-3 rounded-[1.5rem] border border-[#e2e9e1] bg-white p-3 shadow-sm sm:flex-row">
-            {demo ? <input type="hidden" name="demo" value="1" /> : null}
-            <label htmlFor="store-search" className="sr-only">მაღაზიის მოძებნა</label>
-            <input
-              id="store-search"
-              type="search"
-              name="q"
-              maxLength={80}
-              defaultValue={q}
-              placeholder="მოძებნე მაღაზია ან ქალაქი..."
-              className="min-h-12 min-w-0 flex-1 rounded-xl border border-transparent bg-[#f7f8f5] px-5 text-sm text-[#073f3b] outline-none transition focus:border-[#075a53]"
-            />
-            <button type="submit" className="min-h-12 rounded-xl bg-[#075a53] px-7 text-sm font-bold text-white transition hover:bg-[#06453f]">ძებნა</button>
-          </form>
-
-          {temporarilyUnavailable ? (
-            <p role="status" className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
-              მაღაზიების სია დროებით ვერ ჩაიტვირთა. სცადე განახლება მოგვიანებით.
-            </p>
-          ) : null}
-
-          {(demo ? shownSamples.length : shownStores.length) > 0 ? (
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {demo ? shownSamples.map((store) => (
-                <Link key={store.name} href="/stores/showcase" className="group overflow-hidden rounded-[1.7rem] border border-[#e5e8e2] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-                  <div className={"relative flex h-48 items-center justify-center overflow-hidden " + store.color}>
-                    <span className="select-none text-[5.5rem] font-black tracking-[-0.09em] text-[#073f3b]/20">{store.initials}</span>
-                    <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-[#075a53]">დემო</span>
-                    <span className="absolute bottom-4 left-5 rounded-full bg-[#073f3b] px-3 py-1.5 text-xs font-bold text-white">{store.kind}</span>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="text-xl font-black">{store.name}</h3>
-                      <span aria-hidden="true" className="text-xl text-[#de8246]">↗</span>
-                    </div>
-                    <p className="mt-2 text-sm text-[#64796f]">{store.description}</p>
-                    <p className="mt-5 text-xs font-bold text-[#8a9a8f]">⌖ {store.city} · ნახე ვიტრინის დემო</p>
-                  </div>
-                </Link>
-              )) : shownStores.map((store) => (
-                <Link key={store.id} href={"/seller/" + encodeURIComponent(store.username!)} className="group overflow-hidden rounded-[1.7rem] border border-[#e5e8e2] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-                  <div className="relative h-48 bg-[#e2eae0]">
-                    {store.store_banner_url ? (
-                      <SmartImage src={store.store_banner_url} alt={store.full_name || store.username || "მაღაზია"} wrapperClassName="h-full w-full" className="object-cover" sizes="(max-width: 640px) 100vw, 33vw" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-6xl font-black text-[#075a53]/25">S</div>
-                    )}
-                    {store.store_logo_url ? (
-                      <div className="absolute bottom-3 left-4 h-16 w-16 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-md">
-                        <SmartImage src={store.store_logo_url} alt="" wrapperClassName="h-full w-full" sizes="64px" />
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between gap-3">
-                      <h3 className="break-words text-xl font-black">{store.full_name || store.username}</h3>
-                      <span aria-hidden="true" className="text-xl text-[#de8246]">↗</span>
-                    </div>
-                    <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-[#64796f]">{store.bio || "აღმოაჩინე ამ მაღაზიის განცხადებები SamoSell-ზე"}</p>
-                    <p className="mt-5 text-xs font-bold text-[#8a9a8f]">{store.city || "საქართველო"} · განცხადებების ნახვა</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : !temporarilyUnavailable ? (
-            <div className="mt-8 rounded-[1.7rem] border border-dashed border-[#bed3c5] bg-white px-6 py-14 text-center">
-              <div className="text-4xl">✳</div>
-              <h3 className="mt-4 text-xl font-black">{q ? "მაღაზია ვერ მოიძებნა" : "პირველი მაღაზიები მალე გამოჩნდება"}</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-[#687a71]">
-                {q ? "შეცვალე საძიებო სიტყვა და სცადე თავიდან." : "თუ გაქვს მაღაზია, შეგიძლია ერთ-ერთი პირველი იყო SamoSell Shops-ში."}
-              </p>
-              <Link href={q ? (demo ? "/stores?demo=1" : "/stores") : "/for-stores"} className="mt-5 inline-flex rounded-full bg-[#075a53] px-6 py-3 text-sm font-bold text-white">
-                {q ? "ყველა მაღაზიის ნახვა" : "მაღაზიის დამატება"}
+          <section id="discover-stores" className="scroll-mt-28 pt-11 sm:pt-16">
+            <div className="flex flex-wrap items-end justify-between gap-5 border-b border-[#c6c1b5] pb-5">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-[#ad7558]">DISCOVER / SHOPS</p>
+                <h2 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">რჩეული მაღაზიები</h2>
+                <p className="mt-3 text-sm leading-6 text-[#717a70]">აღმოაჩინე მაღაზია, დაათვალიერე ნივთები და დაუკავშირდი პირდაპირ.</p>
+              </div>
+              <Link href={demo ? "/stores" : "/stores?demo=1"} className="inline-flex min-h-11 items-center rounded-full border border-[#bcb5a8] px-4 text-xs font-semibold hover:bg-[#eee6d9]">
+                {demo ? "რეალური მაღაზიების ნახვა" : "დიზაინის დემო"} ↗
               </Link>
             </div>
-          ) : null}
-        </section>
 
-        <section className="border-t border-[#e4e9e1] bg-[#e8eee7]">
-          <div className="ui-container flex flex-col gap-6 py-12 sm:flex-row sm:items-center sm:justify-between">
+            {demo ? (
+              <p role="status" className="mt-6 border-l-[3px] border-[#bc8457] bg-[#efe5d9] p-4 text-sm leading-6 text-[#655445]">
+                დიზაინის დემო — ქვემოთ მოცემული მაღაზიები, ფოტოები და აღწერები საჩვენებელია და არ წარმოადგენს SamoSell-ის რეალურ განცხადებებს.
+              </p>
+            ) : null}
+
+            <form action="/stores" method="GET" className="mt-7 flex flex-col gap-3 border-b border-[#c6c1b5] pb-5 sm:flex-row">
+              {demo ? <input type="hidden" name="demo" value="1" /> : null}
+              <label htmlFor="store-search" className="sr-only">მაღაზიის მოძებნა</label>
+              <input
+                id="store-search" type="search" name="q" maxLength={80} defaultValue={q}
+                placeholder="მოძებნე მაღაზია, სახელი ან ქალაქი..."
+                className="min-h-12 min-w-0 flex-1 rounded-none border-b border-[#bcb5a8] bg-transparent px-3 text-sm text-[#293f37] outline-none focus:border-[#293f37] sm:border-b-0"
+              />
+              <button type="submit" className="min-h-12 rounded-full bg-[#293f37] px-8 text-sm font-semibold text-white hover:bg-[#375747]">ძებნა ↗</button>
+            </form>
+
+            {temporarilyUnavailable ? (
+              <p role="status" className="mt-8 border-l-[3px] border-[#c58a45] bg-[#fff2d9] p-6 text-sm text-[#745632]">
+                მაღაზიების მონაცემები დროებით მიუწვდომელია. სცადე მოგვიანებით.
+              </p>
+            ) : null}
+
+            {(demo ? shownDemo.length : shownStores.length) > 0 ? (
+              <div className="mt-9 grid gap-x-7 gap-y-11 sm:grid-cols-2 lg:grid-cols-3">
+                {demo ? shownDemo.map((store, index) => (
+                  <Link key={store.name} href="/stores/showcase" className="group block min-w-0">
+                    <div className="relative aspect-[4/4.7] overflow-hidden" style={{ backgroundColor: store.backdrop }}>
+                      <div className="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: "url('" + store.photo + "')" }} />
+                      <span className="absolute left-4 top-4 bg-[#f8f5ee]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-widest">DEMO · 0{index + 1}</span>
+                    </div>
+                    <div className="mt-5 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47b5d]">{store.kind}</p>
+                        <h3 className="mt-1 truncate font-serif text-2xl">{store.name}</h3>
+                        <p className="mt-2 text-xs text-[#777971]">{store.city} · {store.description}</p>
+                      </div>
+                      <span aria-hidden="true" className="text-2xl transition-transform group-hover:translate-x-1">↗</span>
+                    </div>
+                  </Link>
+                )) : shownStores.map((store) => (
+                  <Link key={store.id} href={"/seller/" + encodeURIComponent(store.username!)} className="group block min-w-0">
+                    <div className="relative aspect-[4/4.7] overflow-hidden bg-[#e4ddcf]">
+                      {store.store_banner_url ? (
+                        <SmartImage src={store.store_banner_url} alt={store.full_name || store.username || "მაღაზიის ფოტო"} wrapperClassName="h-full w-full" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(140deg,#d7e4d9,#eee0d0)]">
+                          {store.store_logo_url ? (
+                            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-white shadow-sm">
+                              <SmartImage src={store.store_logo_url} alt={store.full_name || "მაღაზიის ლოგო"} wrapperClassName="h-full w-full" sizes="112px" />
+                            </div>
+                          ) : (
+                            <span className="font-serif text-7xl text-[#6b8b79]">S</span>
+                          )}
+                        </div>
+                      )}
+                      <span className="absolute left-4 top-4 bg-[#f8f5ee]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-wider">მაღაზია</span>
+                    </div>
+                    <div className="mt-5 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b47b5d]">{store.city || "საქართველო"}</p>
+                        <h3 className="mt-1 break-words font-serif text-2xl">{store.full_name || store.username}</h3>
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#777971]">{store.bio || "აღმოაჩინე ამ მაღაზიის განცხადებები SamoSell-ზე"}</p>
+                      </div>
+                      <span aria-hidden="true" className="text-2xl transition-transform group-hover:translate-x-1">↗</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : !temporarilyUnavailable ? (
+              <div className="mt-9 border border-dashed border-[#c9c0b1] bg-white/70 px-6 py-14 text-center">
+                <p className="font-serif text-4xl italic text-[#ae795f]">A new story begins here.</p>
+                <h3 className="mt-4 font-serif text-2xl">{q ? "მაღაზია ვერ მოიძებნა" : "მაღაზიების კოლექცია მალე შეივსება"}</h3>
+                <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[#717a70]">
+                  {q ? "სცადე სხვა საძიებო სიტყვა ან დაათვალიერე ყველა მაღაზია." : "პირველი პარტნიორი მაღაზიები მალე გამოჩნდება. თუ გაქვს მაღაზია, გახდი ერთ-ერთი პირველი."}
+                </p>
+                <Link href={q ? (demo ? "/stores?demo=1" : "/stores") : "/for-stores"} className="mt-6 inline-flex min-h-12 items-center justify-center rounded-full bg-[#293f37] px-7 text-sm font-semibold text-white">
+                  {q ? "ყველა მაღაზია" : "გახსენი მაღაზია"} ↗
+                </Link>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="mt-16 grid gap-7 border-y border-[#c6c1b5] py-10 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
-              <p className="text-xs font-black tracking-[0.2em] text-[#c46e39]">FOR STORES</p>
-              <h2 className="mt-2 text-2xl font-black">შენი მაღაზიაც აქ უნდა იყოს.</h2>
-              <p className="mt-2 text-sm text-[#64796f]">შექმენი ვიტრინა, განათავსე ნივთები და იპოვე ახალი მყიდველები.</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#b47b5d]">YOUR STORY STARTS HERE</p>
+              <h2 className="mt-2 font-serif text-3xl">შენი მაღაზიაც ამ სივრცეში.</h2>
+              <p className="mt-2 text-sm leading-7 text-[#717a70]">დამატებითი ვიტრინა შენი ნივთებისთვის, ერთი გასაზიარებელი ბმულით.</p>
             </div>
-            <Link href="/for-stores" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#075a53] px-7 text-sm font-bold text-white">გაიგე მეტი ↗</Link>
+            <Link href="/for-stores" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#293f37] px-7 text-sm font-semibold hover:bg-[#eee6d9]">გაიგე მეტი ↗</Link>
+          </section>
+
+          <div className="mt-7 flex flex-wrap justify-end gap-5 text-xs text-[#7a8075]">
+            <Link href="/stores/concepts" className="underline underline-offset-4">დიზაინის სხვა ვარიანტები</Link>
           </div>
-        </section>
+        </div>
       </main>
     </>
   )
