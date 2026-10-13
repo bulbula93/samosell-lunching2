@@ -227,6 +227,7 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   persist: (status: VerifiedStatus) => Promise<void>;
   finalize: (boostOrderId: string) => Promise<void>;
   reverse: (boostOrderId: string) => Promise<void>;
+  failBoost?: (boostOrderId: string, status: VerifiedStatus) => Promise<void>;
   finalizeAd?: (adOrderId: string) => Promise<void>;
   reverseAd?: (adOrderId: string) => Promise<void>;
   failAd?: (adOrderId: string) => Promise<void>;
@@ -240,6 +241,13 @@ export async function processFlittCallback(params: Record<string, unknown>, atte
   }
   if (verified.nextStatus === "reversed" && attempt.purpose === "boost_order" && attempt.boostOrderId) {
     await deps.reverse(attempt.boostOrderId);
+  }
+  if (["declined", "expired", "failed"].includes(verified.nextStatus)
+    && verified.nextStatus === verified.providerStatus.toLowerCase()
+    && verified.responseStatus.toLowerCase() === "success"
+    && attempt.purpose === "boost_order" && attempt.boostOrderId) {
+    if (!deps.failBoost) throw new FlittVerificationError("boost_failure_handler_unavailable", 500);
+    await deps.failBoost(attempt.boostOrderId, verified);
   }
   if (verified.approved && attempt.purpose === "ad_order" && attempt.adOrderId) {
     if (!deps.finalizeAd) throw new FlittVerificationError("ad_finalizer_unavailable", 500);

@@ -77,6 +77,8 @@ describe("Flitt unpaid boost reconciliation safety", () => {
     expect(payment).toContain("isVerifiedUnpaidFlittTerminal")
     expect(billing).toContain('["expired", "declined", "failed"].includes')
     expect(billing).toContain("გადახდის სტატუსის გადამოწმება")
+    const promote = readFileSync("app/dashboard/listings/[id]/promote/page.tsx", "utf8")
+    expect(promote).toContain('["expired", "declined", "failed"].includes')
     const admin = readFileSync("app/admin/payments/actions.ts","utf8")
     expect(admin).toContain("isVerifiedUnpaidFlittTerminal(verified)")
     expect(admin).toContain("reconcileUnpaidFlittBoostFailure(attempt.boost_order_id, verified)")

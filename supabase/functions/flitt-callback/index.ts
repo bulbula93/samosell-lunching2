@@ -126,6 +126,25 @@ Deno.serve(async (req: Request) => {
         const { error: reverseError } = await admin.rpc("reverse_flitt_boost_payment", { p_order_id: boostOrderId });
         if (reverseError) throw new FlittVerificationError("boost_reversal_failed", 500);
       },
+      failBoost: async (boostOrderId, status) => {
+        // Match the live callback's compare-and-set: never close an already
+        // paid, activated, reviewed or non-Flitt order on a delayed failure.
+        const now = new Date().toISOString();
+        const { error: failureError } = await admin.from("listing_boost_orders")
+          .update({
+            status: "cancelled",
+            provider_status: status.providerStatus.toLowerCase(),
+            failure_reason: "Flitt confirmed checkout did not complete. No VIP service was activated.",
+            cancelled_at: now,
+            last_payment_sync_at: now,
+          })
+          .eq("id", boostOrderId)
+          .eq("status", "pending_payment")
+          .eq("payment_provider", "flitt")
+          .is("paid_at", null)
+          .is("approved_at", null);
+        if (failureError) throw new FlittVerificationError("boost_terminal_reconciliation_failed", 500);
+      },
       finalizeAd: async (adOrderId) => {
         const { error: finalizeError } = await admin.rpc("finalize_flitt_ad_payment", { p_order_id: adOrderId });
         if (finalizeError) throw new FlittVerificationError("ad_payment_finalization_failed", 500);
