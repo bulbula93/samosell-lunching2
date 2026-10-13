@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { ADVERTISE_WITH_US_HREF, type AdPlacementKey } from "@/lib/ads"
 
 export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacementKey }) {
@@ -7,11 +8,13 @@ export default function AdPlaceholder({ placementKey }: { placementKey: AdPlacem
       data-placement-key={placementKey}
       className="relative min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#f7eadc] shadow-[0_12px_34px_rgba(31,74,67,0.07)]"
     >
-      <img
+      <Image
         src="/brand/samosell-ad-bg.jpg"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
+        fill
+        sizes="(max-width: 767px) 100vw, (max-width: 1439px) 50vw, 700px"
+        className="object-cover object-[62%_center]"
       />
 
       <div

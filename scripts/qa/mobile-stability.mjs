@@ -11,7 +11,7 @@ fs.mkdirSync(out, { recursive: true })
 const targets = [
   { build: 'production', origin: 'https://samosell.ge', commit: '32bfc680b0fb0cfb3a54ced025b61d5527d83172' },
   { build: 'preview', origin: 'https://' + auth.previewHost, commit: process.env.QA_PREVIEW_COMMIT ?? 'b70b7a6d98c323f90f5fa0530a608f2173b4b819' },
-]
+].filter(target => !process.env.QA_BUILD_FILTER || target.build === process.env.QA_BUILD_FILTER)
 const pages = ['/', '/catalog', '/catalog?q=Zara', '/listing/pekhsatsmeli-9454b0c8']
 const configuration = { viewport: { width: 390, height: 844 }, cpu: 4, latencyMs: 150, downloadBytesPerSec: 200000, uploadBytesPerSec: 93750, repeats: 5, minimumObservationMs: 20000, labOnly: true }
 fs.writeFileSync(path.join(out, 'configuration.json'), JSON.stringify({ configuration, targets, pages }, null, 2))
