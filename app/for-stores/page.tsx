@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 
 export const metadata: Metadata = {
   title: "გახსენი მაღაზია — SamoSell Shops",
@@ -15,6 +16,7 @@ const benefits = [
 ]
 
 export default function ForStoresPage() {
+  const isPreview = isReadOnlyPreview()
   return (
     <>
       <SiteHeader />
@@ -32,14 +34,14 @@ export default function ForStoresPage() {
                 შექმენი შენი მაღაზიის გვერდი SamoSell-ზე. განათავსე ტანსაცმელი, გააცანი პროდუქცია ახალ მომხმარებლებს და მიიღე შეტყობინებები პირდაპირ.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <Link href="/register" className="inline-flex min-h-13 items-center justify-center rounded-full bg-[#ffad70] px-7 py-3.5 text-sm font-black text-[#073f3b] transition hover:bg-[#ffbf92]">
-                  შექმენი ანგარიში ↗
+                <Link href={isPreview ? "/stores/showcase" : "/register"} className="inline-flex min-h-13 items-center justify-center rounded-full bg-[#ffad70] px-7 py-3.5 text-sm font-black text-[#073f3b] transition hover:bg-[#ffbf92]">
+                  {isPreview ? "ნახე მაღაზიის დემო ↗" : "შექმენი ანგარიში ↗"}
                 </Link>
                 <Link href="/stores?demo=1" className="inline-flex min-h-13 items-center justify-center rounded-full border border-white/40 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-white/10">
                   ნახე როგორ გამოიყურება
                 </Link>
               </div>
-              <p className="mt-5 text-xs leading-6 text-[#afcdc1]">განცხადებების განთავსება საკომისიოს გარეშეა. ფასიანი VIP გამოჩენა არჩევითია.</p>
+              <p className="mt-5 text-xs leading-6 text-[#afcdc1]">{isPreview ? "ეს Preview მხოლოდ დიზაინის სანახავადაა — რეგისტრაცია და მონაცემების შეცვლა გამორთულია." : "განცხადებების განთავსება საკომისიოს გარეშეა. ფასიანი VIP გამოჩენა არჩევითია."}</p>
             </div>
             <div aria-hidden="true" className="relative mx-auto w-full max-w-sm">
               <div className="absolute -left-6 top-9 h-full w-full rotate-[-8deg] rounded-[2rem] bg-[#387c69]" />
@@ -100,7 +102,7 @@ export default function ForStoresPage() {
           <p className="text-xs font-black tracking-[0.2em] text-[#be7649]">READY?</p>
           <h2 className="mx-auto mt-3 max-w-xl text-3xl font-black leading-tight">შენი პირველი ონლაინ ვიტრინა მზად არის დასაწყებად.</h2>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/dashboard/profile" className="inline-flex min-h-12 items-center rounded-full bg-[#075a53] px-7 text-sm font-bold text-white">მაღაზიის პროფილის გამართვა ↗</Link>
+            <Link href={isPreview ? "/stores/showcase" : "/dashboard/profile"} className="inline-flex min-h-12 items-center rounded-full bg-[#075a53] px-7 text-sm font-bold text-white">{isPreview ? "მაღაზიის დემო ↗" : "მაღაზიის პროფილის გამართვა ↗"}</Link>
             <Link href="/stores" className="inline-flex min-h-12 items-center rounded-full border border-[#b8cdc1] px-7 text-sm font-bold text-[#075a53]">მაღაზიების ნახვა</Link>
           </div>
         </section>
