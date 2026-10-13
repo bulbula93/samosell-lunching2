@@ -15,7 +15,7 @@ import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
-import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
+import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
@@ -112,7 +112,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${encodeURIComponent(profile.username)}`)
-  const sellerAvatarSrc = getUserAvatar(profile)
+  const sellerAvatarSrc = profile.seller_type === "store" ? getSellerVisualAvatar(profile) : getUserAvatar(profile)
   const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
     profile.store_phone ||
