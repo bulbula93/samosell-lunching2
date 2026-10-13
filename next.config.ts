@@ -1,6 +1,21 @@
 import type { NextConfig } from "next";
+import { PRODUCTION_PUBLIC_FALLBACK } from "./lib/env";
+
+const isStorageAuditPreview =
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.VERCEL_GIT_COMMIT_REF === "preview/vercel-storage-optimization-20261014";
 
 const nextConfig: NextConfig = {
+  // This exact review branch reads public production data and blocks writes.
+  // No persisted Vercel environment variables are changed.
+  ...(isStorageAuditPreview ? {
+    env: {
+      NEXT_PUBLIC_PREVIEW_READ_ONLY: "true",
+      NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_PUBLIC_FALLBACK.supabaseUrl,
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PRODUCTION_PUBLIC_FALLBACK.supabasePublishableKey,
+      NEXT_PUBLIC_SITE_URL: PRODUCTION_PUBLIC_FALLBACK.siteUrl,
+    },
+  } : {}),
   turbopack: {
     root: process.cwd(),
   },
