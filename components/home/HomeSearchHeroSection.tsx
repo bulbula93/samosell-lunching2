@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import HeroListingCarousel from "@/components/home/HeroListingCarousel"
 import type { HeroListingItem } from "@/components/home/HeroListingCarousel"
 import { ka } from "@/lib/i18n/ka"
@@ -25,9 +26,17 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
     <section className="bg-white px-3 pb-9 pt-4 sm:px-4 sm:pb-12">
       <div className="ui-container !px-0">
         <div
-          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
-          style={{ backgroundImage: "url('/brand/samosell-hero-bg.jpg')" }}
+          className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
         >
+          <Image
+            src="/brand/samosell-hero-bg.jpg"
+            alt=""
+            aria-hidden="true"
+            fill
+            preload
+            sizes="(max-width: 767px) 1400px, (max-width: 1439px) 100vw, 1400px"
+            className="object-cover object-center"
+          />
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
           <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
