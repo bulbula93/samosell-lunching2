@@ -85,6 +85,8 @@ describe("Google discovery metadata", () => {
         availability: "https://schema.org/InStock",
       },
     })
+    // Audience navigation labels are not product taxonomy values.
+    expect(product).not.toHaveProperty("category")
     expect(JSON.stringify(listingData)).not.toContain("checkout")
     expect(JSON.stringify(listingData)).not.toContain("shipping")
   })
