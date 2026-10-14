@@ -1,2 +1,11 @@
 packages:
   - "."
+
+# Fetch libc metadata and install only the build host's native variants.
+supportedArchitectures:
+  os:
+    - current
+  cpu:
+    - current
+  libc:
+    - current

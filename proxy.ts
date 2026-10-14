@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
       pathname === "/" ||
       pathname === "/sitemap.xml" ||
       pathname === "/robots.txt" ||
+      pathname === "/opengraph-image" ||
       pathname === "/catalog" ||
       pathname.startsWith("/catalog/") ||
       pathname.startsWith("/listing/") ||

@@ -18,7 +18,7 @@ function normalizeUrl(value: string) {
 // These values are intentionally public client configuration and already ship in
 // the production browser bundle. They are used only as a production safety net
 // so a missing Vercel public env cannot take the whole deployment down.
-const PRODUCTION_PUBLIC_FALLBACK = {
+export const PRODUCTION_PUBLIC_FALLBACK = {
   supabaseUrl: "https://lxsvjzbiuewgwpajqrwr.supabase.co",
   supabasePublishableKey: "sb_publishable_6XvPvhIJLKZGbsB44LhBkQ_9lKYXUvS",
   siteUrl: "https://samosell.ge",
