@@ -4,7 +4,9 @@ import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeStoreHero } from "@/lib/store-hero"
 
-export default async function DashboardProfilePage() {
+export default async function DashboardProfilePage({ searchParams }: { searchParams?: Promise<{ setup?: string | string[] }> }) {
+  const params = (await searchParams) ?? {}
+  const startStoreSetup = params.setup === "store"
   const supabase = await createClient()
   const {
     data: { user },
@@ -47,6 +49,7 @@ export default async function DashboardProfilePage() {
 
       <div className="mt-6">
         <ProfileForm
+        startStoreSetup={startStoreSetup}
         userId={user!.id}
         initialProfile={{
           username: profile?.username ?? "",
