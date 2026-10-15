@@ -32,7 +32,7 @@ const advantages = [
 
 const steps = [
   { n: "01", title: "შექმენი ანგარიში", description: "გამოიყენე არსებული SamoSell ანგარიში ან შექმენი ახალი." },
-  { n: "02", title: "მიუთითე მაღაზიის ტიპი", description: "პროფილში აირჩიე „მაღაზია“, დაამატე ლოგო, ბანერი და საკონტაქტო ინფორმაცია." },
+  { n: "02", title: "მიუთითე მაღაზიის ტიპი", description: "პროფილში აირჩიე „მაღაზია“, შექმენი მთავარი ბლოკის ტექსტები, ატვირთე ქავერი და ლოგო." },
   { n: "03", title: "გამოაქვეყნე ნივთები", description: "შენი განცხადებები გაერთიანდება მაღაზიის ვიტრინაში და გამოჩნდება კატალოგშიც." },
 ] as const
 
@@ -57,8 +57,8 @@ export default function ForStoresPage() {
                     <p className="mt-4 text-sm font-semibold text-text-soft">შენი სტილი. შენი ისტორია.</p>
                   </div>
                   <div className="mt-7 flex flex-wrap gap-3">
-                    <Link href={isPreview ? "/stores/showcase" : "/register"} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">
-                      {isPreview ? "ვიტრინის დემოს ნახვა ↗" : "გახსენი მაღაზია ↗"}
+                    <Link href={isPreview ? "/stores/hero-editor" : "/register?next=%2Fdashboard%2Fprofile"} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">
+                      {isPreview ? "შექმენი საკუთარი ვიტრინა · დემო ↗" : "გახსენი მაღაზია ↗"}
                     </Link>
                     <Link href="/stores?demo=1" className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/90 px-6 text-sm font-black text-brand transition hover:bg-white">
                       აღმოაჩინე მაღაზიები
@@ -71,7 +71,7 @@ export default function ForStoresPage() {
                     <div aria-hidden="true" className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl text-[#e9964f]">★</div>
                     <h2 className="mt-4 text-2xl font-black text-brand sm:text-[28px]">შენი მაღაზიის ვიტრინა</h2>
                     <p className="mx-auto mt-3 max-w-[360px] text-sm leading-7 text-text-soft">ლოგო, ბანერი და ყველა შენი განცხადება ერთ გასაზიარებელ გვერდზე.</p>
-                    <Link href="/stores/showcase" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-7 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:bg-accent-hover">ნახე ვიტრინა ↗</Link>
+                    <Link href="/stores/hero-editor" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-7 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:bg-accent-hover">ნახე ვიტრინა ↗</Link>
                   </div>
                 </div>
               </div>
