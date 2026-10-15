@@ -22,6 +22,7 @@ import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
 import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
+import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
@@ -76,6 +77,15 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  // Optional until the staged migration is explicitly applied to Production.
+  // The public storefront continues to work with name/bio if the column is absent.
+  const heroResponse = profile.seller_type === "store"
+    ? await supabase.from("profiles").select("store_hero").eq("id", profile.id).maybeSingle()
+    : null
+  const hero = normalizeStoreHero(heroResponse?.data?.store_hero)
+  const heroHeadline = hero.headline || profile.full_name || profile.username
+  const heroDescription = hero.description || profile.bio || ""
 
   const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
     supabase
@@ -245,7 +255,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
             </nav>
             <div className="relative mt-6 grid min-w-0 gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">დამოუკიდებელი მაღაზია / საქართველო</p>
+                {hero.eyebrow ? <p className="text-[11px] font-semibold tracking-[0.11em] text-[#a77459]">{hero.eyebrow}</p> : null}
                 <div className="mt-6 flex min-w-0 items-center gap-4">
                   <div className="relative shrink-0">
                     {sellerHasStory ? (
@@ -262,17 +272,17 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     ) : null}
                   </div>
                 </div>
-                <h1 className="mt-6 max-w-2xl break-words text-[clamp(2.35rem,4.6vw,4.6rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">{sellerName}</h1>
-                {profile.bio ? (
+                <h1 className="mt-6 max-w-2xl break-words whitespace-pre-wrap text-[clamp(2.35rem,4.6vw,4.6rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">{heroHeadline}</h1>
+                {heroDescription ? (
                   <div className="mt-6 max-w-lg text-sm leading-7 text-[#667167] sm:text-base">
-                    {profile.bio.length > 210 ? (
+                    {heroDescription.length > 210 ? (
                       <details>
-                        <summary className="cursor-pointer font-medium">{profile.bio.slice(0, 205).trimEnd()}… <span className="text-[#98644d] underline underline-offset-4">სრულად</span></summary>
-                        <p className="mt-3 whitespace-pre-wrap">{profile.bio}</p>
+                        <summary className="cursor-pointer font-medium">{heroDescription.slice(0, 205).trimEnd()}… <span className="text-[#98644d] underline underline-offset-4">სრულად</span></summary>
+                        <p className="mt-3 whitespace-pre-wrap">{heroDescription}</p>
                       </details>
-                    ) : <p className="whitespace-pre-wrap">{profile.bio}</p>}
+                    ) : <p className="whitespace-pre-wrap">{heroDescription}</p>}
                   </div>
-                ) : <p className="mt-6 text-sm leading-7 text-[#667167]">აღმოაჩინე ამ მაღაზიის კოლექცია SamoSell-ზე.</p>}
+                ) : null}
                 <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#647468]">
                   {profile.city ? <span>⌖ {profile.city}</span> : null}
                   <span>{activeListingsCount} აქტიური განცხადება</span>
@@ -318,11 +328,12 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     </div>
                   )}
                 </div>
-                <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
-                  <p className="text-xl font-semibold leading-snug text-brand sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
-                  <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">რჩეული SamoSell-ზე</p>
-                </div>
-                <span className="absolute right-1 top-7 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
+                {hero.coverTitle || hero.coverSubtitle ? (
+                  <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
+                    {hero.coverTitle ? <p className="break-words text-xl font-semibold leading-snug text-brand sm:text-2xl">{hero.coverTitle}</p> : null}
+                    {hero.coverSubtitle ? <p className="mt-2 break-words text-xs text-[#827469]">{hero.coverSubtitle}</p> : null}
+                  </div>
+                ) : null}
               </div>
             </div>
 
