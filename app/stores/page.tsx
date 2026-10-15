@@ -71,8 +71,8 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
       <main className="min-h-screen bg-bg text-text">
         <div className="bg-white px-3 pb-8 pt-4 sm:px-4 sm:pb-12">
           <div className="ui-container !px-0">
-            <section className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]" style={{ backgroundImage: "url('/brand/samosell-hero-bg.jpg')" }}>
-              <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.96)_0%,rgba(255,251,246,0.85)_38%,rgba(255,251,246,0.08)_72%,rgba(255,251,246,0.0)_100%)]" />
+            <section className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]" style={{ backgroundImage: "url('/brand/samosell-shops-boutique.webp')" }}>
+              <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.92)_0%,rgba(255,251,246,0.79)_38%,rgba(255,251,246,0.03)_72%,rgba(255,251,246,0.0)_100%)]" />
               <div className="relative grid min-h-[550px] items-center gap-7 px-6 py-9 sm:px-10 sm:py-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-14">
                 <div className="relative z-10 max-w-2xl">
                   <p className="text-xs font-black tracking-[0.18em] text-brand">SamoSell-ის რჩეული · მაღაზიები</p>
