@@ -150,6 +150,7 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
   const [storeWebsite, setStoreWebsite] = useState(initialProfile.store_website)
   const [storeHours, setStoreHours] = useState(initialProfile.store_hours)
   const [storeAddress, setStoreAddress] = useState(initialProfile.store_address)
+  const [hasPhysicalStore, setHasPhysicalStore] = useState(Boolean(initialProfile.store_address?.trim() || initialProfile.store_map_url?.trim()))
   const [storeMapUrl, setStoreMapUrl] = useState(initialProfile.store_map_url)
   const [tiktokUsername, setTikTokUsername] = useState(initialProfile.tiktok_username)
   const [tiktokLiveUntil, setTikTokLiveUntil] = useState(initialProfile.tiktok_live_until)
@@ -332,9 +333,9 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
         store_instagram: sellerType === "store" ? storeInstagram.trim() || null : null,
         store_facebook: sellerType === "store" ? storeFacebook.trim() || null : null,
         store_website: sellerType === "store" ? storeWebsite.trim() || null : null,
-        store_hours: sellerType === "store" ? storeHours.trim() || null : null,
-        store_address: sellerType === "store" ? storeAddress.trim() || null : null,
-        store_map_url: sellerType === "store" ? storeMapUrl.trim() || null : null,
+        store_hours: sellerType === "store" && hasPhysicalStore ? storeHours.trim() || null : null,
+        store_address: sellerType === "store" && hasPhysicalStore ? storeAddress.trim() || null : null,
+        store_map_url: sellerType === "store" && hasPhysicalStore ? storeMapUrl.trim() || null : null,
         tiktok_username: normalizedTikTokUsername || null,
         tiktok_live_until: normalizedTikTokUsername ? tiktokLiveUntil || null : null,
       })
@@ -427,7 +428,7 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-text-soft">
               {sellerType === "store"
-                ? "ყველა ტექსტი და სურათი შენი არჩევანია — ცვლილებები მაშინვე ჩანს ცოცხალ წინასწარ ნახვაში, ხოლო საჯარო გვერდზე შენახვის შემდეგ."
+                ? "ტექსტები, ფოტოები, სოციალური ქსელები და სურვილისამებრ ფიზიკური მისამართი განახლდება ცოცხალ წინასწარ ნახვაში. საჯარო გვერდზე ცვლილებები შენახვის შემდეგ აისახება."
                 : "ფოტოს არჩევისთანავე preview აქვე გამოჩნდება. საჯარო პროფილზე ცვლილება მხოლოდ შენახვის შემდეგ აისახება."}
             </p>
           </div>
@@ -484,6 +485,7 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
               ...storeHero,
               description: storeHero.description || bio,
             })}
+            contacts={{instagram:storeInstagram,facebook:storeFacebook,tiktok:tiktokUsername,whatsapp:storeWhatsapp,telegram:storeTelegram,website:storeWebsite,address:hasPhysicalStore?storeAddress:"",mapUrl:hasPhysicalStore?storeMapUrl:"",hours:hasPhysicalStore?storeHours:""}}
             logoUrl={visibleStoreLogoUrl || visibleAvatarUrl}
             coverUrl={visibleStoreBannerUrl}
             caption="შენი მაღაზიის მთავარი ბლოკი · ცოცხალი წინასწარი ნახვა"
@@ -614,7 +616,92 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
 
           <section className="space-y-4">
             <div>
-              <div className="ui-eyebrow">4. ძირითადი ინფორმაცია</div>
+              <div className="ui-eyebrow">4. კონტაქტი და სოციალური ქსელები</div>
+              <h3 className="mt-2 text-xl font-black text-text">როგორ დაგიკავშირდეს მყიდველი</h3>
+              <p className="mt-1 text-sm leading-6 text-text-soft">შეავსე მხოლოდ ის არხები, რომლებსაც რეალურად იყენებ.</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label htmlFor="seller-phone" className="ui-field-label">ტელეფონი</label>
+                <input
+                  id="seller-phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={SELLER_PHONE_MAX_LENGTH}
+                  value={storePhone}
+                  onChange={(event) => setStorePhone(event.target.value)}
+                  className="ui-input h-12 rounded-2xl"
+                  placeholder="მაგ: +995 555 12 34 56"
+                />
+              </div>
+              <div>
+                <label className="ui-field-label">WhatsApp</label>
+                <input value={storeWhatsapp} onChange={(e) => setStoreWhatsapp(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: +995 555 12 34 56 ან wa.me ბმული" />
+              </div>
+              <div>
+                <label className="ui-field-label">Telegram</label>
+                <input value={storeTelegram} onChange={(e) => setStoreTelegram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosellshop" />
+              </div>
+              <div>
+                <label className="ui-field-label">Instagram</label>
+                <input value={storeInstagram} onChange={(e) => setStoreInstagram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosell.store" />
+              </div>
+              <div>
+                <label className="ui-field-label">TikTok</label>
+                <input value={tiktokUsername} onChange={(e) => setTikTokUsername(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @myshop" />
+              </div>
+              <div>
+                <label className="ui-field-label">Facebook</label>
+                <input value={storeFacebook} onChange={(e) => setStoreFacebook(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: facebook.com/samosell" />
+              </div>
+              <div>
+                <label className="ui-field-label">ვებსაიტი</label>
+                <input value={storeWebsite} onChange={(e) => setStoreWebsite(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: samosell.ge" />
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div>
+              <div className="ui-eyebrow">5. ფიზიკური მაღაზია</div>
+              <h3 className="mt-2 text-xl font-black text-text">მისამართი, რუკა და გრაფიკი</h3>
+              <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-2xl border border-line bg-[#fff8f0] p-4 text-sm font-bold text-brand">
+                <input type="checkbox" className="h-5 w-5 accent-brand" checked={hasPhysicalStore} onChange={(e) => setHasPhysicalStore(e.target.checked)} />
+                მაქვს ფიზიკური მაღაზია
+              </label>
+              {!hasPhysicalStore ? <p className="mt-2 text-xs leading-6 text-text-soft">ონლაინ მაღაზიას ფიზიკური მისამართი არ მოეთხოვება. თუ ამ მონიშვნას გამორთავ და შეინახავ, ადრე მითითებული საჯარო მისამართი და რუკა აღარ გამოჩნდება.</p> : null}
+            </div>
+
+            {hasPhysicalStore ? <>
+            <div>
+              <label className="ui-field-label">მაღაზიის მისამართი</label>
+              <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="ui-textarea min-h-24" placeholder="მაგ: თბილისი, ვაკე, აბაშიძის ქუჩა 10" />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="ui-field-label">სამუშაო დღეები და საათები</label>
+                <textarea
+                  value={storeHours}
+                  onChange={(e) => setStoreHours(e.target.value)}
+                  className="ui-textarea min-h-32"
+                  placeholder={"ორშაბათი: 11:00–19:00\nსამშაბათი: 11:00–19:00\nოთხშაბათი: 11:00–19:00\nხუთშაბათი: 11:00–19:00\nპარასკევი: 11:00–20:00\nშაბათი: 12:00–18:00\nკვირა: დაკეტილია"}
+                />
+              </div>
+              <div>
+                <label className="ui-field-label">რუკის ბმული</label>
+                <input value={storeMapUrl} onChange={(e) => setStoreMapUrl(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="Google Maps ან სხვა რუკის ბმული" />
+                <div className="mt-2 text-xs leading-5 text-text-soft">თუ მისამართსაც შეავსებ, საჯარო პროფილზე რუკის preview გამოჩნდება.</div>
+              </div>
+            </div>
+            </> : null}
+          </section>
+
+          <section className="space-y-4">
+            <div>
+              <div className="ui-eyebrow">6. ძირითადი ინფორმაცია</div>
               <h3 className="mt-2 text-xl font-black text-text">სახელი, ქალაქი და აღწერა</h3>
             </div>
 
@@ -650,79 +737,7 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
             </div>
           </section>
 
-          <section className="space-y-4">
-            <div>
-              <div className="ui-eyebrow">4. კონტაქტი და სოციალური ქსელები</div>
-              <h3 className="mt-2 text-xl font-black text-text">როგორ დაგიკავშირდეს მყიდველი</h3>
-              <p className="mt-1 text-sm leading-6 text-text-soft">შეავსე მხოლოდ ის არხები, რომლებსაც რეალურად იყენებ.</p>
-            </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label htmlFor="seller-phone" className="ui-field-label">ტელეფონი</label>
-                <input
-                  id="seller-phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  maxLength={SELLER_PHONE_MAX_LENGTH}
-                  value={storePhone}
-                  onChange={(event) => setStorePhone(event.target.value)}
-                  className="ui-input h-12 rounded-2xl"
-                  placeholder="მაგ: +995 555 12 34 56"
-                />
-              </div>
-              <div>
-                <label className="ui-field-label">WhatsApp</label>
-                <input value={storeWhatsapp} onChange={(e) => setStoreWhatsapp(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: +995 555 12 34 56 ან wa.me ბმული" />
-              </div>
-              <div>
-                <label className="ui-field-label">Telegram</label>
-                <input value={storeTelegram} onChange={(e) => setStoreTelegram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosellshop" />
-              </div>
-              <div>
-                <label className="ui-field-label">Instagram</label>
-                <input value={storeInstagram} onChange={(e) => setStoreInstagram(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: @samosell.store" />
-              </div>
-              <div>
-                <label className="ui-field-label">Facebook</label>
-                <input value={storeFacebook} onChange={(e) => setStoreFacebook(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: facebook.com/samosell" />
-              </div>
-              <div>
-                <label className="ui-field-label">ვებსაიტი</label>
-                <input value={storeWebsite} onChange={(e) => setStoreWebsite(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="მაგ: samosell.ge" />
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div>
-              <div className="ui-eyebrow">5. ლოკაცია და სამუშაო საათები</div>
-              <h3 className="mt-2 text-xl font-black text-text">მისამართი, რუკა და გრაფიკი</h3>
-            </div>
-
-            <div>
-              <label className="ui-field-label">მაღაზიის მისამართი</label>
-              <textarea value={storeAddress} onChange={(e) => setStoreAddress(e.target.value)} className="ui-textarea min-h-24" placeholder="მაგ: თბილისი, ვაკე, აბაშიძის ქუჩა 10" />
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="ui-field-label">სამუშაო დღეები და საათები</label>
-                <textarea
-                  value={storeHours}
-                  onChange={(e) => setStoreHours(e.target.value)}
-                  className="ui-textarea min-h-32"
-                  placeholder={"ორშაბათი: 11:00–19:00\nსამშაბათი: 11:00–19:00\nოთხშაბათი: 11:00–19:00\nხუთშაბათი: 11:00–19:00\nპარასკევი: 11:00–20:00\nშაბათი: 12:00–18:00\nკვირა: დაკეტილია"}
-                />
-              </div>
-              <div>
-                <label className="ui-field-label">რუკის ბმული</label>
-                <input value={storeMapUrl} onChange={(e) => setStoreMapUrl(e.target.value)} className="ui-input h-12 rounded-2xl" placeholder="Google Maps ან სხვა რუკის ბმული" />
-                <div className="mt-2 text-xs leading-5 text-text-soft">თუ მისამართსაც შეავსებ, საჯარო პროფილზე რუკის preview გამოჩნდება.</div>
-              </div>
-            </div>
-          </section>
         </>
       ) : (
         <>
