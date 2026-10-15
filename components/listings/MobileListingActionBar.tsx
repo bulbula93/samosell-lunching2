@@ -41,7 +41,7 @@ export default function MobileListingActionBar({
   return (
     <div
       className={`fixed inset-x-0 z-[65] border-t border-line bg-white/96 px-3 py-2 shadow-[0_-12px_30px_rgba(7,63,59,0.12)] backdrop-blur md:static md:mt-6 md:rounded-[24px] md:border md:border-brand/15 md:bg-[linear-gradient(135deg,#fff8ef,#edf7f1)] md:p-5 md:shadow-[0_12px_32px_rgba(7,63,59,0.07)] md:backdrop-blur-none ${!isOwner && !isActive ? "md:hidden" : ""}`}
-      style={{ bottom: "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))" }}
+      style={{ bottom: "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom) + 1rem)" }}
     >
       <div className="mx-auto flex max-w-lg items-center gap-3 md:max-w-none md:flex-col md:items-stretch md:gap-4">
         <div className="hidden md:flex md:items-start md:gap-3">
