@@ -53,12 +53,12 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>) {
 describe("CreateListingForm", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.prepare.mockImplementation(async (input: { files: Array<{ clientId: string }> }) => ({
+    mocks.prepare.mockImplementation(async (input: { listingId?: string; files: Array<{ clientId: string }> }) => ({
       ok: true,
-      listingId: "377f3329-6c04-4c40-8f33-873ab3ee4f76",
+      listingId: input.listingId,
       plans: input.files.map((file, index) => ({
         clientId: file.clientId,
-        path: `user/377f3329-6c04-4c40-8f33-873ab3ee4f76/image-${index}.jpg`,
+        path: `user/${input.listingId}/image-${index}.jpg`,
         token: `signed-token-${index}`,
       })),
     }))
@@ -154,7 +154,7 @@ describe("CreateListingForm", () => {
     expect(mocks.save).not.toHaveBeenCalled()
   })
 
-  it("keeps form data and cleans uploaded objects when upload fails", async () => {
+  it("keeps form data and requests safe cleanup when upload fails", async () => {
     const user = userEvent.setup()
     const listingId = "377f3329-6c04-4c40-8f33-873ab3ee4f76"
     const firstPath = `user/${listingId}/477f3329-6c04-4c40-8f33-873ab3ee4f76.jpg`
@@ -188,6 +188,40 @@ describe("CreateListingForm", () => {
     expect(screen.getByLabelText(/^სათაური/)).toHaveValue("ტყავის ქურთუკი")
     expect(mocks.abort).toHaveBeenCalledWith(listingId, [firstPath])
     expect(mocks.save).not.toHaveBeenCalled()
+  })
+
+  it.each(["transport", "server_error"])("retries the exact create after %s failure without new uploads or abort", async (failure) => {
+    const user = userEvent.setup()
+    if (failure === "transport") mocks.save.mockRejectedValueOnce(new Error("response lost"))
+    else mocks.save.mockResolvedValueOnce({ ok: false, code: "server_error", message: "სცადე ხელახლა." })
+    render(<CreateListingForm {...props} />)
+    await fillValidForm(user)
+    await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"), listingImageFile())
+    await user.click(screen.getByRole("button", { name: "გამოქვეყნება" }))
+    await screen.findByRole("alert")
+    const firstInput = mocks.save.mock.calls[0][0]
+    await user.click(screen.getByRole("button", { name: "გამოქვეყნება" }))
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledTimes(2))
+    expect(mocks.save.mock.calls[1][0]).toBe(firstInput)
+    expect(firstInput.listingId).toBe(mocks.prepare.mock.calls[0][0].listingId)
+    expect(mocks.prepare).toHaveBeenCalledOnce()
+    expect(mocks.upload).toHaveBeenCalledOnce()
+    expect(mocks.abort).not.toHaveBeenCalled()
+    expect(mocks.push).toHaveBeenCalledWith("/listing/tyavis-kurtuki")
+  })
+
+  it("keeps the attempt ID after upload preparation fails", async () => {
+    const user = userEvent.setup()
+    mocks.prepare.mockRejectedValueOnce(new Error("lost preparation response"))
+    render(<CreateListingForm {...props} />)
+    await fillValidForm(user)
+    await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"), listingImageFile())
+    await user.click(screen.getByRole("button", { name: "გამოქვეყნება" }))
+    await screen.findByRole("alert")
+    await user.click(screen.getByRole("button", { name: "გამოქვეყნება" }))
+    await waitFor(() => expect(mocks.save).toHaveBeenCalledOnce())
+    expect(mocks.prepare.mock.calls[1][0].listingId).toBe(mocks.prepare.mock.calls[0][0].listingId)
+    expect(mocks.save.mock.calls[0][0].listingId).toBe(mocks.prepare.mock.calls[0][0].listingId)
   })
 
   it("prefills edit data, preserves protected statuses, and links back by slug", () => {

@@ -9,6 +9,7 @@ import {
   abortListingUploadsAction,
   prepareListingUploadsAction,
   saveListingAction,
+  type SaveListingInput,
 } from "@/app/dashboard/listings/form-actions"
 import {
   LISTING_GENDERS,
@@ -319,6 +320,8 @@ export default function CreateListingForm({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const errorSummaryRef = useRef<HTMLDivElement | null>(null)
   const submittingRef = useRef(false)
+  const createAttemptIdRef = useRef<string | null>(null)
+  const pendingCreateRef = useRef<SaveListingInput | null>(null)
   const imagesRef = useRef(images)
   const formPrefix = useId().replace(/:/g, "")
 
@@ -497,71 +500,79 @@ export default function CreateListingForm({
       (image): image is EditableImage & { kind: "new"; file: File } =>
         image.kind === "new" && Boolean(image.file)
     )
-    let preparedListingId = initialData.id ?? ""
+    let preparedListingId = isEdit
+      ? initialData.id ?? ""
+      : createAttemptIdRef.current ??= crypto.randomUUID()
     let uploadedPaths: string[] = []
     let completed = false
 
     try {
-      const preparation = await prepareListingUploadsAction({
-        mode,
-        listingId: initialData.id,
-        files: newImages.map((image) => ({
-          clientId: image.id,
-          mimeType: image.file.type,
-          size: image.file.size,
-        })),
-      })
+      let saveInput = isEdit ? null : pendingCreateRef.current
+      if (!saveInput) {
+        const preparation = await prepareListingUploadsAction({
+          mode,
+          listingId: preparedListingId,
+          files: newImages.map((image) => ({
+            clientId: image.id,
+            mimeType: image.file.type,
+            size: image.file.size,
+          })),
+        })
 
-      if (!preparation.ok) {
-        if (preparation.code === "unauthorized") {
-          const nextPath = isEdit && initialData.id
-            ? `/dashboard/listings/${initialData.id}/edit`
-            : "/dashboard/listings/new"
-          router.push(`/login?next=${encodeURIComponent(nextPath)}`)
-          return
+        if (!preparation.ok) {
+          if (preparation.code === "unauthorized") {
+            const nextPath = isEdit && initialData.id
+              ? `/dashboard/listings/${initialData.id}/edit`
+              : "/dashboard/listings/new"
+            router.push(`/login?next=${encodeURIComponent(nextPath)}`)
+            return
+          }
+          throw new Error(preparation.message)
         }
-        throw new Error(preparation.message)
+
+        preparedListingId = preparation.listingId
+        const plansByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan]))
+
+        for (let index = 0; index < newImages.length; index += 1) {
+          const image = newImages[index]
+          const plan = plansByClientId.get(image.id)
+          if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
+
+          setProgressText(`სურათები იტვირთება… ${index + 1}/${newImages.length}`)
+          setProgressPercent(10 + Math.round(((index + 1) / Math.max(newImages.length, 1)) * 55))
+
+          const { error } = await supabase.storage
+            .from("listing-images")
+            .uploadToSignedUrl(plan.path, plan.token, image.file, {
+              contentType: image.file.type,
+              cacheControl: "3600",
+            })
+          if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
+          uploadedPaths.push(plan.path)
+        }
+
+        setProgressText("განცხადება უსაფრთხოდ ინახება…")
+        setProgressPercent(75)
+
+        const pathByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan.path]))
+        saveInput = {
+          mode,
+          listingId: preparation.listingId,
+          form: formInput,
+          growthEditId: growthEditIdRef.current ??= crypto.randomUUID(),
+          images: images.map((image) => {
+            if (image.kind === "existing") return { kind: "existing" as const, id: image.id }
+            const path = pathByClientId.get(image.id)
+            if (!path) throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
+            return { kind: "uploaded" as const, path }
+          }),
+        }
+        if (!isEdit) pendingCreateRef.current = saveInput
       }
-
-      preparedListingId = preparation.listingId
-      const plansByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan]))
-
-      for (let index = 0; index < newImages.length; index += 1) {
-        const image = newImages[index]
-        const plan = plansByClientId.get(image.id)
-        if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
-
-        setProgressText(`სურათები იტვირთება… ${index + 1}/${newImages.length}`)
-        setProgressPercent(10 + Math.round(((index + 1) / Math.max(newImages.length, 1)) * 55))
-
-        const { error } = await supabase.storage
-          .from("listing-images")
-          .uploadToSignedUrl(plan.path, plan.token, image.file, {
-            contentType: image.file.type,
-            cacheControl: "3600",
-          })
-        if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
-        uploadedPaths.push(plan.path)
-      }
-
-      setProgressText("განცხადება უსაფრთხოდ ინახება…")
-      setProgressPercent(75)
-
-      const pathByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan.path]))
-      const result = await saveListingAction({
-        mode,
-        listingId: preparation.listingId,
-        form: formInput,
-        growthEditId: growthEditIdRef.current ??= crypto.randomUUID(),
-        images: images.map((image) => {
-          if (image.kind === "existing") return { kind: "existing" as const, id: image.id }
-          const path = pathByClientId.get(image.id)
-          if (!path) throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
-          return { kind: "uploaded" as const, path }
-        }),
-      })
+      const result = await saveListingAction(saveInput)
 
       if (!result.ok) {
+        if (result.code === "invalid") pendingCreateRef.current = null
         if (result.fieldErrors) setFieldErrors(result.fieldErrors)
         if (result.code === "unauthorized") {
           const nextPath = isEdit && initialData.id
@@ -579,13 +590,15 @@ export default function CreateListingForm({
         ? "განცხადება შენახულია. ერთი ძველი ფაილის ავტომატური გასუფთავება მოგვიანებით განმეორდება."
         : isEdit ? "განცხადება განახლდა." : "განცხადება შეიქმნა.")
       completed = true
+      pendingCreateRef.current = null
+      createAttemptIdRef.current = null
       growthEditIdRef.current = null
       const hasPrivateDetail = !["active", "reserved", "sold"].includes(result.status)
       router.push(hasPrivateDetail ? "/dashboard/listings" : `/listing/${result.slug}`)
       router.refresh()
     } catch (submitError) {
-      if (preparedListingId && uploadedPaths.length > 0) {
-        await abortListingUploadsAction(preparedListingId, uploadedPaths)
+      if (!pendingCreateRef.current && preparedListingId && uploadedPaths.length > 0) {
+        try { await abortListingUploadsAction(preparedListingId, uploadedPaths) } catch { /* Cleanup stays deferred. */ }
       }
       const message = submitError instanceof Error ? submitError.message : ""
       setFormError(
