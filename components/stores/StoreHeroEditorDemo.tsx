@@ -18,7 +18,7 @@ export default function StoreHeroEditorDemo() {
   const [city, setCity] = useState("თბილისი")
   const [hero, setHero] = useState<StoreHeroContent>(exampleHero)
   const [contacts, setContacts] = useState<StoreContacts>({
-    instagram: "@samosell.ge", facebook: "", tiktok: "", whatsapp: "", telegram: "",
+    instagram: "@samo.sell", facebook: "", tiktok: "", whatsapp: "", telegram: "",
     website: "", address: "", mapUrl: "", hours: "",
   })
   const [hasPhysicalStore, setHasPhysicalStore] = useState(false)
