@@ -14,19 +14,22 @@ import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
+import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
+import StoreContactStrip from "@/components/stores/StoreContactStrip"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
-import { getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
+import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
 import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
+import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 
 const listingSelect =
-  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 type PublicSellerListingCounts = {
   active_count?: number | string | null
@@ -76,6 +79,15 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Optional until the staged migration is explicitly applied to Production.
+  // The public storefront continues to work with name/bio if the column is absent.
+  const heroResponse = profile.seller_type === "store"
+    ? await supabase.from("profiles").select("store_hero").eq("id", profile.id).maybeSingle()
+    : null
+  const hero = normalizeStoreHero(heroResponse?.data?.store_hero)
+  const heroHeadline = hero.headline || profile.full_name || profile.username
+  const heroDescription = hero.description || profile.bio || ""
+
   const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
     supabase
       .from("listings_catalog")
@@ -110,9 +122,37 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     reviewSummary: sellerReviewData.summary,
   })
   const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
+  // listings_catalog only reports VIP/featured flags while their paid periods remain active.
+  const storeVipListings: StoreVipListing[] = profile.seller_type === "store"
+    ? sellerListings
+        .filter((item) => item.is_vip && Boolean(item.cover_image_url))
+        .sort((a, b) =>
+          Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)) ||
+          Number(b.promotion_tier ?? 0) - Number(a.promotion_tier ?? 0) ||
+          new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime()
+        )
+        .slice(0, 6)
+        .map((item) => ({
+          id: item.id,
+          slug: item.slug,
+          title: item.title,
+          price: item.price,
+          currency: item.currency,
+          sale_type: item.sale_type ?? null,
+          cover_image_url: item.cover_image_url,
+          is_vip: item.is_vip,
+          is_featured: Boolean(item.is_featured),
+          promotion_tier: item.promotion_tier ?? null,
+          published_at: item.published_at ?? null,
+          seller_id: profile.id,
+          seller_username: profile.username,
+          seller_full_name: profile.full_name,
+          seller_store_logo_url: profile.store_logo_url,
+        }))
+    : []
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${encodeURIComponent(profile.username)}`)
-  const sellerAvatarSrc = getUserAvatar(profile)
+  const sellerAvatarSrc = profile.seller_type === "store" ? getSellerVisualAvatar(profile) : getUserAvatar(profile)
   const storyOwner = { id: profile.id, username: profile.username, fullName: profile.full_name, avatarUrl: sellerAvatarSrc, storyCount: 1, unseenCount: 1, latestStoryAt: new Date().toISOString() }
   const hasStoreDetails = profile.seller_type === "store" && Boolean(
     profile.store_phone ||
@@ -205,6 +245,123 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(sellerStructuredData) }}
       />
       <SiteHeader />
+      {profile.seller_type === "store" ? (
+        <section aria-label="მაღაზიის ვიტრინა" className="bg-white px-3 py-4 text-text sm:px-4">
+          <div className="ui-container !px-0 pb-12 pt-4 sm:pb-16 sm:pt-7">
+            <nav aria-label="სანავიგაციო ბილიკი" className="flex flex-wrap items-center gap-3 border-y border-line px-4 py-4 text-[11px] font-semibold tracking-[0.07em] sm:px-6">
+              <Link href="/stores" className="text-[#8a7969] transition hover:text-[#293f37]">მაღაზიები</Link>
+              <span aria-hidden="true" className="text-[#b37f65]">/</span>
+              <span className="min-w-0 truncate text-[#293f37]">{sellerName}</span>
+              <span className="ml-auto hidden text-[#a08068] sm:inline">SamoSell-ის რჩეული</span>
+            </nav>
+            <div className="relative mt-6 grid min-w-0 gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
+              <div className="min-w-0">
+                {hero.eyebrow ? <p className="text-[11px] font-semibold tracking-[0.11em] text-[#a77459]">{hero.eyebrow}</p> : null}
+                <div className="mt-6 flex min-w-0 items-center gap-4">
+                  <div className="relative shrink-0">
+                    {sellerHasStory ? (
+                      <StoryRingAvatar owner={storyOwner} currentUserId={user?.id ?? null} />
+                    ) : (
+                      <Avatar src={sellerAvatarSrc} alt={sellerName} fallbackText={sellerName} sizeClassName="h-16 w-16 sm:h-20 sm:w-20" textClassName="text-base" />
+                    )}
+                    <TikTokLiveBadge username={profile.tiktok_username} liveUntil={profile.tiktok_live_until} className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="break-all text-xs text-[#8a8279]">@{profile.username}</p>
+                    {profile.is_seller_verified ? (
+                      <span className="mt-2 inline-flex items-center rounded-full border border-[#b9cfbf] bg-[#e7f1e5] px-3 py-1 text-[11px] font-semibold text-[#295942]">✓ დადასტურებული</span>
+                    ) : null}
+                  </div>
+                </div>
+                <h1 className="mt-6 max-w-2xl break-words whitespace-pre-wrap text-[clamp(2.35rem,4.6vw,4.6rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">{heroHeadline}</h1>
+                {heroDescription ? (
+                  <div className="mt-6 max-w-lg text-sm leading-7 text-[#667167] sm:text-base">
+                    {heroDescription.length > 210 ? (
+                      <details>
+                        <summary className="cursor-pointer font-medium">{heroDescription.slice(0, 205).trimEnd()}… <span className="text-[#98644d] underline underline-offset-4">სრულად</span></summary>
+                        <p className="mt-3 whitespace-pre-wrap">{heroDescription}</p>
+                      </details>
+                    ) : <p className="whitespace-pre-wrap">{heroDescription}</p>}
+                  </div>
+                ) : null}
+                <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#647468]">
+                  {profile.city ? <span>⌖ {profile.city}</span> : null}
+                  <span>{activeListingsCount} აქტიური განცხადება</span>
+                  {followSummary.followers > 0 ? (
+                    <Link href={ "/seller/" + encodeURIComponent(username) + "/followers"} className="underline underline-offset-4">{followSummary.followers} გამომწერი</Link>
+                  ) : null}
+                </div>
+                <div aria-label="მაღაზიასთან დაკავშირება" className="mt-8 grid w-full max-w-lg grid-cols-3 gap-2 sm:gap-3">
+                  {user?.id !== profile.id ? (
+                    user && !user.is_anonymous ? (
+                      <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} variant="profile" />
+                    ) : (
+                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-line px-2 text-xs font-bold text-[#293f37] sm:text-sm">
+                        <SellerActionIcon name="follow" /><span className="ml-1 truncate">გამოწერა</span>
+                      </Link>
+                    )
+                  ) : null}
+                  {user?.id !== profile.id ? (
+                    user && !user.is_anonymous ? (
+                      <ProfileChatButton userId={profile.id} variant="profile" />
+                    ) : (
+                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl bg-brand px-2 text-xs font-bold text-white sm:text-sm">
+                        <SellerActionIcon name="chat" /><span className="ml-1 truncate">მიწერა</span>
+                      </Link>
+                    )
+                  ) : null}
+                  <ShareButton variant="profile" url={shareUrl} title={sellerName} text={"ნახე " + sellerName + " SamoSell-ზე"} />
+                </div>
+                <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white transition hover:bg-brand-hover">კოლექციის ნახვა ↗</a>
+                <StoreContactStrip contacts={{
+                  instagram: profile.store_instagram,
+                  facebook: profile.store_facebook,
+                  tiktok: profile.tiktok_username,
+                  whatsapp: profile.store_whatsapp,
+                  telegram: profile.store_telegram,
+                  website: profile.store_website,
+                  address: profile.store_address,
+                  mapUrl: profile.store_map_url,
+                  hours: profile.store_hours,
+                }} />
+              </div>
+
+              <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
+                <div className="absolute inset-x-0 top-0 bottom-10 overflow-hidden rounded-[26px] bg-[#ded6c8] sm:left-[6%]">
+                  {profile.store_banner_url ? (
+                    <SmartImage src={profile.store_banner_url} alt={sellerName + " მაღაზიის ბანერი"} wrapperClassName="h-full w-full" className="object-cover" loading="eager" sizes="(max-width: 1024px) 100vw, 50vw" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,#d3e0d4,#ead9c7)]">
+                      {profile.store_logo_url ? (
+                        <div className="h-36 w-36 overflow-hidden rounded-full border-4 border-white bg-white shadow-lg sm:h-44 sm:w-44">
+                          <SmartImage src={profile.store_logo_url} alt={sellerName + " ლოგო"} wrapperClassName="h-full w-full" sizes="176px" />
+                        </div>
+                      ) : <span className="font-serif text-8xl italic text-[#7c8e7f]">S.</span>}
+                    </div>
+                  )}
+                </div>
+                {hero.coverTitle || hero.coverSubtitle ? (
+                  <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
+                    {hero.coverTitle ? <p className="break-words text-xl font-semibold leading-snug text-brand sm:text-2xl">{hero.coverTitle}</p> : null}
+                    {hero.coverSubtitle ? <p className="mt-2 break-words text-xs text-[#827469]">{hero.coverSubtitle}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-3xl font-black text-brand">{activeListingsCount}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">აქტიური განცხადება</p></div>
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-2xl font-bold text-brand">{formatSellerTenure(profile.created_at) || "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">SamoSell-ზე</p></div>
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><a href="#seller-reviews-heading" className="block transition hover:text-[#ab7657]"><p className="text-3xl font-black text-brand">{sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? "★ " + sellerReviewData.summary.averageScore.toFixed(1) : "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">{sellerReviewData.summary.reviewCount} შეფასება →</p></a></div>
+            </div>
+            {displayTrustSignals.length > 0 ? (
+              <div className="mt-6 flex flex-wrap gap-2" aria-label="სანდოობის ნიშნები">
+                {displayTrustSignals.map((signal) => <span key={signal.key} title={signal.detail} className="rounded-full border border-[#c5d1c6] bg-white/70 px-3 py-2 text-xs font-semibold text-[#435e4b]">{signal.label}</span>)}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : (
       <section className="ui-container py-7 sm:py-12">
         <div className="overflow-hidden rounded-[1.75rem] border border-[#f0e4d9] bg-white shadow-[0_18px_60px_rgba(71,47,28,0.07)]">
           <div className="grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -400,21 +557,45 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
         </div>
       </section>
 
-      <AdSlotRow
-        placementKeys={["profile_inline_left", "profile_inline_right"]}
-        pagePath={`/seller/${username}`}
-        className="pb-10 sm:pb-12"
-      />
+      )}
+      {profile.seller_type === "store" && storeVipListings.length > 0 ? (
+        <section id="store-vip-listings" aria-labelledby="store-vip-heading" className="scroll-mt-32 bg-[#fff9f2] py-11 sm:py-16">
+          <div className="ui-container">
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+              <div>
+                <p className="text-xs font-semibold text-[#ad7558]">ამ მაღაზიის გამორჩეული ნივთები</p>
+                <h2 id="store-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიის VIP განცხადებები</h2>
+              </div>
+              <span className="rounded-full bg-accent-soft px-4 py-2 text-xs font-bold text-brand">აქტიური VIP</span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {storeVipListings.map((item) => (
+                <StoreVipCard key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-      <SellerReviewsSection data={sellerReviewData} />
+      {profile.seller_type !== "store" ? (
+        <>
+          <AdSlotRow
+            placementKeys={["profile_inline_left", "profile_inline_right"]}
+            pagePath={`/seller/${username}`}
+            className="pb-10 sm:pb-12"
+          />
+          <SellerReviewsSection data={sellerReviewData} />
+        </>
+      ) : null}
 
-      <section id="seller-listings" className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6">
+      <section id="seller-listings" className={profile.seller_type === "store" ? "scroll-mt-32 bg-white text-text pb-14 pt-10 sm:pt-14" : "mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6"}>
+        <div className={profile.seller_type === "store" ? "ui-container" : ""}>
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500">აქტიური შეთავაზებები</div>
-                <h2 className="mt-2 text-2xl font-black sm:text-3xl">{profile.seller_type === "store" ? "მაღაზიის მიმდინარე განცხადებები" : "გამყიდველის მიმდინარე განცხადებები"}</h2>
+                <div className={profile.seller_type === "store" ? "text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a77459]" : "text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500"}>{profile.seller_type === "store" ? "კოლექცია / ნივთები" : "აქტიური შეთავაზებები"}</div>
+                <h2 className={profile.seller_type === "store" ? "mt-3 text-3xl font-semibold tracking-tight text-brand sm:text-4xl" : "mt-2 text-2xl font-black sm:text-3xl"}>{profile.seller_type === "store" ? "მაღაზიის კოლექცია" : "გამყიდველის მიმდინარე განცხადებები"}</h2>
               </div>
               <Link href="/catalog" className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-text-soft">კატალოგში დაბრუნება</Link>
             </div>
@@ -452,7 +633,18 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
             </aside>
           ) : null}
         </div>
+        </div>
       </section>
+      {profile.seller_type === "store" ? (
+        <>
+          <AdSlotRow
+            placementKeys={["profile_inline_left", "profile_inline_right"]}
+            pagePath={`/seller/${username}`}
+            className="pb-10 sm:pb-12"
+          />
+          <SellerReviewsSection data={sellerReviewData} />
+        </>
+      ) : null}
     </main>
   )
 }

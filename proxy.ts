@@ -14,6 +14,11 @@ export async function proxy(request: NextRequest) {
       pathname === "/robots.txt" ||
       pathname === "/opengraph-image" ||
       pathname === "/catalog" ||
+      pathname === "/stores" ||
+      pathname === "/stores/showcase" ||
+      pathname === "/stores/hero-editor" ||
+      pathname === "/stores/concepts" ||
+      pathname === "/for-stores" ||
       pathname.startsWith("/catalog/") ||
       pathname.startsWith("/listing/") ||
       pathname.startsWith("/seller/") ||

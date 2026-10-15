@@ -2,8 +2,11 @@ import Link from "next/link"
 import ProfileForm from "@/components/dashboard/ProfileForm"
 import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
+import { normalizeStoreHero } from "@/lib/store-hero"
 
-export default async function DashboardProfilePage() {
+export default async function DashboardProfilePage({ searchParams }: { searchParams?: Promise<{ setup?: string | string[] }> }) {
+  const params = (await searchParams) ?? {}
+  const startStoreSetup = params.setup === "store"
   const supabase = await createClient()
   const {
     data: { user },
@@ -15,6 +18,12 @@ export default async function DashboardProfilePage() {
     .eq("id", user!.id)
     .maybeSingle()
 
+  // The profile editor can be deployed before the staged DB migration.
+  // In that case, keep existing profiles available and show empty hero fields.
+  const heroResponse = profile?.seller_type === "store"
+    ? await supabase.from("profiles").select("store_hero").eq("id", user!.id).maybeSingle()
+    : null
+  const storeHero = normalizeStoreHero(heroResponse?.data?.store_hero)
 
   return (
     <main className="ui-page-shell">
@@ -40,6 +49,7 @@ export default async function DashboardProfilePage() {
 
       <div className="mt-6">
         <ProfileForm
+        startStoreSetup={startStoreSetup}
         userId={user!.id}
         initialProfile={{
           username: profile?.username ?? "",
@@ -50,6 +60,7 @@ export default async function DashboardProfilePage() {
           seller_type: profile?.seller_type ?? "individual",
           store_logo_url: profile?.store_logo_url ?? "",
           store_banner_url: profile?.store_banner_url ?? "",
+          store_hero: storeHero,
           store_phone: profile?.store_phone ?? "",
           store_whatsapp: profile?.store_whatsapp ?? "",
           store_telegram: profile?.store_telegram ?? "",

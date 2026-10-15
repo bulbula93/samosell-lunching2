@@ -28,6 +28,7 @@ const marketplaceNavOrder = [
   "/catalog/vintage",
   "/catalog/accessories",
   "/catalog/perfume",
+  "/stores",
 ] as const
 
 export const getMarketplaceNavigationItems = unstable_cache(
@@ -57,7 +58,7 @@ export const getMarketplaceNavigationItems = unstable_cache(
         )
 
     const seen = new Set<string>()
-    const mergedItems = [...databaseWithPerfume, ...supportingItems].filter((item) => {
+    const mergedItems = [...databaseWithPerfume, ...supportingItems, { label: "მაღაზიები", href: "/stores" }].filter((item) => {
       if (!item.label || seen.has(item.href)) return false
       seen.add(item.href)
       return true
@@ -72,7 +73,7 @@ export const getMarketplaceNavigationItems = unstable_cache(
       return aOrder - bOrder
     })
   },
-  ["marketplace-header-navigation-v4-clean-categories"],
+  ["marketplace-header-navigation-v5-shops"],
   {
     revalidate: 600,
     tags: ["marketplace-navigation"],
