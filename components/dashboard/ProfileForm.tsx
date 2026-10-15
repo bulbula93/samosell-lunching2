@@ -6,6 +6,8 @@ import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
 import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/listings"
 import { getSellerVisualAvatar, sellerTypeLabel } from "@/lib/profiles"
+import StoreHeroMockup from "@/components/stores/StoreHeroMockup"
+import { normalizeStoreHero, STORE_HERO_LIMITS, type StoreHeroContent } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/client"
 import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
@@ -21,6 +23,7 @@ type ProfileFormProps = {
     seller_type: string
     store_logo_url: string
     store_banner_url: string
+    store_hero: StoreHeroContent
     store_phone: string
     store_whatsapp: string
     store_telegram: string
@@ -137,6 +140,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   const [sellerType, setSellerType] = useState(initialProfile.seller_type || "individual")
   const [storeLogoUrl, setStoreLogoUrl] = useState(initialProfile.store_logo_url)
   const [storeBannerUrl, setStoreBannerUrl] = useState(initialProfile.store_banner_url)
+  const [storeHero, setStoreHero] = useState<StoreHeroContent>(() => normalizeStoreHero(initialProfile.store_hero))
   const [storePhone, setStorePhone] = useState(initialProfile.store_phone)
   const [storeWhatsapp, setStoreWhatsapp] = useState(initialProfile.store_whatsapp)
   const [storeTelegram, setStoreTelegram] = useState(initialProfile.store_telegram)
@@ -181,6 +185,10 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
   const visibleAvatarUrl = removeAvatar ? "" : selectedAvatarPreviewUrl || avatarUrl
   const visibleStoreLogoUrl = removeStoreLogo ? "" : selectedLogoPreviewUrl || storeLogoUrl
   const visibleStoreBannerUrl = removeStoreBanner ? "" : selectedBannerPreviewUrl || storeBannerUrl
+  function updateHeroField(field: keyof StoreHeroContent, value: string) {
+    setStoreHero((previous) => ({ ...previous, [field]: value.slice(0, STORE_HERO_LIMITS[field]) }))
+    setSuccess("")
+  }
 
   const publicFacingAvatar = useMemo(
     () => getSellerVisualAvatar({ seller_type: sellerType, avatar_url: visibleAvatarUrl, store_logo_url: visibleStoreLogoUrl }),
@@ -264,6 +272,17 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
 
     const supabase = createClient()
 
+    // Do not upload assets before confirming the hero schema exists.
+    // Production's schema is immutable until its migration is approved.
+    if (sellerType === "store") {
+      const { error: heroSchemaError } = await supabase.from("profiles").select("store_hero").eq("id", userId).maybeSingle()
+      if (heroSchemaError) {
+        setError("მაღაზიის მთავარი ბლოკის შენახვა ჯერ არ არის ჩართული — საჭიროა შესაბამისი მონაცემთა ბაზის განახლება.")
+        setLoading(false)
+        return
+      }
+    }
+
     const previousAvatarUrl = avatarUrl
     const previousStoreLogoUrl = storeLogoUrl
     const previousStoreBannerUrl = storeBannerUrl
@@ -305,6 +324,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
         seller_type: sellerType,
         store_logo_url: sellerType === "store" ? nextStoreLogoUrl || null : null,
         store_banner_url: sellerType === "store" ? nextStoreBannerUrl || null : null,
+        ...(sellerType === "store" ? { store_hero: normalizeStoreHero(storeHero) } : {}),
         store_phone: normalizedPhone || null,
         store_whatsapp: sellerType === "store" ? storeWhatsapp.trim() || null : null,
         store_telegram: sellerType === "store" ? storeTelegram.trim() || null : null,
@@ -402,11 +422,11 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
           <div>
             <div className="ui-eyebrow">{sellerType === "store" ? "მაღაზიის გვერდის აწყობა" : "პროფილის აწყობა"}</div>
             <h2 className="mt-2 text-2xl font-black text-text">
-              {sellerType === "store" ? "ჯერ ვიზუალი, მერე ინფორმაცია, ბოლოს შენახვა" : "შეავსე პროფილი და ნახე როგორ გამოჩნდება საჯაროდ"}
+              {sellerType === "store" ? "შექმენი მაღაზიის სახე, ტექსტები და ვიზუალი" : "შეავსე პროფილი და ნახე როგორ გამოჩნდება საჯაროდ"}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-text-soft">
               {sellerType === "store"
-                ? "ლოგოს ან banner-ის არჩევისთანავე preview ამავე გვერდზე უნდა გამოჩნდეს. საჯარო მაღაზიის გვერდზე ცვლილება მხოლოდ ქვემოთ „ცვლილებების შენახვის“ შემდეგ აისახება."
+                ? "ყველა ტექსტი და სურათი შენი არჩევანია — ცვლილებები მაშინვე ჩანს ცოცხალ წინასწარ ნახვაში, ხოლო საჯარო გვერდზე შენახვის შემდეგ."
                 : "ფოტოს არჩევისთანავე preview აქვე გამოჩნდება. საჯარო პროფილზე ცვლილება მხოლოდ შენახვის შემდეგ აისახება."}
             </p>
           </div>
@@ -454,41 +474,25 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             {sellerType === "store" ? "ასე გამოჩნდება მაღაზიის მთავარი ნაწილი მომხმარებლისთვის." : "ასე გამოჩნდება შენი საჯარო პროფილის მთავარი ნაწილი."}
           </p>
         </div>
-        <div className="overflow-hidden rounded-[1.75rem] border border-line bg-surface-alt">
-          {sellerType === "store" ? (
-            <div className="relative h-40 border-b border-line bg-brand-soft/45 sm:h-52">
-              <SmartImage
-                src={visibleStoreBannerUrl}
-                alt={fullName || username || "მაღაზიის banner"}
-                wrapperClassName="h-full w-full"
-                className="object-cover"
-                fallbackLabel="აქ გამოჩნდება მაღაზიის cover / banner"
-                loading="eager"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-            </div>
-          ) : null}
-
-          <div className="p-5 sm:p-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar
-                  src={publicFacingAvatar}
-                  alt={fullName || username || "მომხმარებელი"}
-                  fallbackText={fullName || username || "SS"}
-                  sizeClassName="h-20 w-20"
-                  textClassName="text-2xl"
-                />
-                <div>
-                  <div className="ui-eyebrow">{sellerType === "store" ? "მაღაზიის საჯარო გვერდი" : "საჯარო პროფილი"}</div>
-                  <div className="mt-2 text-2xl font-black text-text">{fullName || username || (sellerType === "store" ? "მაღაზიის სახელი" : "შენი პროფილი")}</div>
-                  <div className="mt-1 text-sm text-text-soft">{sellerTypeLabel(sellerType)} • {city || "ქალაქი ჯერ არ არის მითითებული"}</div>
-                </div>
-              </div>
-              <div className="ui-pill bg-white text-text-soft">ეს არის ცოცხალი preview</div>
-            </div>
+        {sellerType === "store" ? (
+          <StoreHeroMockup
+            storeName={fullName}
+            username={username}
+            city={city}
+            hero={normalizeStoreHero({
+              ...storeHero,
+              description: storeHero.description || bio,
+            })}
+            logoUrl={visibleStoreLogoUrl || visibleAvatarUrl}
+            coverUrl={visibleStoreBannerUrl}
+            caption="შენი მაღაზიის მთავარი ბლოკი · ცოცხალი წინასწარი ნახვა"
+          />
+        ) : (
+          <div className="flex items-center gap-4 rounded-[1.75rem] border border-line bg-surface-alt p-6">
+            <Avatar src={publicFacingAvatar} alt={fullName || username || "მომხმარებელი"} fallbackText={fullName || username || "SS"} sizeClassName="h-20 w-20" textClassName="text-2xl" />
+            <div><p className="font-bold text-text">{fullName || username || "შენი პროფილი"}</p><p className="text-sm text-text-soft">{sellerTypeLabel(sellerType)} · {city || "ქალაქი"}</p></div>
           </div>
-        </div>
+        )}
       </section>
 
       {sellerType === "store" ? (
@@ -579,9 +583,37 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
             </div>
           </section>
 
+          <section className="space-y-4 rounded-[1.75rem] border border-brand/15 bg-[#fff8f0] p-5 sm:p-6">
+            <div>
+              <div className="ui-eyebrow">3. მთავარი ბლოკის ტექსტები</div>
+              <h3 className="mt-2 text-xl font-black text-text">შექმენი საკუთარი Hero</h3>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-text-soft">ყველა ტექსტი შენია. მათი შეცვლისას ზემოთ მდებარე ვიტრინის წინასწარი ნახვა მყისიერად განახლდება. ღილაკები და დიზაინის სტილი SamoSell-ის სისტემაში დარჩება.</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {([
+                {field: "eyebrow", label: "პატარა წარწერა სათაურის ზემოთ", placeholder: "მაგ: ვინტაჟური ტანსაცმელი · თბილისი"},
+                {field: "headline", label: "მთავარი სათაური", placeholder: "მაგ: ნივთები ახალი ისტორიებისთვის"},
+                {field: "coverTitle", label: "ფოტოზე გამოსატანი ტექსტი", placeholder: "მაგ: შენი შემდეგი აღმოჩენა"},
+                {field: "coverSubtitle", label: "ფოტოზე მცირე წარწერა", placeholder: "მაგ: შერჩეული კოლექცია"},
+              ] as const).map(({field, label, placeholder}) => (
+                <label key={field} className="block">
+                  <span className="ui-field-label">{label}</span>
+                  <input value={storeHero[field]} onChange={(e) => updateHeroField(field,e.target.value)} maxLength={STORE_HERO_LIMITS[field]} className="ui-input h-12 rounded-2xl" placeholder={placeholder} />
+                  <span className="mt-1 block text-right text-xs text-text-soft">{storeHero[field].length}/{STORE_HERO_LIMITS[field]}</span>
+                </label>
+              ))}
+            </div>
+            <label className="block">
+              <span className="ui-field-label">მთავარი აღწერა</span>
+              <textarea value={storeHero.description} onChange={(e) => updateHeroField("description",e.target.value)} maxLength={STORE_HERO_LIMITS.description} rows={3} className="ui-textarea min-h-24" placeholder="მოკლედ აღწერე შენი მაღაზია და კოლექცია. ცარიელი ველის შემთხვევაში გამოყენებული იქნება „მაღაზიის შესახებ“ ტექსტი."/>
+              <span className="mt-1 block text-right text-xs text-text-soft">{storeHero.description.length}/{STORE_HERO_LIMITS.description}</span>
+            </label>
+            <p className="text-xs leading-5 text-text-soft">ცარიელი პატარა წარწერები საჯარო გვერდზე არ გამოჩნდება. მთავარი სათაური ავტომატურად გამოიყენებს მაღაზიის სახელს, ხოლო აღწერა — პროფილის აღწერას.</p>
+          </section>
+
           <section className="space-y-4">
             <div>
-              <div className="ui-eyebrow">3. ძირითადი ინფორმაცია</div>
+              <div className="ui-eyebrow">4. ძირითადი ინფორმაცია</div>
               <h3 className="mt-2 text-xl font-black text-text">სახელი, ქალაქი და აღწერა</h3>
             </div>
 
