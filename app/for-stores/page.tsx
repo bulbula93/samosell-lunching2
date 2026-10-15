@@ -12,19 +12,19 @@ export const metadata: Metadata = {
 const advantages = [
   {
     n: "01",
-    label: "YOUR OWN SPACE",
+    label: "შენი საკუთარი სივრცე",
     title: "საკუთარი ვიტრინა",
     description: "მაღაზიის სახელი, ლოგო, ბანერი და შენი ნივთები ერთ გვერდზე — ბმული, რომლის გაზიარებაც შეგიძლია.",
   },
   {
     n: "02",
-    label: "GET DISCOVERED",
+    label: "აღმოაჩინონ შენი მაღაზია",
     title: "ახალი აღმოჩენები",
     description: "შენი ნივთები საერთო კატალოგში გამოჩნდება, ხოლო მაღაზიის პროფილი — მაღაზიების სივრცეში.",
   },
   {
     n: "03",
-    label: "DIRECT CONNECTION",
+    label: "პირდაპირი კავშირი",
     title: "პირდაპირი კონტაქტი",
     description: "მყიდველი მოგწერს SamoSell-ის ჩათში ან დაგიკავშირდება შენ მიერ დამატებული საკონტაქტო არხებით.",
   },
@@ -44,14 +44,14 @@ export default function ForStoresPage() {
       <main className="min-h-screen bg-[#f8f5ee] text-[#2c322e]">
         <div className="ui-container pt-7 sm:pt-11">
           <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[#c6c1b5] py-4 text-[10px] font-semibold uppercase tracking-[0.17em] sm:text-[11px]">
-            <span>THE SAMOSELL EDIT</span>
-            <span className="hidden sm:inline">INDEPENDENT STORES / GEORGIA</span>
-            <span>FOR BUSINESS · 2026</span>
+            <span>SamoSell-ის რჩეული</span>
+            <span className="hidden lg:inline">დამოუკიდებელი მაღაზიები / საქართველო</span>
+            <span>მაღაზიებისთვის · 2026</span>
           </div>
 
           <section className="grid gap-10 py-10 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-14 lg:py-14">
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#a77459]">YOUR NEW STORE FRONT</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#a77459]">შენი ახალი ვიტრინა</p>
               <h1 className="mt-6 max-w-2xl font-serif text-[clamp(3.4rem,7.3vw,7.5rem)] leading-[0.99] tracking-[-0.055em]">
                 შენს მაღაზიას<br />
                 <span className="italic text-[#ae795f]">ახალი</span> სივრცე.
@@ -79,7 +79,7 @@ export default function ForStoresPage() {
                   : "განცხადების ჩვეულებრივი განთავსება საკომისიოს გარეშეა. სურვილის შემთხვევაში ხელმისაწვდომია ფასიანი VIP სერვისიც."}
               </p>
               <div className="mt-10 flex flex-wrap gap-x-8 gap-y-2 border-t border-[#cfc9bc] pt-5 text-[11px] uppercase tracking-[0.13em] text-[#817e75]">
-                <span>Vintage</span><span>Second-hand</span><span>Independent fashion</span>
+                <span>ვინტაჟი</span><span>მეორადი</span><span>დამოუკიდებელი მაღაზიები</span>
               </div>
             </div>
 
@@ -91,16 +91,16 @@ export default function ForStoresPage() {
                 style={{ backgroundImage: "url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1100&q=75')" }}
               />
               <div className="absolute bottom-0 left-0 max-w-[82%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
-                <p className="font-serif text-2xl italic leading-tight sm:text-3xl">Your style. Your story.</p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.17em] text-[#827469]">A STORE WORTH DISCOVERING</p>
+                <p className="font-serif text-xl italic leading-snug sm:text-2xl">შენი სტილი. შენი ისტორია.</p>
+                <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">მაღაზია, რომლის აღმოჩენაც ღირს</p>
               </div>
-              <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">THE EDIT · STORES</span>
+              <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზიები</span>
             </div>
           </section>
 
           <section aria-label="რატომ SamoSell" className="border-t border-[#c6c1b5] py-14 sm:py-20">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">01 / WHAT YOU GET</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">01 / შენი შესაძლებლობები</p>
               <h2 className="mt-3 font-serif text-4xl tracking-tight sm:text-5xl">შენი მაღაზია. შენი წესებით.</h2>
               <p className="mt-5 text-sm leading-7 text-[#667167]">SamoSell დამატებითი სივრცეა შენი ნივთებისთვის და არა სოციალური ქსელის ან არსებული მაღაზიის ჩანაცვლება.</p>
             </div>
@@ -121,7 +121,7 @@ export default function ForStoresPage() {
         <section className="border-y border-[#c6c1b5] bg-[#efe8dd]">
           <div className="ui-container grid gap-10 py-14 sm:py-20 lg:grid-cols-[0.75fr_1.25fr] lg:gap-16">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a77459]">02 / GET STARTED</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a77459]">02 / როგორ დაიწყო</p>
               <h2 className="mt-4 font-serif text-4xl leading-[1.1] tracking-tight sm:text-5xl">სამი ნაბიჯი.<br /><span className="italic text-[#ae795f]">ერთი ვიტრინა.</span></h2>
               <p className="mt-6 max-w-sm text-sm leading-7 text-[#687369]">საწყის ეტაპზე SamoSell-ის არსებულ პროფილსა და განცხადებების მართვას იყენებ. ახალი სისტემა არ გჭირდება.</p>
             </div>
@@ -139,14 +139,14 @@ export default function ForStoresPage() {
         <div className="ui-container">
           <section className="grid gap-8 border-b border-[#c6c1b5] py-14 sm:grid-cols-[1fr_auto] sm:items-center sm:py-20">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">03 / THE STOREFRONT</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">03 / შენი ვიტრინა</p>
               <h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight sm:text-5xl">ნახე, როგორი შეიძლება იყოს<br /><span className="italic text-[#ae795f]">შენი მაღაზიის გვერდი.</span></h2>
               <p className="mt-5 text-sm leading-7 text-[#667167]">საჩვენებელ ვიტრინაში გამოყენებულია გამოგონილი მაღაზია და ნივთები. ნამდვილ გვერდზე გამოჩნდება შენი ფოტოები და განცხადებები.</p>
             </div>
             <Link href="/stores/showcase" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full border border-[#293f37] px-7 text-sm font-semibold transition hover:bg-[#eee6d9]">ვიტრინის დემო ↗</Link>
           </section>
           <section className="py-14 text-center sm:py-20">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">START YOUR NEXT CHAPTER</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ae795f]">შენი ახალი ისტორია აქ იწყება</p>
             <h2 className="mx-auto mt-4 max-w-xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl">შენი კოლექცია<br /><span className="italic text-[#ae795f]">ახალ სივრცეში.</span></h2>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link href={isPreview ? "/stores/showcase" : "/dashboard/profile"} className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#293f37] px-7 text-sm font-semibold text-white transition hover:bg-[#3c5748]">
@@ -154,7 +154,7 @@ export default function ForStoresPage() {
               </Link>
               <Link href="/stores" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#bcb5a8] px-7 text-sm font-semibold transition hover:bg-[#eee6d9]">მაღაზიების ნახვა</Link>
             </div>
-            {isPreview ? <p className="mt-6 text-xs text-[#817e75]">Read-only Preview — რეგისტრაცია და განცხადებების გამოქვეყნება გამორთულია.</p> : null}
+            {isPreview ? <p className="mt-6 text-xs text-[#817e75]">სატესტო რეჟიმი — რეგისტრაცია და განცხადებების გამოქვეყნება გამორთულია.</p> : null}
           </section>
         </div>
       </main>
