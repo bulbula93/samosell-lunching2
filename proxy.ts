@@ -15,6 +15,7 @@ export async function proxy(request: NextRequest) {
       pathname === "/catalog" ||
       pathname === "/stores" ||
       pathname === "/stores/showcase" ||
+      pathname === "/stores/hero-editor" ||
       pathname === "/stores/concepts" ||
       pathname === "/for-stores" ||
       pathname.startsWith("/catalog/") ||
