@@ -111,28 +111,34 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     reviewSummary: sellerReviewData.summary,
   })
   const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
-  const sellerStoreVip = profile.seller_type === "store"
-    ? [...sellerListings]
+  // listings_catalog only reports VIP/featured flags while their paid periods remain active.
+  const storeVipListings: StoreVipListing[] = profile.seller_type === "store"
+    ? sellerListings
         .filter((item) => item.is_vip && Boolean(item.cover_image_url))
-        .sort((a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)) || Number(b.promotion_tier ?? 0) - Number(a.promotion_tier ?? 0))[0]
-    : null
-  const featuredStoreVip: StoreVipListing | null = sellerStoreVip ? {
-    id: sellerStoreVip.id,
-    slug: sellerStoreVip.slug,
-    title: sellerStoreVip.title,
-    price: sellerStoreVip.price,
-    currency: sellerStoreVip.currency,
-    sale_type: sellerStoreVip.sale_type ?? null,
-    cover_image_url: sellerStoreVip.cover_image_url,
-    is_vip: sellerStoreVip.is_vip,
-    is_featured: Boolean(sellerStoreVip.is_featured),
-    promotion_tier: sellerStoreVip.promotion_tier ?? null,
-    published_at: sellerStoreVip.published_at ?? null,
-    seller_id: profile.id,
-    seller_username: profile.username,
-    seller_full_name: profile.full_name,
-    seller_store_logo_url: profile.store_logo_url,
-  } : null
+        .sort((a, b) =>
+          Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)) ||
+          Number(b.promotion_tier ?? 0) - Number(a.promotion_tier ?? 0) ||
+          new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime()
+        )
+        .slice(0, 6)
+        .map((item) => ({
+          id: item.id,
+          slug: item.slug,
+          title: item.title,
+          price: item.price,
+          currency: item.currency,
+          sale_type: item.sale_type ?? null,
+          cover_image_url: item.cover_image_url,
+          is_vip: item.is_vip,
+          is_featured: Boolean(item.is_featured),
+          promotion_tier: item.promotion_tier ?? null,
+          published_at: item.published_at ?? null,
+          seller_id: profile.id,
+          seller_username: profile.username,
+          seller_full_name: profile.full_name,
+          seller_store_logo_url: profile.store_logo_url,
+        }))
+    : []
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${encodeURIComponent(profile.username)}`)
   const sellerAvatarSrc = profile.seller_type === "store" ? getSellerVisualAvatar(profile) : getUserAvatar(profile)
@@ -298,14 +304,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white transition hover:bg-brand-hover">კოლექციის ნახვა ↗</a>
               </div>
 
-              {featuredStoreVip ? (
-                <div className="flex min-w-0 flex-col items-center justify-center gap-3">
-                  <p className="text-center text-xs font-bold text-brand">მაღაზიის აქტიური VIP განცხადება</p>
-                  <div className="w-full max-w-[430px]">
-                    <StoreVipCard item={featuredStoreVip} featured />
-                  </div>
-                </div>
-              ) : (
               <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
                 <div className="absolute inset-x-0 top-0 bottom-10 overflow-hidden rounded-[26px] bg-[#ded6c8] sm:left-[6%]">
                   {profile.store_banner_url ? (
@@ -326,7 +324,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </div>
                 <span className="absolute right-1 top-7 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
               </div>
-              )}
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -538,13 +535,35 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
       </section>
 
       )}
-      <AdSlotRow
-        placementKeys={["profile_inline_left", "profile_inline_right"]}
-        pagePath={`/seller/${username}`}
-        className="pb-10 sm:pb-12"
-      />
+      {profile.seller_type === "store" && storeVipListings.length > 0 ? (
+        <section id="store-vip-listings" aria-labelledby="store-vip-heading" className="scroll-mt-32 bg-[#fff9f2] py-11 sm:py-16">
+          <div className="ui-container">
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+              <div>
+                <p className="text-xs font-semibold text-[#ad7558]">ამ მაღაზიის გამორჩეული ნივთები</p>
+                <h2 id="store-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიის VIP განცხადებები</h2>
+              </div>
+              <span className="rounded-full bg-accent-soft px-4 py-2 text-xs font-bold text-brand">აქტიური VIP</span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {storeVipListings.map((item) => (
+                <StoreVipCard key={item.id} item={item} />
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
-      <SellerReviewsSection data={sellerReviewData} />
+      {profile.seller_type !== "store" ? (
+        <>
+          <AdSlotRow
+            placementKeys={["profile_inline_left", "profile_inline_right"]}
+            pagePath={`/seller/${username}`}
+            className="pb-10 sm:pb-12"
+          />
+          <SellerReviewsSection data={sellerReviewData} />
+        </>
+      ) : null}
 
       <section id="seller-listings" className={profile.seller_type === "store" ? "scroll-mt-32 bg-white text-text pb-14 pt-10 sm:pt-14" : "mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6"}>
         <div className={profile.seller_type === "store" ? "ui-container" : ""}>
@@ -593,6 +612,16 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
         </div>
         </div>
       </section>
+      {profile.seller_type === "store" ? (
+        <>
+          <AdSlotRow
+            placementKeys={["profile_inline_left", "profile_inline_right"]}
+            pagePath={`/seller/${username}`}
+            className="pb-10 sm:pb-12"
+          />
+          <SellerReviewsSection data={sellerReviewData} />
+        </>
+      ) : null}
     </main>
   )
 }
