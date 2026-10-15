@@ -14,6 +14,7 @@ import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
+import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
@@ -26,7 +27,7 @@ import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 
 const listingSelect =
-  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 type PublicSellerListingCounts = {
   active_count?: number | string | null
@@ -110,6 +111,28 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     reviewSummary: sellerReviewData.summary,
   })
   const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
+  const sellerStoreVip = profile.seller_type === "store"
+    ? [...sellerListings]
+        .filter((item) => item.is_vip && Boolean(item.cover_image_url))
+        .sort((a, b) => Number(Boolean(b.is_featured)) - Number(Boolean(a.is_featured)) || Number(b.promotion_tier ?? 0) - Number(a.promotion_tier ?? 0))[0]
+    : null
+  const featuredStoreVip: StoreVipListing | null = sellerStoreVip ? {
+    id: sellerStoreVip.id,
+    slug: sellerStoreVip.slug,
+    title: sellerStoreVip.title,
+    price: sellerStoreVip.price,
+    currency: sellerStoreVip.currency,
+    sale_type: sellerStoreVip.sale_type ?? null,
+    cover_image_url: sellerStoreVip.cover_image_url,
+    is_vip: sellerStoreVip.is_vip,
+    is_featured: Boolean(sellerStoreVip.is_featured),
+    promotion_tier: sellerStoreVip.promotion_tier ?? null,
+    published_at: sellerStoreVip.published_at ?? null,
+    seller_id: profile.id,
+    seller_username: profile.username,
+    seller_full_name: profile.full_name,
+    seller_store_logo_url: profile.store_logo_url,
+  } : null
   const sellerName = profile.full_name || profile.username
   const shareUrl = absoluteUrl(`/seller/${encodeURIComponent(profile.username)}`)
   const sellerAvatarSrc = profile.seller_type === "store" ? getSellerVisualAvatar(profile) : getUserAvatar(profile)
@@ -275,6 +298,14 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white transition hover:bg-brand-hover">კოლექციის ნახვა ↗</a>
               </div>
 
+              {featuredStoreVip ? (
+                <div className="flex min-w-0 flex-col items-center justify-center gap-3">
+                  <p className="text-center text-xs font-bold text-brand">მაღაზიის აქტიური VIP განცხადება</p>
+                  <div className="w-full max-w-[430px]">
+                    <StoreVipCard item={featuredStoreVip} featured />
+                  </div>
+                </div>
+              ) : (
               <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
                 <div className="absolute inset-x-0 top-0 bottom-10 overflow-hidden rounded-[26px] bg-[#ded6c8] sm:left-[6%]">
                   {profile.store_banner_url ? (
@@ -295,6 +326,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </div>
                 <span className="absolute right-1 top-7 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
               </div>
+              )}
             </div>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
