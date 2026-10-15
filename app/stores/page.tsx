@@ -17,9 +17,9 @@ type StoreProfile = {
 type StoreParams = { demo?: string | string[]; q?: string | string[] }
 
 const demoStores = [
-  { name: "Studio Archive", city: "თბილისი", kind: "CURATED VINTAGE", description: "გამორჩეული ვინტაჟური სამოსი და აქსესუარები", photo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1000&q=75", initials: "SA", backdrop: "#ddd2c2" },
-  { name: "Second Chapter", city: "თბილისი", kind: "SECOND-HAND", description: "მეორე სიცოცხლე შენს საყვარელ ნივთებს", photo: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=75", initials: "SC", backdrop: "#d7e4d9" },
-  { name: "Sunday Edit", city: "ბათუმი", kind: "PRE-LOVED STYLE", description: "შერჩეული სტილი ყოველდღიური გარდერობისთვის", photo: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1000&q=75", initials: "SE", backdrop: "#e8d5bc" },
+  { name: "სტუდიო არქივი", city: "თბილისი", kind: "რჩეული ვინტაჟი", description: "გამორჩეული ვინტაჟური სამოსი და აქსესუარები", photo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1000&q=75", initials: "SA", backdrop: "#ddd2c2" },
+  { name: "მეორე თავი", city: "თბილისი", kind: "მეორადი", description: "მეორე სიცოცხლე შენს საყვარელ ნივთებს", photo: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=75", initials: "SC", backdrop: "#d7e4d9" },
+  { name: "კვირის რჩეული", city: "ბათუმი", kind: "მეორედ აღმოჩენილი სტილი", description: "შერჩეული სტილი ყოველდღიური გარდერობისთვის", photo: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1000&q=75", initials: "SE", backdrop: "#e8d5bc" },
 ]
 
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<StoreParams> }): Promise<Metadata> {
@@ -71,14 +71,14 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
       <main className="min-h-screen bg-[#f8f5ee] text-[#28362e]">
         <div className="ui-container pt-7 pb-14 sm:pt-11 sm:pb-20">
           <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[#c6c1b5] py-4 text-[10px] font-semibold uppercase tracking-[0.17em] sm:text-[11px]">
-            <span>THE SAMOSELL EDIT</span>
-            <span className="hidden sm:block">PRE-LOVED / RE-IMAGINED</span>
-            <span>GEORGIA · SHOPS</span>
+            <span>SamoSell-ის რჩეული</span>
+            <span className="hidden lg:block">მეორედ აღმოჩენილი / თავიდან შეყვარებული</span>
+            <span>საქართველო · მაღაზიები</span>
           </div>
 
           <section className="grid gap-9 py-9 lg:grid-cols-[1fr_0.95fr] lg:items-center lg:gap-14 lg:py-12">
             <div className="flex flex-col justify-center">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#aa684f]">THE LOCAL WARDROBE JOURNAL</p>
+              <p className="text-xs font-semibold tracking-[0.09em] text-[#aa684f]">ადგილობრივი სტილის ჟურნალი</p>
               <h1 className="mt-6 font-serif text-[clamp(3.7rem,8vw,7.9rem)] leading-[0.96] tracking-[-0.055em]">
                 შენი <span className="italic text-[#ae795f]">ახალი</span>
                 <span className="block">აღმოჩენა.</span>
@@ -95,7 +95,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                 </Link>
               </div>
               <div className="mt-11 flex flex-wrap gap-x-8 gap-y-2 border-t border-[#cfc9bc] pt-5 text-[11px] uppercase tracking-[0.15em] text-[#817e75]">
-                <span>Vintage</span><span>Second-hand</span><span>Independent stores</span>
+                <span>ვინტაჟი</span><span>მეორადი</span><span>დამოუკიდებელი მაღაზიები</span>
               </div>
             </div>
 
@@ -107,17 +107,17 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                 style={{ backgroundImage: "url('https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1100&q=75')" }}
               />
               <div className="absolute bottom-0 left-0 max-w-[78%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
-                <p className="font-serif text-2xl italic sm:text-3xl">Find your next favourite.</p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.17em] text-[#827469]">PRE-LOVED, ALWAYS LOVED</p>
+                <p className="font-serif text-xl italic leading-snug sm:text-2xl">იპოვე შენი შემდეგი რჩეული.</p>
+                <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">მეორადი, მაგრამ მუდამ საყვარელი</p>
               </div>
-              <div className="absolute right-1 top-7 rounded-full border border-[#f6f0e8] bg-[#293f37] px-4 py-2 text-[10px] font-bold tracking-[0.14em] text-white">THE EDIT · SHOPS</div>
+              <div className="absolute right-1 top-7 rounded-full border border-[#f6f0e8] bg-[#293f37] px-4 py-2 text-[10px] font-bold tracking-[0.14em] text-white">რჩეული · მაღაზიები</div>
             </div>
           </section>
 
           <section id="discover-stores" className="scroll-mt-28 pt-11 sm:pt-16">
             <div className="flex flex-wrap items-end justify-between gap-5 border-b border-[#c6c1b5] pb-5">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-[#ad7558]">DISCOVER / SHOPS</p>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-[#ad7558]">აღმოაჩინე / მაღაზიები</p>
                 <h2 className="mt-2 font-serif text-4xl tracking-tight sm:text-5xl">რჩეული მაღაზიები</h2>
                 <p className="mt-3 text-sm leading-6 text-[#717a70]">აღმოაჩინე მაღაზია, დაათვალიერე ნივთები და დაუკავშირდი პირდაპირ.</p>
               </div>
@@ -155,7 +155,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                   <Link key={store.name} href="/stores/showcase" className="group block min-w-0">
                     <div className="relative aspect-[4/4.7] overflow-hidden" style={{ backgroundColor: store.backdrop }}>
                       <div className="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: "url('" + store.photo + "')" }} />
-                      <span className="absolute left-4 top-4 bg-[#f8f5ee]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-widest">DEMO · 0{index + 1}</span>
+                      <span className="absolute left-4 top-4 bg-[#f8f5ee]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-widest">დემო · 0{index + 1}</span>
                     </div>
                     <div className="mt-5 flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -197,7 +197,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
               </div>
             ) : !temporarilyUnavailable ? (
               <div className="mt-9 border border-dashed border-[#c9c0b1] bg-white/70 px-6 py-14 text-center">
-                <p className="font-serif text-4xl italic text-[#ae795f]">A new story begins here.</p>
+                <p className="font-serif text-4xl italic text-[#ae795f]">ახალი ისტორია აქ იწყება.</p>
                 <h3 className="mt-4 font-serif text-2xl">{q ? "მაღაზია ვერ მოიძებნა" : "მაღაზიების კოლექცია მალე შეივსება"}</h3>
                 <p className="mx-auto mt-3 max-w-lg text-sm leading-7 text-[#717a70]">
                   {q ? "სცადე სხვა საძიებო სიტყვა ან დაათვალიერე ყველა მაღაზია." : "პირველი პარტნიორი მაღაზიები მალე გამოჩნდება. თუ გაქვს მაღაზია, გახდი ერთ-ერთი პირველი."}
@@ -211,7 +211,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
 
           <section className="mt-16 grid gap-7 border-y border-[#c6c1b5] py-10 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[#b47b5d]">YOUR STORY STARTS HERE</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#b47b5d]">შენი ახალი ისტორია აქ იწყება</p>
               <h2 className="mt-2 font-serif text-3xl">შენი მაღაზიაც ამ სივრცეში.</h2>
               <p className="mt-2 text-sm leading-7 text-[#717a70]">დამატებითი ვიტრინა შენი ნივთებისთვის, ერთი გასაზიარებელი ბმულით.</p>
             </div>
