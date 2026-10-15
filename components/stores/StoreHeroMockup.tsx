@@ -1,4 +1,5 @@
 import type { StoreHeroContent } from "@/lib/store-hero"
+import StoreContactStrip, {type StoreContacts} from "@/components/stores/StoreContactStrip"
 
 type StoreHeroMockupProps = {
   hero: StoreHeroContent
@@ -8,6 +9,7 @@ type StoreHeroMockupProps = {
   logoUrl?: string | null
   coverUrl?: string | null
   caption?: string
+  contacts?: StoreContacts
 }
 
 export default function StoreHeroMockup({
@@ -18,6 +20,7 @@ export default function StoreHeroMockup({
   logoUrl,
   coverUrl,
   caption,
+  contacts,
 }: StoreHeroMockupProps) {
   const name = storeName.trim() || "შენი მაღაზიის სახელი"
   return (
@@ -41,6 +44,7 @@ export default function StoreHeroMockup({
             <span className="rounded-xl border border-line bg-white px-4 py-3 text-xs font-bold text-brand">გამოწერა</span>
           </div>
           <p className="mt-5 text-xs font-bold text-brand">კოლექციის ნახვა ↗</p>
+          {contacts ? <StoreContactStrip contacts={contacts} compact /> : null}
         </div>
         <div className="relative h-[265px] min-w-0 sm:h-[345px]">
           <div
