@@ -49,6 +49,7 @@ export default function StoreShowcasePage() {
           <p role="status" className="mt-5 border-l-[3px] border-[#bd8459] bg-[#efe3d4] px-4 py-3 text-xs leading-6 text-[#75543f]">
             დიზაინის დემო — მაღაზია, პროდუქციის მონაცემები, ფოტოები და ფასები საჩვენებელია. არც ერთი ნივთი რეალურად არ იყიდება.
           </p>
+          <div className="mt-5"><Link href="/stores/hero-editor" className="inline-flex min-h-12 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">შექმენი შენი ვიტრინის ტექსტები ↗</Link></div>
           <section aria-label="მაღაზიის პროფილი" className="relative mt-6 grid gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-14">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">დამოუკიდებელი ვინტაჟი / დემო</p>
