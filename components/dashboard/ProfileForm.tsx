@@ -542,7 +542,7 @@ export default function ProfileForm({ userId, initialProfile }: ProfileFormProps
 
               <AssetCard
                 title="ქავერი"
-                description="ფართო ფოტო მაღაზიის საჯარო გვერდის ზედა ნაწილისთვის."
+                description="მაღაზიის ქავერი საჯარო ვიტრინის ზედა ნაწილში ყოველთვის გამოჩნდება — VIP განცხადებები ცალკე სექციაშია."
                 preview={
                   <SmartImage
                     src={visibleStoreBannerUrl}
