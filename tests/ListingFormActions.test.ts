@@ -139,6 +139,8 @@ describe("listing form server actions", () => {
   it.each(["", "სხვა"])("derives seller and status without creating an optional brand (%s)", async (customBrand) => {
     let insertedPayload: Record<string, unknown> | null = null
     const listings = {
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       insert: vi.fn((payload: Record<string, unknown>) => {
         insertedPayload = payload
         return Promise.resolve({ error: null })
@@ -153,7 +155,7 @@ describe("listing form server actions", () => {
     }
     const profileQuery = profileUpdateBuilder()
     const listingImages = {
-      insert: vi.fn().mockResolvedValue({ error: null }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
     }
 
     mocks.createClient.mockResolvedValue({
@@ -421,6 +423,8 @@ describe("listing form server actions", () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
     }
     const listings = {
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       insert: vi.fn().mockResolvedValue({
         error: new Error("postgres internal detail should stay private"),
       }),

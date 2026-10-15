@@ -12,6 +12,7 @@ import {
   abortListingUploadsAction,
   prepareListingUploadsAction,
   saveListingAction,
+  type SaveListingInput,
 } from "@/app/dashboard/listings/form-actions"
 import {
   LISTING_GENDERS,
@@ -251,6 +252,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const submittingRef = useRef(false)
+  const createAttemptIdRef = useRef<string | null>(null)
+  const pendingCreateRef = useRef<SaveListingInput | null>(null)
   const imagesRef = useRef<EditableImage[]>([])
   const draggingImageIdRef = useRef("")
 
@@ -645,64 +648,73 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     setUploadedImageCount(0)
     setUploadingImageIndex(null)
 
-    let listingId = ""
+    let listingId = createAttemptIdRef.current ??= crypto.randomUUID()
     let uploadedPaths: string[] = []
     let completed = false
 
     try {
-      const preparation = await prepareListingUploadsAction({
-        mode: "create",
-        files: images.map((image) => ({ clientId: image.id, mimeType: image.file.type, size: image.file.size })),
-      })
+      let saveInput = pendingCreateRef.current
+      if (!saveInput) {
+        const preparation = await prepareListingUploadsAction({
+          mode: "create",
+          listingId,
+          files: images.map((image) => ({ clientId: image.id, mimeType: image.file.type, size: image.file.size })),
+        })
 
-      if (!preparation.ok) {
-        if (preparation.code === "unauthorized") {
-          router.push(`/login?next=${encodeURIComponent("/dashboard/listings/new")}`)
-          return
+        if (!preparation.ok) {
+          if (preparation.code === "unauthorized") {
+            router.push(`/login?next=${encodeURIComponent("/dashboard/listings/new")}`)
+            return
+          }
+          throw new Error(preparation.message)
         }
-        throw new Error(preparation.message)
+
+        listingId = preparation.listingId
+        const plansByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan]))
+
+        for (let index = 0; index < images.length; index += 1) {
+          const image = images[index]
+          const plan = plansByClientId.get(image.id)
+          if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
+
+          setUploadingImageIndex(index)
+          setProgressText(`ფოტოები იტვირთება… ${index + 1}/${images.length}`)
+          setProgressPercent(10 + Math.round((index / Math.max(images.length, 1)) * 55))
+
+          const { error } = await supabase.storage
+            .from("listing-images")
+            .uploadToSignedUrl(plan.path, plan.token, image.file, {
+              contentType: image.file.type,
+              cacheControl: "3600",
+            })
+          if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
+          uploadedPaths.push(plan.path)
+          setUploadedImageCount(index + 1)
+          setProgressPercent(10 + Math.round(((index + 1) / Math.max(images.length, 1)) * 55))
+        }
+
+        setUploadingImageIndex(null)
+        setProgressText("განცხადება უსაფრთხოდ ინახება…")
+        setProgressPercent(75)
+        const pathByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan.path]))
+        saveInput = {
+          mode: "create",
+          listingId,
+          form: formInput,
+          images: images.map((image) => {
+            const path = pathByClientId.get(image.id)
+            if (!path) throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
+            return { kind: "uploaded" as const, path }
+          }),
+        }
+        // Keep the exact request until its outcome is known. A transport error may
+        // arrive after the server committed; re-uploading here would orphan files.
+        pendingCreateRef.current = saveInput
       }
-
-      listingId = preparation.listingId
-      const plansByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan]))
-
-      for (let index = 0; index < images.length; index += 1) {
-        const image = images[index]
-        const plan = plansByClientId.get(image.id)
-        if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
-
-        setUploadingImageIndex(index)
-        setProgressText(`ფოტოები იტვირთება… ${index + 1}/${images.length}`)
-        setProgressPercent(10 + Math.round((index / Math.max(images.length, 1)) * 55))
-
-        const { error } = await supabase.storage
-          .from("listing-images")
-          .uploadToSignedUrl(plan.path, plan.token, image.file, {
-            contentType: image.file.type,
-            cacheControl: "3600",
-          })
-        if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
-        uploadedPaths.push(plan.path)
-        setUploadedImageCount(index + 1)
-        setProgressPercent(10 + Math.round(((index + 1) / Math.max(images.length, 1)) * 55))
-      }
-
-      setUploadingImageIndex(null)
-      setProgressText("განცხადება უსაფრთხოდ ინახება…")
-      setProgressPercent(75)
-      const pathByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan.path]))
-      const result = await saveListingAction({
-        mode: "create",
-        listingId,
-        form: formInput,
-        images: images.map((image) => {
-          const path = pathByClientId.get(image.id)
-          if (!path) throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
-          return { kind: "uploaded" as const, path }
-        }),
-      })
+      const result = await saveListingAction(saveInput)
 
       if (!result.ok) {
+        if (result.code === "invalid") pendingCreateRef.current = null
         if (result.fieldErrors) {
           setFieldErrors(result.fieldErrors)
           const targetStep = validationStep(result.fieldErrors)
@@ -719,6 +731,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
       uploadedPaths = []
       completed = true
+      pendingCreateRef.current = null
+      createAttemptIdRef.current = null
       clearListingAttempt(userId)
       if (result.status === "active") void trackGrowth("identify")
       publishedRef.current = true
@@ -739,7 +753,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       router.refresh()
     } catch (error) {
       if (publishNow) void trackGrowth("listing_publish_failed")
-      if (listingId && uploadedPaths.length > 0) await abortListingUploadsAction(listingId, uploadedPaths)
+      if (!pendingCreateRef.current && listingId && uploadedPaths.length > 0) {
+        try { await abortListingUploadsAction(listingId, uploadedPaths) } catch { /* Cleanup stays deferred. */ }
+      }
       const message = error instanceof Error ? error.message : ""
       setFormError(/[\u10a0-\u10ff]/i.test(message) ? message : "ოპერაცია ვერ შესრულდა. მონაცემები შენარჩუნებულია — სცადე ხელახლა.")
     } finally {

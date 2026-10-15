@@ -1,14 +1,17 @@
 import type { NextConfig } from "next";
 import { PRODUCTION_PUBLIC_FALLBACK } from "./lib/env";
 
-const isStorageAuditPreview =
+const isReadOnlyReviewPreview =
   process.env.VERCEL_ENV === "preview" &&
-  process.env.VERCEL_GIT_COMMIT_REF === "preview/vercel-storage-optimization-20261014";
+  [
+    "preview/vercel-storage-optimization-20261014",
+    "preview/listing-upload-idempotency-20261016",
+  ].includes(process.env.VERCEL_GIT_COMMIT_REF ?? "");
 
 const nextConfig: NextConfig = {
-  // This exact review branch reads public production data and blocks writes.
+  // These exact review branches read public production data and block writes.
   // No persisted Vercel environment variables are changed.
-  ...(isStorageAuditPreview ? {
+  ...(isReadOnlyReviewPreview ? {
     env: {
       NEXT_PUBLIC_PREVIEW_READ_ONLY: "true",
       NEXT_PUBLIC_SUPABASE_URL: PRODUCTION_PUBLIC_FALLBACK.supabaseUrl,

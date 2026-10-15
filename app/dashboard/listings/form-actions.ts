@@ -1,5 +1,6 @@
 "use server"
 
+import { createHash } from "node:crypto"
 import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
@@ -96,6 +97,18 @@ type ExistingImageRow = {
   listing_id: string
   image_url: string
   sort_order: number
+}
+
+type SavedListingResult = Extract<SaveListingResult, { ok: true }>
+
+// Stable across server instances and retries, including a lost image-insert response.
+// The listing ID is included so a filename reused in another listing cannot collide.
+function uploadedImageId(listingId: string, path: string) {
+  const hash = createHash("sha1")
+    .update(Buffer.from(listingId.replaceAll("-", ""), "hex"))
+    .update(path).digest("hex")
+  const variant = ((Number.parseInt(hash[16], 16) & 3) | 8).toString(16)
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-${variant}${hash.slice(17, 20)}-${hash.slice(20, 32)}`
 }
 
 function safeServerError(message: string) {
@@ -278,12 +291,12 @@ async function removeUploadedPaths(
   paths: string[]
 ) {
   if (paths.length === 0) return false
-  const { error } = await supabase.storage.from(LISTING_IMAGES_BUCKET).remove(paths)
-  if (error) {
-    console.error("Listing upload cleanup failed.", { fileCount: paths.length })
-    return true
-  }
-  return false
+  try {
+    const { error } = await supabase.storage.from(LISTING_IMAGES_BUCKET).remove(paths)
+    if (!error) return false
+  } catch { /* Treat a lost cleanup response as a warning, not a failed save. */ }
+  console.error("Listing upload cleanup failed.", { fileCount: paths.length })
+  return true
 }
 
 async function validateUploadedPaths(
@@ -323,6 +336,73 @@ function publicUrlForPath(
   return supabase.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl
 }
 
+async function readListingImages(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  listingId: string
+) {
+  const { data, error } = await supabase.from("listing_images")
+    .select("id, listing_id, image_url, sort_order")
+    .eq("listing_id", listingId)
+    .order("sort_order", { ascending: true })
+  if (error) throw error
+  return (data as ExistingImageRow[] | null) ?? []
+}
+
+function savedListingResult(listing: OwnedListing): SavedListingResult {
+  return { ok: true, listingId: listing.id, slug: listing.slug, status: listing.status, cleanupWarning: false }
+}
+
+// The listings primary key chooses the winner across processes. Never overwrite
+// that winner's fields, and never delete its files on a duplicate/ambiguous write.
+async function recoverCreatedListing(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  listingId: string,
+  uploadedPaths: string[]
+): Promise<SavedListingResult | null> {
+  const listing = await getOwnedListing(supabase, userId, listingId)
+  if (!listing) return null
+
+  let images = await readListingImages(supabase, listingId)
+  const expectedUrls = uploadedPaths.map((path) => publicUrlForPath(supabase, path))
+  const matchesAttempt = expectedUrls.length > 0 && listing.cover_image_url === expectedUrls[0]
+
+  if (matchesAttempt && images.length === 0) {
+    // A process may have stopped between the parent and image writes. Only resume
+    // its own image set, with deterministic keys and insert-only conflict handling.
+    const validationError = await validateUploadedPaths(supabase, uploadedPaths, userId, listingId)
+    if (validationError) throw new Error(validationError)
+    const { error } = await supabase.from("listing_images").upsert(
+      uploadedPaths.map((path, sort_order) => ({
+        id: uploadedImageId(listingId, path),
+        listing_id: listingId,
+        image_url: expectedUrls[sort_order],
+        sort_order,
+      })),
+      { onConflict: "id", ignoreDuplicates: true }
+    )
+    if (error) throw error
+    images = await readListingImages(supabase, listingId)
+  }
+
+  // An existing nonempty set may have been edited after publication. Replaying
+  // create must never restore photos that the seller intentionally removed.
+  if (!images.length || images[0].image_url !== listing.cover_image_url ||
+      images.some((image, index) => image.sort_order !== index)) {
+    throw new Error("Listing publication is not complete. Retry the same attempt.")
+  }
+
+  // Database rows alone do not prove the files survived an earlier cleanup.
+  const prefix = publicUrlForPath(supabase, `${userId}/${listingId}/`)
+  const storedPaths = images.map((image) => {
+    if (!image.image_url.startsWith(prefix)) throw new Error("Listing image path is invalid.")
+    return `${userId}/${listingId}/${image.image_url.slice(prefix.length)}`
+  })
+  const validationError = await validateUploadedPaths(supabase, storedPaths, userId, listingId)
+  if (validationError) throw new Error(validationError)
+  return savedListingResult(listing)
+}
+
 export async function prepareListingUploadsAction(
   input: PrepareListingUploadsInput
 ): Promise<PrepareListingUploadsResult> {
@@ -360,7 +440,9 @@ export async function prepareListingUploadsAction(
     }
   }
 
-  const listingId = mode === "create" ? crypto.randomUUID() : String(input.listingId ?? "")
+  const listingId = mode === "create"
+    ? String(input.listingId ?? crypto.randomUUID())
+    : String(input.listingId ?? "")
   if (!isUuid(listingId)) {
     return { ok: false, code: "invalid", message: "განცხადების იდენტიფიკატორი არასწორია." }
   }
@@ -405,7 +487,17 @@ export async function abortListingUploadsAction(listingId: string, paths: string
   const ownedPaths = [...new Set(paths)].filter((path) =>
     typeof path === "string" && isServerOwnedImagePath(path, context.user.id, listingId)
   )
-  await removeUploadedPaths(context.supabase, ownedPaths)
+  if (!ownedPaths.length) return
+  try {
+    const listing = await getOwnedListing(context.supabase, context.user.id, listingId)
+    if (listing) return { protected: true, cleanupDeferred: false }
+  } catch {
+    // A failed lookup must never turn into permission to delete.
+  }
+  // Even a successful "not found" read cannot exclude an in-flight INSERT.
+  // Keep orphan candidates for reconciliation rather than racing publication.
+  // Immediate deletion needs a durable cancellation protocol shared with save.
+  return { protected: false, cleanupDeferred: true }
 }
 
 export async function saveListingAction(input: SaveListingInput): Promise<SaveListingResult> {
@@ -456,7 +548,8 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     ) ||
     new Set(existingIds).size !== existingIds.length ||
     new Set(uploadedPaths).size !== uploadedPaths.length ||
-    existingIds.some((id) => !isUuid(id))
+    existingIds.some((id) => !isUuid(id)) ||
+    uploadedPaths.some((path) => !isServerOwnedImagePath(path, user.id, input.listingId))
   ) {
     return { ok: false, code: "invalid", message: "სურათების თანმიმდევრობა არასწორია." }
   }
@@ -469,20 +562,24 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       fieldErrors: { images: "დაამატე მინიმუმ ერთი ფოტო." },
     }
   }
+  if (input.mode === "create" && existingIds.length > 0) {
+    return { ok: false, code: "invalid", message: "ახალ განცხადებას ძველი სურათები ვერ მიებმება." }
+  }
 
   let ownedListing: OwnedListing | null = null
   let originalImages: ExistingImageRow[] = []
-  let insertedListing = false
   let generatedImageIds: string[] = []
+  let committedResult: SavedListingResult | null = null
 
   try {
     if (input.mode === "edit") {
       ownedListing = await getOwnedListing(supabase, user.id, input.listingId)
       if (!ownedListing) {
-        await removeUploadedPaths(supabase, uploadedPaths)
         return { ok: false, code: "not_found", message: "განცხადება ვერ მოიძებნა ან მისი შეცვლის უფლება არ გაქვს." }
       }
     } else {
+      const recovered = await recoverCreatedListing(supabase, user.id, input.listingId, uploadedPaths)
+      if (recovered) return recovered
       await enforceRateLimit(supabase, "listing_create")
     }
 
@@ -501,18 +598,12 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       ownedListing?.category_id
     )
     if (Object.keys(lookupErrors).length > 0) {
-      await removeUploadedPaths(supabase, uploadedPaths)
       return {
         ok: false,
         code: "invalid",
         message: "შეამოწმე არჩეული პარამეტრები.",
         fieldErrors: lookupErrors,
       }
-    }
-
-    if (input.mode === "create" && existingIds.length > 0) {
-      await removeUploadedPaths(supabase, uploadedPaths)
-      return { ok: false, code: "invalid", message: "ახალ განცხადებას ძველი სურათები ვერ მიებმება." }
     }
 
     if (input.mode === "edit") {
@@ -526,12 +617,10 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
 
       const ownedImageIds = new Set(originalImages.map((image) => image.id))
       if (existingIds.some((id) => !ownedImageIds.has(id))) {
-        await removeUploadedPaths(supabase, uploadedPaths)
         return { ok: false, code: "not_found", message: "ერთ-ერთი არსებული სურათი ვერ მოიძებნა." }
       }
 
       if (imageOrder.length === 0) {
-        await removeUploadedPaths(supabase, uploadedPaths)
         return {
           ok: false,
           code: "invalid",
@@ -548,7 +637,6 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       input.listingId
     )
     if (uploadValidationError) {
-      await removeUploadedPaths(supabase, uploadedPaths)
       return {
         ok: false,
         code: "invalid",
@@ -584,7 +672,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
           : ownedListing?.published_at ?? null
 
     const existingById = new Map(originalImages.map((image) => [image.id, image]))
-    generatedImageIds = uploadedPaths.map(() => crypto.randomUUID())
+    generatedImageIds = uploadedPaths.map((path) => uploadedImageId(input.listingId, path))
     let uploadedIndex = 0
     const nextImageRows = imageOrder.map((item, sortOrder) => {
       if (item.kind === "existing") {
@@ -631,10 +719,10 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
         ...listingPayload,
       })
       if (error) throw error
-      insertedListing = true
 
       if (nextImageRows.length > 0) {
-        const { error: imagesError } = await supabase.from("listing_images").insert(nextImageRows)
+        const { error: imagesError } = await supabase.from("listing_images")
+          .upsert(nextImageRows, { onConflict: "id", ignoreDuplicates: true })
         if (imagesError) throw imagesError
       }
     } else {
@@ -647,7 +735,6 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
         .maybeSingle()
       if (error) throw error
       if (!updated) {
-        await removeUploadedPaths(supabase, uploadedPaths)
         return { ok: false, code: "not_found", message: "განცხადება ვერ მოიძებნა ან მისი შეცვლის უფლება არ გაქვს." }
       }
 
@@ -670,6 +757,8 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       }
     }
 
+    committedResult = { ok: true, listingId: input.listingId, slug, status, cleanupWarning: false }
+
     const removedStoragePaths =
       input.mode === "edit"
         ? originalImages
@@ -687,6 +776,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
             )
         : []
     const cleanupWarning = await removeUploadedPaths(supabase, removedStoragePaths)
+    committedResult.cleanupWarning = cleanupWarning
 
     const firstPublication =
       status === "active" &&
@@ -715,13 +805,17 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     if (input.mode === "edit") await recordListingOutcome("listing_edit_completed", user.id, input.listingId, isUuid(input.growthEditId ?? "") ? input.growthEditId : undefined)
     return { ok: true, listingId: input.listingId, slug, status, cleanupWarning }
   } catch (error) {
-    if (insertedListing) {
-      const { error: rollbackError } = await supabase
-        .from("listings")
-        .delete()
-        .eq("id", input.listingId)
-        .eq("seller_id", user.id)
-      if (rollbackError) console.error("Listing create rollback failed.", { listingId: input.listingId })
+    if (committedResult) {
+      console.error("Listing saved; a post-save operation failed.", { listingId: input.listingId })
+      return committedResult
+    }
+    if (input.mode === "create") {
+      try {
+        const recovered = await recoverCreatedListing(supabase, user.id, input.listingId, uploadedPaths)
+        if (recovered) return recovered
+      } catch {
+        // Preserve the parent and uploads for the same attempt to resume safely.
+      }
     } else if (ownedListing) {
       const originalPayload = {
         category_id: ownedListing.category_id,
@@ -762,7 +856,6 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       }
     }
 
-    await removeUploadedPaths(supabase, uploadedPaths)
     const message = error instanceof Error ? error.message : ""
     return {
       ok: false,
