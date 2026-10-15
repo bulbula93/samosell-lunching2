@@ -13,6 +13,7 @@ import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } fro
 import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
 
 type ProfileFormProps = {
+  startStoreSetup?: boolean
   userId: string
   initialProfile: {
     username: string
@@ -131,13 +132,13 @@ function AssetCard({
   )
 }
 
-export default function ProfileForm({ userId, initialProfile }: ProfileFormProps) {
+export default function ProfileForm({ userId, initialProfile, startStoreSetup = false }: ProfileFormProps) {
   const [username, setUsername] = useState(initialProfile.username)
   const [fullName, setFullName] = useState(initialProfile.full_name)
   const [bio, setBio] = useState(initialProfile.bio)
   const [city, setCity] = useState(initialProfile.city)
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatar_url)
-  const [sellerType, setSellerType] = useState(initialProfile.seller_type || "individual")
+  const [sellerType, setSellerType] = useState(startStoreSetup ? "store" : initialProfile.seller_type || "individual")
   const [storeLogoUrl, setStoreLogoUrl] = useState(initialProfile.store_logo_url)
   const [storeBannerUrl, setStoreBannerUrl] = useState(initialProfile.store_banner_url)
   const [storeHero, setStoreHero] = useState<StoreHeroContent>(() => normalizeStoreHero(initialProfile.store_hero))
