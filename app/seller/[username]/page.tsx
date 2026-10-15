@@ -15,6 +15,7 @@ import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
+import StoreContactStrip from "@/components/stores/StoreContactStrip"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
@@ -312,6 +313,17 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   <ShareButton variant="profile" url={shareUrl} title={sellerName} text={"ნახე " + sellerName + " SamoSell-ზე"} />
                 </div>
                 <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white transition hover:bg-brand-hover">კოლექციის ნახვა ↗</a>
+                <StoreContactStrip contacts={{
+                  instagram: profile.store_instagram,
+                  facebook: profile.store_facebook,
+                  tiktok: profile.tiktok_username,
+                  whatsapp: profile.store_whatsapp,
+                  telegram: profile.store_telegram,
+                  website: profile.store_website,
+                  address: profile.store_address,
+                  mapUrl: profile.store_map_url,
+                  hours: profile.store_hours,
+                }} />
               </div>
 
               <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
