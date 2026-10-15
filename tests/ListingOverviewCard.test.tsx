@@ -67,8 +67,12 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText("ნინო")).toBeInTheDocument()
     expect(screen.getByText(/3.*აქტიური ნივთები/)).toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: /მიწერე.*შედი და მიწერე გამყიდველს/ }),
+      screen.getByRole("link", { name: /მიწერე.*მიწერე გამყიდველს/ }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
+    expect(screen.getByText("დაგაინტერესა ეს ნივთი?")).toBeInTheDocument()
+    const contactAction = screen.getByRole("link", { name: /მიწერე.*მიწერე გამყიდველს/ })
+    const detailsSection = screen.getByRole("heading", { name: ka.listingDetail.details })
+    expect(contactAction.compareDocumentPosition(detailsSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(
       screen.getByRole("button", { name: /რჩეულებში დამატება/ }),
     ).toBeInTheDocument()
