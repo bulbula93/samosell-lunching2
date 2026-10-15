@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
+import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
 
 export const metadata: Metadata = {
   title: "Editorial ვიტრინა — SamoSell Shops დემო",
@@ -16,6 +17,24 @@ const products = [
   { name: "ტრენჩი", price: "140 ₾", condition: "კარგი მდგომარეობა", color: "#d7d6ca", photo: "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=75" },
   { name: "ტყავის ქამარი", price: "35 ₾", condition: "როგორც ახალი", color: "#e1c9b7", photo: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=75" },
 ]
+
+const sampleStoreVip: StoreVipListing = {
+  id: "demo-studio-vip",
+  slug: "demo-studio-vip",
+  title: "კლასიკური ვინტაჟური ჟაკეტი",
+  price: 85,
+  currency: "GEL",
+  sale_type: "sell",
+  cover_image_url: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=900&q=75",
+  is_vip: true,
+  is_featured: true,
+  promotion_tier: 3,
+  published_at: null,
+  seller_id: "demo-studio",
+  seller_username: "demo-studio",
+  seller_full_name: "სტუდიო არქივი",
+  seller_store_logo_url: null,
+}
 
 export default function StoreShowcasePage() {
   return (
@@ -49,13 +68,12 @@ export default function StoreShowcasePage() {
               </div>
               <a href="#store-products" className="mt-6 inline-flex min-h-12 items-center justify-center border-b border-[#293f37] text-sm font-semibold">კოლექციის ნახვა ↗</a>
             </div>
-            <div className="relative mx-auto h-[390px] w-full max-w-xl sm:h-[525px]">
-              <div className="absolute inset-x-0 bottom-10 top-0 rounded-[26px] bg-[#d8cbbb] bg-cover bg-center sm:left-[6%]" role="img" aria-label="დემო ბანერის საჩვენებელი მოდის ფოტო" style={{backgroundImage:"url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=75')"}} />
-              <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
-                <p className="text-xl font-semibold leading-snug text-brand sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
-                <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">მეორადი, მაგრამ მუდამ საყვარელი</p>
+            <div className="flex w-full min-w-0 flex-col items-center justify-center gap-3">
+              <p className="text-center text-xs font-black text-brand">მაღაზიის VIP განცხადება · დემო</p>
+              <div className="w-full max-w-[440px]">
+                <StoreVipCard item={sampleStoreVip} demo featured />
               </div>
-              <span className="absolute right-2 top-5 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · დემო</span>
+              <p className="max-w-[370px] text-center text-xs leading-5 text-text-soft">ეს ბარათი საჩვენებელია. რეალურ ვიტრინაში გამოჩნდება მაღაზიის აქტიური VIP პროდუქტი, ფოტო და ლოგო.</p>
             </div>
           </section>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
