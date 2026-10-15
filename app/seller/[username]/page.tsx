@@ -206,15 +206,15 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
       />
       <SiteHeader />
       {profile.seller_type === "store" ? (
-        <section aria-label="მაღაზიის ვიტრინა" className="bg-[#f8f5ee] text-[#2c322e]">
-          <div className="ui-container pb-12 pt-7 sm:pb-16 sm:pt-11">
-            <nav aria-label="სანავიგაციო ბილიკი" className="flex flex-wrap items-center gap-3 border-y border-[#c6c1b5] py-4 text-[11px] font-semibold uppercase tracking-[0.12em]">
+        <section aria-label="მაღაზიის ვიტრინა" className="bg-white px-3 py-4 text-text sm:px-4">
+          <div className="ui-container !px-0 pb-12 pt-4 sm:pb-16 sm:pt-7">
+            <nav aria-label="სანავიგაციო ბილიკი" className="flex flex-wrap items-center gap-3 border-y border-line px-4 py-4 text-[11px] font-semibold tracking-[0.07em] sm:px-6">
               <Link href="/stores" className="text-[#8a7969] transition hover:text-[#293f37]">მაღაზიები</Link>
-              <span aria-hidden="true" className="text-[#ae795f]">/</span>
+              <span aria-hidden="true" className="text-[#b37f65]">/</span>
               <span className="min-w-0 truncate text-[#293f37]">{sellerName}</span>
               <span className="ml-auto hidden text-[#a08068] sm:inline">SamoSell-ის რჩეული</span>
             </nav>
-            <div className="grid min-w-0 gap-9 pt-9 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14 lg:pt-12">
+            <div className="relative mt-6 grid min-w-0 gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">დამოუკიდებელი მაღაზია / საქართველო</p>
                 <div className="mt-6 flex min-w-0 items-center gap-4">
@@ -233,7 +233,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     ) : null}
                   </div>
                 </div>
-                <h1 className="mt-6 max-w-2xl break-words font-serif text-[clamp(3.1rem,6vw,6.2rem)] leading-[1.02] tracking-[-0.055em]">{sellerName}</h1>
+                <h1 className="mt-6 max-w-2xl break-words text-[clamp(2.35rem,4.6vw,4.6rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">{sellerName}</h1>
                 {profile.bio ? (
                   <div className="mt-6 max-w-lg text-sm leading-7 text-[#667167] sm:text-base">
                     {profile.bio.length > 210 ? (
@@ -256,7 +256,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     user && !user.is_anonymous ? (
                       <FollowButton userId={profile.id} initialFollowing={followSummary.isFollowing} variant="profile" />
                     ) : (
-                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-[#bcb5a8] px-2 text-xs font-bold text-[#293f37] sm:text-sm">
+                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl border border-line px-2 text-xs font-bold text-[#293f37] sm:text-sm">
                         <SellerActionIcon name="follow" /><span className="ml-1 truncate">გამოწერა</span>
                       </Link>
                     )
@@ -265,18 +265,18 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     user && !user.is_anonymous ? (
                       <ProfileChatButton userId={profile.id} variant="profile" />
                     ) : (
-                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl bg-[#293f37] px-2 text-xs font-bold text-white sm:text-sm">
+                      <Link href={"/login?next=" + encodeURIComponent("/seller/" + username)} className="flex min-h-12 min-w-0 items-center justify-center rounded-xl bg-brand px-2 text-xs font-bold text-white sm:text-sm">
                         <SellerActionIcon name="chat" /><span className="ml-1 truncate">მიწერა</span>
                       </Link>
                     )
                   ) : null}
                   <ShareButton variant="profile" url={shareUrl} title={sellerName} text={"ნახე " + sellerName + " SamoSell-ზე"} />
                 </div>
-                <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-full border border-[#293f37] bg-[#293f37] px-7 text-sm font-semibold text-white transition hover:bg-[#42594c]">კოლექციის ნახვა ↗</a>
+                <a href="#seller-listings" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white transition hover:bg-brand-hover">კოლექციის ნახვა ↗</a>
               </div>
 
-              <div className="relative mx-auto h-[360px] w-full max-w-xl sm:h-[525px]">
-                <div className="absolute inset-x-5 top-0 bottom-10 overflow-hidden rounded-t-[7rem] rounded-b-lg bg-[#ded6c8] sm:left-[9%]">
+              <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
+                <div className="absolute inset-x-0 top-0 bottom-10 overflow-hidden rounded-[26px] bg-[#ded6c8] sm:left-[6%]">
                   {profile.store_banner_url ? (
                     <SmartImage src={profile.store_banner_url} alt={sellerName + " მაღაზიის ბანერი"} wrapperClassName="h-full w-full" className="object-cover" loading="eager" sizes="(max-width: 1024px) 100vw, 50vw" />
                   ) : (
@@ -289,18 +289,18 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     </div>
                   )}
                 </div>
-                <div className="absolute bottom-0 left-0 max-w-[82%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
-                  <p className="font-serif text-xl italic leading-snug sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
+                <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
+                  <p className="text-xl font-semibold leading-snug text-brand sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
                   <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">რჩეული SamoSell-ზე</p>
                 </div>
-                <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
+                <span className="absolute right-1 top-7 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
               </div>
             </div>
 
-            <div className="mt-12 grid gap-5 border-y border-[#c6c1b5] py-6 sm:grid-cols-3 sm:gap-8">
-              <div><p className="font-serif text-3xl">{activeListingsCount}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">აქტიური განცხადება</p></div>
-              <div><p className="font-serif text-2xl">{formatSellerTenure(profile.created_at) || "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">SamoSell-ზე</p></div>
-              <div><a href="#seller-reviews-heading" className="block transition hover:text-[#ab7657]"><p className="font-serif text-3xl">{sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? "★ " + sellerReviewData.summary.averageScore.toFixed(1) : "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">{sellerReviewData.summary.reviewCount} შეფასება →</p></a></div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-3xl font-black text-brand">{activeListingsCount}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">აქტიური განცხადება</p></div>
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-2xl font-bold text-brand">{formatSellerTenure(profile.created_at) || "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">SamoSell-ზე</p></div>
+              <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><a href="#seller-reviews-heading" className="block transition hover:text-[#ab7657]"><p className="text-3xl font-black text-brand">{sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? "★ " + sellerReviewData.summary.averageScore.toFixed(1) : "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">{sellerReviewData.summary.reviewCount} შეფასება →</p></a></div>
             </div>
             {displayTrustSignals.length > 0 ? (
               <div className="mt-6 flex flex-wrap gap-2" aria-label="სანდოობის ნიშნები">
@@ -514,14 +514,14 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
 
       <SellerReviewsSection data={sellerReviewData} />
 
-      <section id="seller-listings" className={profile.seller_type === "store" ? "scroll-mt-32 bg-[#f8f5ee] text-[#2c322e] pb-14 pt-10 sm:pt-14" : "mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6"}>
+      <section id="seller-listings" className={profile.seller_type === "store" ? "scroll-mt-32 bg-white text-text pb-14 pt-10 sm:pt-14" : "mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6"}>
         <div className={profile.seller_type === "store" ? "ui-container" : ""}>
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className={profile.seller_type === "store" ? "text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a77459]" : "text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500"}>{profile.seller_type === "store" ? "კოლექცია / ნივთები" : "აქტიური შეთავაზებები"}</div>
-                <h2 className={profile.seller_type === "store" ? "mt-3 font-serif text-4xl tracking-tight sm:text-5xl" : "mt-2 text-2xl font-black sm:text-3xl"}>{profile.seller_type === "store" ? "მაღაზიის კოლექცია" : "გამყიდველის მიმდინარე განცხადებები"}</h2>
+                <h2 className={profile.seller_type === "store" ? "mt-3 text-3xl font-semibold tracking-tight text-brand sm:text-4xl" : "mt-2 text-2xl font-black sm:text-3xl"}>{profile.seller_type === "store" ? "მაღაზიის კოლექცია" : "გამყიდველის მიმდინარე განცხადებები"}</h2>
               </div>
               <Link href="/catalog" className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-text-soft">კატალოგში დაბრუნება</Link>
             </div>
