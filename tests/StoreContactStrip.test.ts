@@ -25,4 +25,8 @@ describe("Storefront social links", () => {
     const links = getStoreContactLinks({ website: "http://", facebook: "https://", tiktok: "broken handle!" })
     expect(links).toHaveLength(0)
   })
+
+  it("rejects third-party URLs disguised as WhatsApp", () => {
+    expect(getStoreContactLinks({whatsapp:"https://not-whatsapp.example/collect"})).toEqual([])
+  })
 })
