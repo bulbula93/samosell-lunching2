@@ -29,7 +29,7 @@ export function getStoreContactLinks(contacts: StoreContacts): Channel[] {
   const tiktok = buildTikTokProfileUrl(contacts.tiktok)
   if (tiktok) links.push({key:"tiktok",label:"TikTok",display:displayHandle(String(contacts.tiktok).replace(/^@/,"").replace(/^https?:\/\/(?:www\.)?tiktok\.com\/@/i,""),"TikTok"),href:tiktok,icon:"tiktok"})
   const whatsapp = toWhatsAppUrl(contacts.whatsapp)
-  if (whatsapp && isSafeHttpUrl(whatsapp)) links.push({key:"whatsapp",label:"WhatsApp",display:"WhatsApp",href:whatsapp,icon:"whatsapp"})
+  if (whatsapp && isAllowedHost(whatsapp, ["wa.me", "api.whatsapp.com", "web.whatsapp.com", "chat.whatsapp.com"])) links.push({key:"whatsapp",label:"WhatsApp",display:"WhatsApp",href:whatsapp,icon:"whatsapp"})
   const telegram = toTelegramUrl(contacts.telegram)
   if (telegram) links.push({key:"telegram",label:"Telegram",display:displayHandle(normalizeTelegramHandle(contacts.telegram),"Telegram"),href:telegram,icon:"telegram"})
   const website = normalizeUrl(contacts.website)
@@ -40,6 +40,12 @@ function isSafeHttpUrl(value: string) {
   try {
     const url = new URL(value)
     return (url.protocol === "http:" || url.protocol === "https:") && Boolean(url.hostname)
+  } catch { return false }
+}
+function isAllowedHost(value: string, hosts: string[]) {
+  try {
+    const url = new URL(value)
+    return url.protocol === "https:" && hosts.includes(url.hostname.toLowerCase())
   } catch { return false }
 }
 
