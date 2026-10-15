@@ -68,12 +68,18 @@ export default function StoreShowcasePage() {
               </div>
               <a href="#store-products" className="mt-6 inline-flex min-h-12 items-center justify-center border-b border-[#293f37] text-sm font-semibold">კოლექციის ნახვა ↗</a>
             </div>
-            <div className="flex w-full min-w-0 flex-col items-center justify-center gap-3">
-              <p className="text-center text-xs font-black text-brand">მაღაზიის VIP განცხადება · დემო</p>
-              <div className="w-full max-w-[440px]">
-                <StoreVipCard item={sampleStoreVip} demo featured />
+            <div className="relative mx-auto h-[330px] w-full max-w-xl sm:h-[480px]">
+              <div
+                role="img"
+                aria-label="საჩვენებელი მაღაზიის ქავერი — მზიანი ბუტიკის ინტერიერი"
+                className="absolute inset-x-0 bottom-10 top-0 rounded-[26px] bg-[#e3c9b5] bg-cover bg-center sm:left-[6%]"
+                style={{ backgroundImage: "url('/brand/samosell-shops-boutique.webp')" }}
+              />
+              <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
+                <p className="text-xl font-semibold leading-snug text-brand sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
+                <p className="mt-2 text-xs text-text-soft">მაღაზიის ქავერი · საჩვენებელი ფოტო</p>
               </div>
-              <p className="max-w-[370px] text-center text-xs leading-5 text-text-soft">ეს ბარათი საჩვენებელია. რეალურ ვიტრინაში გამოჩნდება მაღაზიის აქტიური VIP პროდუქტი, ფოტო და ლოგო.</p>
+              <span className="absolute right-2 top-5 rounded-full bg-brand px-4 py-2 text-[10px] font-bold text-white">მაღაზიის ვიტრინა</span>
             </div>
           </section>
           <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -81,6 +87,19 @@ export default function StoreShowcasePage() {
             <div><p className="text-3xl font-black text-brand">ვინტაჟი</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">კოლექციის ტიპი</p></div>
             <div><p className="text-3xl font-black text-brand">დემო</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">შეფასებები გამორთულია</p></div>
           </div>
+
+          <section id="demo-store-vip" aria-labelledby="demo-vip-heading" className="scroll-mt-28 border-b border-line pb-12 pt-12 sm:pb-16 sm:pt-16">
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+              <div>
+                <p className="text-xs font-semibold text-[#a77459]">მაღაზიის გამორჩეული ნივთები · დემო</p>
+                <h2 id="demo-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიის VIP განცხადებები</h2>
+              </div>
+              <span className="rounded-full border border-[#e6c9a9] bg-[#fff3e5] px-4 py-2 text-xs font-bold text-[#91613d]">საჩვენებელი VIP</span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StoreVipCard item={sampleStoreVip} demo />
+            </div>
+          </section>
 
           <section id="store-products" className="scroll-mt-28 pt-12 sm:pt-16">
             <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
