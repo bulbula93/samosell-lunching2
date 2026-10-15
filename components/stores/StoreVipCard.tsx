@@ -39,13 +39,22 @@ export default function StoreVipCard({
     <article className={"flex min-w-0 flex-col overflow-hidden rounded-[24px] border border-line bg-white shadow-[0_12px_34px_rgba(7,63,59,0.08)] " + (featured ? "p-3 sm:p-4" : "p-2.5 sm:p-3")}>
       <Link href={productHref} className="group block min-w-0" aria-label={item.title + " — " + storeName}>
         <div className={"relative overflow-hidden rounded-[17px] bg-[#f3e9de] " + (featured ? "aspect-[5/3.6]" : "aspect-[4/3]")}>
-          <SmartImage
-            src={item.cover_image_url}
-            alt={item.title}
-            wrapperClassName="h-full w-full"
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
-            sizes={featured ? "(max-width: 1024px) 90vw, 420px" : "(max-width: 768px) 90vw, 33vw"}
-          />
+          {demo ? (
+            <div
+              role="img"
+              aria-label={"საჩვენებელი ფოტო: " + item.title}
+              className="h-full w-full bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.025]"
+              style={{ backgroundImage: "url('" + (item.cover_image_url || "/brand/samosell-shops-boutique.webp") + "')" }}
+            />
+          ) : (
+            <SmartImage
+              src={item.cover_image_url}
+              alt={item.title}
+              wrapperClassName="h-full w-full"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.025]"
+              sizes={featured ? "(max-width: 1024px) 90vw, 420px" : "(max-width: 768px) 90vw, 33vw"}
+            />
+          )}
           <div className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
             <span className="rounded-full bg-accent px-3 py-1.5 text-[11px] font-black text-brand shadow-sm">{label}</span>
             {demo ? <span className="rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black text-brand shadow-sm">დემო</span> : null}
