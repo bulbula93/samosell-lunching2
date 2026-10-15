@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent } from "react"
 import StoreHeroMockup from "@/components/stores/StoreHeroMockup"
+import type { StoreContacts } from "@/components/stores/StoreContactStrip"
 import { normalizeStoreHero, STORE_HERO_LIMITS, type StoreHeroContent } from "@/lib/store-hero"
 
 const exampleHero: StoreHeroContent = {
@@ -16,6 +17,14 @@ export default function StoreHeroEditorDemo() {
   const [storeName, setStoreName] = useState("ჩემი მაღაზია")
   const [city, setCity] = useState("თბილისი")
   const [hero, setHero] = useState<StoreHeroContent>(exampleHero)
+  const [contacts, setContacts] = useState<StoreContacts>({
+    instagram: "@samosell.ge", facebook: "", tiktok: "", whatsapp: "", telegram: "",
+    website: "", address: "", mapUrl: "", hours: "",
+  })
+  const [hasPhysicalStore, setHasPhysicalStore] = useState(false)
+  function updateContact(key: keyof StoreContacts, value: string) {
+    setContacts((prev) => ({...prev, [key]: value.slice(0, key === "hours" ? 500 : 250)}))
+  }
   const [coverPreview, setCoverPreview] = useState("")
   const [logoPreview, setLogoPreview] = useState("")
   const [error, setError] = useState("")
@@ -76,8 +85,43 @@ export default function StoreHeroEditorDemo() {
               <input aria-label="დემო მაღაზიის ლოგო" type="file" accept="image/*" onChange={(e)=>onFileSelect(e,"logo")} className="mt-2 w-full min-w-0 text-xs text-text-soft"/>
             </label>
           </div>
+          <section aria-label="სოციალური ქსელები" className="space-y-4 border-t border-line pt-5">
+            <div>
+              <h2 className="text-lg font-bold text-brand">სოციალური ქსელები და საკონტაქტო ბმულები</h2>
+              <p className="mt-1 text-xs leading-5 text-text-soft">შეავსე მხოლოდ არსებული არხები. მათთან ერთად ლოგოები და ბმულები გამოჩნდება მაღაზიის მთავარ ბლოკში.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                {key:"instagram", label:"Instagram",placeholder:"@myshop"},
+                {key:"facebook", label:"Facebook",placeholder:"facebook.com/myshop"},
+                {key:"tiktok", label:"TikTok",placeholder:"@myshop"},
+                {key:"whatsapp", label:"WhatsApp",placeholder:"+995 555 12 34 56"},
+                {key:"telegram", label:"Telegram",placeholder:"@myshop"},
+                {key:"website", label:"ვებსაიტი",placeholder:"myshop.ge"},
+              ] as const).map(({key,label,placeholder})=>(
+                <label key={key} className="block"><span className="ui-field-label">{label}</span>
+                  <input className="ui-input h-12 rounded-2xl" value={contacts[key] || ""} maxLength={250} placeholder={placeholder} onChange={e=>updateContact(key,e.target.value)}/>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <section aria-label="ფიზიკური მაღაზია" className="space-y-4 rounded-2xl border border-line bg-[#fff8f0] p-4">
+            <label className="flex cursor-pointer items-center gap-3 text-sm font-bold text-brand">
+              <input type="checkbox" checked={hasPhysicalStore} onChange={e=>setHasPhysicalStore(e.target.checked)} className="h-5 w-5 accent-brand" />
+              მაქვს ფიზიკური მაღაზია
+            </label>
+            {hasPhysicalStore ? <>
+              <label className="block"><span className="ui-field-label">ფიზიკური მაღაზიის მისამართი</span>
+                <textarea className="ui-textarea min-h-20" value={contacts.address || ""} maxLength={250} placeholder="მაგ: თბილისი, აბაშიძის ქუჩა 10" onChange={e=>updateContact("address",e.target.value)}/></label>
+              <label className="block"><span className="ui-field-label">რუკის ბმული (არასავალდებულო)</span>
+                <input className="ui-input h-12 rounded-2xl" value={contacts.mapUrl || ""} maxLength={250} placeholder="https://maps.google.com/..." onChange={e=>updateContact("mapUrl",e.target.value)}/></label>
+              <label className="block"><span className="ui-field-label">სამუშაო საათები</span>
+                <textarea className="ui-textarea min-h-20" value={contacts.hours || ""} maxLength={500} placeholder="ორშაბათი–შაბათი: 10:00–19:00" onChange={e=>updateContact("hours",e.target.value)}/></label>
+            </> : <p className="text-xs leading-5 text-text-soft">თუ მხოლოდ ონლაინ ყიდი, ფიზიკური მისამართი საჯარო გვერდზე არ გამოჩნდება.</p>}
+          </section>
           {error ? <p role="alert" className="text-sm font-semibold text-red-700">{error}</p> : null}
-          <button type="button" className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-brand" onClick={()=>{setHero(normalizeStoreHero({}));setStoreName("");setCity("");setCoverPreview("");setLogoPreview("");setError("")}}>ყველაფრის გასუფთავება</button>
+          <button type="button" className="rounded-xl border border-line px-5 py-3 text-sm font-bold text-brand" onClick={()=>{setHero(normalizeStoreHero({}));setStoreName("");setCity("");setContacts({});setHasPhysicalStore(false);setCoverPreview("");setLogoPreview("");setError("")}}>ყველაფრის გასუფთავება</button>
           <p className="text-xs leading-6 text-text-soft">საბოლოო ვერსიაში ეს ყველაფერი პროფილში შეინახება. ღილაკები „მიწერა“, „გამოწერა“ და „კოლექციის ნახვა“ ფუნქციური ელემენტებია და მათი წაშლა არ არის შესაძლებელი.</p>
         </div>
         <div className="min-w-0 xl:sticky xl:top-6 xl:self-start">
@@ -86,6 +130,7 @@ export default function StoreHeroEditorDemo() {
             storeName={storeName}
             city={city}
             hero={hero}
+            contacts={hasPhysicalStore ? contacts : {...contacts, address:"", mapUrl:"", hours:""}}
             logoUrl={logoPreview}
             coverUrl={coverPreview || "/brand/samosell-shops-boutique.webp"}
             caption="ცოცხალი წინასწარი ნახვა · დემო"
