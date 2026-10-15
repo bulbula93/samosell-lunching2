@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
 import SmartImage from "@/components/shared/SmartImage"
+import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 
 type StoreProfile = {
@@ -22,6 +23,33 @@ const demoStores = [
   { name: "კვირის რჩეული", city: "ბათუმი", kind: "მეორედ აღმოჩენილი სტილი", description: "შერჩეული სტილი ყოველდღიური გარდერობისთვის", photo: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1000&q=75", initials: "SE", backdrop: "#e8d5bc" },
 ]
 
+const demoVipListings: StoreVipListing[] = [
+  {
+    id: "demo-vip-studio", slug: "demo-vip-studio", title: "ვინტაჟური ჟაკეტი",
+    price: 85, currency: "GEL", sale_type: "sell",
+    cover_image_url: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=900&q=75",
+    is_vip: true, is_featured: true, promotion_tier: 3, published_at: null,
+    seller_id: "demo-store-1", seller_username: "demo-studio",
+    seller_full_name: "სტუდიო არქივი", seller_store_logo_url: null,
+  },
+  {
+    id: "demo-vip-second", slug: "demo-vip-second", title: "კლასიკური ტყავის ჩანთა",
+    price: 70, currency: "GEL", sale_type: "sell",
+    cover_image_url: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=900&q=75",
+    is_vip: true, is_featured: false, promotion_tier: 2, published_at: null,
+    seller_id: "demo-store-2", seller_username: "demo-second",
+    seller_full_name: "მეორე თავი", seller_store_logo_url: null,
+  },
+  {
+    id: "demo-vip-sunday", slug: "demo-vip-sunday", title: "ვინტაჟური ტრენჩი",
+    price: 140, currency: "GEL", sale_type: "sell",
+    cover_image_url: "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=900&q=75",
+    is_vip: true, is_featured: false, promotion_tier: 1, published_at: null,
+    seller_id: "demo-store-3", seller_username: "demo-sunday",
+    seller_full_name: "კვირის რჩეული", seller_store_logo_url: null,
+  },
+]
+
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<StoreParams> }): Promise<Metadata> {
   const { demo } = (await searchParams) ?? {}
   return {
@@ -37,7 +65,9 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
   const demo = params.demo === "1"
   const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 80)
   let stores: StoreProfile[] = []
+  let vipListings: StoreVipListing[] = []
   let temporarilyUnavailable = false
+  let vipUnavailable = false
 
   if (!demo) {
     try {
@@ -51,6 +81,28 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
         .limit(60)
       if (error) throw error
       stores = (data ?? []).filter((profile) => Boolean(profile.username)) as StoreProfile[]
+      if (stores.length > 0) {
+        const activeStoreIds = new Set(stores.map((store) => store.id))
+        try {
+          const vipResponse = await supabase
+            .from("listings_catalog")
+            .select("id, slug, title, price, currency, sale_type, cover_image_url, is_vip, is_featured, promotion_tier, published_at, seller_id, seller_username, seller_full_name, seller_store_logo_url")
+            .eq("status", "active")
+            .eq("seller_type", "store")
+            .eq("is_vip", true)
+            .not("cover_image_url", "is", null)
+            .order("promotion_tier", { ascending: false })
+            .order("published_at", { ascending: false })
+            .limit(24)
+          if (vipResponse.error) throw vipResponse.error
+          vipListings = (vipResponse.data ?? [])
+            .filter((listing) => Boolean(listing.seller_username) && activeStoreIds.has(listing.seller_id))
+            .slice(0, 6) as StoreVipListing[]
+        } catch (error) {
+          vipUnavailable = true
+          console.warn("stores_vip_unavailable", error instanceof Error ? error.message : "unknown")
+        }
+      }
     } catch (error) {
       temporarilyUnavailable = true
       console.warn("stores_directory_unavailable", error instanceof Error ? error.message : "unknown")
@@ -64,6 +116,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
   const shownDemo = demoStores.filter((store) =>
     !search || [store.name, store.city, store.description, store.kind].some((text) => text.toLocaleLowerCase("ka").includes(search))
   )
+  const displayVipListings = demo ? demoVipListings : vipListings
 
   return (
     <>
@@ -91,20 +144,47 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                     <span>ვინტაჟი</span><span>მეორადი</span><span>დამოუკიდებელი მაღაზიები</span>
                   </div>
                 </div>
-                <div className="relative z-10 flex min-h-48 items-end justify-end lg:h-[420px]">
-                  <div className="w-full max-w-[400px] rounded-[28px] border border-white/75 bg-white/90 px-6 py-7 text-center shadow-[0_22px_58px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-9">
-                    <div aria-hidden="true" className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-xl text-[#e9964f]">★</div>
-                    <p className="mt-4 text-xs font-bold text-brand">ადგილობრივი სტილის ჟურნალი</p>
-                    <h2 className="mt-3 text-[clamp(1.45rem,2vw,2rem)] font-semibold leading-tight tracking-tight text-brand">იპოვე შენი შემდეგი რჩეული.</h2>
-                    <p className="mt-3 text-sm leading-7 text-text-soft">მეორადი, მაგრამ მუდამ საყვარელი</p>
-                    <a href="#discover-stores" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-6 text-sm font-black text-brand transition hover:bg-accent-hover">მაღაზიების ნახვა ↗</a>
-                  </div>
+                <div className="relative z-10 flex min-h-48 items-center justify-end lg:h-[420px]">
+                  {displayVipListings[0] ? (
+                    <div className="w-full max-w-[405px]">
+                      <StoreVipCard item={displayVipListings[0]} demo={demo} featured />
+                    </div>
+                  ) : (
+                    <div className="w-full max-w-[405px] rounded-[28px] border border-white/75 bg-white/90 px-6 py-8 text-center shadow-[0_22px_58px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-9">
+                      <div aria-hidden="true" className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-soft text-xl text-[#e9964f]">★</div>
+                      <h2 className="mt-4 text-2xl font-bold text-brand">მაღაზიების VIP განცხადებები</h2>
+                      <p className="mt-3 text-sm leading-7 text-text-soft">აქ გამოჩნდება მაღაზიების აქტიური VIP განცხადებები — პროდუქტის ფოტოთი, მაღაზიის სახელითა და ლოგოთი.</p>
+                      <Link href="/for-stores" className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-6 text-sm font-black text-brand transition hover:bg-accent-hover">გაიგე მეტი ↗</Link>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
           </div>
         </div>
         <div className="ui-container pb-16 sm:pb-20">
+          <section aria-labelledby="store-vip-heading" className="scroll-mt-28 border-b border-line pb-11 pt-11 sm:pb-16 sm:pt-16">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold text-[#b47b5d]">მაღაზიების გამორჩეული ნივთები</p>
+                <h2 id="store-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიების VIP განცხადებები</h2>
+                <p className="mt-3 text-sm leading-7 text-text-soft">ნახე პროდუქტი, მისი ფასი და პირდაპირ გადადი მაღაზიის პროფილზე.</p>
+              </div>
+              {demo ? <span className="rounded-full border border-[#e6c9a9] bg-[#fff3e5] px-4 py-2 text-xs font-bold text-[#91613d]">დიზაინის დემო — საჩვენებელი მონაცემები</span> : null}
+            </div>
+            {displayVipListings.length > 0 ? (
+              <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {displayVipListings.map((item) => <StoreVipCard key={item.id} item={item} demo={demo} />)}
+              </div>
+            ) : (
+              <div role="status" className="mt-7 rounded-[24px] border border-dashed border-line bg-white px-6 py-9 text-center">
+                <p className="text-lg font-bold text-brand">{vipUnavailable ? "VIP განცხადებები დროებით ვერ ჩაიტვირთა" : "მაღაზიების VIP განცხადებები მალე გამოჩნდება"}</p>
+                <p className="mt-2 text-sm leading-6 text-text-soft">{vipUnavailable ? "სცადე მოგვიანებით." : "ამჟამად აქტიური VIP განცხადებები არ არის. დიზაინის სანახავად შეგიძლია დემოს გახსნა."}</p>
+                {!vipUnavailable ? <Link href="/stores?demo=1" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">დემოს ნახვა ↗</Link> : null}
+              </div>
+            )}
+          </section>
+
           <section id="discover-stores" className="scroll-mt-28 pt-11 sm:pt-16">
             <div className="flex flex-wrap items-end justify-between gap-5 border-b border-line pb-5">
               <div>
