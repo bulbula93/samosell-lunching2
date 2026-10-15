@@ -21,72 +21,72 @@ export default function StoreShowcasePage() {
   return (
     <>
       <SiteHeader />
-      <main className="min-h-screen bg-[#f8f5ee] text-[#2c322e]">
-        <div className="ui-container pb-16 pt-7 sm:pt-11">
-          <nav className="flex flex-wrap items-center justify-between gap-3 border-y border-[#c6c1b5] py-4 text-[11px] font-semibold uppercase tracking-[0.12em]">
+      <main className="min-h-screen bg-bg text-text">
+        <div className="ui-container pb-16 pt-6 sm:pt-10">
+          <nav className="flex flex-wrap items-center justify-between gap-3 border-y border-line py-4 text-[11px] font-semibold uppercase tracking-[0.12em]">
             <Link href="/stores?demo=1" className="text-[#8a7969] hover:text-[#293f37]">← მაღაზიების დემო</Link>
             <span className="text-[#a08068]">SamoSell-ის რჩეული · ვიტრინა</span>
           </nav>
           <p role="status" className="mt-5 border-l-[3px] border-[#bd8459] bg-[#efe3d4] px-4 py-3 text-xs leading-6 text-[#75543f]">
             დიზაინის დემო — მაღაზია, პროდუქციის მონაცემები, ფოტოები და ფასები საჩვენებელია. არც ერთი ნივთი რეალურად არ იყიდება.
           </p>
-          <section aria-label="Editorial მაღაზიის პროფილი" className="grid gap-9 pt-10 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-14">
+          <section aria-label="მაღაზიის პროფილი" className="relative mt-6 grid gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-14">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">დამოუკიდებელი ვინტაჟი / დემო</p>
               <div className="mt-6 flex items-center gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-[#293f37] font-serif text-2xl text-white shadow-sm">სა</div>
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-brand text-2xl font-black text-white shadow-sm">სა</div>
                 <div>
                   <p className="text-sm font-semibold text-[#506553]">სტუდიო არქივი</p>
                   <p className="mt-1 text-xs text-[#948577]">თბილისი · ვინტაჟური მაღაზია</p>
                 </div>
               </div>
-              <h1 className="mt-7 font-serif text-[clamp(3.4rem,7vw,6.5rem)] leading-[0.95] tracking-[-0.055em]">სტუდიო<br/><span className="italic text-[#ae795f]">არქივი.</span></h1>
+              <h1 className="mt-7 text-[clamp(2.6rem,5vw,4.8rem)] font-normal leading-[1.07] tracking-[-0.04em] text-[#172321]">სტუდიო<br/><span className="italic text-[#b37f65]">არქივი.</span></h1>
               <p className="mt-8 max-w-lg text-base leading-8 text-[#69726a]">ძველი ეპოქის ნივთები ახალი ისტორიებისთვის. ხელით შერჩეული ვინტაჟური ჟაკეტები, ჩანთები და ყოველდღიური სტილის გამორჩეული დეტალები.</p>
               <div className="mt-7 flex flex-wrap gap-6 text-xs font-semibold text-[#738074]"><span>⌖ თბილისი</span><span>6 საჩვენებელი ნივთი</span></div>
               <div className="mt-8 flex flex-wrap gap-3">
-                <span className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#293f37] px-7 text-sm font-semibold text-white">მიწერა · დემო</span>
-                <span className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#bcb5a8] px-7 text-sm font-semibold">გამოწერა · დემო</span>
+                <span className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-black text-white">მიწერა · დემო</span>
+                <span className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-line bg-white/85 px-7 text-sm font-bold">გამოწერა · დემო</span>
               </div>
               <a href="#store-products" className="mt-6 inline-flex min-h-12 items-center justify-center border-b border-[#293f37] text-sm font-semibold">კოლექციის ნახვა ↗</a>
             </div>
             <div className="relative mx-auto h-[390px] w-full max-w-xl sm:h-[525px]">
-              <div className="absolute inset-x-5 bottom-10 top-0 rounded-t-[7rem] rounded-b-lg bg-[#d8cbbb] bg-cover bg-center sm:left-[9%]" role="img" aria-label="დემო ბანერის საჩვენებელი მოდის ფოტო" style={{backgroundImage:"url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=75')"}} />
-              <div className="absolute bottom-0 left-0 max-w-[82%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
-                <p className="font-serif text-xl italic leading-snug sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
+              <div className="absolute inset-x-0 bottom-10 top-0 rounded-[26px] bg-[#d8cbbb] bg-cover bg-center sm:left-[6%]" role="img" aria-label="დემო ბანერის საჩვენებელი მოდის ფოტო" style={{backgroundImage:"url('https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=75')"}} />
+              <div className="absolute bottom-0 left-0 max-w-[84%] rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-[0_18px_40px_rgba(7,63,59,0.11)] backdrop-blur-md sm:p-7">
+                <p className="text-xl font-semibold leading-snug text-brand sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
                 <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">მეორადი, მაგრამ მუდამ საყვარელი</p>
               </div>
-              <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · დემო</span>
+              <span className="absolute right-2 top-5 rounded-full bg-brand px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · დემო</span>
             </div>
           </section>
-          <div className="mt-12 grid gap-5 border-y border-[#c6c1b5] py-6 sm:grid-cols-3">
-            <div><p className="font-serif text-3xl">6</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">საჩვენებელი ნივთი</p></div>
-            <div><p className="font-serif text-3xl">ვინტაჟი</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">კოლექციის ტიპი</p></div>
-            <div><p className="font-serif text-3xl">დემო</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">შეფასებები გამორთულია</p></div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div><p className="text-3xl font-black text-brand">6</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">საჩვენებელი ნივთი</p></div>
+            <div><p className="text-3xl font-black text-brand">ვინტაჟი</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">კოლექციის ტიპი</p></div>
+            <div><p className="text-3xl font-black text-brand">დემო</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">შეფასებები გამორთულია</p></div>
           </div>
 
           <section id="store-products" className="scroll-mt-28 pt-12 sm:pt-16">
-            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#c6c1b5] pb-5">
+            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
               <div><p className="text-[11px] uppercase tracking-[0.22em] text-[#ad7558]">კოლექცია / დემო</p><h2 className="mt-3 font-serif text-4xl tracking-tight sm:text-5xl">მაღაზიის კოლექცია</h2></div>
               <span className="text-xs tracking-[0.12em] text-[#898275]">06 / დემო</span>
             </div>
-            <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-9 sm:grid-cols-3 sm:gap-x-6">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5">
               {products.map((product) => (
-                <article key={product.name}>
-                  <div className="relative aspect-[4/5] overflow-hidden" style={{backgroundColor:product.color}}>
+                <article key={product.name} className="rounded-[22px] border border-line bg-white p-2 shadow-[0_10px_30px_rgba(7,63,59,0.05)] sm:p-3">
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-2xl" style={{backgroundColor:product.color}}>
                     <div className="h-full w-full bg-cover bg-center" role="img" aria-label={"საჩვენებელი ფოტო: " + product.name} style={{backgroundImage:"url('" + product.photo + "')"}} />
                     <span className="absolute left-3 top-3 bg-[#f8f5ee]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em]">დემო</span>
                   </div>
                   <p className="mt-4 text-[10px] uppercase tracking-[0.14em] text-[#a77459]">{product.condition}</p>
                   <h3 className="mt-1 text-sm font-semibold leading-6 sm:text-base">{product.name}</h3>
-                  <p className="mt-1 font-serif text-xl">{product.price}</p>
+                  <p className="mt-1 text-xl font-bold text-brand">{product.price}</p>
                 </article>
               ))}
             </div>
           </section>
 
-          <section className="mt-16 flex flex-col gap-5 border-t border-[#c6c1b5] pt-9 sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-[11px] uppercase tracking-[0.16em] text-[#ae795f]">მაღაზიებისთვის</p><h2 className="mt-2 font-serif text-3xl">შენი მაღაზიაც ამ სივრცეში.</h2><p className="mt-2 text-sm text-[#6c786e]">დემო მხოლოდ სანახავადაა. რეალური მაღაზიის პროფილი შენს ფოტოებსა და ნივთებს იყენებს.</p></div>
-            <Link href="/for-stores" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#293f37] px-7 text-sm font-semibold text-white">გაიგე მეტი ↗</Link>
+          <section className="mt-16 flex flex-col gap-5 border-t border-line pt-9 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-[11px] uppercase tracking-[0.16em] text-[#b37f65]">მაღაზიებისთვის</p><h2 className="mt-2 text-2xl font-semibold text-brand">შენი მაღაზიაც ამ სივრცეში.</h2><p className="mt-2 text-sm text-[#6c786e]">დემო მხოლოდ სანახავადაა. რეალური მაღაზიის პროფილი შენს ფოტოებსა და ნივთებს იყენებს.</p></div>
+            <Link href="/for-stores" className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-brand px-7 text-sm font-semibold text-white">გაიგე მეტი ↗</Link>
           </section>
         </div>
       </main>
