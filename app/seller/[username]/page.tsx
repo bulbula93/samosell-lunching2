@@ -212,11 +212,11 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <Link href="/stores" className="text-[#8a7969] transition hover:text-[#293f37]">მაღაზიები</Link>
               <span aria-hidden="true" className="text-[#ae795f]">/</span>
               <span className="min-w-0 truncate text-[#293f37]">{sellerName}</span>
-              <span className="ml-auto hidden text-[#a08068] sm:inline">THE SAMOSELL EDIT</span>
+              <span className="ml-auto hidden text-[#a08068] sm:inline">SamoSell-ის რჩეული</span>
             </nav>
             <div className="grid min-w-0 gap-9 pt-9 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14 lg:pt-12">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">INDEPENDENT STORE / GEORGIA</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.23em] text-[#a77459]">დამოუკიდებელი მაღაზია / საქართველო</p>
                 <div className="mt-6 flex min-w-0 items-center gap-4">
                   <div className="relative shrink-0">
                     {sellerHasStory ? (
@@ -290,10 +290,10 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   )}
                 </div>
                 <div className="absolute bottom-0 left-0 max-w-[82%] bg-[#efe3d4] p-5 shadow-lg sm:p-8">
-                  <p className="font-serif text-2xl italic leading-tight sm:text-3xl">A story worth wearing.</p>
-                  <p className="mt-2 text-[10px] uppercase tracking-[0.17em] text-[#827469]">CURATED ON SAMOSELL</p>
+                  <p className="font-serif text-xl italic leading-snug sm:text-2xl">ნივთები, რომელთაც ისტორია აქვთ.</p>
+                  <p className="mt-2 text-[10px] tracking-[0.08em] text-[#827469]">რჩეული SamoSell-ზე</p>
                 </div>
-                <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">THE EDIT · STORE</span>
+                <span className="absolute right-1 top-7 rounded-full bg-[#293f37] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white">რჩეული · მაღაზია</span>
               </div>
             </div>
 
@@ -520,7 +520,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className={profile.seller_type === "store" ? "text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a77459]" : "text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500"}>{profile.seller_type === "store" ? "THE COLLECTION / ITEMS" : "აქტიური შეთავაზებები"}</div>
+                <div className={profile.seller_type === "store" ? "text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a77459]" : "text-sm font-semibold uppercase tracking-[0.2em] text-neutral-500"}>{profile.seller_type === "store" ? "კოლექცია / ნივთები" : "აქტიური შეთავაზებები"}</div>
                 <h2 className={profile.seller_type === "store" ? "mt-3 font-serif text-4xl tracking-tight sm:text-5xl" : "mt-2 text-2xl font-black sm:text-3xl"}>{profile.seller_type === "store" ? "მაღაზიის კოლექცია" : "გამყიდველის მიმდინარე განცხადებები"}</h2>
               </div>
               <Link href="/catalog" className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-text-soft">კატალოგში დაბრუნება</Link>
