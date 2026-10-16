@@ -14,7 +14,7 @@ import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } fro
 import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
 import StoreSetupEditor, { type StoreSetupValues } from "@/components/stores/StoreSetupEditor"
 import type { EditableProfile } from "@/lib/profile-editor"
-import { getStoreSetupContinuePath } from "@/lib/store-onboarding"
+import { getStoreSetupContinuePath, STORE_SETUP_PATH } from "@/lib/store-onboarding"
 import { isReadOnlyPreview } from "@/lib/preview-read-only"
 
 type ProfileFormProps = {
@@ -513,7 +513,13 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setSellerType(option.value)}
+                onClick={() => {
+                  if (option.value === "store") {
+                    router.push(STORE_SETUP_PATH)
+                    return
+                  }
+                  setSellerType(option.value)
+                }}
                 className={active
                   ? "rounded-[1.5rem] border border-brand/30 bg-brand-soft/55 px-4 py-4 text-left shadow-sm transition"
                   : "rounded-[1.5rem] border border-line bg-white px-4 py-4 text-left transition hover:border-brand/30 hover:bg-brand-soft/30"}

@@ -52,6 +52,22 @@ function renderSetup(continuePath = "/dashboard/listings/new") {
 }
 
 describe("Store registration continuation", () => {
+  it.each(["individual", "store"])("opens the separate builder immediately from the profile's store choice (%s)", async (sellerType) => {
+    render(<ProfileForm userId="owner-id" initialProfile={{ ...initial, seller_type: sellerType }} />)
+    await userEvent.click(screen.getByRole("button", { name: /^მაღაზია ბრენდის/ }))
+    expect(db.push).toHaveBeenCalledWith(STORE_SETUP_PATH)
+    expect(db.upsert).not.toHaveBeenCalled()
+    expect(db.upload).not.toHaveBeenCalled()
+    expect(db.from).not.toHaveBeenCalled()
+  })
+
+  it("keeps the individual selection in the profile editor", async () => {
+    render(<ProfileForm userId="owner-id" initialProfile={initial} />)
+    await userEvent.click(screen.getByRole("button", { name: /^ფიზიკური პირი/ }))
+    expect(db.push).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "ცვლილებების შენახვა" })).toBeVisible()
+  })
+
   it("preselects a store from the shops CTA and carries its builder through confirmation", async () => {
     render(<RegisterForm nextPath={STORE_SETUP_PATH} />)
     expect(screen.getByRole("radio", { name: /^მაღაზია/ })).toBeChecked()
