@@ -11,9 +11,9 @@ export default function AuthCard({
 }: {
   title: ReactNode
   subtitle: ReactNode
-  altHref: string
-  altLabel: string
-  altText: string
+  altHref?: string
+  altLabel?: string
+  altText?: string
   children: React.ReactNode
 }) {
   return (
@@ -55,7 +55,7 @@ export default function AuthCard({
 
         {children}
 
-        <div className="mt-7 text-center text-sm text-neutral-600">
+        {altHref ? <div className="mt-7 text-center text-sm text-neutral-600">
           {altText}{" "}
           <Link
             href={altHref}
@@ -64,7 +64,7 @@ export default function AuthCard({
             {altLabel}
             <span aria-hidden="true" className="ml-1">→</span>
           </Link>
-        </div>
+        </div> : null}
       </div>
     </main>
   )

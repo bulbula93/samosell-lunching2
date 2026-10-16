@@ -7,6 +7,7 @@ import { createStoreCoverTheme, DEFAULT_STORE_COVER_THEME, type CoverRgb } from 
 
 const { readColor } = vi.hoisted(() => ({ readColor: vi.fn() }))
 vi.mock("@/lib/store-cover-color-client", () => ({ readStoreCoverColor: readColor }))
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 
 beforeEach(() => { readColor.mockReset().mockResolvedValue(null) })
 

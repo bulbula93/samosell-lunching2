@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import SiteHeader from "@/components/layout/SiteHeader"
 import { isReadOnlyPreview } from "@/lib/preview-read-only"
+import { STORE_SETUP_PATH } from "@/lib/store-onboarding"
 
 export const metadata: Metadata = {
   title: "გახსენი მაღაზია — SamoSell Shops",
@@ -54,7 +55,7 @@ export default function ForStoresPage() {
                     <p className="mt-4 text-sm font-semibold text-text-soft">შენი სტილი შენი ისტორია</p>
                   </div>
                   <div className="mt-7 flex flex-wrap gap-3">
-                    <Link href={isPreview ? "/stores/hero-editor" : "/register?next=%2Fdashboard%2Fprofile%3Fsetup%3Dstore"} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">
+                    <Link href={`/register?next=${encodeURIComponent(STORE_SETUP_PATH)}`} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">
                       დაიწყე მაღაზიის შექმნა ↗
                     </Link>
                     <Link href="/stores?demo=1" className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/90 px-6 text-sm font-black text-brand transition hover:bg-white">
@@ -127,7 +128,7 @@ export default function ForStoresPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#be855f]">შენი ახალი ისტორია აქ იწყება</p>
             <h2 className="mx-auto mt-4 max-w-xl text-4xl font-normal leading-tight tracking-tight sm:text-5xl">შენი კოლექცია<br /><span className="italic text-[#be855f]">ახალ სივრცეში</span></h2>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link href={isPreview ? "/stores/showcase" : "/dashboard/profile"} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-semibold text-white transition hover:bg-brand-hover">
+              <Link href={isPreview ? "/stores/showcase" : STORE_SETUP_PATH} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-7 text-sm font-semibold text-white transition hover:bg-brand-hover">
                 {isPreview ? "ნახე ვიტრინის დემო ↗" : "მაღაზიის პროფილის გამართვა ↗"}
               </Link>
               <Link href="/stores" className="inline-flex min-h-12 items-center justify-center rounded-full border border-line px-7 text-sm font-semibold transition hover:bg-[#eee6d9]">მაღაზიების ნახვა</Link>

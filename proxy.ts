@@ -6,7 +6,8 @@ import { categoryFromCatalogPath, getCatalogRedirectPath } from "@/lib/catalog-u
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
   // This performance/SEO Preview reads Production's public data.
-  // Deny all API, admin, authentication, callbacks, cron and mutations.
+  // Registration's UI is reviewable; all auth requests and writes stay blocked.
+  // Deny all API, admin, authenticated pages, callbacks, cron and mutations.
   if (isReadOnlyPreview()) {
     const publicPage =
       pathname === "/" ||
@@ -19,6 +20,7 @@ export async function proxy(request: NextRequest) {
       pathname === "/stores/hero-editor" ||
       pathname === "/stores/concepts" ||
       pathname === "/for-stores" ||
+      pathname === "/register" ||
       pathname.startsWith("/catalog/") ||
       pathname.startsWith("/listing/") ||
       pathname.startsWith("/seller/") ||
