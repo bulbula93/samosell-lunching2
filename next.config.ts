@@ -6,6 +6,7 @@ const isReadOnlyReviewPreview =
   [
     "preview/vercel-storage-optimization-20261014",
     "preview/listing-upload-idempotency-20261016",
+    "preview/store-cards-copy-20261016",
   ].includes(process.env.VERCEL_GIT_COMMIT_REF ?? "");
 
 const nextConfig: NextConfig = {
