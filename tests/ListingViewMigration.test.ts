@@ -26,7 +26,15 @@ beforeAll(async () => {
       ('${listingId}', '99da275c-d3ab-4b57-95f2-3e1e9d17cf94', 'active'),
       ('${inactiveId}', '99da275c-d3ab-4b57-95f2-3e1e9d17cf94', 'draft');
   `)
-  await db.exec(migration)
+  // Pin only the minute bucket in the test database: 65 sequential queries can
+  // cross a real clock minute boundary on a slow CI runner, incorrectly yielding
+  // zero rejections although the production 60/minute limiter is correct.
+  const deterministicMigration = migration.replace(
+    "date_trunc('minute', clock_timestamp())",
+    "date_trunc('minute', timestamptz '2026-10-16 12:00:00+00')",
+  )
+  if (deterministicMigration === migration) throw new Error("Rate limiter minute clock expression changed")
+  await db.exec(deterministicMigration)
   await db.exec(resilient)
   // Existing legacy listings can violate newer checks yet remain active.
   await db.exec("alter table public.listings add column description text default 'short'; alter table public.listings add constraint description_guard check(length(description)>20) not valid;")
