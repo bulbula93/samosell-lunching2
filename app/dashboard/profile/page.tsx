@@ -1,29 +1,22 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import ProfileForm from "@/components/dashboard/ProfileForm"
 import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
-import { normalizeStoreHero } from "@/lib/store-hero"
+import { loadEditableProfile } from "@/lib/profile-editor-server"
+import { getStoreSetupPath } from "@/lib/store-onboarding"
 
-export default async function DashboardProfilePage({ searchParams }: { searchParams?: Promise<{ setup?: string | string[] }> }) {
+export default async function DashboardProfilePage({ searchParams }: { searchParams?: Promise<{ setup?: string | string[]; next?: string | string[] }> }) {
   const params = (await searchParams) ?? {}
-  const startStoreSetup = params.setup === "store"
+  const setup = Array.isArray(params.setup) ? params.setup[0] : params.setup
+  if (setup === "store") redirect(getStoreSetupPath(Array.isArray(params.next) ? params.next[0] : params.next))
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, full_name, bio, city, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
-    .eq("id", user!.id)
-    .maybeSingle()
-
-  // The profile editor can be deployed before the staged DB migration.
-  // In that case, keep existing profiles available and show empty hero fields.
-  const heroResponse = profile?.seller_type === "store"
-    ? await supabase.from("profiles").select("store_hero").eq("id", user!.id).maybeSingle()
-    : null
-  const storeHero = normalizeStoreHero(heroResponse?.data?.store_hero)
+  if (!user) redirect("/login?next=%2Fdashboard%2Fprofile")
+  const profile = await loadEditableProfile(supabase, user.id)
 
   return (
     <main className="ui-page-shell">
@@ -49,30 +42,8 @@ export default async function DashboardProfilePage({ searchParams }: { searchPar
 
       <div className="mt-6">
         <ProfileForm
-        startStoreSetup={startStoreSetup}
-        userId={user!.id}
-        initialProfile={{
-          username: profile?.username ?? "",
-          full_name: profile?.full_name ?? "",
-          bio: profile?.bio ?? "",
-          city: profile?.city ?? "",
-          avatar_url: profile?.avatar_url ?? "",
-          seller_type: profile?.seller_type ?? "individual",
-          store_logo_url: profile?.store_logo_url ?? "",
-          store_banner_url: profile?.store_banner_url ?? "",
-          store_hero: storeHero,
-          store_phone: profile?.store_phone ?? "",
-          store_whatsapp: profile?.store_whatsapp ?? "",
-          store_telegram: profile?.store_telegram ?? "",
-          store_instagram: profile?.store_instagram ?? "",
-          store_facebook: profile?.store_facebook ?? "",
-          store_website: profile?.store_website ?? "",
-          store_hours: profile?.store_hours ?? "",
-          store_address: profile?.store_address ?? "",
-          store_map_url: profile?.store_map_url ?? "",
-          tiktok_username: profile?.tiktok_username ?? "",
-          tiktok_live_until: profile?.tiktok_live_until ?? "",
-        }}
+        userId={user.id}
+        initialProfile={profile}
         />
       </div>
       </div>

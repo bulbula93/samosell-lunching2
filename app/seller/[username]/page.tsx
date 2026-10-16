@@ -15,6 +15,7 @@ import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
+import StoreHeroSurface from "@/components/stores/StoreHeroSurface"
 import StoreContactStrip from "@/components/stores/StoreContactStrip"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
@@ -254,9 +255,9 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <span className="min-w-0 truncate text-[#293f37]">{sellerName}</span>
               <span className="ml-auto hidden text-[#a08068] sm:inline">SamoSell-ის რჩეული</span>
             </nav>
-            <div className="relative mt-6 grid min-w-0 gap-9 overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
+            <StoreHeroSurface as="div" coverUrl={profile.store_banner_url} className="relative mt-6 grid min-w-0 gap-9 overflow-hidden rounded-[30px] border px-6 py-9 shadow-[0_18px_60px_rgba(7,63,59,0.08)] sm:px-10 sm:py-12 lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] lg:items-center lg:gap-14">
               <div className="min-w-0">
-                {hero.eyebrow ? <p className="text-[11px] font-semibold tracking-[0.11em] text-[#a77459]">{hero.eyebrow}</p> : null}
+                {hero.eyebrow ? <p className="text-[11px] font-semibold tracking-[0.11em] text-[color:var(--store-cover-accent)]">{hero.eyebrow}</p> : null}
                 <div className="mt-6 flex min-w-0 items-center gap-4">
                   <div className="relative shrink-0">
                     {sellerHasStory ? (
@@ -267,7 +268,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                     <TikTokLiveBadge username={profile.tiktok_username} liveUntil={profile.tiktok_live_until} className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2" />
                   </div>
                   <div className="min-w-0">
-                    <p className="break-all text-xs text-[#8a8279]">@{profile.username}</p>
+                    <p className="break-all text-xs text-text-soft">@{profile.username}</p>
                     {profile.is_seller_verified ? (
                       <span className="mt-2 inline-flex items-center rounded-full border border-[#b9cfbf] bg-[#e7f1e5] px-3 py-1 text-[11px] font-semibold text-[#295942]">✓ დადასტურებული</span>
                     ) : null}
@@ -275,16 +276,16 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </div>
                 <h1 className="mt-6 max-w-2xl break-words whitespace-pre-wrap text-[clamp(2.35rem,4.6vw,4.6rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">{heroHeadline}</h1>
                 {heroDescription ? (
-                  <div className="mt-6 max-w-lg text-sm leading-7 text-[#667167] sm:text-base">
+                  <div className="mt-6 max-w-lg text-sm leading-7 text-text-soft sm:text-base">
                     {heroDescription.length > 210 ? (
                       <details>
-                        <summary className="cursor-pointer font-medium">{heroDescription.slice(0, 205).trimEnd()}… <span className="text-[#98644d] underline underline-offset-4">სრულად</span></summary>
+                        <summary className="cursor-pointer font-medium">{heroDescription.slice(0, 205).trimEnd()}… <span className="text-brand underline underline-offset-4">სრულად</span></summary>
                         <p className="mt-3 whitespace-pre-wrap">{heroDescription}</p>
                       </details>
                     ) : <p className="whitespace-pre-wrap">{heroDescription}</p>}
                   </div>
                 ) : null}
-                <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-[#647468]">
+                <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-xs font-semibold text-text-soft">
                   {profile.city ? <span>⌖ {profile.city}</span> : null}
                   <span>{activeListingsCount} აქტიური განცხადება</span>
                   {followSummary.followers > 0 ? (
@@ -347,7 +348,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   </div>
                 ) : null}
               </div>
-            </div>
+            </StoreHeroSurface>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-3xl font-black text-brand">{activeListingsCount}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">აქტიური განცხადება</p></div>

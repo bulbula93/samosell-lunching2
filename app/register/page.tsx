@@ -28,10 +28,7 @@ export default async function RegisterPage({
   return (
     <AuthCard
       title="ახალი ანგარიში"
-      subtitle="შექმენი პროფილი, განათავსე ტანსაცმელი და მართე შენი განცხადებები."
-      altHref={`/login?next=${encodeURIComponent(next)}`}
-      altText="უკვე გაქვს ანგარიში?"
-      altLabel="შესვლა"
+      subtitle="აირჩიე ანგარიშის ტიპი და დაიწყე გაყიდვა SamoSell-ზე"
     >
       <RegisterForm nextPath={next} />
     </AuthCard>

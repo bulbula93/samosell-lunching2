@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Avatar from "@/components/shared/Avatar"
 import SmartImage from "@/components/shared/SmartImage"
 import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/listings"
@@ -11,32 +12,17 @@ import { normalizeStoreHero, STORE_HERO_LIMITS, type StoreHeroContent } from "@/
 import { createClient } from "@/lib/supabase/client"
 import { isValidSellerPhone, normalizeSellerPhone, SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 import { isTikTokLiveActive, normalizeTikTokUsername } from "@/lib/tiktok"
+import StoreSetupEditor, { type StoreSetupValues } from "@/components/stores/StoreSetupEditor"
+import type { EditableProfile } from "@/lib/profile-editor"
+import { getStoreSetupContinuePath } from "@/lib/store-onboarding"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 
 type ProfileFormProps = {
   startStoreSetup?: boolean
+  previewOnly?: boolean
+  continuePath?: string
   userId: string
-  initialProfile: {
-    username: string
-    full_name: string
-    bio: string
-    city: string
-    avatar_url: string
-    seller_type: string
-    store_logo_url: string
-    store_banner_url: string
-    store_hero: StoreHeroContent
-    store_phone: string
-    store_whatsapp: string
-    store_telegram: string
-    store_instagram: string
-    store_facebook: string
-    store_website: string
-    store_hours: string
-    store_address: string
-    store_map_url: string
-    tiktok_username: string
-    tiktok_live_until: string
-  }
+  initialProfile: EditableProfile
 }
 
 const sellerTypeOptions = [
@@ -132,7 +118,8 @@ function AssetCard({
   )
 }
 
-export default function ProfileForm({ userId, initialProfile, startStoreSetup = false }: ProfileFormProps) {
+export default function ProfileForm({ userId, initialProfile, startStoreSetup = false, previewOnly = false, continuePath }: ProfileFormProps) {
+  const router = useRouter()
   const [username, setUsername] = useState(initialProfile.username)
   const [fullName, setFullName] = useState(initialProfile.full_name)
   const [bio, setBio] = useState(initialProfile.bio)
@@ -176,13 +163,9 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
   const logoInputRef = useRef<HTMLInputElement | null>(null)
   const bannerInputRef = useRef<HTMLInputElement | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (selectedAvatarPreviewUrl) URL.revokeObjectURL(selectedAvatarPreviewUrl)
-      if (selectedLogoPreviewUrl) URL.revokeObjectURL(selectedLogoPreviewUrl)
-      if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl)
-    }
-  }, [selectedAvatarPreviewUrl, selectedLogoPreviewUrl, selectedBannerPreviewUrl])
+  useEffect(() => () => { if (selectedAvatarPreviewUrl) URL.revokeObjectURL(selectedAvatarPreviewUrl) }, [selectedAvatarPreviewUrl])
+  useEffect(() => () => { if (selectedLogoPreviewUrl) URL.revokeObjectURL(selectedLogoPreviewUrl) }, [selectedLogoPreviewUrl])
+  useEffect(() => () => { if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl) }, [selectedBannerPreviewUrl])
 
   const visibleAvatarUrl = removeAvatar ? "" : selectedAvatarPreviewUrl || avatarUrl
   const visibleStoreLogoUrl = removeStoreLogo ? "" : selectedLogoPreviewUrl || storeLogoUrl
@@ -255,9 +238,20 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (loading) return
+    if (previewOnly || isReadOnlyPreview()) {
+      setError("ეს Preview მხოლოდ სანახავადაა — მაღაზიის შენახვა გამორთულია")
+      return
+    }
     setLoading(true)
     setError("")
     setSuccess("")
+
+    if (startStoreSetup && (!fullName.trim() || !/^[a-z0-9_.-]{3,40}$/i.test(username.trim()))) {
+      setError("მიუთითე მაღაზიის სახელი და მომხმარებლის სახელი 3–40 ლათინური ასოთი, ციფრით, წერტილით ან ტირეთი")
+      setLoading(false)
+      return
+    }
 
     const normalizedPhone = normalizeSellerPhone(storePhone)
     const normalizedTikTokUsername = normalizeTikTokUsername(tiktokUsername)
@@ -274,17 +268,6 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
 
     const supabase = createClient()
 
-    // Do not upload assets before confirming the hero schema exists.
-    // Production's schema is immutable until its migration is approved.
-    if (sellerType === "store") {
-      const { error: heroSchemaError } = await supabase.from("profiles").select("store_hero").eq("id", userId).maybeSingle()
-      if (heroSchemaError) {
-        setError("მაღაზიის მთავარი ბლოკის შენახვა ჯერ არ არის ჩართული — საჭიროა შესაბამისი მონაცემთა ბაზის განახლება.")
-        setLoading(false)
-        return
-      }
-    }
-
     const previousAvatarUrl = avatarUrl
     const previousStoreLogoUrl = storeLogoUrl
     const previousStoreBannerUrl = storeBannerUrl
@@ -296,8 +279,14 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
     let uploadedAvatarPath: string | null = null
     let uploadedLogoPath: string | null = null
     let uploadedBannerPath: string | null = null
+    let profileSaved = false
 
     try {
+      // Confirm the store fields are readable before uploading any assets.
+      if (sellerType === "store") {
+        const { error: heroSchemaError } = await supabase.from("profiles").select("store_hero").eq("id", userId).maybeSingle()
+        if (heroSchemaError) throw new Error("მაღაზიის მონაცემების გადამოწმება ვერ მოხერხდა — სცადე ხელახლა")
+      }
       if (selectedAvatarFile) {
         const uploaded = await uploadPublicImage(AVATAR_BUCKET, selectedAvatarFile, "avatar")
         uploadedAvatarPath = uploaded.filePath
@@ -318,8 +307,8 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
 
       const { error: saveError } = await supabase.from("profiles").upsert({
         id: userId,
-        username,
-        full_name: fullName,
+        username: username.trim(),
+        full_name: fullName.trim(),
         bio,
         city,
         avatar_url: nextAvatarUrl || null,
@@ -338,8 +327,9 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
         store_map_url: sellerType === "store" && hasPhysicalStore ? storeMapUrl.trim() || null : null,
         tiktok_username: normalizedTikTokUsername || null,
         tiktok_live_until: normalizedTikTokUsername ? tiktokLiveUntil || null : null,
-      })
+      }).select("id").single()
       if (saveError) throw saveError
+      profileSaved = true
 
       const previousAvatarPath = previousAvatarUrl ? extractStoragePathFromPublicUrl(previousAvatarUrl, AVATAR_BUCKET) : null
       const previousStoreLogoPath = previousStoreLogoUrl ? extractStoragePathFromPublicUrl(previousStoreLogoUrl, BRANDING_BUCKET) : null
@@ -349,15 +339,14 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
       const logoChanged = removeStoreLogo || previousStoreLogoUrl !== nextStoreLogoUrl
       const bannerChanged = removeStoreBanner || previousStoreBannerUrl !== nextStoreBannerUrl
 
-      if (previousAvatarPath && avatarChanged && previousAvatarPath !== uploadedAvatarPath) {
-        await supabase.storage.from(AVATAR_BUCKET).remove([previousAvatarPath])
-      }
-      if (previousStoreLogoPath && logoChanged && previousStoreLogoPath !== uploadedLogoPath) {
-        await supabase.storage.from(BRANDING_BUCKET).remove([previousStoreLogoPath])
-      }
-      if (previousStoreBannerPath && bannerChanged && previousStoreBannerPath !== uploadedBannerPath) {
-        await supabase.storage.from(BRANDING_BUCKET).remove([previousStoreBannerPath])
-      }
+      await Promise.allSettled([
+        ...(previousAvatarPath && avatarChanged && previousAvatarPath !== uploadedAvatarPath
+          ? [supabase.storage.from(AVATAR_BUCKET).remove([previousAvatarPath])] : []),
+        ...(previousStoreLogoPath && logoChanged && previousStoreLogoPath !== uploadedLogoPath
+          ? [supabase.storage.from(BRANDING_BUCKET).remove([previousStoreLogoPath])] : []),
+        ...(previousStoreBannerPath && bannerChanged && previousStoreBannerPath !== uploadedBannerPath
+          ? [supabase.storage.from(BRANDING_BUCKET).remove([previousStoreBannerPath])] : []),
+      ])
 
       setAvatarUrl(nextAvatarUrl)
       setStoreLogoUrl(nextStoreLogoUrl)
@@ -372,8 +361,20 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
       clearSelectedFile(bannerInputRef, selectedBannerPreviewUrl, setSelectedBannerPreviewUrl, setSelectedBannerFile)
 
       setSuccess("პროფილი წარმატებით განახლდა.")
+      if (startStoreSetup) {
+        router.push(getStoreSetupContinuePath(continuePath))
+        router.refresh()
+      }
     } catch (submitError) {
-      const fallbackMessage = submitError instanceof Error ? submitError.message : "პროფილის შენახვა ვერ მოხერხდა."
+      if (!profileSaved) {
+        await Promise.allSettled([
+          ...(uploadedAvatarPath ? [supabase.storage.from(AVATAR_BUCKET).remove([uploadedAvatarPath])] : []),
+          ...(uploadedLogoPath ? [supabase.storage.from(BRANDING_BUCKET).remove([uploadedLogoPath])] : []),
+          ...(uploadedBannerPath ? [supabase.storage.from(BRANDING_BUCKET).remove([uploadedBannerPath])] : []),
+        ])
+      }
+      const fallbackMessage = submitError && typeof submitError === "object" && "message" in submitError
+        ? String(submitError.message) : "პროფილის შენახვა ვერ მოხერხდა — სცადე ხელახლა"
       setError(humanizeSupabaseError(fallbackMessage))
       setLoading(false)
       return
@@ -415,6 +416,62 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
     } finally {
       setTikTokLoading(false)
     }
+  }
+
+  if (startStoreSetup) {
+    const values: StoreSetupValues = {
+      name: fullName, username, city, bio, hero: storeHero, phone: storePhone, hasPhysicalStore,
+      contacts: { instagram: storeInstagram, facebook: storeFacebook, tiktok: tiktokUsername, whatsapp: storeWhatsapp,
+        telegram: storeTelegram, website: storeWebsite, address: storeAddress, mapUrl: storeMapUrl, hours: storeHours },
+    }
+    function updateValues(next: StoreSetupValues) {
+      setFullName(next.name); setUsername(next.username); setCity(next.city); setBio(next.bio); setStoreHero(next.hero)
+      setStorePhone(next.phone); setHasPhysicalStore(next.hasPhysicalStore)
+      setStoreInstagram(next.contacts.instagram || ""); setStoreFacebook(next.contacts.facebook || "")
+      setTikTokUsername(next.contacts.tiktok || ""); setStoreWhatsapp(next.contacts.whatsapp || "")
+      setStoreTelegram(next.contacts.telegram || ""); setStoreWebsite(next.contacts.website || "")
+      setStoreAddress(next.contacts.address || ""); setStoreMapUrl(next.contacts.mapUrl || ""); setStoreHours(next.contacts.hours || "")
+      setSuccess("")
+    }
+    function removeAsset(kind: "cover" | "logo") {
+      if (kind === "cover") {
+        clearSelectedFile(bannerInputRef, selectedBannerPreviewUrl, setSelectedBannerPreviewUrl, setSelectedBannerFile)
+        setRemoveStoreBanner(true)
+      } else {
+        clearSelectedFile(logoInputRef, selectedLogoPreviewUrl, setSelectedLogoPreviewUrl, setSelectedLogoFile)
+        setRemoveStoreLogo(true)
+      }
+      setSuccess("")
+    }
+    return (
+      <form onSubmit={handleSubmit} aria-label="მაღაზიის შექმნა">
+        <StoreSetupEditor value={values} onChange={updateValues}
+          coverUrl={visibleStoreBannerUrl} logoUrl={visibleStoreLogoUrl || visibleAvatarUrl}
+          coverInputRef={bannerInputRef} logoInputRef={logoInputRef}
+          onAssetSelect={(kind, event) => handleFileSelect(event, kind === "cover" ? {
+            maxSizeMb: MAX_BRANDING_FILE_SIZE_MB, previousPreview: selectedBannerPreviewUrl,
+            setPreview: setSelectedBannerPreviewUrl, setFile: setSelectedBannerFile, clearRemove: () => setRemoveStoreBanner(false),
+          } : {
+            maxSizeMb: MAX_BRANDING_FILE_SIZE_MB, previousPreview: selectedLogoPreviewUrl,
+            setPreview: setSelectedLogoPreviewUrl, setFile: setSelectedLogoFile, clearRemove: () => setRemoveStoreLogo(false),
+          })}
+          onAssetRemove={removeAsset} disabled={loading} demo={previewOnly}
+          footer={<>
+            {error ? <p role="alert" className="ui-status-error">{error}</p> : null}
+            {success ? <p role="status" className="ui-status-success">{success}</p> : null}
+            {previewOnly ? <>
+              <button type="button" className="ui-btn-secondary" onClick={() => {
+                updateValues({ name: "", username: "", city: "", bio: "", hero: normalizeStoreHero(null), phone: "", contacts: {}, hasPhysicalStore: false })
+                removeAsset("cover"); removeAsset("logo"); setError("")
+              }}>ყველაფრის გასუფთავება</button>
+              <p className="text-xs leading-6 text-text-soft">ეს არის მაღაზიის შექმნის ფორმის დემო — მონაცემები სერვერზე არ იგზავნება</p>
+            </> : <>
+              <p className="text-xs leading-6 text-text-soft">შენახვის შემდეგ მაღაზიის გვერდი მყიდველებისთვის ხელმისაწვდომი გახდება — მოგვიანებით ყველაფრის შეცვლას პროფილიდან შეძლებ</p>
+              <button type="submit" disabled={loading} className="ui-btn-primary min-h-12 w-full disabled:opacity-60">{loading ? "ინახება..." : "შეინახე მაღაზია და გააგრძელე"}</button>
+            </>}
+          </>} />
+      </form>
+    )
   }
 
   return (

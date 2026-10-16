@@ -1,4 +1,5 @@
 import type { StoreHeroContent } from "@/lib/store-hero"
+import StoreHeroSurface from "@/components/stores/StoreHeroSurface"
 import StoreContactStrip, {type StoreContacts} from "@/components/stores/StoreContactStrip"
 
 type StoreHeroMockupProps = {
@@ -24,11 +25,11 @@ export default function StoreHeroMockup({
 }: StoreHeroMockupProps) {
   const name = storeName.trim() || "შენი მაღაზიის სახელი"
   return (
-    <section aria-label="მაღაზიის ვიტრინის ცოცხალი წინასწარი ნახვა" className="overflow-hidden rounded-[26px] border border-[#e8ded3] bg-[linear-gradient(115deg,#fffaf5_0%,#f8e7d9_48%,#edd3c0_100%)] p-5 shadow-[0_10px_34px_rgba(7,63,59,0.07)] sm:p-8">
+    <StoreHeroSurface coverUrl={coverUrl} aria-label="მაღაზიის ვიტრინის ცოცხალი წინასწარი ნახვა" className="overflow-hidden rounded-[26px] border p-5 shadow-[0_10px_34px_rgba(7,63,59,0.07)] sm:p-8">
       {caption ? <p className="mb-5 text-xs font-bold text-brand">{caption}</p> : null}
       <div className="grid gap-6 md:grid-cols-[1fr_0.9fr] md:items-center">
         <div className="min-w-0">
-          {hero.eyebrow ? <p className="text-xs font-semibold tracking-wide text-[#a77459]">{hero.eyebrow}</p> : null}
+          {hero.eyebrow ? <p className="text-xs font-semibold tracking-wide text-[color:var(--store-cover-accent)]">{hero.eyebrow}</p> : null}
           <div className="mt-4 flex items-center gap-3">
             {logoUrl ? (
               <div role="img" aria-label="მაღაზიის ლოგო" className="h-16 w-16 shrink-0 rounded-2xl border-2 border-white bg-white bg-contain bg-center bg-no-repeat shadow-sm" style={{backgroundImage: "url('" + logoUrl + "')" }} />
@@ -63,6 +64,6 @@ export default function StoreHeroMockup({
           ) : null}
         </div>
       </div>
-    </section>
+    </StoreHeroSurface>
   )
 }

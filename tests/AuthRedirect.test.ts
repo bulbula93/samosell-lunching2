@@ -18,6 +18,9 @@ describe("safe authentication return paths", () => {
     "https://evil.example/steal",
     "//evil.example/steal",
     "/\\evil.example/steal",
+    "/\t/evil.example/steal",
+    "/\n/evil.example/steal",
+    "/safe\\evil.example/steal",
     "javascript:alert(1)",
   ])("rejects unsafe redirect %s", (value) => {
     expect(getSafeAuthRedirectPath(value, "/dashboard")).toBe("/dashboard")
