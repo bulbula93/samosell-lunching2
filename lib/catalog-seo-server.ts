@@ -16,18 +16,42 @@ const getCategoryCount = unstable_cache(async (category: string) => {
   return response.count ?? 0
 }, ["catalog-seo-pagination-count-v1"], { revalidate: 300, tags: ["catalog-seo-pagination-count"] })
 
+// Production diagnostics are opt-in, deliberately limited to non-sensitive classifications.
+// Never log query values, search terms, UTM values, cookies, or user identifiers.
+function reportSeoMetadata(params: CatalogPageParams, result: ReturnType<typeof buildCatalogMetadata>, reason: string) {
+  if (process.env.VERCEL_ENV !== "production" || process.env.SEO_METADATA_DIAGNOSTICS_ENABLED !== "true") return
+  const seo = resolveCatalogSeo(params)
+  const keys = Object.keys(params)
+  console.info("[catalog-seo-diagnostic]", {
+    route: seo.canonicalPath.split("?")[0],
+    cleanRequest: keys.length === 0 || (keys.length === 1 && keys[0] === "category"),
+    parameterCount: keys.length,
+    pageIsArray: Array.isArray(params.page),
+    categoryIsArray: Array.isArray(params.category),
+    resolvedIndexable: seo.indexable,
+    metadataIndex: result.robots && typeof result.robots === "object" && !Array.isArray(result.robots) ? result.robots.index : null,
+    reason,
+  })
+}
+
 export async function buildServerCatalogMetadata(params: CatalogPageParams = {}) {
   const { filters, page } = resolveCatalogState(params)
   if (page > 1 && resolveCatalogSeo(params).indexable) {
     try {
       const count = await getCategoryCount(filters.category)
       if ((page - 1) * PAGE_SIZE >= count) {
-        return buildCatalogMetadata({ ...params, pagination_empty: "1" })
+        const metadata = buildCatalogMetadata({ ...params, pagination_empty: "1" })
+        reportSeoMetadata(params, metadata, "pagination_empty")
+        return metadata
       }
     } catch {
       // Avoid indexing an unverified pagination URL during an upstream outage.
-      return buildCatalogMetadata({ ...params, pagination_unverified: "1" })
+      const metadata = buildCatalogMetadata({ ...params, pagination_unverified: "1" })
+      reportSeoMetadata(params, metadata, "pagination_unverified")
+      return metadata
     }
   }
-  return buildCatalogMetadata(params)
+  const metadata = buildCatalogMetadata(params)
+  reportSeoMetadata(params, metadata, "normal")
+  return metadata
 }
