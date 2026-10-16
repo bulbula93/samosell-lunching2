@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function Home({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const audit = process.env.VERCEL_ENV === "preview" && isReadOnlyPreview()
     && (await searchParams)?._cls_audit === "1"
   const [catalogResult, adsResult] = await Promise.allSettled([
