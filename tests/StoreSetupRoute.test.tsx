@@ -49,10 +49,14 @@ describe("Authenticated store creation page", () => {
   })
 
   it("loads saved store text and branding rather than replacing them with demo content", async () => {
-    db.maybeSingle.mockResolvedValueOnce({ data: { full_name: "არსებული მაღაზია", seller_type: "store", store_banner_url: "https://example.test/saved.png" }, error: null })
+    db.maybeSingle.mockResolvedValueOnce({ data: { full_name: "არსებული მაღაზია", bio: "მაღაზიის აღწერა", city: "თბილისი", seller_type: "store", store_logo_url: "https://example.test/logo.png", store_banner_url: "https://example.test/saved.png" }, error: null })
       .mockResolvedValueOnce({ data: { store_hero: { headline: "არსებული სათაური" } }, error: null })
     const profile = await loadEditableProfile({ from: db.from } as unknown as Parameters<typeof loadEditableProfile>[0], "current-owner")
     expect(profile.store_banner_url).toBe("https://example.test/saved.png")
+    expect(profile.store_logo_url).toBe("https://example.test/logo.png")
+    expect(profile.full_name).toBe("არსებული მაღაზია")
+    expect(profile.bio).toBe("მაღაზიის აღწერა")
+    expect(profile.city).toBe("თბილისი")
     expect(profile.store_hero.headline).toBe("არსებული სათაური")
     expect(profile.username).toBe("")
   })
