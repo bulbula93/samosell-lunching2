@@ -29,10 +29,8 @@ export default function StoreHeroEditorDemo() {
   const [logoPreview, setLogoPreview] = useState("")
   const [error, setError] = useState("")
 
-  useEffect(() => () => {
-    if (coverPreview) URL.revokeObjectURL(coverPreview)
-    if (logoPreview) URL.revokeObjectURL(logoPreview)
-  }, [coverPreview, logoPreview])
+  useEffect(() => () => { if (coverPreview) URL.revokeObjectURL(coverPreview) }, [coverPreview])
+  useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview) }, [logoPreview])
 
   function onFileSelect(event: ChangeEvent<HTMLInputElement>, kind: "cover" | "logo") {
     const file = event.target.files?.[0]

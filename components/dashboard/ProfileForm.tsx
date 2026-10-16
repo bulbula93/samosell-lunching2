@@ -176,13 +176,9 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
   const logoInputRef = useRef<HTMLInputElement | null>(null)
   const bannerInputRef = useRef<HTMLInputElement | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (selectedAvatarPreviewUrl) URL.revokeObjectURL(selectedAvatarPreviewUrl)
-      if (selectedLogoPreviewUrl) URL.revokeObjectURL(selectedLogoPreviewUrl)
-      if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl)
-    }
-  }, [selectedAvatarPreviewUrl, selectedLogoPreviewUrl, selectedBannerPreviewUrl])
+  useEffect(() => () => { if (selectedAvatarPreviewUrl) URL.revokeObjectURL(selectedAvatarPreviewUrl) }, [selectedAvatarPreviewUrl])
+  useEffect(() => () => { if (selectedLogoPreviewUrl) URL.revokeObjectURL(selectedLogoPreviewUrl) }, [selectedLogoPreviewUrl])
+  useEffect(() => () => { if (selectedBannerPreviewUrl) URL.revokeObjectURL(selectedBannerPreviewUrl) }, [selectedBannerPreviewUrl])
 
   const visibleAvatarUrl = removeAvatar ? "" : selectedAvatarPreviewUrl || avatarUrl
   const visibleStoreLogoUrl = removeStoreLogo ? "" : selectedLogoPreviewUrl || storeLogoUrl
