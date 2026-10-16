@@ -55,7 +55,7 @@ export default function ForStoresPage() {
                   </div>
                   <div className="mt-7 flex flex-wrap gap-3">
                     <Link href={isPreview ? "/stores/hero-editor" : "/register?next=%2Fdashboard%2Fprofile%3Fsetup%3Dstore"} className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">
-                      {isPreview ? "შექმენი საკუთარი ვიტრინა · დემო ↗" : "გახსენი მაღაზია ↗"}
+                      დაიწყე მაღაზიის შექმნა ↗
                     </Link>
                     <Link href="/stores?demo=1" className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/90 px-6 text-sm font-black text-brand transition hover:bg-white">
                       აღმოაჩინე მაღაზიები
