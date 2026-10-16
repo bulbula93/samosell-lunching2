@@ -29,7 +29,7 @@ function reportSeoMetadata(params: CatalogPageParams, result: ReturnType<typeof 
     pageIsArray: Array.isArray(params.page),
     categoryIsArray: Array.isArray(params.category),
     resolvedIndexable: seo.indexable,
-    metadataIndex: typeof result.robots === "object" && !Array.isArray(result.robots) ? result.robots.index : null,
+    metadataIndex: result.robots && typeof result.robots === "object" && !Array.isArray(result.robots) ? result.robots.index : null,
     reason,
   })
 }
