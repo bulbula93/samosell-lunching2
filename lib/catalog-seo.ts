@@ -33,14 +33,11 @@ export function resolveCatalogSeo(params: CatalogPageParams = {}) {
 export function buildCatalogMetadata(params: CatalogPageParams = {}): Metadata {
   const seo = resolveCatalogSeo(params)
   const url = absoluteUrl(seo.canonicalPath)
-  // Explicitly keep canonical category roots indexable; query variants remain noindex.
-  // No runtime data dependency should flip indexability for clean category roots.
-  const indexable = seo.indexable
   return {
     title: seo.title,
     description: seo.description,
     alternates: { canonical: url },
-    robots: { index: indexable, follow: true },
+    robots: { index: seo.indexable, follow: true },
     openGraph: { title: seo.title, description: seo.description, url, type: "website", images: [{ url: absoluteUrl("/opengraph-image") }] },
     twitter: { card: "summary_large_image", title: seo.title, description: seo.description, images: [absoluteUrl("/opengraph-image")] },
   }
