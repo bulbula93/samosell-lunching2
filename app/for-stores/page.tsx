@@ -47,7 +47,7 @@ export default function ForStoresPage() {
                 <div className="relative z-10 max-w-2xl">
                   <p className="text-xs font-black tracking-[0.16em] text-brand">ქართული მაღაზიები SamoSell-ზე</p>
                   <h1 className="mt-5 max-w-[14ch] text-balance text-[clamp(2.5rem,5vw,4.65rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">
-                    შენს მაღაზიას <span className="text-[#b37f65]">ახალი</span> სივრცე
+                    შენი მაღაზიის <span className="text-[#b37f65]">ონლაინ</span> სივრცე
                   </h1>
                   <div className="mt-6 max-w-lg rounded-2xl bg-[#fffaf5]/80 px-4 py-3 backdrop-blur-[3px] sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
                     <p className="text-base leading-8 text-text-soft sm:text-lg">შენი კოლექცია უფრო მეტმა ადამიანმა აღმოაჩინოს — გახსენი საკუთარი ვიტრინა SamoSell-ზე, დაამატე ნივთები და დაუკავშირდი მყიდველებს პირდაპირ</p>
