@@ -6,6 +6,8 @@ import { getActiveAdRotation } from "@/lib/ad-data"
 import { getPublicHomePageData, type PublicHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
+import { homeClsProbe } from "@/lib/qa/home-cls-probe"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 60
@@ -29,7 +31,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+  const audit = process.env.VERCEL_ENV === "preview" && isReadOnlyPreview()
+    && (await searchParams)?._cls_audit === "1"
   const [catalogResult, adsResult] = await Promise.allSettled([
     getPublicHomePageData(),
     getActiveAdRotation(["home_hero_left", "home_hero_right"]),
@@ -52,6 +56,7 @@ export default async function Home() {
 
   return (
     <>
+      {audit ? <script dangerouslySetInnerHTML={{ __html: homeClsProbe }} /> : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}

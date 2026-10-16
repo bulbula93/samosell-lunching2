@@ -11,6 +11,8 @@ export async function proxy(request: NextRequest) {
   if (isReadOnlyPreview()) {
     const publicPage =
       pathname === "/" ||
+      (process.env.VERCEL_ENV === "preview" && pathname === "/qa/home-cls") ||
+      pathname === "/api/home-personalization" ||
       pathname === "/sitemap.xml" ||
       pathname === "/robots.txt" ||
       pathname === "/opengraph-image" ||
