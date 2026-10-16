@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }))
+vi.mock("@/lib/supabase/public-server", () => ({ createPublicServerClient: () => ({ from: () => ({ select: () => ({ eq: () => Promise.resolve({ count: 0, error: null }) }) }) }) }))
 import { buildServerCatalogMetadata } from "@/lib/catalog-seo-server"
 import { buildCatalogMetadata } from "@/lib/catalog-seo"
 
