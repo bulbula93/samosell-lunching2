@@ -45,7 +45,7 @@ export default function ClsAuditClient() {
           </div>
           {shifts.length ? <div className="mb-4 space-y-2"><h3 className="font-semibold">ყველაზე დიდი გადანაცვლებები</h3>{shifts.map((shift, i) => <div className="rounded-lg border border-line p-2 text-xs" key={i}>
             <p className="font-semibold">#{i + 1}: +{shift.value.toFixed(5)} · {(shift.time / 1000).toFixed(2)} წმ</p>
-            {(shift.sources ?? []).slice(0, 5).map((source, j) => <p key={j} className="mt-1 break-all">{source.tag ?? "ელემენტი"} · {source.class?.slice(0, 90) || "კლასის გარეშე"} · Y: {source.previous?.y?.toFixed(0) ?? "?"} → {source.current?.y?.toFixed(0) ?? "?"}</p>)}
+            {(shift.sources ?? []).slice(0, 5).map((source, j) => <p key={j} className="mt-1 break-all">{source.tag ?? "ელემენტი"} · {source.class?.slice(0, 90) || "კლასის გარეშე"} · rect: ({source.previous?.x?.toFixed(0) ?? "?"},{source.previous?.y?.toFixed(0) ?? "?"}) {source.previous?.width?.toFixed(0) ?? "?"}×{source.previous?.height?.toFixed(0) ?? "?"} → ({source.current?.x?.toFixed(0) ?? "?"},{source.current?.y?.toFixed(0) ?? "?"}) {source.current?.width?.toFixed(0) ?? "?"}×{source.current?.height?.toFixed(0) ?? "?"}</p>)}
           </div>)}</div> : null}
           <div className="overflow-x-auto">
             <iframe key={run} id={`cls-frame-${width}`} title={`Homepage ${width}x${height}`} src={`/?_cls_audit=1&run=${run}`} width={width} height={height} style={{ border: "1px solid #777", boxSizing: "content-box" }} />
