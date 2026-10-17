@@ -44,6 +44,21 @@ function LocationIcon() {
   )
 }
 
+function SellerArrowIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-3.5 w-3.5 fill-none stroke-current"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
+}
+
 export default function MarketplaceProductCard({
   item,
   currentPath = "/catalog",
@@ -59,18 +74,44 @@ export default function MarketplaceProductCard({
   const sellerAvatar = item.seller_type === "store"
     ? item.seller_store_logo_url || item.seller_avatar_url
     : item.seller_avatar_url
+  const sellerHref = item.seller_username
+    ? `/seller/${encodeURIComponent(item.seller_username)}`
+    : null
   const listingHref = searchListingHref(item.slug, searchId)
   const priceLabel = listingPriceLabel(item.price, item.currency, item.sale_type)
   const isGift = item.sale_type === "gift"
   const locationLabel = item.city || ka.product.locationUnknown
 
+  const sellerIdentity = (
+    <>
+      <Avatar
+        src={sellerAvatar}
+        alt={sellerLabel}
+        fallbackText={sellerLabel}
+        sizeClassName="h-7 w-7"
+        textClassName="text-[8px]"
+        className="shrink-0 border border-line/80 shadow-none ring-0"
+      />
+      <span className="min-w-0 flex-1 truncate font-bold text-text">{sellerLabel}</span>
+      {item.seller_is_verified ? (
+        <span
+          title="დადასტურებული გამყიდველი"
+          aria-label="დადასტურებული გამყიდველი"
+          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-black text-white"
+        >
+          ✓
+        </span>
+      ) : null}
+    </>
+  )
+
   return (
-    <article className="group relative flex h-full min-w-0 flex-col rounded-[20px] border border-line bg-white p-2 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] sm:rounded-[22px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
+    <article className="group relative flex h-full min-w-0 flex-col rounded-[20px] border border-line bg-white p-2 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] sm:rounded-[22px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
       <Link
         data-catalog-open=""
         href={listingHref}
         aria-label={`${item.title} — ${priceLabel}`}
-        className="absolute inset-0 z-10 rounded-[20px] sm:rounded-[22px]"
+        className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 sm:rounded-[22px]"
       >
         <span className="sr-only">{item.title}</span>
       </Link>
@@ -130,36 +171,33 @@ export default function MarketplaceProductCard({
           <span>{priceLabel}</span>
         </div>
 
-        <div className="mt-2 flex min-w-0 items-center gap-2 text-[11px] font-medium text-text-soft sm:text-xs">
+        <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-text-soft sm:text-xs">
           <span className="min-w-0 truncate rounded-full bg-surface-alt px-2.5 py-1">
             {conditionLabel(item.condition)}
           </span>
-          <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-line" />
-          <span className="flex min-w-0 items-center gap-1 truncate">
+          <span className="flex min-w-0 items-center gap-1 rounded-full bg-surface-alt px-2.5 py-1">
             <LocationIcon />
             <span className="truncate">{locationLabel}</span>
           </span>
         </div>
 
-        <div className="mt-auto flex min-w-0 items-center gap-2 border-t border-line/75 pt-2.5 text-[11px] text-text-soft sm:pt-3 sm:text-xs">
-          <Avatar
-            src={sellerAvatar}
-            alt={sellerLabel}
-            fallbackText={sellerLabel}
-            sizeClassName="h-6 w-6"
-            textClassName="text-[8px]"
-            className="shrink-0 border border-line shadow-none ring-0"
-          />
-          <span className="min-w-0 flex-1 truncate font-semibold text-text-soft">{sellerLabel}</span>
-          {item.seller_is_verified ? (
-            <span
-              title="დადასტურებული გამყიდველი"
-              aria-label="დადასტურებული გამყიდველი"
-              className="relative z-20 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-black text-white"
+        <div className="mt-auto border-t border-line/75 pt-2.5 sm:pt-3">
+          {sellerHref ? (
+            <Link
+              href={sellerHref}
+              aria-label={`${sellerLabel} — გამყიდველის გვერდი`}
+              className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1 text-[11px] text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:text-xs"
             >
-              ✓
-            </span>
-          ) : null}
+              {sellerIdentity}
+              <span className="shrink-0 text-text-soft transition group-hover/seller:translate-x-0.5 group-hover/seller:text-brand">
+                <SellerArrowIcon />
+              </span>
+            </Link>
+          ) : (
+            <div className="flex min-w-0 items-center gap-2 px-0.5 py-1 text-[11px] text-text-soft sm:text-xs">
+              {sellerIdentity}
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -173,7 +211,7 @@ export function MarketplaceProductCardSkeleton() {
       <div className="ui-skeleton mt-3 h-4 w-4/5" />
       <div className="ui-skeleton mt-2 h-5 w-2/5" />
       <div className="ui-skeleton mt-2 h-5 w-3/5" />
-      <div className="ui-skeleton mt-3 h-6 w-full" />
+      <div className="ui-skeleton mt-3 h-7 w-full rounded-xl" />
     </div>
   )
 }
