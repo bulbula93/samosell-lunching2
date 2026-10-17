@@ -194,6 +194,28 @@ export default function ListingOverviewCard({
         </p>
       ) : null}
 
+      {/* Primary seller contact appears beside the price on desktop.
+          On small screens the same component remains fixed above mobile navigation. */}
+      <MobileListingActionBar
+        listingId={listing.id}
+        listingSlug={listing.slug}
+        sellerLabel={sellerLabel}
+        sellerAvatarSrc={sellerAvatarSrc}
+        listingTitle={listing.title}
+        listingImageSrc={listing.cover_image_url}
+        price={listing.price}
+        currency={listing.currency}
+        saleType={listing.sale_type}
+        isActive={isActive}
+        isOwner={isOwner}
+        isAuthenticated={isAuthenticated}
+        canChat={canChat}
+        messagingUnavailable={messagingUnavailable}
+        listingReturnPath={listingReturnPath}
+      />
+
+
+
       {details.length > 0 ? (
         <section aria-labelledby="listing-details-heading" className="mt-7 border-t border-line pt-6">
           <h2 id="listing-details-heading" className="text-lg font-black text-text">
@@ -401,23 +423,6 @@ export default function ListingOverviewCard({
             className="sm:col-span-2"
           />
 
-          <MobileListingActionBar
-            listingId={listing.id}
-            listingSlug={listing.slug}
-            sellerLabel={sellerLabel}
-            sellerAvatarSrc={sellerAvatarSrc}
-            listingTitle={listing.title}
-            listingImageSrc={listing.cover_image_url}
-            price={listing.price}
-            currency={listing.currency}
-            saleType={listing.sale_type}
-            isActive={isActive}
-            isOwner={isOwner}
-            isAuthenticated={isAuthenticated}
-            canChat={canChat}
-            messagingUnavailable={messagingUnavailable}
-            listingReturnPath={listingReturnPath}
-          />
         </div>
 
         {messagingUnavailable ? (
