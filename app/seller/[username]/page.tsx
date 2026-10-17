@@ -22,7 +22,7 @@ import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/pro
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
-import { formatSellerTenure, getSellerTrustSignals } from "@/lib/seller-trust"
+import { formatSellerTenure } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
@@ -117,12 +117,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
   const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
-  const trustSignals = getSellerTrustSignals({
-    profile,
-    soldListingsCount,
-    reviewSummary: sellerReviewData.summary,
-  })
-  const displayTrustSignals = trustSignals.filter((signal) => signal.key !== "reviews" && signal.key !== "tenure")
   // listings_catalog only reports VIP/featured flags while their paid periods remain active.
   const storeVipListings: StoreVipListing[] = profile.seller_type === "store"
     ? sellerListings
@@ -367,11 +361,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><p className="text-2xl font-bold text-brand">{formatSellerTenure(profile.created_at) || "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">SamoSell-ზე</p></div>
               <div className="rounded-2xl border border-line bg-[#fff6ed] p-5"><a href="#seller-reviews-heading" className="block transition hover:text-[#ab7657]"><p className="text-3xl font-black text-brand">{sellerReviewData.summary.reviewCount > 0 && sellerReviewData.summary.averageScore !== null ? "★ " + sellerReviewData.summary.averageScore.toFixed(1) : "—"}</p><p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#817e75]">{sellerReviewData.summary.reviewCount} შეფასება →</p></a></div>
             </div>
-            {displayTrustSignals.length > 0 ? (
-              <div className="mt-6 flex flex-wrap gap-2" aria-label="სანდოობის ნიშნები">
-                {displayTrustSignals.map((signal) => <span key={signal.key} title={signal.detail} className="rounded-full border border-[#c5d1c6] bg-white/70 px-3 py-2 text-xs font-semibold text-[#435e4b]">{signal.label}</span>)}
-              </div>
-            ) : null}
           </div>
         </section>
       ) : (
@@ -544,23 +533,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                   <p className="mt-3 text-sm text-text-soft">შეფასებები ჯერ არ არის</p>
                 )}
               </section>
-
-              {displayTrustSignals.length > 0 ? (
-                <section aria-label="სანდოობის ნიშნები" className="mt-6">
-                  <h3 className="mb-3 text-base font-bold text-[#073f3b]">სანდოობის ნიშნები</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {displayTrustSignals.map((signal) => (
-                      <span
-                        key={signal.key}
-                        title={signal.detail}
-                        className="rounded-full border border-[#e6e8e3] bg-[#f8faf8] px-3.5 py-2 text-xs font-semibold text-[#073f3b]"
-                      >
-                        {signal.label}
-                      </span>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
 
               {hasSellerContacts ? (
                 <section aria-label="საკონტაქტო ინფორმაცია" className="mt-7 border-t border-[#efe5dc] pt-5">
