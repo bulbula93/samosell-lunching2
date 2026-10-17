@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
+import { createClient } from "@/lib/supabase/client"
 import { clearGrowthStorage, growthContext, trackGrowth } from "@/lib/growth/client"
 
 export default function GrowthInstrumentation() {
@@ -11,6 +12,23 @@ export default function GrowthInstrumentation() {
   const last = useRef("")
   const previous = useRef(false)
   const anonymous = useRef<string | null>(null)
+  // A registration conversion is created by the Auth trigger. Identify again
+  // once the browser has an authenticated session so attribution can enrich it.
+  useEffect(() => {
+    if (!consent?.analytics) return
+    const client = createClient()
+    let active = true
+    void client.auth.getUser().then(({ data }) => {
+      if (active && data.user) void trackGrowth("identify")
+    }).catch(() => undefined)
+    const { data: { subscription } } = client.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        // Run after the auth callback finishes writing its session cookies.
+        window.setTimeout(() => { if (active) void trackGrowth("identify") }, 0)
+      }
+    })
+    return () => { active = false; subscription.unsubscribe() }
+  }, [consent?.analytics])
   useEffect(() => {
     if (!consent?.analytics) { clearGrowthStorage(); last.current = ""; return }
     // Auth codes/queries never enter event payloads. Query changes still represent navigation.
