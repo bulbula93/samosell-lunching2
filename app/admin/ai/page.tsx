@@ -62,6 +62,11 @@ export default async function AiOperationsPage() {
         <p className="mt-2 text-sm text-text-soft">საწყისი დაკვირვების პანელი: აგრეგირებული რეპორტები და მხოლოდ წაკითხვადი ტრიაჟი. Default: გამორთული. რეალური AI აგენტები ჯერ არ სრულდება.</p>
         <Link href="/admin/ai/shadow" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დაკვირვების პანელის გახსნა →</Link>
       </section>
+      <section className="ui-card p-6">
+        <h2 className="text-xl font-bold text-text">Job Queue &amp; Activity Log</h2>
+        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის მომზადებული მოდელი. ბაზის მიგრაცია მხოლოდ იზოლირებულ Preview Supabase-ზე უნდა შესრულდეს; Worker ჯერ არ მუშაობს.</p>
+        <Link href="/admin/ai/activity" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დავალებებისა და აქტივობის ნახვა →</Link>
+      </section>
       <Link href="/admin" className="inline-flex text-sm font-bold underline">← ადმინისტრირების პანელი</Link>
     </main>
   )
