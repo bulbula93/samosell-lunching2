@@ -1,5 +1,6 @@
 import { requireAdminUser } from "@/lib/auth"
 import Link from "next/link"
+import AiOperationsQaLink from "@/components/dashboard/AiOperationsQaLink"
 import StatCard from "@/components/shared/StatCard"
 import { reconcileExpiredBoostOrders } from "@/lib/boost-reconciliation"
 
@@ -174,6 +175,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link href="/admin/agent" className="ui-btn-primary">
               Admin Agent
             </Link>
+            <AiOperationsQaLink className="ui-btn-secondary" />
             <Link href="/admin/reports" className="ui-btn-secondary">
               რეპორტების ნახვა
             </Link>

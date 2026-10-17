@@ -1,6 +1,10 @@
 # QA Shadow Worker & Scheduler v0.6
 
-Scope: `preview/ai-agents-foundation-20261017`, PR #121, SamoSell-QA `ydocqjdjmffysexkzxyc` only. No production changes or merge. This extends the v0.5 reader; its worker/stop descriptions below supersede the historical v0.5 rollout text.
+Database execution scope: SamoSell-QA `ydocqjdjmffysexkzxyc` only. PR #121 includes the foundation code and an admin navigation entry for release to main with the owner's authorization. Production database, Auth, payment configuration, and worker activation remain outside this release. This extends the v0.5 reader; its worker/stop descriptions below supersede the historical v0.5 rollout text.
+
+## Production admin entry
+
+The admin landing page and admin-only desktop/mobile dashboard menus include **AI Operations · QA**. The link opens the protected, stable QA Preview branch alias in a new tab. The destination still requires the existing admin authorization; signing into Production does not transfer a session to the separate Preview origin. The reader continues to reject Production and all other branches. No QA credentials are added to Production. Deploying main does not apply the SQL scripts, start workers, or activate the scheduler.
 
 ## What runs
 
