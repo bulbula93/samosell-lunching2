@@ -12,13 +12,13 @@ export default async function ShadowMonitorPage() {
   return (
     <main className="ui-container ui-section space-y-5">
       <header className="ui-card p-5 sm:p-8">
-        <p className="ui-eyebrow">AI Operations · Foundation v0.5</p>
+        <p className="ui-eyebrow">AI Operations · Foundation v0.6</p>
         <h1 className="mt-3 text-3xl font-black text-text">
           დაკვირვების რეჟიმი
         </h1>
         <p className="mt-3 text-sm leading-7 text-text-soft">
-          Shadow Worker ჯერ არ მუშაობს. აქ ჩანს მხოლოდ SamoSell-QA-ში შენახული
-          დავალებების მდგომარეობა.
+          პირველი ტექნიკური Shadow Worker ამოწმებს მხოლოდ QA რიგის მდგომარეობას.
+          მომხმარებლების მონაცემებს არ კითხულობს და AI მოდელს ჯერ არ იყენებს.
         </p>
       </header>
       <AiNavigation />

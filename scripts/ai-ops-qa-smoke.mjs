@@ -46,9 +46,9 @@ try {
   const {
     rows: [control],
   } = await client.query(
-    "SELECT stopped FROM public.ai_ops_control WHERE singleton=true",
+    "SELECT stopped,worker_enabled,scheduler_enabled,last_tick_at::text,last_tick_status FROM public.ai_ops_control WHERE singleton=true",
   );
-  if (control?.stopped !== true) throw { code: "STOP_REQUIRED" };
+  if (control?.stopped !== true || control.worker_enabled !== false || control.scheduler_enabled !== false) throw { code: "STOP_REQUIRED" };
   for (const table of [
     "ai_ops_jobs",
     "ai_ops_activity",

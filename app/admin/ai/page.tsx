@@ -23,11 +23,11 @@ export default async function AiOperationsPage() {
   return (
     <main className="ui-container ui-section space-y-6">
       <header className="ui-card p-6 sm:p-8">
-        <div className="ui-eyebrow">SamoSell AI Operations / Foundation v0.5</div>
+        <div className="ui-eyebrow">SamoSell AI Operations / Foundation v0.6</div>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-text">AI თანამშრომლების მართვა</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-text-soft">
           ეს არის Foundation Preview: პოლიტიკისა და როლების სამუშაო სია, არა გაშვებული აგენტები.
-          ყველა აგენტი ამ ეტაპზე გამორთულია. არც AI მოთხოვნები და არც ფონური დავალებები არ სრულდება.
+          ყველა აგენტი ამ ეტაპზე გამორთულია. პირველი QA რიგის მონიტორი დაყენებულია; უწყვეტი გაშვება ნაგულისხმევად გამორთულია.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">9 როლი განსაზღვრულია</span>
@@ -64,7 +64,7 @@ export default async function AiOperationsPage() {
       </section>
       <section className="ui-card p-6">
         <h2 className="text-xl font-bold text-text">Job Queue &amp; Activity Log</h2>
-        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული; Worker ჯერ არ მუშაობს.</p>
+        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული; ტექნიკური QA Worker დაყენებულია, განრიგი გამორთულია.</p>
         <Link href="/admin/ai/activity" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დავალებებისა და აქტივობის ნახვა →</Link>
       </section>
       <Link href="/admin" className="inline-flex text-sm font-bold underline">← ადმინისტრირების პანელი</Link>

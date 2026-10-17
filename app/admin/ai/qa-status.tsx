@@ -13,8 +13,7 @@ const errors = {
   connection_failed: "QA ბაზასთან კავშირი ვერ დამყარდა. სცადე მოგვიანებით",
 };
 export function QaStatus({ result }: { result: QaReadResult }) {
-  const stopped =
-    !result.ok || result.data.environmentStopped || result.data.control.stopped;
+  const stopped = !result.ok || result.data.control.stopped;
   return (
     <section
       className="ui-card p-5 sm:p-6"
@@ -29,15 +28,27 @@ export function QaStatus({ result }: { result: QaReadResult }) {
           </h2>
         </div>
         <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">
-          აგენტები: არააქტიური
+          {result.ok && !stopped && result.data.control.worker_enabled
+            ? "QA Worker: დაშვებულია"
+            : "აგენტები: არააქტიური"}
         </span>
       </div>
       {result.ok ? (
         <p className="mt-3 text-sm text-text-soft">
           ბაზის Kill Switch:{" "}
           {result.data.control.stopped ? "Stopped" : "Stop გამორთულია"} ·
-          განახლება: {formatQaTime(result.data.control.updated_at)} · სერვერული
-          გაჩერება: {result.data.environmentStopped ? "ჩართულია" : "გამორთულია"}
+          განახლება: {formatQaTime(result.data.control.updated_at)}
+          <br />
+          QA Worker:{" "}
+          {result.data.control.worker_enabled ? "დაშვებულია" : "გამორთულია"} ·
+          Scheduler-ის დაშვება:{" "}
+          {result.data.control.scheduler_enabled ? "ჩართულია" : "გამორთულია"}
+          <br />
+          ბოლო ციკლი:{" "}
+          {result.data.control.last_tick_at
+            ? formatQaTime(result.data.control.last_tick_at)
+            : "ჯერ არ შესრულებულა"}{" "}
+          · შედეგი: {result.data.control.last_tick_status ?? "—"}
         </p>
       ) : (
         <div role="status" className="mt-3 rounded-xl border p-4">
@@ -52,8 +63,9 @@ export function QaStatus({ result }: { result: QaReadResult }) {
         </div>
       )}
       <p className="mt-3 text-xs leading-6 text-text-soft">
-        Worker და Scheduler ჯერ არ არის გაშვებული. ამ პანელიდან გაშვება,
-        დამტკიცება და მონაცემების შეცვლა შეუძლებელია.
+        ბაზის Kill Switch მართავს QA Worker-სა და Scheduler-ს. ტექნიკური
+        მონიტორი მხოლოდ რიგის სტატუსებს ითვლის; ამ პანელიდან გაშვება, დამტკიცება
+        და მონაცემების შეცვლა შეუძლებელია.
       </p>
     </section>
   );

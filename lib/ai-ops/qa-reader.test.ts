@@ -56,7 +56,18 @@ beforeEach(() => {
     if (sql.includes("current_user"))
       return { rows: [{ role: "ai_ops_qa_reader" }] };
     if (sql.startsWith("SELECT stopped"))
-      return { rows: [{ stopped: true, updated_at: "2026-10-17T10:00:00Z" }] };
+      return {
+        rows: [
+          {
+            stopped: true,
+            worker_enabled: false,
+            scheduler_enabled: false,
+            last_tick_at: null,
+            last_tick_status: null,
+            updated_at: "2026-10-17T10:00:00Z",
+          },
+        ],
+      };
     if (sql.includes("count(*)"))
       return { rows: [{ jobs: 0, activity: 0, pending: 0 }] };
     return { rows: [] };
@@ -128,7 +139,12 @@ describe("real admin authorization before every QA read", () => {
       data: { jobs: [], environmentStopped: true, control: { stopped: true } },
     });
     expect(mocks.constructed).toHaveBeenCalledWith(
-      expect.objectContaining({ ssl: expect.objectContaining({ rejectUnauthorized: true, ca: expect.stringContaining("BEGIN CERTIFICATE") }) }),
+      expect.objectContaining({
+        ssl: expect.objectContaining({
+          rejectUnauthorized: true,
+          ca: expect.stringContaining("BEGIN CERTIFICATE"),
+        }),
+      }),
     );
     expect(mocks.query.mock.calls[0][0]).toBe(
       "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",

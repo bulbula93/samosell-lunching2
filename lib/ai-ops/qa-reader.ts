@@ -35,7 +35,14 @@ export type QaSnapshot = {
   jobs: QaJob[];
   activity: QaActivity[];
   approvals: QaApproval[];
-  control: { stopped: boolean; updated_at: string };
+  control: {
+    stopped: boolean;
+    updated_at: string;
+    worker_enabled: boolean;
+    scheduler_enabled: boolean;
+    last_tick_at: string | null;
+    last_tick_status: string | null;
+  };
   totals: { jobs: number; activity: number; pending: number };
   environmentStopped: boolean;
 };
@@ -96,11 +103,13 @@ export async function readQaOperations(): Promise<QaReadResult> {
       "SELECT id, action, status, requested_at::text, expires_at::text, (expires_at <= transaction_timestamp()) AS expired FROM public.ai_ops_approvals ORDER BY (status = 'pending') DESC, requested_at DESC, id DESC LIMIT 20",
     );
     const control = await client.query<QaSnapshot["control"]>(
-      "SELECT stopped, updated_at::text FROM public.ai_ops_control WHERE singleton = true",
+      "SELECT stopped, updated_at::text, worker_enabled, scheduler_enabled, last_tick_at::text, last_tick_status FROM public.ai_ops_control WHERE singleton = true",
     );
     if (
       control.rows.length !== 1 ||
-      typeof control.rows[0].stopped !== "boolean"
+      typeof control.rows[0].stopped !== "boolean" ||
+      typeof control.rows[0].worker_enabled !== "boolean" ||
+      typeof control.rows[0].scheduler_enabled !== "boolean"
     )
       throw new QaReaderError("schema_unavailable");
     const totals = await client.query<QaSnapshot["totals"]>(

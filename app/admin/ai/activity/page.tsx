@@ -17,7 +17,7 @@ export default async function AiActivityPage() {
   return (
     <main className="ui-container ui-section min-w-0 space-y-5">
       <header className="ui-card p-5 sm:p-8">
-        <p className="ui-eyebrow">AI Operations · Foundation v0.5</p>
+        <p className="ui-eyebrow">AI Operations · Foundation v0.6</p>
         <h1 className="mt-3 text-2xl font-black tracking-tight text-text sm:text-3xl">
           დავალებები და აქტივობის ჟურნალი
         </h1>
