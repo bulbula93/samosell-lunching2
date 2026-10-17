@@ -128,7 +128,7 @@ describe("real admin authorization before every QA read", () => {
       data: { jobs: [], environmentStopped: true, control: { stopped: true } },
     });
     expect(mocks.constructed).toHaveBeenCalledWith(
-      expect.objectContaining({ ssl: { rejectUnauthorized: true } }),
+      expect.objectContaining({ ssl: expect.objectContaining({ rejectUnauthorized: true, ca: expect.stringContaining("BEGIN CERTIFICATE") }) }),
     );
     expect(mocks.query.mock.calls[0][0]).toBe(
       "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY",

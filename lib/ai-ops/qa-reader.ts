@@ -1,5 +1,6 @@
 import "server-only";
 import { Client } from "pg";
+import { QA_DATABASE_TLS } from "./qa-tls.mjs";
 import { requireAdminUser } from "@/lib/auth";
 import {
   getQaReaderConfig,
@@ -69,7 +70,7 @@ export async function readQaOperations(): Promise<QaReadResult> {
     });
     client = new Client({
       connectionString: config.connectionString,
-      ssl: { rejectUnauthorized: true },
+      ssl: QA_DATABASE_TLS,
       connectionTimeoutMillis: 5000,
       statement_timeout: 5000,
       query_timeout: 7000,

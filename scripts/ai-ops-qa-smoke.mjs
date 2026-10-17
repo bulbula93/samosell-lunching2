@@ -1,5 +1,6 @@
 // Run explicitly in the authorized Preview build. No customer/financial writes or test users.
 import { Client } from "pg";
+import { QA_DATABASE_TLS } from "../lib/ai-ops/qa-tls.mjs";
 const ref = "ydocqjdjmffysexkzxyc";
 const branch = "preview/ai-agents-foundation-20261017";
 let client;
@@ -23,7 +24,7 @@ try {
     throw { code: "CONFIG_BLOCKED" };
   client = new Client({
     connectionString: url.toString(),
-    ssl: { rejectUnauthorized: true },
+    ssl: QA_DATABASE_TLS,
     connectionTimeoutMillis: 10000,
     statement_timeout: 5000,
     query_timeout: 7000,
