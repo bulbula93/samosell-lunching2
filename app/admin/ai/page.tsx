@@ -23,7 +23,7 @@ export default async function AiOperationsPage() {
   return (
     <main className="ui-container ui-section space-y-6">
       <header className="ui-card p-6 sm:p-8">
-        <div className="ui-eyebrow">SamoSell AI Operations / Foundation</div>
+        <div className="ui-eyebrow">SamoSell AI Operations / Foundation v0.5</div>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-text">AI თანამშრომლების მართვა</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-text-soft">
           ეს არის Foundation Preview: პოლიტიკისა და როლების სამუშაო სია, არა გაშვებული აგენტები.
@@ -59,12 +59,12 @@ export default async function AiOperationsPage() {
       </section>
       <section className="ui-card p-6">
         <h2 className="text-xl font-bold text-text">Shadow Monitor</h2>
-        <p className="mt-2 text-sm text-text-soft">საწყისი დაკვირვების პანელი: აგრეგირებული რეპორტები და მხოლოდ წაკითხვადი ტრიაჟი. Default: გამორთული. რეალური AI აგენტები ჯერ არ სრულდება.</p>
+        <p className="mt-2 text-sm text-text-soft">QA რიგისა და აქტივობის დაკვირვება. აგენტები ნაგულისხმევად შეჩერებულია. რეალური AI Worker ჯერ არ სრულდება.</p>
         <Link href="/admin/ai/shadow" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დაკვირვების პანელის გახსნა →</Link>
       </section>
       <section className="ui-card p-6">
         <h2 className="text-xl font-bold text-text">Job Queue &amp; Activity Log</h2>
-        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის მომზადებული მოდელი. ბაზის მიგრაცია მხოლოდ იზოლირებულ Preview Supabase-ზე უნდა შესრულდეს; Worker ჯერ არ მუშაობს.</p>
+        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული; Worker ჯერ არ მუშაობს.</p>
         <Link href="/admin/ai/activity" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დავალებებისა და აქტივობის ნახვა →</Link>
       </section>
       <Link href="/admin" className="inline-flex text-sm font-bold underline">← ადმინისტრირების პანელი</Link>

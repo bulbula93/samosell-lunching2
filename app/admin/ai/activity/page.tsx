@@ -1,52 +1,190 @@
-import Link from "next/link"
-import { requireAdminUser } from "@/lib/auth"
+import { readQaOperations } from "@/lib/ai-ops/qa-reader";
+import {
+  activityOutcome,
+  approvalRisk,
+  formatQaTime,
+} from "@/lib/ai-ops/presentation";
+import { AiNavigation, QaStatus } from "../qa-status";
 
-export const dynamic = "force-dynamic"
-export const metadata = { title: "AI Activity | SamoSell", robots: { index: false, follow: false } }
+export const dynamic = "force-dynamic";
+export const metadata = {
+  title: "AI Activity | SamoSell",
+  robots: { index: false, follow: false },
+};
 
 export default async function AiActivityPage() {
-  const { supabase } = await requireAdminUser("/dashboard")
-  // RLS is admin-only; database migration is intentionally not applied yet.
-  // Missing schema is an explicit "not installed" state, never displayed as zero activity.
-  const [jobs, activity, control, approvals] = await Promise.all([
-    supabase.from("ai_ops_jobs").select("id,role,kind,status,priority,attempt,created_at").order("created_at", { ascending: false }).limit(20),
-    supabase.from("ai_ops_activity").select("id,role,event_type,created_at").order("created_at", { ascending: false }).limit(30),
-    supabase.from("ai_ops_control").select("stopped").eq("singleton", true).maybeSingle(),
-    supabase.from("ai_ops_approvals").select("id,action,status,requested_at").eq("status", "pending").limit(10),
-  ])
-  const installed = !jobs.error && !activity.error && !control.error && !approvals.error && control.data !== null
+  const result = await readQaOperations();
   return (
-    <main className="ui-container ui-section space-y-5">
-      <header className="ui-card p-6">
-        <div className="ui-eyebrow">AI Operations / Job Queue</div>
-        <h1 className="mt-3 text-3xl font-black text-text">დავალებები და აქტივობის ჟურნალი</h1>
-        <p className="mt-2 text-sm text-text-soft">მხოლოდ წაკითხვა. ამ გვერდიდან აგენტები არ ირთვება და არც დავალებები სრულდება.</p>
-        <p className="mt-3 font-bold text-text">{!installed ? "ბაზის სქემა ჯერ არ არის დაყენებული ან მიუწვდომელია" : control.data?.stopped ? "Kill Switch: შეჩერებულია" : "Kill Switch: სქემის მიხედვით ჩართულია; Worker ჯერ არ არსებობს"}</p>
+    <main className="ui-container ui-section min-w-0 space-y-5">
+      <header className="ui-card p-5 sm:p-8">
+        <p className="ui-eyebrow">AI Operations · Foundation v0.5</p>
+        <h1 className="mt-3 text-2xl font-black tracking-tight text-text sm:text-3xl">
+          დავალებები და აქტივობის ჟურნალი
+        </h1>
+        <p className="mt-3 text-sm leading-7 text-text-soft">
+          იზოლირებული QA მონაცემები · მხოლოდ წაკითხვა · დრო: თბილისი
+        </p>
       </header>
-      {!installed ? (
-        <section role="status" className="ui-card p-6">
-          <h2 className="font-bold text-text">საჭიროა იზოლირებული Preview მონაცემთა ბაზა</h2>
-          <p className="mt-2 text-sm text-text-soft">მიგრაცია რეპოზიტორში მომზადებულია, მაგრამ არც ერთ Supabase პროექტზე ავტომატურად არ გაშვებულა. მონაცემებსა და სტატუსებს არ ვიგონებთ.</p>
-        </section>
-      ) : (
+      <AiNavigation />
+      <QaStatus result={result} />
+      {result.ok && (
         <>
-          <section className="ui-card p-6">
-            <h2 className="text-xl font-bold text-text">Job Queue — ბოლო 20</h2>
-            {(jobs.data ?? []).length === 0 ? <p className="mt-3 text-sm text-text-soft">დავალებები ჯერ არ არსებობს.</p> :
-              <ul className="mt-3 space-y-2">{(jobs.data ?? []).map(j => <li key={j.id} className="rounded-lg border p-3 text-sm"><span className="font-bold">{j.role}</span> · {j.kind} · {j.status} · {j.priority} · attempt {j.attempt}</li>)}</ul>}
+          <section className="grid gap-3 sm:grid-cols-3" aria-label="QA totals">
+            {[
+              ["სულ დავალებები", result.data.totals.jobs],
+              ["აქტივობის ჩანაწერები", result.data.totals.activity],
+              ["Pending მოთხოვნები", result.data.totals.pending],
+            ].map(([label, count]) => (
+              <article key={label} className="ui-card p-5">
+                <h2 className="text-sm text-text-soft">{label}</h2>
+                <p className="mt-2 text-3xl font-black text-text">{count}</p>
+              </article>
+            ))}
           </section>
-          <section className="ui-card p-6">
-            <h2 className="text-xl font-bold text-text">Activity Log — ბოლო 30</h2>
-            {(activity.data ?? []).length === 0 ? <p className="mt-3 text-sm text-text-soft">მოქმედებები ჯერ არ დაფიქსირებულა.</p> :
-              <ul className="mt-3 space-y-2">{(activity.data ?? []).map(e => <li key={e.id} className="rounded-lg border p-3 text-sm">{e.created_at} · {e.role} · {e.event_type}</li>)}</ul>}
+          <section className="ui-card min-w-0 p-5 sm:p-6">
+            <h2 className="text-xl font-bold text-text">Job Queue</h2>
+            <p className="mt-1 text-xs text-text-soft">ბოლო 20 დავალება</p>
+            {result.data.jobs.length === 0 ? (
+              <p className="mt-4 text-sm text-text-soft">
+                QA რიგი ცარიელია. დავალებები ჯერ არ შექმნილა.
+              </p>
+            ) : (
+              <div
+                className="mt-4 overflow-x-auto"
+                tabIndex={0}
+                role="region"
+                aria-label="Job Queue table"
+              >
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead>
+                    <tr>
+                      {[
+                        "Job ID",
+                        "Agent",
+                        "Task type",
+                        "Status",
+                        "Priority",
+                        "Attempts",
+                        "Created At",
+                      ].map((h) => (
+                        <th
+                          scope="col"
+                          key={h}
+                          className="border-b p-3 text-xs font-semibold text-text-soft"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.data.jobs.map((j) => (
+                      <tr key={j.id} className="border-b last:border-0">
+                        <td className="p-3 font-mono text-xs text-text">
+                          {j.id}
+                        </td>
+                        <td className="p-3 text-text">{j.role}</td>
+                        <td className="p-3 text-text">{j.kind}</td>
+                        <td className="p-3 text-text">{j.status}</td>
+                        <td className="p-3 text-text">{j.priority}</td>
+                        <td className="p-3 text-text">{j.attempt}</td>
+                        <td className="whitespace-nowrap p-3 text-text-soft">
+                          {formatQaTime(j.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
-          <section className="ui-card p-6">
-            <h2 className="text-xl font-bold text-text">Approval Center — წასაკითხი რიგი</h2>
-            <p className="mt-2 text-sm text-text-soft">{(approvals.data ?? []).length} pending მოთხოვნა. დამტკიცების ოპერაციები ჯერ გამორთულია.</p>
+          <section className="ui-card p-5 sm:p-6">
+            <h2 className="text-xl font-bold text-text">Activity Log</h2>
+            <p className="mt-1 text-xs text-text-soft">
+              ბოლო 30 მოვლენა · შედეგი ეფუძნება შენახულ event-ს
+            </p>
+            {result.data.activity.length === 0 ? (
+              <p className="mt-4 text-sm text-text-soft">
+                QA აქტივობა ჯერ არ დაფიქსირებულა.
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {result.data.activity.map((e) => (
+                  <li
+                    key={e.id}
+                    className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <div>
+                      <p className="font-bold text-text">{e.role}</p>
+                      <p className="mt-1 break-words text-sm text-text-soft">
+                        {e.event_type}
+                      </p>
+                    </div>
+                    <p className="text-sm text-text">
+                      {activityOutcome(e.event_type)}
+                    </p>
+                    <time
+                      className="text-xs text-text-soft"
+                      dateTime={new Date(e.created_at).toISOString()}
+                    >
+                      {formatQaTime(e.created_at)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="ui-card p-5 sm:p-6">
+            <h2 className="text-xl font-bold text-text">Approval Center</h2>
+            <p className="mt-2 text-sm text-text-soft">
+              {result.data.totals.pending} pending · ბოლო 20 მოთხოვნა, pending
+              პირველ რიგში · საჭიროა ადამიანის დამტკიცება
+            </p>
+            {result.data.approvals.length === 0 ? (
+              <p className="mt-4 text-sm text-text-soft">
+                დამტკიცების მოთხოვნები არ არსებობს.
+              </p>
+            ) : (
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {result.data.approvals.map((a) => (
+                  <li key={a.id} className="rounded-xl border p-4">
+                    <p className="break-words font-bold text-text">
+                      {a.action}
+                    </p>
+                    <dl className="mt-3 space-y-2 text-sm text-text-soft">
+                      <div className="flex justify-between gap-2">
+                        <dt>სტატუსი</dt>
+                        <dd>
+                          {a.status}
+                          {a.status === "pending" && a.expired
+                            ? " · ვადა გასულია"
+                            : ""}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt>პოლიტიკით რისკი</dt>
+                        <dd>{approvalRisk(a.action)}</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt>ადამიანის დამტკიცება</dt>
+                        <dd>სავალდებულოა</dd>
+                      </div>
+                      <div>
+                        <dt>მოთხოვნის დრო</dt>
+                        <dd>{formatQaTime(a.requested_at)}</dd>
+                      </div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-4 text-xs text-text-soft">
+              დამტკიცება და შესრულება ამ ეტაპზე გამორთულია. უცნობი მოქმედება
+              ფასდება მაღალ რისკად.
+            </p>
           </section>
         </>
       )}
-      <Link className="text-sm font-bold underline" href="/admin/ai">← AI მართვის პანელი</Link>
     </main>
-  )
+  );
 }
