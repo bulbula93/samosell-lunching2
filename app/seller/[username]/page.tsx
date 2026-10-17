@@ -166,6 +166,18 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     profile.store_address ||
     profile.store_map_url
   )
+  const sellerPhone = profile.store_phone?.trim() || ""
+  const hasSellerContacts = Boolean(
+    sellerPhone ||
+    profile.store_whatsapp ||
+    profile.store_telegram ||
+    profile.store_instagram ||
+    profile.store_facebook ||
+    profile.store_website ||
+    profile.store_address ||
+    profile.store_hours ||
+    profile.tiktok_username
+  )
   const featuredListingHref = sellerListings[0]?.slug ? `/listing/${sellerListings[0].slug}` : "/catalog"
   const sellerDescription = truncateDescription(
     profile.bio || `${sellerName} სელერის საჯარო პროფილი ${SITE_NAME}-ზე.`,
@@ -550,9 +562,35 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
                 </section>
               ) : null}
 
-              <a href="#seller-listings" className="mt-7 flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#075a53] bg-[#075a53] px-5 py-3 text-center text-sm font-bold text-white shadow-[0_6px_18px_rgba(7,90,83,0.12)] transition-colors hover:border-[#064a45] hover:bg-[#064a45] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075a53]">
-                განცხადებების ნახვა <span aria-hidden="true" className="text-[#ffb172]">→</span>
-              </a>
+              {hasSellerContacts ? (
+                <section aria-label="საკონტაქტო ინფორმაცია" className="mt-7 border-t border-[#efe5dc] pt-5">
+                  <h3 className="text-base font-bold text-[#073f3b]">საკონტაქტო ინფორმაცია</h3>
+                  {sellerPhone ? (
+                    <a
+                      href={`tel:${sellerPhone.replace(/[^+\d]/g, "")}`}
+                      className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#dce9e5] bg-[#f4faf8] px-4 py-3 font-semibold text-[#075a53] transition hover:border-[#075a53]/40 hover:bg-[#ecf7f3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075a53]"
+                    >
+                      <span className="text-sm">ტელეფონი</span>
+                      <span className="break-all text-sm">{sellerPhone}</span>
+                    </a>
+                  ) : null}
+                  <StoreContactStrip compact contacts={{
+                    instagram: profile.store_instagram,
+                    facebook: profile.store_facebook,
+                    tiktok: profile.tiktok_username,
+                    whatsapp: profile.store_whatsapp,
+                    telegram: profile.store_telegram,
+                    website: profile.store_website,
+                    address: profile.store_address,
+                    mapUrl: profile.store_map_url,
+                    hours: profile.store_hours,
+                  }} />
+                </section>
+              ) : (
+                <a href="#seller-listings" className="mt-7 flex min-h-12 items-center justify-center gap-2 rounded-full border border-[#075a53] bg-[#075a53] px-5 py-3 text-center text-sm font-bold text-white shadow-[0_6px_18px_rgba(7,90,83,0.12)] transition-colors hover:border-[#064a45] hover:bg-[#064a45] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075a53]">
+                  განცხადებების ნახვა <span aria-hidden="true" className="text-[#ffb172]">→</span>
+                </a>
+              )}
             </div>
           </div>
         </div>
