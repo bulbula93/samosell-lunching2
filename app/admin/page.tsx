@@ -8,7 +8,11 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const flash = typeof params.flash === "string" ? params.flash : ""
 
   const { supabase } = await requireAdminUser("/dashboard")
-  await reconcileExpiredBoostOrders()
+  // Privileged payment reconciliation is a production-side operation.
+  // Preview admin pages must remain usable without service-role credentials.
+  if (process.env.VERCEL_ENV === "production") {
+    await reconcileExpiredBoostOrders()
+  }
   const nowIso = new Date().toISOString()
   const overdueCutoff = new Date(
     new Date(nowIso).getTime() - 24 * 60 * 60 * 1000,
