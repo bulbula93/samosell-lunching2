@@ -116,7 +116,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
-  const soldListingsCount = Number(sellerCounts?.sold_count ?? 0)
   // listings_catalog only reports VIP/featured flags while their paid periods remain active.
   const storeVipListings: StoreVipListing[] = profile.seller_type === "store"
     ? sellerListings
