@@ -206,12 +206,11 @@ describe("QA shadow worker transactions", () => {
     expect(
       (
         await db.query<{ event_type: string }>(
-          "select event_type from ai_ops_activity order by created_at,id",
+          "select event_type from ai_ops_activity order by sequence",
         )
       ).rows
-        .map((r) => r.event_type)
-        .sort(),
-    ).toEqual(["claimed", "completed", "queued"]);
+        .map((r) => r.event_type),
+    ).toEqual(["queued", "claimed", "completed"]);
     expect(
       (await db.query("select count(*)::int as n from ai_ops_approvals")).rows,
     ).toEqual([{ n: 0 }]);

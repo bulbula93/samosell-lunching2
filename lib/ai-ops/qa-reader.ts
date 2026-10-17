@@ -97,7 +97,7 @@ export async function readQaOperations(): Promise<QaReadResult> {
       "SELECT id, role, kind, status, priority, attempt, created_at::text FROM public.ai_ops_jobs ORDER BY created_at DESC, id DESC LIMIT 20",
     );
     const activity = await client.query<QaActivity>(
-      "SELECT id, role, event_type, created_at::text FROM public.ai_ops_activity ORDER BY created_at DESC, id DESC LIMIT 30",
+      "SELECT id, role, event_type, created_at::text FROM public.ai_ops_activity ORDER BY sequence DESC LIMIT 30",
     );
     const approvals = await client.query<QaApproval>(
       "SELECT id, action, status, requested_at::text, expires_at::text, (expires_at <= transaction_timestamp()) AS expired FROM public.ai_ops_approvals ORDER BY (status = 'pending') DESC, requested_at DESC, id DESC LIMIT 20",

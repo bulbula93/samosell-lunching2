@@ -10,6 +10,7 @@ This established Next.js/Postgres stack is retained. `ai_ops_private.run_shadow_
 
 ## Queue correctness
 
+- Identity sequence orders audit events correctly even within one transaction; event timestamps use the wall clock.
 - One observation per five-minute time bucket, protected by the existing unique idempotency key.
 - Transaction advisory lock prevents overlapping scheduler ticks.
 - Atomic `FOR UPDATE SKIP LOCKED` claim with incremented attempt, random lease token, and 60-second expiry.
@@ -37,7 +38,7 @@ Activation is a separate deliberate operation: review the exact scope above, ver
 
 - PGlite regression tests exercise stop/enable gates, idempotency, stale tokens, duplicate completion, expired leases, backoff, dead-letter, bounded ticks, redacted errors, RLS and privilege escalation.
 - Two concurrent real QA transactions competed for one disposable job: exactly one claimed it, the other received no job. The disposable job and its activity were cleaned up.
-- One real QA observation completed with `enqueued=1`, `completed=1`, `failed=0`. Its queued/claimed/completed activity remains as a truthful first execution record; it contains only QA queue counters.
+- Two real QA verification cycles each completed with `enqueued=1`, `completed=1`, `failed=0`. Their queued/claimed/completed activity remains as truthful execution records; it contains only QA queue counters.
 - Stop and enable flags were restored to their defaults, and the recurring schedule remains inactive.
 - A separate one-second verification schedule invokes the stopped worker to verify pg_cron execution; the disposable schedule is removed after checking its run history.
 

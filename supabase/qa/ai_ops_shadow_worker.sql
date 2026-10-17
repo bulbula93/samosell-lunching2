@@ -15,6 +15,11 @@ alter table public.ai_ops_control
  add column last_tick_at timestamptz,
  add column last_tick_status text;
 alter table public.ai_ops_jobs add column lease_token uuid;
+alter table public.ai_ops_activity add column sequence bigint generated always as identity;
+alter table public.ai_ops_activity alter column created_at set default clock_timestamp();
+create unique index ai_ops_activity_sequence_idx on public.ai_ops_activity(sequence);
+grant usage on sequence public.ai_ops_activity_sequence_seq to ai_ops_shadow_engine;
+grant select(sequence) on public.ai_ops_activity to ai_ops_qa_reader;
 create index ai_ops_jobs_expired_lease_idx on public.ai_ops_jobs(leased_until) where status='leased';
 
 grant select on public.ai_ops_jobs to ai_ops_shadow_engine;
