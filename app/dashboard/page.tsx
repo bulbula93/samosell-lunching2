@@ -23,7 +23,11 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser()
   const userId = user!.id
-  await reconcileExpiredBoostOrders()
+  // Preview does not need privileged financial reconciliation to render the user's dashboard.
+  // Never use production service-role credentials to unblock a Preview page.
+  if (process.env.VERCEL_ENV === "production") {
+    await reconcileExpiredBoostOrders()
+  }
   const nowIso = new Date().toISOString()
   const chatFilter = `buyer_id.eq.${userId},seller_id.eq.${userId}`
 
