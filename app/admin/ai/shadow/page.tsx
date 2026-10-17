@@ -7,7 +7,11 @@ export const metadata = { title: "AI Shadow Monitor | SamoSell", robots: { index
 
 export default async function ShadowMonitorPage() {
   const { supabase } = await requireAdminUser("/dashboard")
-  const enabled = isShadowEnabled(process.env)
+  const enabled = isShadowEnabled({
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    AI_OPS_SHADOW_ENABLED: process.env.AI_OPS_SHADOW_ENABLED,
+    AI_OPS_KILL_SWITCH: process.env.AI_OPS_KILL_SWITCH,
+  })
   let counts: ShadowCounts = { moderationOpen: null, supportOpen: null, paymentsPending: null }
   if (enabled) {
     // Aggregate-only, limited to current user's already-authorized Supabase session.
