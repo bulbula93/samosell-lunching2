@@ -3,7 +3,7 @@ import UiPageHeader from "@/components/shared/UiPageHeader"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
-import { finalizeFlittBoostPayment } from "@/lib/flitt-boost"
+import { finalizeFlittBoostPayment, reconcileUnpaidFlittBoostFailure, isVerifiedUnpaidFlittTerminal } from "@/lib/flitt-boost"
 import { fetchFlittOrderStatus, type FlittAttemptStatus } from "@/lib/flitt"
 
 export const dynamic = "force-dynamic"
@@ -23,6 +23,8 @@ function statusText(status?: string | null) {
 
 type PaymentAttempt = {
   status: FlittAttemptStatus
+  provider_status: string | null
+  response_status: string | null
   amount: number
   currency: string
   merchant_id: string
@@ -54,7 +56,7 @@ export default async function PaymentResultPage({
   if (userId && safeOrder) {
     const { data } = await supabase
       .from("flitt_payment_attempts")
-      .select("status, amount, currency, merchant_id, provider_payment_id, boost_order_id, ad_order_id, mode, purpose")
+      .select("status, provider_status, response_status, amount, currency, merchant_id, provider_payment_id, boost_order_id, ad_order_id, mode, purpose")
       .eq("order_id", safeOrder)
       .eq("user_id", userId)
       .maybeSingle()
@@ -100,6 +102,8 @@ export default async function PaymentResultPage({
           ...attempt,
           provider_payment_id: attempt.provider_payment_id ?? verified.paymentId,
           status: nextStatus,
+          provider_status: verified.providerStatus,
+          response_status: verified.responseStatus,
         }
       }
     } catch (error) {
@@ -119,6 +123,30 @@ export default async function PaymentResultPage({
       console.error("[flitt] approved boost status could not be finalized", {
         orderId: safeOrder,
         boostOrderId: attempt.boost_order_id,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+    }
+  }
+
+  // The provider callback may have already persisted an expired/declined
+  // checkout while leaving the boost order locked at pending_payment.
+  // Only server-verified provider status is accepted here; no browser query
+  // parameter can create a paid entitlement or trigger cancellation.
+  if (attempt?.purpose === "boost_order" && attempt.boost_order_id &&
+    isVerifiedUnpaidFlittTerminal({
+      nextStatus: attempt.status,
+      providerStatus: attempt.provider_status ?? "",
+      responseStatus: attempt.response_status ?? "",
+    })) {
+    try {
+      await reconcileUnpaidFlittBoostFailure(attempt.boost_order_id, {
+        nextStatus: attempt.status,
+        providerStatus: attempt.provider_status!,
+        responseStatus: attempt.response_status!,
+      })
+    } catch (error) {
+      console.error("[flitt] confirmed failed boost could not be unlocked", {
+        orderId: safeOrder,
         message: error instanceof Error ? error.message : "unknown_error",
       })
     }

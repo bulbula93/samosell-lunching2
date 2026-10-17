@@ -114,6 +114,7 @@ export default function ListingGallery({
           className="object-contain"
           fallbackLabel={ka.product.imageUnavailable}
           loading="eager"
+          priority
           sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 58vw, 720px"
         />
 

@@ -9,6 +9,12 @@ export async function proxy(request: NextRequest) {
   // Registration's UI is reviewable; all auth requests and writes stay blocked.
   // Deny all API, admin, authenticated pages, callbacks, cron and mutations.
   if (isReadOnlyPreview()) {
+    // Font requests also pass through this matcher. Permit only the shipped
+    // immutable fonts; API/auth/payment routes and all writes remain denied.
+    const publicFont = /^\/fonts\/(?:firago-(?:400|500|600|700|800)|plus-jakarta-sans-latin-ext-800)\.woff2$/.test(pathname)
+    if (publicFont && ["GET", "HEAD"].includes(request.method)) {
+      return NextResponse.next()
+    }
     const publicPage =
       pathname === "/" ||
       pathname === "/sitemap.xml" ||

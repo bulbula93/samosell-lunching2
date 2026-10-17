@@ -339,7 +339,7 @@ export default async function DashboardListingPromotePage({
               <BoostCheckoutRecovery order={order} nextPath={`/dashboard/listings/${listing.id}/promote`} enabled={flittEnabled && listing.status === "active"} />
               {flittEnabled && order.payment_provider === "flitt" ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {order.provider_checkout_url && order.status === "pending_payment" ? (
+                  {order.provider_checkout_url && order.status === "pending_payment" && !["expired", "declined", "failed"].includes(String(order.provider_status ?? "").toLowerCase()) ? (
                     <a href={order.provider_checkout_url} target="_blank" rel="noreferrer" className="ui-btn-primary">Flitt-ით გადახდის გაგრძელება</a>
                   ) : null}
                   <Link href={`/payment/result?order=${encodeURIComponent(order.id)}`} className="ui-btn-secondary">Flitt სტატუსის გადამოწმება</Link>
