@@ -10,6 +10,7 @@ const agentRoute = readFileSync(
   join(process.cwd(), "app", "api", "admin", "agent", "route.ts"),
   "utf8",
 )
+const providerRouter = readFileSync(join(process.cwd(), "lib/admin-agent-provider.ts"), "utf8")
 const agentPage = readFileSync(
   join(process.cwd(), "app", "admin", "agent", "page.tsx"),
   "utf8",
@@ -71,19 +72,19 @@ describe("Admin AI Copilot Phase 1", () => {
     expect(agentRoute).toContain("MAX_HISTORY_ITEMS = 8")
     expect(agentRoute).toContain("MAX_HISTORY_CHARS = 1600")
     expect(agentRoute).toContain("sanitizeHistory")
-    expect(agentRoute).toContain("AbortSignal.timeout(20_000)")
-    expect(agentRoute).toContain('response.headers.get("x-request-id")')
+    expect(providerRouter).toContain("AbortSignal.timeout(20_000)")
+    expect(agentRoute).not.toContain("error.message")
     expect(agentRoute).not.toContain("await response.text()")
   })
 
   it("shows deterministic priority signals and AI readiness in the admin UI", () => {
     expect(agentPage).toContain("Live priority engine")
     expect(agentPage).toContain("snapshot.signals")
-    expect(agentPage).toContain("AI API READY")
+    expect(agentPage).toContain("AI CONFIGURED")
     expect(agentPage).toContain("DATA HEALTH OK")
     expect(agentPage).toContain("FLITT READY")
     expect(systemPage).toContain("Admin AI Copilot")
-    expect(systemPage).toContain('envPresent("OPENAI_API_KEY")')
+    expect(systemPage).toContain("getAdminAgentStatus()")
     expect(systemPage).not.toContain("process.env.OPENAI_API_KEY")
   })
 

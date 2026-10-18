@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
+import { getAdminAgentStatus } from "@/lib/admin-agent-config"
 import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
 import { getFlittReadiness } from "@/lib/flitt"
@@ -47,10 +48,8 @@ export default async function AdminSystemPage() {
     envPresent("RESEND_API_KEY") &&
     (envPresent("NOTIFICATION_EMAIL_FROM") || envPresent("EMAIL_FROM"))
   const adminActivityEmailReady = envPresent("ADMIN_ACTIVITY_EMAIL")
-  const museSelected = process.env.ADMIN_AGENT_PROVIDER === "muse-spark"
-  const adminAiReady = museSelected
-    ? envPresent("OPENROUTER_API_KEY") && envPresent("MUSE_SPARK_MODEL")
-    : envPresent("OPENAI_API_KEY")
+  const adminAi = getAdminAgentStatus()
+  const adminAiReady = adminAi.configured
   const databaseReady =
     !profilesHealth.error &&
     !listingsHealth.error &&
@@ -90,8 +89,8 @@ export default async function AdminSystemPage() {
       label: "Admin AI Copilot",
       ok: adminAiReady,
       detail: adminAiReady
-        ? `${museSelected ? "Muse Spark Open" : "OpenAI"} configured; Copilot remains strictly read-only`
-        : `Deterministic fallback მუშაობს; ${museSelected ? "OPENROUTER_API_KEY და MUSE_SPARK_MODEL" : "OPENAI_API_KEY"} საჭიროა`,
+        ? `${adminAi.name}: configured; კავშირი ჯერ შეუმოწმებელია. Read-only Copilot.`
+        : `${adminAi.name}: configuration არასრულია ან არასწორია; deterministic fallback ხელმისაწვდომია`,
       href: "/admin/agent",
     },
     {

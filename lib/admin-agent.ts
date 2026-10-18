@@ -1,6 +1,7 @@
 import "server-only"
 
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { getAdminAgentStatus } from "@/lib/admin-agent-config"
 import { getFlittReadiness } from "@/lib/flitt"
 
 const MODERATION_OVERDUE_HOURS = 24
@@ -143,10 +144,7 @@ function getSystemReadiness() {
     adminActivityEmailReady: Boolean(
       String(process.env.ADMIN_ACTIVITY_EMAIL ?? "").trim(),
     ),
-    aiConfigured: process.env.ADMIN_AGENT_PROVIDER === "muse-spark"
-      ? Boolean(String(process.env.OPENROUTER_API_KEY ?? "").trim()) &&
-        Boolean(String(process.env.MUSE_SPARK_MODEL ?? "").trim())
-      : Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
+    aiConfigured: getAdminAgentStatus().configured,
   }
 }
 

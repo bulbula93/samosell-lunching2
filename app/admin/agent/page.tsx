@@ -1,3 +1,4 @@
+import { getAdminAgentStatus } from "@/lib/admin-agent-config"
 import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
 import {
@@ -79,7 +80,7 @@ export default async function AdminAgentPage() {
             }
           >
             {snapshot.system.aiConfigured
-              ? "AI API READY"
+              ? "AI CONFIGURED"
               : "AI API FALLBACK"}
           </span>
           <span
@@ -174,7 +175,7 @@ export default async function AdminAgentPage() {
         <AdminAgentClient
           initialSummary={buildFallbackAdminSummary(snapshot)}
           aiConfigured={snapshot.system.aiConfigured}
-          providerName={process.env.ADMIN_AGENT_PROVIDER === "muse-spark" ? "Muse Spark Open" : "OpenAI Responses API"}
+          providerName={getAdminAgentStatus().name}
           generatedAt={snapshot.generatedAt}
         />
       </section>

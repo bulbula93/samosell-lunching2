@@ -1,13 +1,14 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useRef, useState } from "react"
 
-type ReplySource = "snapshot" | "ai" | "fallback"
+type ReplySource = "snapshot" | "ai" | "fallback" | "error"
 
 type AgentReply = {
   role: "user" | "assistant"
   text: string
   source?: ReplySource
+  provider?: "openai" | "muse-spark" | "deterministic"
 }
 
 const QUICK_PROMPTS = [
@@ -24,10 +25,25 @@ function sourceLabel(source?: ReplySource) {
       return "AI"
     case "fallback":
       return "Fallback"
+    case "error":
+      return "Request failed"
     case "snapshot":
       return "Live snapshot"
     default:
       return ""
+  }
+}
+
+function failureMessage(reason?: string | null) {
+  switch (reason) {
+    case "missing_credentials": return "API credentials აკლია; პასუხი მიღებულია ლოკალური snapshot-იდან."
+    case "invalid_configuration": return "Provider ან მოდელის კონფიგურაცია არასწორია; გამოიყენება ლოკალური fallback."
+    case "timeout": return "AI provider-ის დრო ამოიწურა; გამოიყენება ლოკალური fallback."
+    case "rate_limited": return "API მოთხოვნების ლიმიტი ამოიწურა; გამოიყენება ლოკალური fallback."
+    case "budget_exceeded": return "API ბიუჯეტი ამოიწურა; გამოიყენება ლოკალური fallback."
+    case "authentication_failed": return "Provider-ის ავტორიზაცია ვერ შედგა; გამოიყენება ლოკალური fallback."
+    case "model_mismatch": return "Provider-მა სხვა მოდელი დააბრუნა; პასუხი უარყოფილია და გამოიყენება fallback."
+    default: return "AI პასუხი მიუწვდომელია ან არასწორია; გამოიყენება ლოკალური fallback."
   }
 }
 
@@ -44,8 +60,10 @@ export default function AdminAgentClient({
 }) {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<"ai" | "fallback">(
-    aiConfigured ? "ai" : "fallback",
+  const submitting = useRef(false)
+  const [mode, setMode] = useState<"unverified" | "ai" | "fallback" | "error">("unverified")
+  const [connectionNote, setConnectionNote] = useState(
+    aiConfigured ? "კონფიგურაცია არსებობს; API კავშირი ჯერ შეუმოწმებელია." : "კონფიგურაცია არასრულია ან არასწორია; კითხვაზე ლოკალური fallback გამოიყენება.",
   )
   const [messages, setMessages] = useState<AgentReply[]>([
     { role: "assistant", text: initialSummary, source: "snapshot" },
@@ -53,7 +71,8 @@ export default function AdminAgentClient({
 
   async function submit(text: string) {
     const clean = text.trim()
-    if (!clean || loading) return
+    if (!clean || submitting.current) return
+    submitting.current = true
 
     const history = messages
       .slice(-8)
@@ -68,11 +87,14 @@ export default function AdminAgentClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: clean, history }),
+        signal: AbortSignal.timeout(35_000),
       })
       const payload = (await response.json()) as {
         reply?: string
         error?: string
         mode?: "ai" | "fallback"
+        provider?: "openai" | "muse-spark" | "deterministic"
+        failure?: string | null
       }
 
       const reply =
@@ -80,23 +102,30 @@ export default function AdminAgentClient({
           ? payload.reply
           : "აგენტმა პასუხი ვერ მიიღო. სცადე ხელახლა ან გადაამოწმე System Status."
 
-      const replyMode = payload.mode === "ai" ? "ai" : "fallback"
-      setMode(replyMode)
+      const replyMode = response.ok && payload.mode === "ai" && (payload.provider === "openai" || payload.provider === "muse-spark") ? "ai" : "fallback"
+      setMode(response.ok ? replyMode : "error")
+      setConnectionNote(!response.ok
+        ? "მოთხოვნა ვერ შესრულდა; ახალი snapshot მიღებული არ არის."
+        : replyMode === "ai"
+          ? `${payload.provider === "muse-spark" ? "Muse Spark Open" : "OpenAI"} — API-მ პასუხი წარმატებით დააბრუნა.`
+          : failureMessage(payload.failure))
       setMessages((current) => [
         ...current,
-        { role: "assistant", text: reply, source: replyMode },
+        { role: "assistant", text: reply, source: response.ok ? replyMode : "error", provider: payload.provider },
       ])
     } catch {
-      setMode("fallback")
+      setMode("error")
+      setConnectionNote("ქსელური შეცდომა ან დროის ლიმიტი; ახალი snapshot მიღებული არ არის.")
       setMessages((current) => [
         ...current,
         {
           role: "assistant",
           text: "ქსელური შეცდომა დაფიქსირდა. სცადე ხელახლა.",
-          source: "fallback",
+          source: "error",
         },
       ])
     } finally {
+      submitting.current = false
       setLoading(false)
     }
   }
@@ -124,7 +153,7 @@ export default function AdminAgentClient({
                   : "rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900"
               }
             >
-              {mode === "ai" ? "AI CONNECTED" : "DETERMINISTIC FALLBACK"}
+              {mode === "ai" ? "AI CONNECTED" : mode === "fallback" ? "DETERMINISTIC FALLBACK" : mode === "error" ? "REQUEST FAILED" : "API NOT VERIFIED"}
             </span>
           </div>
           <p className="mt-2 text-sm leading-6 text-text-soft">
@@ -149,7 +178,7 @@ export default function AdminAgentClient({
             >
               {item.role === "assistant" && item.source ? (
                 <div className="mb-1 ml-1 text-[11px] font-bold uppercase tracking-wide text-text-soft">
-                  {sourceLabel(item.source)}
+                  {sourceLabel(item.source)}{item.provider === "muse-spark" ? " · Muse Spark Open" : item.provider === "openai" ? " · OpenAI" : ""}
                 </div>
               ) : null}
               <div
@@ -185,8 +214,8 @@ export default function AdminAgentClient({
           />
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs leading-5 text-text-soft">
-              AI context-ში არ იგზავნება email, support message body, report
-              details, ტელეფონი, მისამართი ან secret.
+              Snapshot გამორიცხავს პირად მონაცემებს. კითხვაში არ ჩასვა email,
+              ტელეფონი, პირადი მიმოწერა ან secret.
             </span>
             <button
               type="submit"
@@ -224,6 +253,8 @@ export default function AdminAgentClient({
               ? `${providerName} configured`
               : `${providerName} — provider credentials/configuration აკლია`}
           </div>
+          <p role="status" className="mt-2 text-xs leading-5 text-text-soft">{connectionNote}</p>
+          {providerName === "Muse Spark Open" ? <p className="mt-2 text-xs text-text-soft">Built with Muse Spark Open</p> : null}
           <p className="mt-2 text-xs leading-5 text-text-soft">
             Snapshot:{" "}
             {new Intl.DateTimeFormat("ka-GE", {
