@@ -24,11 +24,11 @@ export function QaStatus({ result }: { result: QaReadResult }) {
           <p className="ui-eyebrow">SamoSell-QA · მხოლოდ წაკითხვა</p>
           <h2 className="mt-2 text-lg font-bold text-text">
             Kill Switch:{" "}
-            {stopped ? "Stopped / შეჩერებულია" : "გაჩერება გამორთულია"}
+            {!result.ok ? "უცნობია" : stopped ? "Stopped / შეჩერებულია" : "გაჩერება გამორთულია"}
           </h2>
         </div>
         <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">
-          {result.ok && !stopped && result.data.control.worker_enabled
+          {!result.ok ? "QA Worker: უცნობია" : !stopped && result.data.control.worker_enabled
             ? "QA Worker: დაშვებულია"
             : "აგენტები: არააქტიური"}
         </span>
@@ -54,8 +54,7 @@ export function QaStatus({ result }: { result: QaReadResult }) {
         <div role="status" className="mt-3 rounded-xl border p-4">
           <p className="font-semibold text-text">{errors[result.code]}</p>
           <p className="mt-2 text-sm text-text-soft">
-            ბაზის სტატუსი უცნობია. სისტემა უსაფრთხოდ შეჩერებულია; მონაცემები არ
-            ჩანაცვლდება გამოგონილი ჩანაწერებით.
+            ბაზის სტატუსი უცნობია. მონიტორი ვერ ადასტურებს Worker-ის გაჩერებას ან მუშაობას; მონაცემები არ ჩანაცვლდება გამოგონილი ჩანაწერებით. ამ პანელიდან მოქმედებები გამორთულია.
           </p>
           <code className="mt-2 block text-xs text-text-soft">
             {result.code}

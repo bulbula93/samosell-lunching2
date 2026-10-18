@@ -1,5 +1,55 @@
 # SamoSell Vercel CPU audit — 18 October 2026
 
+## Follow-up — 19 October, Asia/Tbilisi
+
+The existing optimization PR #126 had not reached Production. Its branch has now
+been integrated locally with current `main` commit
+`d64f55f402a2f847ddacd74a33e13b9c1967e273`; Git merged the changes cleanly.
+The AI triage release on main is preserved. No Production release is included.
+
+Fresh Production runtime logs for 18 October 21:16–21:46 UTC confirm continued
+background homepage retry work on deployment `dpl_5SiXfPW4Yx9ZwJzmrmGc9Ce9o4Pr`:
+
+- At 21:40:37 UTC, two `catalog_pool` log entries reported 40,763ms and 41,191ms
+  elapsed against a displayed 15,000ms budget, followed by `home_public_data_retry`
+  after an `AbortError`.
+- At 21:46:04 UTC, retry timeout entries reported 327,005ms and 327,008ms elapsed,
+  with `home_public_data_unavailable` and background revalidation errors.
+- These are elapsed timers, not Active CPU measurements. They do not establish
+  a 327-second CPU loop or attribute all monthly consumption to the homepage.
+
+A new read-only `pg_stat_statements` sample found the home-shaped projection at
+1,896 calls, mean 27.94ms and maximum 1,028.43ms. The five catalog query shapes
+with the highest accumulated SQL execution time had means between 3.02ms and
+27.94ms, and maxima no higher than 1,397.21ms. These aggregate samples cannot rule
+out unsampled HTTP/RLS/network delays, but do not account for the long elapsed
+timers. No database mutation was performed.
+
+Two additional amplification defects were found in the unmerged patch and fixed:
+
+1. `settleHomeQuery` turns a rejected transport into null. A fast rejected
+   `AbortError` previously qualified for a fresh fallback request. Rejected
+   transports now terminate the attempt, and only an explicit HTTP 5xx response
+   may retry within the remaining original budget. Missing/zero status, 4xx,
+   cancellation and deadline failures do not retry.
+2. A request microtask could start after execution resumed beyond its deadline,
+   before the delayed timer callback ran. The deadline is now checked before
+   starting upstream work as well as after receiving a response. A standalone
+   reproduction advanced wall time by 327 seconds: before the fix it launched
+   one upstream request; after the fix it launched zero and rejected with the
+   expected timeout.
+
+Seven additional functional regression cases cover rejected transports,
+non-retryable/missing status and expired-start behavior. The five focused CPU,
+deadline, coalescing, Proxy and seller-preview suites pass all 35 tests. Current
+full-suite, build, CI and Preview results are recorded in the updated PR #126.
+The existing branch-scoped read-only flag and public backend configuration were
+checked before publishing; Production configuration and payment jobs are unchanged.
+
+The old observations below remain historical evidence. In particular, PR #125 is
+now merged on main, and the former final Preview/CI SHA is not the follow-up SHA.
+No matched live before/after CPU percentage or quota reset is claimed.
+
 Release gate: **NOT READY for Production.** Code checks pass, but a representative before/after Vercel CPU comparison, complete authenticated browser flows and 30-day route attribution are unavailable. The alert has not been declared resolved. Preview outcome and browser verification are recorded in the PR description after deployment.
 
 Baseline: `main` / `364a00ae1aa757dbdde7363f0e7779433be3f390`, Production deployment `dpl_EzJ6njP9Ybizz3L9cYEuXxdgLjNo`. Work branch: `preview/vercel-cpu-emergency-optimization-20261018`. No Production schema/data, environment, billing, cron or hosting changes were made. No load/stress tests or paid model requests were run.

@@ -25,9 +25,17 @@ export async function withQueryTimeout<T>(
         controller.abort()
       }, timeoutMs)
     })
-    const request = Promise.resolve().then(() => typeof query === "function"
-      ? query(controller.signal)
-      : query.abortSignal(controller.signal)).then((value) => {
+    const request = Promise.resolve().then(() => {
+      // Execution may resume after suspension before its deadline timer runs.
+      // Do not launch a new network request with an already exhausted budget.
+      if (Date.now() - startedAt >= timeoutMs) {
+        controller.abort()
+        throw timeoutError
+      }
+      return typeof query === "function"
+        ? query(controller.signal)
+        : query.abortSignal(controller.signal)
+    }).then((value) => {
       // A suspended function/event loop can resume with the response callback
       // ahead of its timer. Do not accept that late response as within budget.
       if (Date.now() - startedAt >= timeoutMs) {

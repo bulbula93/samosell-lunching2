@@ -137,11 +137,18 @@ const getCachedPublicHomePageData = unstable_cache(
     // A timeout/cancellation must not immediately double upstream work. Only a
     // fast transient server failure may retry, within the ORIGINAL total budget.
     let recovered: typeof response = null
-    if (!response || response.error) {
+    // A rejected transport has no verified retryable HTTP response. In
+    // particular, settleHomeQuery returns null for an AbortError; retrying it
+    // would start fresh work after cancellation.
+    if (!response) {
+      throw new Error("home_public_data_unavailable:catalog_pool_failed")
+    }
+    if (response.error) {
       const remainingMs = deadline - Date.now()
       const cancelled = /abort|timeout|cancel/i.test(response?.error?.message ?? "")
         || response?.error?.code === "57014"
-      if (remainingMs < 1000 || cancelled || (response && response.status < 500)) {
+      const retryableServerFailure = response.status >= 500 && response.status < 600
+      if (remainingMs < 1000 || cancelled || !retryableServerFailure) {
         throw new Error("home_public_data_unavailable:catalog_pool_failed")
       }
       const retryBudgetMs = Math.min(6000, remainingMs)

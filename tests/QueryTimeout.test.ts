@@ -52,6 +52,17 @@ describe("PostgREST query deadline", () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it("does not start upstream work when execution resumes after the deadline", async () => {
+    vi.useFakeTimers()
+    const read = vi.fn().mockResolvedValue({ data: ["late"] })
+    const result = withQueryTimeout(read, 15000)
+    // Advance wall time without running timer callbacks or the request microtask.
+    vi.setSystemTime(Date.now() + 327_000)
+    await expect(result).rejects.toBeInstanceOf(QueryTimeoutError)
+    expect(read).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it("returns the catalog's error shape for a timeout without hiding other failures", async () => {
     vi.useFakeTimers()
     const result = withQueryTimeoutResult(() => new Promise<never>(() => {}), 6000)

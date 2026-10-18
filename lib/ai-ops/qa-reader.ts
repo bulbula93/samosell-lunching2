@@ -16,6 +16,7 @@ export type QaJob = {
   priority: string;
   attempt: number;
   created_at: string;
+  updated_at: string;
 };
 export type QaActivity = {
   id: string;
@@ -94,7 +95,7 @@ export async function readQaOperations(): Promise<QaReadResult> {
       throw new QaReaderError("access_denied");
     // Fixed SQL only. No query input, RPCs, SELECT *, details payloads, or writes.
     const jobs = await client.query<QaJob>(
-      "SELECT id, role, kind, status, priority, attempt, created_at::text FROM public.ai_ops_jobs ORDER BY created_at DESC, id DESC LIMIT 20",
+      "SELECT id, role, kind, status, priority, attempt, created_at::text, updated_at::text FROM public.ai_ops_jobs ORDER BY created_at DESC, id DESC LIMIT 20",
     );
     const activity = await client.query<QaActivity>(
       "SELECT id, role, event_type, created_at::text FROM public.ai_ops_activity ORDER BY sequence DESC LIMIT 30",

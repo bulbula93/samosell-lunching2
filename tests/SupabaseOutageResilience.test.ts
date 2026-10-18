@@ -25,7 +25,8 @@ describe("Supabase outage resilience", () => {
     expect(home).toContain('select(HOME_LISTING_SELECT, { count: "exact" })')
     expect(home.match(/from\("listings_catalog"\)/g)).toHaveLength(2)
     expect(home).toContain("home_public_data_retry")
-    expect(home).toContain("if (!response || response.error)")
+    // Retry eligibility and rejected transports are exercised behaviorally in
+    // HomeCpuResilience.test.ts; do not couple them to an exact if expression.
   })
 
   it("skips Supabase auth refresh for guest public routes", () => {

@@ -62,6 +62,15 @@ describe("homepage public upstream work", () => {
     expect(mocks.select.mock.calls[1]).toHaveLength(1)
   })
 
+  it.each(["AbortError", "TimeoutError", "TypeError"])("does not retry a rejected %s transport", async (name) => {
+    const error = new Error("transport stopped")
+    error.name = name
+    mocks.read.mockRejectedValue(error)
+    const { getPublicHomePageData } = await import("@/lib/home-page")
+    await expect(getPublicHomePageData()).rejects.toThrow("home_public_data_unavailable")
+    expect(mocks.read).toHaveBeenCalledOnce()
+  })
+
   it("shares one deadline across both attempts instead of adding a fresh retry window", async () => {
     vi.useFakeTimers()
     mocks.read.mockImplementationOnce(() => new Promise((resolve) => {
@@ -78,7 +87,7 @@ describe("homepage public upstream work", () => {
     expect(mocks.read.mock.calls[1][0].aborted).toBe(true)
   })
 
-  it.each([400, 401, 403, 429])("does not amplify a permanent or rate-limited HTTP %i response", async (status) => {
+  it.each([undefined, 0, 200, 400, 401, 403, 429])("does not amplify a response without a retryable server status (%s)", async (status) => {
     mocks.read.mockResolvedValue({ data: null, error: { message: "unavailable" }, status })
     const { getPublicHomePageData } = await import("@/lib/home-page")
     await expect(getPublicHomePageData()).rejects.toThrow("home_public_data_unavailable")
