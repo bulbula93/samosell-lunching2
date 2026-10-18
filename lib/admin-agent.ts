@@ -143,7 +143,10 @@ function getSystemReadiness() {
     adminActivityEmailReady: Boolean(
       String(process.env.ADMIN_ACTIVITY_EMAIL ?? "").trim(),
     ),
-    aiConfigured: Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
+    aiConfigured: process.env.ADMIN_AGENT_PROVIDER === "muse-spark"
+      ? Boolean(String(process.env.OPENROUTER_API_KEY ?? "").trim()) &&
+        Boolean(String(process.env.MUSE_SPARK_MODEL ?? "").trim())
+      : Boolean(String(process.env.OPENAI_API_KEY ?? "").trim()),
   }
 }
 
