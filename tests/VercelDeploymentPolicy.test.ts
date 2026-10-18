@@ -16,6 +16,7 @@ describe("Vercel Git deployment policy", () => {
       "**": false,
       main: true,
       "preview/**": true,
+      "preview/vercel-cpu-emergency-optimization-20261018": false,
     })
   })
 })

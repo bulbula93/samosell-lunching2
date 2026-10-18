@@ -20,6 +20,7 @@ export async function proxy(request: NextRequest) {
       pathname === "/stores/hero-editor" ||
       pathname === "/stores/concepts" ||
       pathname === "/for-stores" ||
+      pathname === "/login" ||
       pathname === "/register" ||
       pathname.startsWith("/catalog/") ||
       pathname.startsWith("/listing/") ||
@@ -48,6 +49,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|woff|woff2|ttf|webmanifest|mp4|webm)$).*)",
   ],
 }

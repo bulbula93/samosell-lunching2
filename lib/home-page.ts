@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache"
 import type { User } from "@supabase/supabase-js"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { PUBLIC_QUERY_TIMEOUT_MS, withQueryTimeout } from "@/lib/supabase/query-timeout"
+import { guardPublicLoad } from "@/lib/public-load-guard"
 import type { CatalogListing } from "@/types/marketplace"
 import type { StoryRailData } from "@/types/story"
 
@@ -20,6 +21,10 @@ const HOME_LISTING_SELECT = [
   "favorites_count",
   "views_count",
   "category_slug",
+  "vip_until",
+  "promoted_until",
+  "featured_until",
+  "home_banner_until",
 ].join(", ")
 
 type HomeListingRow = CatalogListing & {
@@ -62,53 +67,24 @@ const HOME_POOL_LIMIT = 500
 async function settleHomeQuery<T>(
   query: PromiseLike<T>,
   section: string,
+  timeoutMs: number,
 ): Promise<T | null> {
   const startedAt = Date.now()
-  let queryTimedOut = false
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-
-  const trackedQuery = Promise.resolve(query).then(
-    (value) => {
-      const elapsedMs = Date.now() - startedAt
-      if (elapsedMs >= 1000 || queryTimedOut) {
-        console.info("home_public_data_query_timing", {
-          section,
-          outcome: "resolved",
-          elapsedMs,
-          timeoutMs: HOME_QUERY_BUDGET_MS,
-          completedAfterTimeout: queryTimedOut,
-        })
-      }
-      return value
-    },
-    (error) => {
-      console.warn("home_public_data_partial", section, {
-        outcome: "query_rejected",
-        elapsedMs: Date.now() - startedAt,
-        timeoutMs: HOME_QUERY_BUDGET_MS,
-        completedAfterTimeout: queryTimedOut,
-        message: error instanceof Error ? error.message : "query_failed",
-      })
-      return null
-    },
-  )
-
   try {
-    return await Promise.race([
-      trackedQuery,
-      new Promise<null>((resolve) => {
-        timeoutId = setTimeout(() => {
-          queryTimedOut = true
-          console.warn("home_public_data_partial", section, "client_timeout", {
-            elapsedMs: Date.now() - startedAt,
-            timeoutMs: HOME_QUERY_BUDGET_MS,
-          })
-          resolve(null)
-        }, HOME_QUERY_BUDGET_MS)
-      }),
-    ])
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId)
+    const value = await query
+    const elapsedMs = Date.now() - startedAt
+    if (elapsedMs >= 1000) {
+      console.info("home_public_data_query_timing", {
+        section, outcome: "resolved", elapsedMs, timeoutMs,
+        completedAfterTimeout: elapsedMs >= timeoutMs,
+      })
+    }
+    return value
+  } catch {
+    console.warn("home_public_data_partial", section, {
+      outcome: "query_rejected", elapsedMs: Date.now() - startedAt, timeoutMs,
+    })
+    return null
   }
 }
 
@@ -142,8 +118,9 @@ function popularBrandsFromRows(rows: HomeListingRow[]): PopularBrand[] {
     .slice(0, 8)
 }
 
-export const getPublicHomePageData = unstable_cache(
-  async (): Promise<PublicHomePageData> => {
+const getCachedPublicHomePageData = unstable_cache(
+  guardPublicLoad(async (): Promise<PublicHomePageData> => {
+    const deadline = Date.now() + HOME_QUERY_BUDGET_MS
     const supabase = createPublicServerClient()
 
     const response = await settleHomeQuery(
@@ -154,13 +131,20 @@ export const getPublicHomePageData = unstable_cache(
         .order("published_at", { ascending: false, nullsFirst: false })
         .limit(HOME_POOL_LIMIT), HOME_QUERY_BUDGET_MS),
       "catalog_pool",
+      HOME_QUERY_BUDGET_MS,
     )
 
-    // PostgREST occasionally aborts at the application timeout even though the
-    // underlying SQL is normally fast. Retry once without the expensive exact
-    // count. Never persist a fabricated empty catalog into unstable_cache.
+    // A timeout/cancellation must not immediately double upstream work. Only a
+    // fast transient server failure may retry, within the ORIGINAL total budget.
     let recovered: typeof response = null
     if (!response || response.error) {
+      const remainingMs = deadline - Date.now()
+      const cancelled = /abort|timeout|cancel/i.test(response?.error?.message ?? "")
+        || response?.error?.code === "57014"
+      if (remainingMs < 1000 || cancelled || (response && response.status < 500)) {
+        throw new Error("home_public_data_unavailable:catalog_pool_failed")
+      }
+      const retryBudgetMs = Math.min(6000, remainingMs)
       console.warn("home_public_data_retry", {
         reason: response?.error?.message ?? "catalog_pool_timeout",
       })
@@ -170,8 +154,9 @@ export const getPublicHomePageData = unstable_cache(
           .select(HOME_LISTING_SELECT)
           .eq("status", "active")
           .order("published_at", { ascending: false, nullsFirst: false })
-          .limit(HOME_POOL_LIMIT), 6000),
+          .limit(HOME_POOL_LIMIT), retryBudgetMs),
         "catalog_pool_retry",
+        retryBudgetMs,
       ) as typeof response
     }
 
@@ -255,10 +240,39 @@ export const getPublicHomePageData = unstable_cache(
       popularBrands: popularBrandsFromRows(rows),
       activeCount: usable.count ?? rows.length,
     }
-  },
-  ["home-public-data-v5"],
+  }),
+  ["home-public-data-v6"],
   {
     revalidate: 60,
     tags: ["home-public-data"],
   },
 )
+
+function refreshPromotion<T extends CatalogListing>(item: T, now: number): T {
+  const active = (value?: string | null) => Boolean(value && Date.parse(value) > now)
+  const is_vip = item.is_vip && active(item.vip_until)
+  const is_promoted = Boolean(item.is_promoted && active(item.promoted_until))
+  const is_featured = Boolean(item.is_featured && active(item.featured_until))
+  const is_home_banner = Boolean(item.is_home_banner && active(item.home_banner_until))
+  return { ...item, is_vip, is_promoted, is_featured, is_home_banner,
+    promotion_tier: is_featured ? 3 : is_promoted ? 2 : is_vip ? 1 : 0 }
+}
+
+/** Expiry is checked on every render, including when Next serves stale data after an outage. */
+export async function getPublicHomePageData(): Promise<PublicHomePageData> {
+  const data = await getCachedPublicHomePageData()
+  const now = Date.now()
+  const refresh = (items: CatalogListing[]) => items.map((item) => refreshPromotion(item, now))
+  return {
+    ...data,
+    heroItems: refresh(data.heroItems).filter((item) => item.is_vip && item.is_promoted && item.is_featured),
+    vipItems: refresh(data.vipItems).filter((item) => item.is_vip).sort((a, b) =>
+      numberValue(b.promotion_tier) - numberValue(a.promotion_tier) ||
+      dateValue(b.published_at) - dateValue(a.published_at)),
+    bannerItems: refresh(data.bannerItems).filter((item) => item.is_home_banner),
+    latestItems: refresh(data.latestItems),
+    popularItems: refresh(data.popularItems),
+    affordableItems: refresh(data.affordableItems),
+    vintageItems: refresh(data.vintageItems),
+  }
+}

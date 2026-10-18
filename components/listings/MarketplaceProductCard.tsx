@@ -110,6 +110,7 @@ export default function MarketplaceProductCard({
       <Link
         data-catalog-open=""
         href={listingHref}
+        prefetch={false}
         aria-label={`${item.title} — ${priceLabel}`}
         className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 sm:rounded-[22px]"
       >
@@ -185,6 +186,7 @@ export default function MarketplaceProductCard({
           {sellerHref ? (
             <Link
               href={sellerHref}
+              prefetch={false}
               aria-label={`${sellerLabel} — გამყიდველის გვერდი`}
               className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1 text-[11px] text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:text-xs"
             >
