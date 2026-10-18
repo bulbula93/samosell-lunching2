@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { invokeMuseSpark } from "@/lib/muse-spark-provider"
 import { requireAdminUser } from "@/lib/auth"
 import {
   buildAdminAgentModelContext,
@@ -102,7 +103,10 @@ export async function POST(request: Request) {
     const history = sanitizeHistory(body.history)
     const snapshot = await collectAdminAgentSnapshot(supabase)
     const fallback = buildFallbackAdminReply(snapshot, message)
-    const apiKey = String(process.env.OPENAI_API_KEY ?? "").trim()
+    const provider = process.env.ADMIN_AGENT_PROVIDER === "muse-spark" ? "muse-spark" : "openai"
+    const apiKey = provider === "muse-spark"
+      ? String(process.env.OPENROUTER_API_KEY ?? "").trim()
+      : String(process.env.OPENAI_API_KEY ?? "").trim()
 
     if (!apiKey) {
       return NextResponse.json({
@@ -121,6 +125,22 @@ export async function POST(request: Request) {
       role: item.role,
       content: item.text,
     }))
+
+    if (provider === "muse-spark") {
+      const reply = await invokeMuseSpark({
+        apiKey,
+        systemPrompt: SYSTEM_PROMPT,
+        context,
+        conversation,
+        message,
+      })
+      return NextResponse.json({
+        mode: reply ? "ai" : "fallback",
+        provider: reply ? "muse-spark" : "deterministic",
+        reply: reply || fallback,
+        generatedAt: snapshot.generatedAt,
+      })
+    }
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
