@@ -1,5 +1,5 @@
 import { readQaOperations } from "@/lib/ai-ops/qa-reader";
-import { evaluateAiOpsTriage } from "@/lib/ai-ops/triage";
+import { evaluateQaSnapshotTriage } from "@/lib/ai-ops/qa-triage";
 import {
   activityOutcome,
   approvalRisk,
@@ -15,16 +15,9 @@ export const metadata = {
 
 export default async function AiActivityPage() {
   const result = await readQaOperations();
-  const findings = result.ok ? evaluateAiOpsTriage({
-    jobs: result.data.jobs.map(j => ({ status: j.status, priority: j.priority, createdAt: j.created_at })),
-    approvals: result.data.approvals.map(a => ({ status: a.status, expiresAt: a.expires_at })),
-    control: {
-      stopped: result.data.environmentStopped || result.data.control.stopped,
-      workerEnabled: result.data.control.worker_enabled,
-      schedulerEnabled: result.data.control.scheduler_enabled,
-    },
-    nowIso: new Date().toISOString(),
-  }) : [];
+  const findings = result.ok
+    ? evaluateQaSnapshotTriage(result.data, new Date().toISOString())
+    : [];
   return (
     <main className="ui-container ui-section min-w-0 space-y-5">
       <header className="ui-card p-5 sm:p-8">
@@ -42,11 +35,11 @@ export default async function AiActivityPage() {
         <>
           <section className="ui-card p-5 sm:p-6" aria-label="Deterministic QA triage">
             <h2 className="text-xl font-bold text-text">ოპერაციული პრიორიტეტები · უფასო ანალიზი</h2>
-            <p className="mt-2 text-sm text-text-soft">ეს შეფასება ითვლის მხოლოდ ბოლო 20 დავალებისა და 20 დამტკიცების მოთხოვნის ნიმუშს. მთლიანი სისტემის ინციდენტების რაოდენობა არ არის. არ იყენებს AI API-ს და არაფერს ცვლის.</p>
+            <p className="mt-2 text-sm text-text-soft">ანალიზი მოიცავს მაქსიმუმ ბოლო 20 დავალებას და 20 დამტკიცების მოთხოვნას, pending მოთხოვნები პირველ რიგში. ნიმუშში ახლა {result.data.jobs.length} დავალება და {result.data.approvals.length} მოთხოვნაა. ეს არ არის მთელი ბაზის ინციდენტების სტატისტიკა. STALE_JOB ნიშნავს აქტიურ დავალებას, რომელიც 24 საათია არ განახლებულა. Kill Switch-ის წყაროა QA ბაზა. არ იყენებს AI API-ს და არაფერს ცვლის.</p>
             {findings.length ? (
               <ul className="mt-4 space-y-3">{findings.map(f => (
                 <li key={f.code} className="rounded-xl border p-4">
-                  <p className="font-bold text-text">{f.severity === "critical" ? "კრიტიკული" : f.severity === "warning" ? "საყურადღებო" : "ინფორმაცია"} · {f.code} · {f.count}</p>
+                  <p className="break-words font-bold text-text">{f.severity === "critical" ? "კრიტიკული" : f.severity === "warning" ? "საყურადღებო" : "ინფორმაცია"} · {f.code} · {f.count}</p>
                   <p className="mt-1 text-sm text-text-soft">{f.explanation}</p>
                   <p className="mt-2 text-sm text-text">შემდეგი შემოწმება: {f.nextStep}</p>
                 </li>

@@ -32,4 +32,27 @@ describe("zero-cost AI Operations triage", () => {
     expect(() => evaluateAiOpsTriage({jobs:[],approvals:[],control:stopped,nowIso:"bad"})).toThrow();
     expect(() => evaluateAiOpsTriage({jobs:[],approvals:[],control:stopped,nowIso:now,staleHours:-1})).toThrow();
   });
+  it("detects every inconsistent running flag combination without changing input", () => {
+    for (const [workerEnabled, schedulerEnabled] of [[false, true], [true, false], [false, false]]) {
+      const control = Object.freeze({ stopped: false, workerEnabled, schedulerEnabled });
+      expect(evaluateAiOpsTriage({ jobs: [], approvals: [], control, nowIso: now })
+        .map(f => f.code)).toEqual(["CONTROL_UNSAFE"]);
+    }
+  });
+  it("reports unknown job and approval statuses while accepting known terminal states", () => {
+    const findings = evaluateAiOpsTriage({
+      jobs: ["unexpected", "completed", "cancelled"].map(status => ({ status, priority: "normal", createdAt: now })),
+      approvals: ["unexpected", "approved", "rejected", "expired"].map(status => ({ status, expiresAt: now })),
+      control: { stopped: false, workerEnabled: true, schedulerEnabled: true }, nowIso: now,
+    });
+    expect(findings.map(f => [f.code, f.count])).toEqual([["UNKNOWN_STATE", 2]]);
+  });
+  it("expires pending approvals at the exact deadline only", () => {
+    const findings = evaluateAiOpsTriage({ jobs: [], approvals: [
+      { status: "pending", expiresAt: now },
+      { status: "approved", expiresAt: now },
+      { status: "pending", expiresAt: null },
+    ], control: stopped, nowIso: now });
+    expect(findings.find(f => f.code === "EXPIRED_APPROVAL")?.count).toBe(1);
+  });
 });

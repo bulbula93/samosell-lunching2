@@ -26,6 +26,7 @@ export type TriageFinding = {
 };
 
 const knownStatuses = new Set(["queued", "leased", "awaiting_approval", "completed", "failed", "dead_letter", "cancelled"]);
+const knownApprovalStatuses = new Set(["pending", "approved", "rejected", "expired"]);
 const severityOrder = { critical: 0, warning: 1, info: 2 };
 
 export function evaluateAiOpsTriage(input: {
@@ -44,7 +45,7 @@ export function evaluateAiOpsTriage(input: {
     if (count > 0) findings.push({ code, severity, count, explanation, nextStep });
   };
   if (input.control.stopped) {
-    add("STOPPED", "info", 1, "AI Operations kill switch ჩართულია", "შეინარჩუნე გაჩერებული რეჟიმი, სანამ readiness gate არ დასრულდება");
+    add("STOPPED", "info", 1, "QA ბაზის Kill Switch ჩართულია", "გადაამოწმე QA კონტროლი; ავტომატურად არაფერი ჩართო");
   }
   if (!input.control.stopped && (!input.control.workerEnabled || !input.control.schedulerEnabled)) {
     add("CONTROL_UNSAFE", "warning", 1, "Control flags არათანმიმდევრულია", "გადაამოწმე worker, scheduler და stop state; ავტომატურად არაფერი ჩართო");
@@ -58,7 +59,8 @@ export function evaluateAiOpsTriage(input: {
   const expired = input.approvals.filter(a => a.status === "pending" && a.expiresAt !== null &&
     Number.isFinite(Date.parse(a.expiresAt)) && Date.parse(a.expiresAt) <= now).length;
   add("EXPIRED_APPROVAL", "warning", expired, "დამტკიცების მოთხოვნებს ვადა გაუვიდა", "მოითხოვე ახალი, მოქმედების შესაბამისი დადასტურება");
-  const unknown = input.jobs.filter(j => !knownStatuses.has(j.status)).length;
-  add("UNKNOWN_STATE", "warning", unknown, "უცნობი job status დაფიქსირდა", "შეამოწმე schema და state machine-ის შესაბამისობა");
+  const unknown = input.jobs.filter(j => !knownStatuses.has(j.status)).length +
+    input.approvals.filter(a => !knownApprovalStatuses.has(a.status)).length;
+  add("UNKNOWN_STATE", "warning", unknown, "უცნობი დავალების ან დამტკიცების სტატუსი დაფიქსირდა", "შეამოწმე schema და state machine-ის შესაბამისობა");
   return findings.sort((a,b) => severityOrder[a.severity] - severityOrder[b.severity] || b.count - a.count);
 }

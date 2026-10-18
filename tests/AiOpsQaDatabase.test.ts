@@ -84,6 +84,8 @@ describe("QA database privileges and RLS", () => {
     }
   });
   it("denies private columns, profiles, and escalation", async () => {
+    // The triage reader can inspect state-change time without access to payloads.
+    await expect(asRole("select updated_at from ai_ops_jobs", "ai_ops_qa_reader")).resolves.toBeDefined();
     await expect(
       asRole("select details from ai_ops_activity", "ai_ops_qa_reader"),
     ).rejects.toThrow(/permission denied/);

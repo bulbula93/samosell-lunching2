@@ -79,7 +79,7 @@ try {
   );
   if (definers.count !== 0) throw { code: "DEFINER_PRIVILEGES" };
   const jobs = await client.query(
-    "SELECT id,role,kind,status,priority,attempt,created_at::text FROM public.ai_ops_jobs ORDER BY created_at DESC,id DESC LIMIT 20",
+    "SELECT id,role,kind,status,priority,attempt,created_at::text,updated_at::text FROM public.ai_ops_jobs ORDER BY created_at DESC,id DESC LIMIT 20",
   );
   const activity = await client.query(
     "SELECT id,role,event_type,created_at::text FROM public.ai_ops_activity ORDER BY sequence DESC LIMIT 30",
