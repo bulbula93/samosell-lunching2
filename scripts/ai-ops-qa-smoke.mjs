@@ -48,7 +48,9 @@ try {
   } = await client.query(
     "SELECT stopped,worker_enabled,scheduler_enabled,last_tick_at::text,last_tick_status FROM public.ai_ops_control WHERE singleton=true",
   );
-  if (control?.stopped !== true || control.worker_enabled !== false || control.scheduler_enabled !== false) throw { code: "STOP_REQUIRED" };
+  if (!control || typeof control.stopped !== "boolean" || typeof control.worker_enabled !== "boolean" || typeof control.scheduler_enabled !== "boolean") throw { code: "CONTROL_INVALID" };
+  // The QA-only 24h test may intentionally be active. Validate the control shape and
+  // least-privilege reader; do not mutate or interrupt QA in a deployment smoke check.
   for (const table of [
     "ai_ops_jobs",
     "ai_ops_activity",
@@ -93,6 +95,8 @@ try {
       project: ref,
       role: identity.role,
       stopped: control.stopped,
+      workerEnabled: control.worker_enabled,
+      schedulerEnabled: control.scheduler_enabled,
       sampled: {
         jobs: jobs.rowCount,
         activity: activity.rowCount,
