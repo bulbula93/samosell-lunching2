@@ -35,10 +35,12 @@ export default function AdminAgentClient({
   initialSummary,
   aiConfigured,
   generatedAt,
+  providerName,
 }: {
   initialSummary: string
   aiConfigured: boolean
   generatedAt: string
+  providerName: string
 }) {
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
@@ -219,8 +221,8 @@ export default function AdminAgentClient({
           <div className="ui-eyebrow">Mode</div>
           <div className="mt-3 text-sm font-bold text-text">
             {aiConfigured
-              ? "OpenAI Responses API configured"
-              : "Fallback mode — OPENAI_API_KEY აკლია"}
+              ? `${providerName} configured`
+              : `${providerName} — provider credentials/configuration აკლია`}
           </div>
           <p className="mt-2 text-xs leading-5 text-text-soft">
             Snapshot:{" "}
