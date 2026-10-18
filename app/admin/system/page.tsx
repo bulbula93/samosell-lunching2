@@ -47,7 +47,10 @@ export default async function AdminSystemPage() {
     envPresent("RESEND_API_KEY") &&
     (envPresent("NOTIFICATION_EMAIL_FROM") || envPresent("EMAIL_FROM"))
   const adminActivityEmailReady = envPresent("ADMIN_ACTIVITY_EMAIL")
-  const adminAiReady = envPresent("OPENAI_API_KEY")
+  const museSelected = process.env.ADMIN_AGENT_PROVIDER === "muse-spark"
+  const adminAiReady = museSelected
+    ? envPresent("OPENROUTER_API_KEY") && envPresent("MUSE_SPARK_MODEL")
+    : envPresent("OPENAI_API_KEY")
   const databaseReady =
     !profilesHealth.error &&
     !listingsHealth.error &&
@@ -87,8 +90,8 @@ export default async function AdminSystemPage() {
       label: "Admin AI Copilot",
       ok: adminAiReady,
       detail: adminAiReady
-        ? "OpenAI Responses API configured; Copilot Phase 1 remains strictly read-only"
-        : "Deterministic fallback მუშაობს; AI answers-ისთვის OPENAI_API_KEY საჭიროა",
+        ? `${museSelected ? "Muse Spark Open" : "OpenAI"} configured; Copilot remains strictly read-only`
+        : `Deterministic fallback მუშაობს; ${museSelected ? "OPENROUTER_API_KEY და MUSE_SPARK_MODEL" : "OPENAI_API_KEY"} საჭიროა`,
       href: "/admin/agent",
     },
     {
