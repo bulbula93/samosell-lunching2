@@ -174,6 +174,7 @@ export default async function AdminAgentPage() {
         <AdminAgentClient
           initialSummary={buildFallbackAdminSummary(snapshot)}
           aiConfigured={snapshot.system.aiConfigured}
+          providerName={process.env.ADMIN_AGENT_PROVIDER === "muse-spark" ? "Muse Spark Open" : "OpenAI Responses API"}
           generatedAt={snapshot.generatedAt}
         />
       </section>
