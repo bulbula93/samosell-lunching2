@@ -13,6 +13,7 @@ import FollowButton from "@/components/stories/FollowButton"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import ProfileChatButton from "@/components/sellers/ProfileChatButton"
 import SellerActionIcon from "@/components/sellers/SellerActionIcon"
+import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
 import StorefrontPanels from "@/components/shared/StorefrontPanels"
 import StoreVipCard, { type StoreVipListing } from "@/components/stores/StoreVipCard"
 import StoreHeroSurface from "@/components/stores/StoreHeroSurface"
@@ -159,9 +160,9 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
     profile.store_address ||
     profile.store_map_url
   )
-  const sellerPhone = profile.store_phone?.trim() || ""
+  const hasSellerPhone = Boolean(profile.store_phone?.trim())
   const hasSellerContacts = Boolean(
-    sellerPhone ||
+    hasSellerPhone ||
     profile.store_whatsapp ||
     profile.store_telegram ||
     profile.store_instagram ||
@@ -536,14 +537,12 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
               {hasSellerContacts ? (
                 <section aria-label="საკონტაქტო ინფორმაცია" className="mt-7 border-t border-[#efe5dc] pt-5">
                   <h3 className="text-base font-bold text-[#073f3b]">საკონტაქტო ინფორმაცია</h3>
-                  {sellerPhone ? (
-                    <a
-                      href={`tel:${sellerPhone.replace(/[^+\d]/g, "")}`}
-                      className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-[#dce9e5] bg-[#f4faf8] px-4 py-3 font-semibold text-[#075a53] transition hover:border-[#075a53]/40 hover:bg-[#ecf7f3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#075a53]"
-                    >
-                      <span className="text-sm">ტელეფონი</span>
-                      <span className="break-all text-sm">{sellerPhone}</span>
-                    </a>
+                  {hasSellerPhone ? (
+                    <SellerPhoneReveal
+                      sellerUsername={profile.username}
+                      sellerLabel={sellerName}
+                      className="mt-3"
+                    />
                   ) : null}
                   <StoreContactStrip compact contacts={{
                     instagram: profile.store_instagram,
