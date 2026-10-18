@@ -1,4 +1,5 @@
 import { readQaOperations } from "@/lib/ai-ops/qa-reader";
+import { evaluateAiOpsTriage } from "@/lib/ai-ops/triage";
 import {
   activityOutcome,
   approvalRisk,
@@ -14,6 +15,16 @@ export const metadata = {
 
 export default async function AiActivityPage() {
   const result = await readQaOperations();
+  const findings = result.ok ? evaluateAiOpsTriage({
+    jobs: result.data.jobs.map(j => ({ status: j.status, priority: j.priority, createdAt: j.created_at })),
+    approvals: result.data.approvals.map(a => ({ status: a.status, expiresAt: a.expires_at })),
+    control: {
+      stopped: result.data.environmentStopped || result.data.control.stopped,
+      workerEnabled: result.data.control.worker_enabled,
+      schedulerEnabled: result.data.control.scheduler_enabled,
+    },
+    nowIso: new Date().toISOString(),
+  }) : [];
   return (
     <main className="ui-container ui-section min-w-0 space-y-5">
       <header className="ui-card p-5 sm:p-8">
@@ -29,6 +40,19 @@ export default async function AiActivityPage() {
       <QaStatus result={result} />
       {result.ok && (
         <>
+          <section className="ui-card p-5 sm:p-6" aria-label="Deterministic QA triage">
+            <h2 className="text-xl font-bold text-text">ოპერაციული პრიორიტეტები · უფასო ანალიზი</h2>
+            <p className="mt-2 text-sm text-text-soft">ეს შეფასება ითვლის მხოლოდ ბოლო 20 დავალებისა და 20 დამტკიცების მოთხოვნის ნიმუშს. მთლიანი სისტემის ინციდენტების რაოდენობა არ არის. არ იყენებს AI API-ს და არაფერს ცვლის.</p>
+            {findings.length ? (
+              <ul className="mt-4 space-y-3">{findings.map(f => (
+                <li key={f.code} className="rounded-xl border p-4">
+                  <p className="font-bold text-text">{f.severity === "critical" ? "კრიტიკული" : f.severity === "warning" ? "საყურადღებო" : "ინფორმაცია"} · {f.code} · {f.count}</p>
+                  <p className="mt-1 text-sm text-text-soft">{f.explanation}</p>
+                  <p className="mt-2 text-sm text-text">შემდეგი შემოწმება: {f.nextStep}</p>
+                </li>
+              ))}</ul>
+            ) : <p className="mt-3 text-sm text-text-soft">წაკითხულ ნიმუშში საყურადღებო სიგნალი არ გამოვლენილა.</p>}
+          </section>
           <section className="grid gap-3 sm:grid-cols-3" aria-label="QA totals">
             {[
               ["სულ დავალებები", result.data.totals.jobs],
