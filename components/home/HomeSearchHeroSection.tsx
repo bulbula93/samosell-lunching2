@@ -11,6 +11,9 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
 
   const carouselItems: HeroListingItem[] = activeVipMaxItems.map((item) => ({
     id: item.id,
+    vip_until: item.vip_until,
+    promoted_until: item.promoted_until,
+    featured_until: item.featured_until,
     slug: item.slug,
     title: item.title,
     cover_image_url: item.cover_image_url,

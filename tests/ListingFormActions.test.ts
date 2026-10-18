@@ -21,6 +21,7 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+  revalidateTag: vi.fn(),
 }))
 
 vi.mock("@/lib/listings", async (importOriginal) => {

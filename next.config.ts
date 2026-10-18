@@ -4,6 +4,7 @@ import { PRODUCTION_PUBLIC_FALLBACK } from "./lib/env";
 const isReadOnlyReviewPreview =
   process.env.VERCEL_ENV === "preview" &&
   [
+    "preview/public-cache-personalization-20261019",
     "preview/vercel-storage-optimization-20261014",
     "preview/listing-upload-idempotency-20261016",
     "preview/store-cards-copy-20261016",

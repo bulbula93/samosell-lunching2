@@ -1,3 +1,4 @@
+import PromotionExpiry from "@/components/shared/PromotionExpiry"
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import Avatar from "@/components/shared/Avatar"
@@ -136,6 +137,7 @@ export default function MarketplaceProductCard({
               </span>
             ) : null}
             {statusBadge || promotionBadge ? (
+              <PromotionExpiry until={statusBadge ? "9999-01-01T00:00:00Z" : item.is_featured ? item.featured_until : item.is_promoted ? item.promoted_until : item.vip_until}>
               <span
                 className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur sm:text-[11px] ${
                   statusBadge ? "bg-text text-white" : promotionClass(item)
@@ -143,6 +145,7 @@ export default function MarketplaceProductCard({
               >
                 {statusBadge || promotionBadge}
               </span>
+              </PromotionExpiry>
             ) : null}
           </div>
         ) : null}

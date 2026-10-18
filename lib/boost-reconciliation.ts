@@ -1,5 +1,6 @@
 import "server-only"
 
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 type ActivateBoostOrderParams = {
@@ -27,6 +28,7 @@ export async function activateBoostOrder(params: ActivateBoostOrderParams) {
   })
 
   if (error) throw error
+  if ((data as BoostActivationResult)?.activated) invalidatePublicMarketplace()
   return data as BoostActivationResult
 }
 
@@ -36,10 +38,12 @@ export async function reconcileListingBoosts(listingId: string) {
   })
 
   if (error) throw error
+  invalidatePublicMarketplace()
 }
 
 export async function reconcileExpiredBoostOrders() {
   const { data, error } = await createAdminClient().rpc("reconcile_expired_listing_boosts")
   if (error) throw error
+  if (Number(data ?? 0) > 0) invalidatePublicMarketplace()
   return Number(data ?? 0)
 }

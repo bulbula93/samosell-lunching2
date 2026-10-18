@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+vi.mock("next/cache", () => ({ unstable_cache: (load: unknown) => load }))
+
 const requests = vi.hoisted(() => [] as Array<{ path: string; method: string }>)
 vi.mock("@/lib/supabase/server", async () => {
   const { createClient } = await import("@supabase/supabase-js")

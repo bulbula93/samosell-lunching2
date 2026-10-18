@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect } from "next/navigation"
 import { requireAdminUser, requireAuthenticatedUser } from "@/lib/auth"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
@@ -151,7 +152,7 @@ export async function toggleBlockUserAction(formData: FormData) {
     )
   }
 
-  revalidatePath("/")
+  invalidatePublicMarketplace()
   revalidateModerationPaths(nextPath)
   redirect(
     withSafeFeedback(
@@ -206,6 +207,7 @@ export async function reviewModerationReportAction(formData: FormData) {
   }
 
   revalidateModerationPaths()
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   redirect(withSafeFeedback(adminPath, "flash", decision, adminPath))
 }

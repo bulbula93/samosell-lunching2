@@ -1,10 +1,11 @@
+import PromotionExpiry from "@/components/shared/PromotionExpiry"
 import Link from "next/link"
 import MarketplaceProductCard from "@/components/listings/MarketplaceProductCard"
 import { ka } from "@/lib/i18n/ka"
 import type { CatalogListing } from "@/types/marketplace"
 
 export default function HomeProductsSection({
-  id, title, description, href, items, favoriteIds, layout = "grid",
+  id, title, description, href, items, favoriteIds, layout = "grid", promotionOnly = false,
 }: {
   id?: string
   title: string
@@ -13,12 +14,16 @@ export default function HomeProductsSection({
   items: CatalogListing[]
   favoriteIds: string[]
   layout?: "grid" | "horizontal"
+  promotionOnly?: boolean
 }) {
   if (items.length === 0) return null
 
-  const cards = items.slice(0, 10).map((item) => (
-    <MarketplaceProductCard key={`${title}-${item.id}`} item={item} currentPath="/" isFavorited={favoriteIds.includes(item.id)} />
-  ))
+  const cards = items.slice(0, 10).map((item) => {
+    const card = <MarketplaceProductCard key={`${title}-${item.id}`} item={item} currentPath="/" isFavorited={favoriteIds.includes(item.id)} />
+    return promotionOnly
+      ? <PromotionExpiry key={`${title}-${item.id}`} until={item.vip_until}>{card}</PromotionExpiry>
+      : card
+  })
 
   return (
     <section id={id} className="border-b border-line/70 bg-white py-10 sm:py-13">

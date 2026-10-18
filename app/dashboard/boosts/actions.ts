@@ -3,6 +3,7 @@
 import { recordGrowthCheckout } from "@/lib/growth/server"
 import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect, unstable_rethrow } from "next/navigation"
 import { buildSuggestedBoostReference, canResumeManualBoostCheckout } from "@/lib/boosts"
 import { getBoostPaymentConfig } from "@/lib/boost-payment-config"
@@ -302,7 +303,7 @@ export async function createBoostOrderAction(formData: FormData) {
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
 
-  revalidatePath("/")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
@@ -480,7 +481,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
 
-  revalidatePath("/")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
@@ -525,7 +526,7 @@ export async function refreshBoostOrderStatusAction(formData: FormData) {
     const result = await syncBoostOrderFromTbcByOrderId(orderId, mode === "admin" ? "manual_admin_sync" : "manual_sync")
     const providerStatus = String(result?.payment?.status ?? ((result?.order as { provider_status?: string | null } | null)?.provider_status ?? ""))
 
-    revalidatePath("/")
+    invalidatePublicMarketplace()
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

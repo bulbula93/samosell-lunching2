@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidateTag, revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import {
@@ -73,6 +73,7 @@ async function validateAndUploadImage(
 
 function revalidateAdSurfaces() {
   revalidatePath(ADS_ADMIN_PATH)
+  revalidateTag("active-ads", { expire: 0 })
   revalidatePath("/")
   revalidatePath("/catalog")
   revalidatePath("/dashboard/listings/new")

@@ -31,6 +31,10 @@ export function canServeListingFromProxy(
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
   const pathname = request.nextUrl.pathname
+  // The homepage HTML is public for every visitor. Its no-store personalization
+  // endpoint refreshes the session; setting auth cookies here would bypass CDN.
+  // POST server actions still perform the normal session refresh below.
+  if (pathname === "/" && (request.method === "GET" || request.method === "HEAD")) return supabaseResponse
   const hasSupabaseAuthCookie = request.cookies
     .getAll()
     .some(({ name }) => name.startsWith("sb-") && name.includes("-auth-token"))

@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import HomePageContent from "@/components/home/HomePageContent"
 import { HomePersonalizationProvider } from "@/components/home/HomePersonalizationProvider"
-import SiteHeader from "@/components/layout/SiteHeader"
+import HomeSiteHeader from "@/components/home/HomeSiteHeader"
+import { getMarketplaceNavigationItems } from "@/components/layout/SiteHeader"
 import { getActiveAdRotation } from "@/lib/ad-data"
-import { getPublicHomePageData, type PublicHomePageData } from "@/lib/home-page"
+import { getPublicHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 
-export const dynamic = "force-dynamic"
 export const revalidate = 60
 
 export const metadata: Metadata = {
@@ -30,24 +31,12 @@ export const metadata: Metadata = {
 }
 
 export default async function Home() {
-  const [catalogResult, adsResult] = await Promise.allSettled([
+  // Fail regeneration on a catalog outage: ISR retains the last good page.
+  const [data, heroAds, navigation] = await Promise.all([
     getPublicHomePageData(),
     getActiveAdRotation(["home_hero_left", "home_hero_right"]),
+    getMarketplaceNavigationItems(),
   ])
-  // Do not let a temporary PostgREST timeout turn the homepage into a 500.
-  // A degraded response is request-scoped, not cached as an empty marketplace.
-  const catalogUnavailable = catalogResult.status === "rejected"
-  const data: PublicHomePageData = catalogResult.status === "fulfilled"
-    ? catalogResult.value
-    : {
-        heroItems: [], vipItems: [], bannerItems: [], latestItems: [],
-        popularItems: [], affordableItems: [], vintageItems: [],
-        popularBrands: [], activeCount: 0,
-      }
-  const heroAds = adsResult.status === "fulfilled" ? adsResult.value : []
-  if (catalogUnavailable) {
-    console.warn("home_catalog_degraded", "public_catalog_temporarily_unavailable")
-  }
   const structuredData = buildHomeStructuredData()
 
   return (
@@ -56,10 +45,10 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
-      <SiteHeader />
       <HomePersonalizationProvider>
+        <Suspense fallback={<div className="h-[72px] border-b border-line bg-white" aria-hidden="true" />}><HomeSiteHeader items={navigation} /></Suspense>
         <main className="min-h-screen bg-bg text-text">
-          <HomePageContent data={data} heroAds={heroAds} catalogUnavailable={catalogUnavailable} />
+          <HomePageContent data={data} heroAds={heroAds} />
         </main>
       </HomePersonalizationProvider>
     </>

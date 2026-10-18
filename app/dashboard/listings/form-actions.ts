@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto"
 import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { enforceRateLimit } from "@/lib/rate-limit"
@@ -794,7 +795,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       })
     }
 
-    revalidatePath("/")
+    invalidatePublicMarketplace()
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

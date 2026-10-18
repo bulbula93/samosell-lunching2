@@ -1,0 +1,210 @@
+{
+  "phase": "baseline",
+  "deployment": "dpl_AMB6gNZCUZE7ciiX7ZVxA7RefUVh",
+  "commit": "4a8b873d1759342a4e9e4cefa2e0c8387abff296",
+  "startedAt": "2026-10-18T22:41:35.168Z",
+  "method": "Five sequential anonymous GETs per route; same order and exact URLs for before/after. Response headers only; client latency is not CPU.",
+  "requests": [
+    {
+      "route": "/",
+      "index": 1,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::lqzt6-1792363297268-ce987b37036b",
+      "at": "2026-10-18T22:41:38.288Z"
+    },
+    {
+      "route": "/",
+      "index": 2,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::kgpgl-1792363300239-a46a59331523",
+      "at": "2026-10-18T22:41:41.309Z"
+    },
+    {
+      "route": "/",
+      "index": 3,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::hd6fd-1792363303280-4514d7553726",
+      "at": "2026-10-18T22:41:44.378Z"
+    },
+    {
+      "route": "/",
+      "index": 4,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::7wv88-1792363306769-2d0df101f2db",
+      "at": "2026-10-18T22:41:47.844Z"
+    },
+    {
+      "route": "/",
+      "index": 5,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::gn4q5-1792363310217-dfc2d82daf8e",
+      "at": "2026-10-18T22:41:51.278Z"
+    },
+    {
+      "route": "/api/home-personalization",
+      "index": 1,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-store, max-age=0",
+      "requestId": "fra1:iad1::sin1::rw2qt-1792363313580-b08a82aa7693",
+      "at": "2026-10-18T22:41:55.078Z"
+    },
+    {
+      "route": "/api/home-personalization",
+      "index": 2,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-store, max-age=0",
+      "requestId": "fra1:iad1::sin1::sppgh-1792363317341-476ff7c3e3c4",
+      "at": "2026-10-18T22:41:57.995Z"
+    },
+    {
+      "route": "/api/home-personalization",
+      "index": 3,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-store, max-age=0",
+      "requestId": "fra1:iad1::sin1::shpgx-1792363320008-45bd23e09ee3",
+      "at": "2026-10-18T22:42:00.529Z"
+    },
+    {
+      "route": "/api/home-personalization",
+      "index": 4,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-store, max-age=0",
+      "requestId": "fra1:iad1::sin1::j2f5z-1792363322661-600785f48885",
+      "at": "2026-10-18T22:42:03.213Z"
+    },
+    {
+      "route": "/api/home-personalization",
+      "index": 5,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-store, max-age=0",
+      "requestId": "fra1:iad1::sin1::75l2b-1792363325576-7faa2aa0f2d8",
+      "at": "2026-10-18T22:42:06.030Z"
+    },
+    {
+      "route": "/listing/drmartens-boots-ed899fa8",
+      "index": 1,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::x4497-1792363328541-cfb39ed2d163",
+      "at": "2026-10-18T22:42:10.714Z"
+    },
+    {
+      "route": "/listing/drmartens-boots-ed899fa8",
+      "index": 2,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::qlzjp-1792363333597-5b804f7e5f41",
+      "at": "2026-10-18T22:42:15.601Z"
+    },
+    {
+      "route": "/listing/drmartens-boots-ed899fa8",
+      "index": 3,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::zgz5q-1792363339112-71d3ad8088d8",
+      "at": "2026-10-18T22:42:20.742Z"
+    },
+    {
+      "route": "/listing/drmartens-boots-ed899fa8",
+      "index": 4,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::wp4wk-1792363343400-7fbeae6fd8d0",
+      "at": "2026-10-18T22:42:25.058Z"
+    },
+    {
+      "route": "/listing/drmartens-boots-ed899fa8",
+      "index": 5,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::kmlcj-1792363346899-f8f90bb8b360",
+      "at": "2026-10-18T22:42:28.312Z"
+    },
+    {
+      "route": "/seller/user_9bcb00a2",
+      "index": 1,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::npskc-1792363350876-8916197a4351",
+      "at": "2026-10-18T22:42:31.654Z"
+    },
+    {
+      "route": "/seller/user_9bcb00a2",
+      "index": 2,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::npjpj-1792363354857-2cbec18e545c",
+      "at": "2026-10-18T22:42:35.539Z"
+    },
+    {
+      "route": "/seller/user_9bcb00a2",
+      "index": 3,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::7mmk2-1792363357424-e8e3d8aaf38c",
+      "at": "2026-10-18T22:42:38.142Z"
+    },
+    {
+      "route": "/seller/user_9bcb00a2",
+      "index": 4,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::lzgcq-1792363360095-aab5e30ec81e",
+      "at": "2026-10-18T22:42:40.722Z"
+    },
+    {
+      "route": "/seller/user_9bcb00a2",
+      "index": 5,
+      "status": 200,
+      "cache": "MISS",
+      "age": "0",
+      "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+      "requestId": "fra1:iad1::sin1::qlzjq-1792363363375-bb92f8c9ebef",
+      "at": "2026-10-18T22:42:44.060Z"
+    }
+  ],
+  "finishedAt": "2026-10-18T22:42:44.060Z"
+}

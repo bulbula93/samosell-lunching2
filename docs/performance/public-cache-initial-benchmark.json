@@ -1,0 +1,98 @@
+{
+  "measuredAt": "2026-10-18T22:36:52.584Z",
+  "node": "v24.19.0",
+  "iterations": 30,
+  "scope": "Local Next production servers, deterministic anonymous fixture, sequential warm requests. Node process.cpuUsage via IPC; not Vercel Active CPU or live CDN. HTTP client and fixture CPU excluded. Warm-up/build excluded. No browser JS, images or real user sessions.",
+  "baseline": [
+    {
+      "path": "/",
+      "requests": 30,
+      "processCpuMs": 3270.854,
+      "upstreamRequests": 0,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    },
+    {
+      "path": "/api/home-personalization",
+      "requests": 30,
+      "processCpuMs": 140.151,
+      "upstreamRequests": 0,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    },
+    {
+      "path": "/listing/benchmark-listing",
+      "requests": 30,
+      "processCpuMs": 1791.625,
+      "upstreamRequests": 330,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    },
+    {
+      "path": "/seller/benchmark_seller",
+      "requests": 30,
+      "processCpuMs": 1972.952,
+      "upstreamRequests": 240,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    }
+  ],
+  "candidate": [
+    {
+      "path": "/",
+      "requests": 30,
+      "processCpuMs": 399.525,
+      "upstreamRequests": 0,
+      "routeCacheHits": 30,
+      "routeCacheHitRatio": 1,
+      "cacheHeaders": [
+        "HIT"
+      ]
+    },
+    {
+      "path": "/api/home-personalization",
+      "requests": 30,
+      "processCpuMs": 139.65,
+      "upstreamRequests": 0,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    },
+    {
+      "path": "/listing/benchmark-listing",
+      "requests": 30,
+      "processCpuMs": 1859.017,
+      "upstreamRequests": 180,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    },
+    {
+      "path": "/seller/benchmark_seller",
+      "requests": 30,
+      "processCpuMs": 2551.603,
+      "upstreamRequests": 210,
+      "routeCacheHits": 0,
+      "routeCacheHitRatio": 0,
+      "cacheHeaders": [
+        "DYNAMIC"
+      ]
+    }
+  ]
+}

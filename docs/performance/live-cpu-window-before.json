@@ -1,0 +1,21 @@
+{
+  "source": "Vercel Functions dashboard, Production, Advanced metrics, Last 5 min",
+  "displayedWindow": "02:38–02:43 (dashboard local time)",
+  "deployment": "dpl_AMB6gNZCUZE7ciiX7ZVxA7RefUVh",
+  "invocations": 24,
+  "averageCpuMs": 113,
+  "p75CpuMs": 133,
+  "p95CpuMs": 133,
+  "errorRate": 0,
+  "timeoutRate": 0,
+  "hotPercent": 95.8,
+  "coldPercent": 4.2,
+  "routes": [
+    { "path": "/", "invocations": 7, "totalCpuMs": 820 },
+    { "path": "/listing/[slug]", "invocations": 6, "totalCpuMs": 1010 },
+    { "path": "/seller/[username]", "invocations": 5, "totalCpuMs": 420 },
+    { "path": "/api/home-personalization", "invocations": 5, "totalCpuMs": 260 },
+    { "path": "/api/internal/tbc/reconcile", "invocations": 1, "totalCpuMs": 10 }
+  ],
+  "limitation": "Shared production window includes the 20 controlled requests plus other reads and scheduled work. This is not an isolated CPU sample. TTFB Demo Data was excluded."
+}

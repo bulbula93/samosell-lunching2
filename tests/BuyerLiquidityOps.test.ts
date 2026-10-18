@@ -94,7 +94,9 @@ describe("Buyer liquidity operational checks",()=>{
     expect(home).toContain("home_public_data_retry")
     expect(home).toContain('select(HOME_LISTING_SELECT, { count: "exact" })')
     expect(home).toContain('throw new Error(`home_public_data_unavailable:')
-    expect(page).toContain("Promise.allSettled")
+    expect(page).toContain("Promise.all(")
+    expect(page).not.toContain("Promise.allSettled")
+    expect(page).not.toContain('dynamic = "force-dynamic"')
     expect(content).toContain("!catalogUnavailable&&data.latestItems.length===0")
   })
   it("registers a daily retention task and retains aggregate view totals",()=>{

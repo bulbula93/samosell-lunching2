@@ -27,7 +27,7 @@ export async function GET() {
 
     return NextResponse.json(
       { userState: guestUserState, favoriteIds: [], storyRail },
-      { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+      { headers: { "Cache-Control": "private, no-store, max-age=0", "Vary": "Cookie" } },
     )
   }
 
@@ -40,11 +40,13 @@ export async function GET() {
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .is("read_at", null)
       .not("type", "in", "(chat_started,chat_message)"),
     supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
       .is("read_at", null)
       .in("type", ["chat_started", "chat_message"]),
     supabase
@@ -75,6 +77,6 @@ export async function GET() {
         : (favoritesResponse.data ?? []).map((item) => item.listing_id),
       storyRail,
     },
-    { headers: { "Cache-Control": "private, no-store, max-age=0" } },
+    { headers: { "Cache-Control": "private, no-store, max-age=0", "Vary": "Cookie" } },
   )
 }
