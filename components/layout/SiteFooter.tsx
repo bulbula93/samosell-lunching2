@@ -47,6 +47,7 @@ export default function SiteFooter() {
           <div className="max-w-md">
             <Link
               href="/"
+              prefetch={false}
               aria-label="SAMOSELL-ის მთავარ გვერდზე დაბრუნება"
               className="inline-flex min-h-11 items-center rounded-xl bg-white px-3 py-2 transition hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
             >
@@ -61,7 +62,7 @@ export default function SiteFooter() {
             <p className="mt-4 text-sm leading-7 text-white/70">
               ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
             </p>
-            <Link href="/sell-fast" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
+            <Link prefetch={false} href="/sell-fast" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
             </Link>
           </div>
@@ -73,7 +74,7 @@ export default function SiteFooter() {
                 <ul className="mt-4 space-y-3">
                   {group.links.map((link) => (
                     <li key={link.href}>
-                      <Link href={link.href} className="text-sm text-white/70 transition hover:text-white hover:underline">
+                      <Link prefetch={false} href={link.href} className="text-sm text-white/70 transition hover:text-white hover:underline">
                         {link.label}
                       </Link>
                     </li>
@@ -97,7 +98,7 @@ export default function SiteFooter() {
             <h2 className="text-sm font-black">გადახდის მეთოდები</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">SamoSell-ის ფასიანი ციფრული მომსახურებებისთვის</p>
             <div className="mt-3 text-neutral-900"><PaymentMethodMarks compact /></div>
-            <Link href="/payment-terms" className="mt-3 inline-block text-xs font-semibold text-white/80 underline underline-offset-4 hover:text-white">
+            <Link prefetch={false} href="/payment-terms" className="mt-3 inline-block text-xs font-semibold text-white/80 underline underline-offset-4 hover:text-white">
               დეტალური პირობები
             </Link>
           </div>

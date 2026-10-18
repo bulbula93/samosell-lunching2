@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { getPublicEnv } from "@/lib/env"
+import { withQueryTimeoutResult } from "@/lib/supabase/query-timeout"
 
 const LISTING_PATH_PATTERN = /^\/listing\/([^/]+)$/
 const LISTING_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i
@@ -29,26 +30,6 @@ export function canServeListingFromProxy(
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
-  const env = getPublicEnv()
-
-  const supabase = createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
-    ...previewFetchOptions(),
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-
-        supabaseResponse = NextResponse.next({ request })
-
-        cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
-      },
-    },
-  })
-
-  let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>["data"] | null = null
-  let claimsCheckFailed = false
   const pathname = request.nextUrl.pathname
   const hasSupabaseAuthCookie = request.cookies
     .getAll()
@@ -57,6 +38,25 @@ export async function updateSession(request: NextRequest) {
     hasSupabaseAuthCookie ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin")
+  const listingSlug = getListingSlugFromPathname(pathname)
+  // Guest pages/API handlers do not need a second SDK instance in Proxy.
+  // Route handlers/layouts still authorize their own operations.
+  if (!needsAuthCheck && listingSlug === null) return supabaseResponse
+
+  const env = getPublicEnv()
+  const supabase = createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
+    ...previewFetchOptions(),
+    cookies: {
+      getAll() { return request.cookies.getAll() },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+        supabaseResponse = NextResponse.next({ request })
+        cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+      },
+    },
+  })
+  let claimsData: Awaited<ReturnType<typeof supabase.auth.getClaims>>["data"] | null = null
+  let claimsCheckFailed = false
 
   if (needsAuthCheck) {
     try {
@@ -72,14 +72,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  const listingSlug = getListingSlugFromPathname(request.nextUrl.pathname)
   if (listingSlug !== null) {
-    const listingResponse = LISTING_SLUG_PATTERN.test(listingSlug)
-      ? await supabase
+    const listingResponse = listingSlug.length <= 160 && LISTING_SLUG_PATTERN.test(listingSlug)
+      ? await withQueryTimeoutResult((signal) => supabase
           .from("listings_catalog")
           .select("id, status")
           .eq("slug", listingSlug)
-          .maybeSingle()
+          .abortSignal(signal)
+          .maybeSingle(), 5000)
       : { data: null, error: null }
 
     if (!listingResponse.error && !canServeListingFromProxy(listingResponse.data)) {

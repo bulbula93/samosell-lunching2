@@ -27,7 +27,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo"
 import { createClient } from "@/lib/supabase/server"
-import { withQueryTimeout } from "@/lib/supabase/query-timeout"
+import { withQueryTimeoutResult as withQueryTimeout } from "@/lib/supabase/query-timeout"
 import { compactReadOnlyRpcArgs } from "@/lib/search/read-only-rpc-args"
 import type { CatalogListing } from "@/types/marketplace"
 
