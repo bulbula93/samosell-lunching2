@@ -1,4 +1,5 @@
 import { readQaOperations } from "@/lib/ai-ops/qa-reader";
+import { evaluateQaSnapshotTriage } from "@/lib/ai-ops/qa-triage";
 import {
   activityOutcome,
   approvalRisk,
@@ -14,6 +15,9 @@ export const metadata = {
 
 export default async function AiActivityPage() {
   const result = await readQaOperations();
+  const findings = result.ok
+    ? evaluateQaSnapshotTriage(result.data, new Date().toISOString())
+    : [];
   return (
     <main className="ui-container ui-section min-w-0 space-y-5">
       <header className="ui-card p-5 sm:p-8">
@@ -29,6 +33,19 @@ export default async function AiActivityPage() {
       <QaStatus result={result} />
       {result.ok && (
         <>
+          <section className="ui-card p-5 sm:p-6" aria-label="Deterministic QA triage">
+            <h2 className="text-xl font-bold text-text">ოპერაციული პრიორიტეტები · უფასო ანალიზი</h2>
+            <p className="mt-2 text-sm text-text-soft">ანალიზი მოიცავს მაქსიმუმ ბოლო 20 დავალებას და 20 დამტკიცების მოთხოვნას, pending მოთხოვნები პირველ რიგში. ნიმუშში ახლა {result.data.jobs.length} დავალება და {result.data.approvals.length} მოთხოვნაა. ეს არ არის მთელი ბაზის ინციდენტების სტატისტიკა. STALE_JOB ნიშნავს აქტიურ დავალებას, რომელიც 24 საათია არ განახლებულა. Kill Switch-ის წყაროა QA ბაზა. არ იყენებს AI API-ს და არაფერს ცვლის.</p>
+            {findings.length ? (
+              <ul className="mt-4 space-y-3">{findings.map(f => (
+                <li key={f.code} className="rounded-xl border p-4">
+                  <p className="break-words font-bold text-text">{f.severity === "critical" ? "კრიტიკული" : f.severity === "warning" ? "საყურადღებო" : "ინფორმაცია"} · {f.code} · {f.count}</p>
+                  <p className="mt-1 text-sm text-text-soft">{f.explanation}</p>
+                  <p className="mt-2 text-sm text-text">შემდეგი შემოწმება: {f.nextStep}</p>
+                </li>
+              ))}</ul>
+            ) : <p className="mt-3 text-sm text-text-soft">წაკითხულ ნიმუშში საყურადღებო სიგნალი არ გამოვლენილა.</p>}
+          </section>
           <section className="grid gap-3 sm:grid-cols-3" aria-label="QA totals">
             {[
               ["სულ დავალებები", result.data.totals.jobs],

@@ -27,11 +27,11 @@ export default async function AiOperationsPage() {
         <h1 className="mt-3 text-3xl font-black tracking-tight text-text">AI თანამშრომლების მართვა</h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-text-soft">
           ეს არის Foundation Preview: პოლიტიკისა და როლების სამუშაო სია, არა გაშვებული აგენტები.
-          ყველა აგენტი ამ ეტაპზე გამორთულია. პირველი QA რიგის მონიტორი დაყენებულია; უწყვეტი გაშვება ნაგულისხმევად გამორთულია.
+          როლების აგენტები ამ ეტაპზე გამორთულია. იზოლირებული ტექნიკური QA Worker-ის დაშვება და ბოლო რეალური ციკლი ჩანს დაკვირვების პანელში.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">9 როლი განსაზღვრულია</span>
-          <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">0 გაშვებული</span>
+          <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">0 ავტონომიური AI აგენტი</span>
           <span className="rounded-full border px-3 py-1 text-xs font-bold text-text">Production write: გამორთულია</span>
         </div>
       </header>
@@ -59,12 +59,12 @@ export default async function AiOperationsPage() {
       </section>
       <section className="ui-card p-6">
         <h2 className="text-xl font-bold text-text">Shadow Monitor</h2>
-        <p className="mt-2 text-sm text-text-soft">QA რიგისა და აქტივობის დაკვირვება. აგენტები ნაგულისხმევად შეჩერებულია. რეალური AI Worker ჯერ არ სრულდება.</p>
+        <p className="mt-2 text-sm text-text-soft">QA რიგისა და აქტივობის დაკვირვება. ტექნიკური QA Worker AI მოდელს არ იყენებს; მისი მიმდინარე მდგომარეობა ეფუძნება QA ბაზის კონტროლსა და შესრულების ჟურნალს.</p>
         <Link href="/admin/ai/shadow" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დაკვირვების პანელის გახსნა →</Link>
       </section>
       <section className="ui-card p-6">
         <h2 className="text-xl font-bold text-text">Job Queue &amp; Activity Log</h2>
-        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული; ტექნიკური QA Worker დაყენებულია, განრიგი გამორთულია.</p>
+        <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული. განრიგის მიმდინარე დაშვება და ბოლო ციკლი ნახე Queue &amp; Activity პანელში.</p>
         <Link href="/admin/ai/activity" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დავალებებისა და აქტივობის ნახვა →</Link>
       </section>
       <Link href="/admin" className="inline-flex text-sm font-bold underline">← ადმინისტრირების პანელი</Link>

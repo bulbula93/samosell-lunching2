@@ -9,7 +9,7 @@ grant usage on schema public to ai_ops_qa_reader;
 -- Supabase default privileges leave TRUNCATE/REFERENCES/TRIGGER after a DML-only revoke.
 revoke all on public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approvals, public.ai_ops_control from public, anon, authenticated;
 grant select on public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approvals, public.ai_ops_control to authenticated;
-grant select (id, role, kind, status, priority, attempt, created_at) on public.ai_ops_jobs to ai_ops_qa_reader;
+grant select (id, role, kind, status, priority, attempt, created_at, updated_at) on public.ai_ops_jobs to ai_ops_qa_reader;
 grant select (id, role, event_type, created_at) on public.ai_ops_activity to ai_ops_qa_reader;
 grant select (id, action, status, requested_at, expires_at) on public.ai_ops_approvals to ai_ops_qa_reader;
 grant select (singleton, stopped, updated_at) on public.ai_ops_control to ai_ops_qa_reader;
