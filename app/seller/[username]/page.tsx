@@ -27,6 +27,7 @@ import { formatSellerTenure } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 import type { CatalogListing } from "@/types/marketplace"
 
@@ -98,7 +99,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
       .eq("seller_username", username)
       .order("published_at", { ascending: false }),
     supabase
-      .rpc("get_public_seller_listing_counts", { p_seller_id: profile.id })
+      .rpc("get_public_seller_listing_counts", { p_seller_id: profile.id }, { get: isReadOnlyPreview() })
       .maybeSingle(),
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)

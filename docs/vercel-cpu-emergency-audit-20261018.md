@@ -60,6 +60,7 @@ Confirmed from code and regression reproduction:
 4. Proxy constructed a Supabase SDK before deciding a guest page/API request needed no auth work. Listing existence checks had no deadline.
 5. Product/seller card links and footer links allowed automatic speculative navigation. They could execute server work without a user opening a destination.
 6. Cached homepage promotion booleans lacked per-render expiry checks.
+7. Browser verification found the seller page throwing `SELLER_TRUST_STATS_FAILED` in read-only Preview: its public count RPC used POST and was correctly blocked by the write guard. The live SQL definition is STABLE and only returns aggregate counts. A real-SDK regression reproduced the failure before the fix; Production mode already passed.
 
 Confirmed live observations:
 
@@ -109,12 +110,13 @@ GitHub Actions: daily SEO run at 12:37 UTC succeeded; the inspected hourly story
 - Cookie-free homepage cache refreshes share one in-flight loader per instance. Failures suppress new upstream reads for 30 seconds. No successful result is stored in the guard, and no empty result is persisted. Next's existing 60-second cache and invalidation remain in charge. This is not a distributed lock across instances/regions.
 - Cached homepage rows include promotion deadlines. Every render removes expired hero/VIP/banner eligibility, clears expired badges and re-sorts the bounded VIP rail by the existing tier/date rules.
 - Guest non-listing Proxy requests skip SDK construction. Session cookies, dashboard auth, admin checks and listing 404 behavior remain. Listing guard reads have a 5-second deadline and do not invent a 404 on an upstream timeout.
+- Seller public-count RPC uses GET only in read-only Preview; Production retains POST. Two real-SDK/guard regressions verify both transports and that Preview performs no POST. No database function/grant changes were made.
 - Static asset extensions bypass Proxy. Product-card/seller and footer links disable viewport prefetch; clicks still navigate normally. This may trade a navigation round trip for reduced speculative server work.
 - Branch-scoped read-only public configuration is verified before the final Preview commit is published. The existing Git deployment policy remains unchanged. An initial explicit false branch entry did not prevent an automatic build under the matching Preview wildcard; that ineffective entry was removed. The first deployment, `dpl_95U2ouoewJ7hURAP82Dzcik7Ed6m`, started before branch settings were added and is not the review target. The final read-only Preview permits login UI viewing but denies auth submissions, all mutations, admin pages, APIs and payment execution. No protection was disabled.
 
 ## Validation and comparison
 
-Baseline: 1,050 tests passed in 186 files. Changed code: **1,073 passed in 189 files**, including 23 new functional regression cases. TypeScript passed. ESLint: 0 errors, 8 existing image warnings. Production build passed with dummy credentials; local Node was 24.19.0 whereas repository/CI target Node 22. GitHub CI is the Node 22 release check. The existing deployment policy was restored after the initial branch exclusion proved ineffective; its baseline/focused tests pass. The extra unused build is disclosed rather than counted as an optimization.
+Baseline: 1,050 tests passed in 186 files. Changed code: **1,075 passed in 190 files**, including 25 new functional regression cases. TypeScript passed. ESLint: 0 errors, 8 existing image warnings. Production build passed with dummy credentials; local Node was 24.19.0 whereas repository/CI target Node 22. GitHub CI is the Node 22 release check. The existing deployment policy was restored after the initial branch exclusion proved ineffective; its baseline/focused tests pass. The extra unused build is disclosed rather than counted as an optimization.
 
 The suite includes existing auth, catalog, listing, TBC/Flitt, payment integrity, RLS and AI state-machine/database tests. These are not a substitute for authenticated browser and sandbox-provider E2E. No live purchase or registration was submitted.
 
