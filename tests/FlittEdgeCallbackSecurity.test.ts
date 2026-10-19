@@ -70,6 +70,7 @@ function dependencies(fetchImpl: typeof fetch) {
     persist: vi.fn().mockResolvedValue(undefined),
     finalize: vi.fn().mockResolvedValue(undefined),
     reverse: vi.fn().mockResolvedValue(undefined),
+    failBoost: vi.fn().mockResolvedValue(undefined),
     finalizeAd: vi.fn().mockResolvedValue(undefined),
     reverseAd: vi.fn().mockResolvedValue(undefined),
     failAd: vi.fn().mockResolvedValue(undefined),
@@ -77,6 +78,42 @@ function dependencies(fetchImpl: typeof fetch) {
 }
 
 describe("Flitt Edge callback authoritative verification", () => {
+  it.each(["expired", "declined", "failed"])("reconciles a signed %s unpaid boost after persistence", async (status) => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: status })))
+    await processFlittCallback(await signedCallback(), baseAttempt, config, deps)
+    expect(deps.failBoost).toHaveBeenCalledWith(baseAttempt.boostOrderId, expect.objectContaining({
+      nextStatus: status, providerStatus: status, responseStatus: "success",
+    }))
+    expect(deps.persist.mock.invocationCallOrder[0]).toBeLessThan(deps.failBoost.mock.invocationCallOrder[0])
+    expect(deps.finalize).not.toHaveBeenCalled()
+  })
+
+  it("does not cancel an approved boost on a late expired response", async () => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "expired" })))
+    const result = await processFlittCallback(await signedCallback(), { ...baseAttempt, status: "approved" }, config, deps)
+    expect(result.nextStatus).toBe("approved")
+    expect(deps.failBoost).not.toHaveBeenCalled()
+  })
+
+  it("does not acknowledge an unpaid terminal boost if reconciliation cannot persist", async () => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "expired" })))
+    deps.failBoost.mockRejectedValueOnce(new Error("database unavailable"))
+    await expect(processFlittCallback(await signedCallback(), baseAttempt, config, deps)).rejects.toThrow("database unavailable")
+    expect(deps.finalize).not.toHaveBeenCalled()
+  })
+
+  it("fails closed when terminal boost reconciliation is unavailable", async () => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "expired" })))
+    await expect(processFlittCallback(await signedCallback(), baseAttempt, config, { ...deps, failBoost: undefined }))
+      .rejects.toMatchObject({ code: "boost_failure_handler_unavailable" })
+  })
+
+  it("does not cancel an unknown provider state merely mapped to failed", async () => {
+    const deps = dependencies(statusFetch(await signedStatus({ order_status: "unexpected" })))
+    await processFlittCallback(await signedCallback(), baseAttempt, config, deps)
+    expect(deps.failBoost).not.toHaveBeenCalled()
+  })
+
   it("fails closed when required runtime configuration is absent or live", () => {
     expect(() => readFlittRuntimeConfig(() => undefined)).toThrowError("flitt_configuration_missing")
     expect(() => readFlittRuntimeConfig((name) => ({

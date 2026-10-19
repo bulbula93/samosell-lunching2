@@ -33,6 +33,7 @@ import {
   MAX_LISTING_IMAGES,
   validateImageFile,
 } from "@/lib/listings"
+import { optimizeListingUploadImage } from "@/lib/listing-image-optimization"
 import type { ListingFormInitialData, ListingImage } from "@/types/marketplace"
 import { SELLER_PHONE_MAX_LENGTH } from "@/lib/phone"
 
@@ -430,11 +431,18 @@ export default function CreateListingForm({
         setFieldErrors((current) => ({ ...current, images: validationError }))
         return
       }
+      const preparedFile = await optimizeListingUploadImage(file)
+      const optimizedError = validateImageFile(preparedFile)
+      if (optimizedError) {
+        for (const item of nextItems) URL.revokeObjectURL(item.imageUrl)
+        setFieldErrors((current) => ({ ...current, images: optimizedError }))
+        return
+      }
       nextItems.push({
         id: `new-${crypto.randomUUID()}`,
         kind: "new",
-        imageUrl: URL.createObjectURL(file),
-        file,
+        imageUrl: URL.createObjectURL(preparedFile),
+        file: preparedFile,
       })
     }
 

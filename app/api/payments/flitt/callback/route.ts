@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { failFlittAdPayment, finalizeFlittAdPayment, reverseFlittAdPayment } from "@/lib/flitt-ad"
-import { finalizeFlittBoostPayment, reverseFlittBoostPayment } from "@/lib/flitt-boost"
+import { finalizeFlittBoostPayment, reconcileUnpaidFlittBoostFailure, reverseFlittBoostPayment } from "@/lib/flitt-boost"
 import type { FlittAttemptStatus } from "@/lib/flitt"
 import { fetchFlittOrderStatus, getFlittReadiness, validateFlittCallback } from "@/lib/flitt"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -188,6 +188,18 @@ export async function POST(request: Request) {
         message: error instanceof Error ? error.message : "unknown_error",
       })
       return NextResponse.json({ error: "boost_reversal_failed" }, { status: 500 })
+    }
+  }
+
+  if (attempt.purpose === "boost_order" && attempt.boost_order_id && independentlyFailed) {
+    try {
+      await reconcileUnpaidFlittBoostFailure(attempt.boost_order_id, verified)
+    } catch (error) {
+      console.error("[flitt] verified unpaid boost could not be reconciled", {
+        orderId,
+        message: error instanceof Error ? error.message : "unknown_error",
+      })
+      return NextResponse.json({ error: "boost_terminal_reconciliation_failed" }, { status: 500 })
     }
   }
 

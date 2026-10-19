@@ -325,7 +325,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .eq("category_slug", listing.category_slug)
         .neq("id", listing.id)
         .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(48)
+        .limit(12)
     : emptyRelatedQuery()
 
   const similarGenderQuery = isActive && listing.gender
@@ -336,7 +336,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .eq("gender", listing.gender)
         .neq("id", listing.id)
         .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(32)
+        .limit(16)
     : emptyRelatedQuery()
 
   const similarBrandQuery = isActive && listing.brand_name
@@ -428,13 +428,20 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     imagesResponse.error ||
     sellerProfileResponse.error ||
     sellerActiveCountResponse.error ||
-    similarCategoryResponse.error ||
-    similarGenderResponse.error ||
-    similarBrandResponse.error ||
     viewerProfileResponse.error
 
   if (criticalError) {
     throw new Error("LISTING_RELATED_QUERY_FAILED", { cause: criticalError })
+  }
+
+  if (similarCategoryResponse.error || similarGenderResponse.error || similarBrandResponse.error) {
+    // Related products are secondary content: a temporary PostgREST problem
+    // must not turn a valid listing page into HTTP 500.
+    console.warn("listing_related_optional_unavailable", {
+      category: similarCategoryResponse.error?.code ?? null,
+      gender: similarGenderResponse.error?.code ?? null,
+      brand: similarBrandResponse.error?.code ?? null,
+    })
   }
 
   const sellerProfile = (sellerProfileResponse.data ?? null) as ListingSellerProfile | null

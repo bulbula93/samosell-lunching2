@@ -250,7 +250,7 @@ export default async function DashboardBillingPage({ searchParams }: { searchPar
               <span className="rounded-full bg-surface-alt px-3 py-1 text-xs font-semibold text-text-soft">{boostStatusLabel(order.status, order.ends_at)}</span>
               <BoostCheckoutRecovery order={order} nextPath={activeTab === "all" ? "/dashboard/billing" : `/dashboard/billing?status=${activeTab}`} enabled={payment.flittCheckoutEnabled} />
               {payment.flittCheckoutEnabled && order.payment_provider === "flitt" ? <>
-                {order.provider_checkout_url && order.status === "pending_payment" ? <a href={order.provider_checkout_url} className="ui-btn-primary">ბარათით გადახდის გაგრძელება</a> : null}
+                {order.provider_checkout_url && order.status === "pending_payment" && !["expired", "declined", "failed"].includes(String(order.provider_status ?? "").toLowerCase()) ? <a href={order.provider_checkout_url} className="ui-btn-primary">ბარათით გადახდის გაგრძელება</a> : null}
                 <Link href={`/payment/result?order=${encodeURIComponent(order.id)}`} className="ui-btn-secondary">გადახდის სტატუსის გადამოწმება</Link>
               </> : null}
               {payment.tbcCheckoutEnabled && order.payment_method === "tbc_checkout" && order.provider_checkout_url && order.status === "pending_payment" ? (
