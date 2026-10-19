@@ -1,5 +1,6 @@
 import { act, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import MarketplaceProductCard from "@/components/listings/MarketplaceProductCard"
 import PromotionExpiry from "@/components/shared/PromotionExpiry"
 import { HomePersonalizationProvider, useHomePersonalization } from "@/components/home/HomePersonalizationProvider"
 import { refreshPromotion } from "@/lib/promotion-expiry"
@@ -46,6 +47,11 @@ describe("public HTML and private personalization", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
     expect(screen.queryByText("paid placement")).not.toBeInTheDocument()
     expect(screen.getByText("standard placement")).toBeInTheDocument()
+  })
+
+  it("preserves the live VIP badge on legacy catalog/search rows without deadline columns", () => {
+    render(<MarketplaceProductCard item={makeListing({ is_vip: true, vip_until: undefined })} />)
+    expect(screen.getByText("VIP")).toBeInTheDocument()
   })
 
   it("drops expired promotion flags while keeping a separately valid VIP period", () => {

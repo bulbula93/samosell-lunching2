@@ -11,6 +11,8 @@ export default function PromotionExpiry({ until, children, fallback = null }: {
 }) {
   const now = useExpiryClock([until])
   const end = Date.parse(until ?? "")
-  const expired = now !== null && (!Number.isFinite(end) || end <= now)
+  // Dynamic catalog/search rows may expose a live promotion flag without
+  // deadline columns. Cached public loaders always select/check those columns.
+  const expired = until !== undefined && now !== null && (!Number.isFinite(end) || end <= now)
   return expired ? fallback : children
 }
