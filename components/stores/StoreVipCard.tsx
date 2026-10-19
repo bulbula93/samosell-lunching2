@@ -11,6 +11,7 @@ export type StoreVipListing = {
   currency: string
   sale_type: string | null
   cover_image_url: string | null
+  vip_until?: string | null
   is_vip: boolean
   is_featured: boolean
   promotion_tier: number | null

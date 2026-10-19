@@ -7,16 +7,18 @@ function source(...parts: string[]) {
 }
 
 describe("Supabase outage resilience", () => {
-  it("does not prerender the homepage against a transient database outage", () => {
+  it("uses ISR and lets a failed regeneration preserve the last good homepage", () => {
     const page = source("app", "page.tsx")
-    expect(page).toContain('export const dynamic = "force-dynamic"')
+    expect(page).toContain('export const revalidate = 60')
+    expect(page).not.toContain('export const dynamic = "force-dynamic"')
+    expect(page).not.toContain("Promise.allSettled")
   })
 
-  it("server-renders the homepage auth header instead of a guest-first client shell", () => {
+  it("keeps the homepage header inside the private client personalization provider", () => {
     const page = source("app", "page.tsx")
-    expect(page).toContain('import SiteHeader from "@/components/layout/SiteHeader"')
-    expect(page).toContain("<SiteHeader />")
-    expect(page).not.toContain("HomeSiteHeader")
+    expect(page).toContain('import HomeSiteHeader from "@/components/home/HomeSiteHeader"')
+    expect(page.indexOf("<HomePersonalizationProvider>")).toBeLessThan(page.indexOf("<HomeSiteHeader"))
+    expect(page).not.toContain("<SiteHeader />")
   })
 
   it("uses one bounded catalog pool read for homepage product sections", () => {
@@ -36,9 +38,10 @@ describe("Supabase outage resilience", () => {
     expect(proxy).toContain("if (needsAuthCheck)")
   })
 
-  it("lets the root route participate in session refresh when an auth cookie exists", () => {
+  it("keeps Proxy enabled while bypassing session refresh only for public homepage reads", () => {
     const rootProxy = source("proxy.ts")
+    const sessionProxy = source("lib", "supabase", "proxy.ts")
     expect(rootProxy).toContain("(?!_next/static")
-    expect(rootProxy).not.toContain("(?!$|_next/static")
+    expect(sessionProxy).toContain('pathname === "/" && (request.method === "GET" || request.method === "HEAD")')
   })
 })

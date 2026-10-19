@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import { isUuid } from "@/lib/moderation"
@@ -77,7 +78,7 @@ export async function adminListingAction(formData: FormData) {
     redirect(withFlash(adminPath, adminErrorMessage(error.message), "error"))
   }
 
-  revalidatePath("/")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/listings")
@@ -117,7 +118,7 @@ export async function adminUserAction(formData: FormData) {
     redirect(withFlash(adminPath, adminErrorMessage(error.message), "error"))
   }
 
-  revalidatePath("/")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/users")

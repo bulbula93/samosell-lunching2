@@ -11,6 +11,7 @@ const db = vi.hoisted(() => ({
   from: vi.fn(), select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn(), upsert: vi.fn(), single: vi.fn(),
   storageFrom: vi.fn(), upload: vi.fn(), getPublicUrl: vi.fn(), remove: vi.fn(),
 }))
+vi.mock("@/app/dashboard/profile/actions", () => ({ refreshPublicProfileAction: vi.fn(async () => ({ ok: true })) }))
 const NativeURL = URL
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: db.push, refresh: db.refresh }) }))
 vi.mock("@/lib/store-cover-color-client", () => ({ readStoreCoverColor: vi.fn(async () => null) }))

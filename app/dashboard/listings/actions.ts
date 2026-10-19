@@ -2,6 +2,7 @@
 
 import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/listings"
@@ -413,9 +414,9 @@ export async function updateListingStatusAction(
   }
 
   if (updatedListing.status === "active" && !ownedListing.published_at) await recordListingOutcome("listing_published", user.id, listingId)
-  revalidatePath("/")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   if (ownedListing.slug) revalidatePath(`/listing/${ownedListing.slug}`)
 
@@ -496,6 +497,7 @@ export async function deleteListingAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/listings")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   if (listing.slug) revalidatePath(`/listing/${listing.slug}`)
 

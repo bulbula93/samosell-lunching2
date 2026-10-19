@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { createClient } from "@/lib/supabase/server"
 import { isUuid } from "@/lib/listing-form"
 import {
@@ -201,6 +202,7 @@ export async function transitionMarketplaceOrderAction(
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/orders")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   if (typeof transition.listing_slug === "string" && transition.listing_slug) {
     revalidatePath(`/listing/${transition.listing_slug}`)

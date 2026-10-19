@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import type { User } from "@supabase/supabase-js"
 import { cache } from "react"
+import { getCachedPublicRows, getCachedPublicBatch, type PublicQuery } from "@/lib/public-marketplace-cache"
+import { refreshPromotion } from "@/lib/promotion-expiry"
 import { rankSimilarListings } from "@/lib/discovery"
 import { ka } from "@/lib/i18n/ka"
 import { conditionLabel, listingPriceLabel } from "@/lib/listings"
@@ -19,7 +21,7 @@ export const listingSelect =
   "id, public_id, seller_id, slug, title, description, price, currency, condition, sale_type, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 const relatedListingSelect =
-  "id, public_id, seller_id, slug, title, price, currency, condition, sale_type, city, material, color, gender, is_vip, is_promoted, is_featured, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
+  "id, public_id, seller_id, slug, title, price, currency, condition, sale_type, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
 
 export const publicSellerSelect =
   "id, username, full_name, bio, city, created_at, is_seller_verified, is_suspended, avatar_url, seller_type, store_logo_url, store_phone, tiktok_username, tiktok_live_until"
@@ -159,17 +161,23 @@ const fetchMetadataListing = cache(async (slug: string) => {
   if (!isValidListingSlug(slug)) return null
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("listings_catalog")
-    .select(listingSelect)
-    .eq("slug", slug)
-    .maybeSingle()
-
-  if (error) {
-    throw new Error("LISTING_METADATA_QUERY_FAILED", { cause: error })
+  // Authorization and price/status are live even when the public description is cached.
+  const { data: live, error } = await supabase.from("listings_catalog")
+    .select("id, status, price, currency, sale_type, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, promotion_tier")
+    .eq("slug", slug).maybeSingle()
+  if (error) throw new Error("LISTING_METADATA_QUERY_FAILED", { cause: error })
+  if (!live) return null
+  if (live.status !== "active") {
+    const response = await supabase.from("listings_catalog").select(listingSelect).eq("slug", slug).maybeSingle()
+    if (response.error) throw new Error("LISTING_METADATA_QUERY_FAILED", { cause: response.error })
+    return response.data as CatalogListing | null
   }
-  if (!data) return null
-  return data as CatalogListing
+  const cached = await getCachedPublicRows<CatalogListing>({
+    table: "listings_catalog", select: listingSelect, eq: [["slug", slug], ["status", "active"]], single: true,
+  })
+  // A slug may have been reused or the listing changed between the two reads.
+  if (!cached.data || cached.data.id !== live.id) return null
+  return refreshPromotion({ ...cached.data, ...live } as CatalogListing)
 })
 
 function buildListingSeoTitle(listing: CatalogListing) {
@@ -306,49 +314,23 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
         .maybeSingle()
     : Promise.resolve({ data: null, error: null })
 
-  const sellerActiveCountQuery = listing.seller_id
-    ? supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("seller_id", listing.seller_id)
-        .eq("status", "active")
-    : Promise.resolve({ count: 0, error: null })
-
-  const emptyRelatedQuery = () =>
-    Promise.resolve({ data: [] as CatalogListing[], error: null })
-
-  const similarCategoryQuery = isActive && listing.category_slug
-    ? supabase
-        .from("listings_catalog")
-        .select(relatedListingSelect)
-        .eq("status", "active")
-        .eq("category_slug", listing.category_slug)
-        .neq("id", listing.id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(48)
-    : emptyRelatedQuery()
-
-  const similarGenderQuery = isActive && listing.gender
-    ? supabase
-        .from("listings_catalog")
-        .select(relatedListingSelect)
-        .eq("status", "active")
-        .eq("gender", listing.gender)
-        .neq("id", listing.id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(32)
-    : emptyRelatedQuery()
-
-  const similarBrandQuery = isActive && listing.brand_name
-    ? supabase
-        .from("listings_catalog")
-        .select(relatedListingSelect)
-        .eq("status", "active")
-        .eq("brand_name", listing.brand_name)
-        .neq("id", listing.id)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .limit(24)
-    : emptyRelatedQuery()
+  const relatedSpec = (column: string, value: string | null | undefined, limit: number): PublicQuery | null =>
+    isActive && value ? { table: "listings_catalog", select: relatedListingSelect,
+      eq: [["status", "active"], [column, value]], neq: [["id", listing.id]], order: "published_at", limit } : null
+  // One cache lookup for the public related bundle, rather than one per query.
+  const related = getCachedPublicBatch([
+    isActive ? { table: "listing_images", select: "id, image_url, sort_order",
+      eq: [["listing_id", listing.id]], order: "sort_order", ascending: true } : null,
+    listing.seller_id ? { table: "listings", select: "id", count: true, head: true,
+      eq: [["seller_id", listing.seller_id], ["status", "active"]] } : null,
+    relatedSpec("category_slug", listing.category_slug, 48),
+    relatedSpec("gender", listing.gender, 32),
+    relatedSpec("brand_name", listing.brand_name, 24),
+  ])
+  const sellerActiveCountQuery = related.then((rows) => rows[1])
+  const similarCategoryQuery = related.then((rows) => rows[2])
+  const similarGenderQuery = related.then((rows) => rows[3])
+  const similarBrandQuery = related.then((rows) => rows[4])
 
   const shouldLoadRelationshipData = Boolean(
     user && !isOwner && (isActive || isBuyerParticipant),
@@ -377,11 +359,10 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
     viewerProfileResponse,
     reviewData,
   ] = await Promise.all([
-    supabase
-      .from("listing_images")
-      .select("id, image_url, sort_order")
-      .eq("listing_id", listing.id)
-      .order("sort_order", { ascending: true }),
+    isActive
+      ? related.then((rows) => rows[0])
+      : supabase.from("listing_images").select("id, image_url, sort_order")
+          .eq("listing_id", listing.id).order("sort_order", { ascending: true }),
     sellerProfileQuery,
     sellerActiveCountQuery,
     similarCategoryQuery,
@@ -462,7 +443,7 @@ export async function fetchListingPageData(slug: string): Promise<ListingPageDat
       ...((similarBrandResponse.data ?? []) as CatalogListing[]),
     ],
     8,
-  )
+  ).map((item) => refreshPromotion(item))
 
   return {
     listing,

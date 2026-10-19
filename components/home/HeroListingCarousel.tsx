@@ -1,5 +1,6 @@
 "use client"
 
+import { useExpiryClock } from "@/components/shared/useExpiryClock"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import SmartImage from "@/components/shared/SmartImage"
@@ -10,7 +11,7 @@ const ROTATION_INTERVAL_MS = 5_000
 
 export type HeroListingItem = Pick<
   CatalogListing,
-  "id" | "slug" | "title" | "cover_image_url" | "price" | "currency" | "sale_type" | "brand_name" | "category_name"
+  "vip_until" | "promoted_until" | "featured_until" | "id" | "slug" | "title" | "cover_image_url" | "price" | "currency" | "sale_type" | "brand_name" | "category_name"
 >
 
 type HeroListingCarouselProps = {
@@ -19,7 +20,9 @@ type HeroListingCarouselProps = {
 
 type VisualPosition = "far-left" | "left" | "center" | "right" | "far-right"
 
-export default function HeroListingCarousel({ items }: HeroListingCarouselProps) {
+export default function HeroListingCarousel({ items: initialItems }: HeroListingCarouselProps) {
+  const now = useExpiryClock(initialItems.flatMap((item) => [item.vip_until, item.promoted_until, item.featured_until]))
+  const items = initialItems.filter((item) => now === null || [item.vip_until, item.promoted_until, item.featured_until].every((end) => Date.parse(end ?? "") > now))
   const [activeIndex, setActiveIndex] = useState(0)
   const [pausedByUser, setPausedByUser] = useState(false)
   const [pausedByInteraction, setPausedByInteraction] = useState(false)

@@ -12,6 +12,7 @@ export default function HomeSiteHeader({ items }: { items: MarketplaceNavItem[] 
   return (
     <MarketplaceHeader
       items={items}
+      personalizationPending={!personalization?.loaded}
       userState={personalization?.userState ?? guestMarketplaceUserState}
     />
   )

@@ -1,5 +1,6 @@
 import "server-only"
 
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
@@ -34,6 +35,7 @@ export async function finalizeFlittBoostPayment(orderId: string) {
 
   scheduleGrowthMetaDelivery()
   if (result.activated) {
+    invalidatePublicMarketplace()
     await notifyAdminBoostPurchase(safeOrderId, "Flitt")
   }
 
@@ -49,5 +51,6 @@ export async function reverseFlittBoostPayment(orderId: string) {
   })
 
   if (error) throw error
+  if ((data as FlittBoostReversalResult)?.changed) invalidatePublicMarketplace()
   return data as FlittBoostReversalResult
 }

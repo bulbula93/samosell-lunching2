@@ -1,5 +1,7 @@
 "use client"
 
+import { useExpiryClock } from "@/components/shared/useExpiryClock"
+import { isAdActive } from "@/lib/ads"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AdBanner from "@/components/ads/AdBanner"
 import AdPlaceholder from "@/components/ads/AdPlaceholder"
@@ -8,7 +10,8 @@ import type { AdPlacementKey, AdRecord } from "@/lib/ads"
 const ROTATION_MS = 6000
 
 export default function AdCarousel({ ads, pagePath, fallbackPlacement }: { ads: AdRecord[]; pagePath: string; fallbackPlacement: AdPlacementKey }) {
-  const ordered = useMemo(() => [...ads].sort((a,b) => a.id.localeCompare(b.id)), [ads])
+  const now = useExpiryClock(ads.flatMap((ad) => [ad.starts_at, ad.ends_at]))
+  const ordered = useMemo(() => ads.filter((ad) => now === null || isAdActive(ad, new Date(now))).sort((a,b) => a.id.localeCompare(b.id)), [ads, now])
   const [index, setIndex] = useState(0)
   const touchX = useRef<number | null>(null)
   const move = useCallback((step:number) => {

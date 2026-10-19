@@ -1,5 +1,8 @@
+import PromotionExpiry from "@/components/shared/PromotionExpiry"
 import type { Metadata } from "next"
 import { cache } from "react"
+import { getCachedPublicSellerData } from "@/lib/public-seller-data"
+import { refreshPromotion } from "@/lib/promotion-expiry"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import AdSlotRow from "@/components/ads/AdSlotRow"
@@ -21,43 +24,28 @@ import StoreContactStrip from "@/components/stores/StoreContactStrip"
 import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import { getSellerVisualAvatar, getUserAvatar, sellerTypeLabel } from "@/lib/profiles"
 import { normalizeSellerUsernameParam } from "@/lib/seller-username"
-import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, serializeJsonLd, truncateDescription } from "@/lib/seo"
 import { formatSellerTenure } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
-import { isReadOnlyPreview } from "@/lib/preview-read-only"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
-import type { CatalogListing } from "@/types/marketplace"
-
-const listingSelect =
-  "id, seller_id, slug, title, description, price, currency, sale_type, condition, city, material, color, gender, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, featured_slot, promotion_tier, brand_name, size_label, category_name, category_slug, seller_username, seller_full_name, seller_created_at, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, published_at, favorites_count, views_count, status"
-
-type PublicSellerListingCounts = {
-  active_count?: number | string | null
-  sold_count?: number | string | null
-}
 
 const fetchSeller = cache(async (username: string) => {
   const supabase = await createClient()
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("id, username, full_name, bio, city, is_seller_verified, is_suspended, created_at, avatar_url, seller_type, store_logo_url, store_banner_url, store_phone, store_whatsapp, store_telegram, store_instagram, store_facebook, store_website, store_hours, store_address, store_map_url, tiktok_username, tiktok_live_until")
-    .eq("username", username)
-    .maybeSingle()
-  if (error) {
-    console.error("[seller profile] lookup failed", { code: error.code })
-    throw new Error("SELLER_PROFILE_LOOKUP_FAILED", { cause: error })
-  }
-  if (!profile || profile.is_suspended) return null
-  return profile
+  const { data: visibility, error: visibilityError } = await supabase.from("profiles")
+    .select("id, is_suspended").eq("username", username).maybeSingle()
+  if (visibilityError) throw new Error("SELLER_VISIBILITY_FAILED", { cause: visibilityError })
+  if (!visibility || visibility.is_suspended) return null
+  const data = await getCachedPublicSellerData(visibility.id, username)
+  if (!data.profile || data.profile.id !== visibility.id || data.profile.is_suspended) return null
+  return data
 })
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username: rawUsername } = await params
   const username = normalizeSellerUsernameParam(rawUsername)
-  const profile = await fetchSeller(username)
+  const profile = (await fetchSeller(username))?.profile
   if (!profile) return { title: "გამყიდველი ვერ მოიძებნა", robots: { index: false, follow: false } }
   const title = `${profile.full_name || profile.username} — ${SITE_NAME} სელერი`
   const description = truncateDescription(profile.bio || `${profile.full_name || profile.username} სელერის საჯარო პროფილი ${SITE_NAME}-ზე.`, 155)
@@ -75,8 +63,10 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const { username: rawUsername } = await params
   const username = normalizeSellerUsernameParam(rawUsername)
   const supabase = await createClient()
-  const profile = await fetchSeller(username)
-  if (!profile || profile.is_suspended) notFound()
+  const data = await fetchSeller(username)
+  if (!data) notFound()
+  const { profile, listings, sellerCounts, sellerReviewData } = data
+  if (!profile) notFound()
 
   const {
     data: { user },
@@ -91,30 +81,15 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
   const heroHeadline = hero.headline || profile.full_name || profile.username
   const heroDescription = hero.description || profile.bio || ""
 
-  const [{ data: listings }, sellerCountsResponse, favoritesResponse, sellerReviewData, followSummary, sellerHasStory] = await Promise.all([
-    supabase
-      .from("listings_catalog")
-      .select(listingSelect)
-      .eq("status", "active")
-      .eq("seller_username", username)
-      .order("published_at", { ascending: false }),
-    supabase
-      .rpc("get_public_seller_listing_counts", { p_seller_id: profile.id }, { get: isReadOnlyPreview() })
-      .maybeSingle(),
+  const [favoritesResponse, followSummary, sellerHasStory] = await Promise.all([
     user
       ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
       : Promise.resolve({ data: [] as { listing_id: string }[] }),
-    fetchSellerReviewData(supabase, profile.id, { limit: 8 }),
     getFollowSummary(supabase, profile.id, user?.id),
     hasActiveStory(supabase, profile.id),
   ])
 
-  if (sellerCountsResponse.error) {
-    throw new Error("SELLER_TRUST_STATS_FAILED", { cause: sellerCountsResponse.error })
-  }
-
-  const sellerCounts = (sellerCountsResponse.data ?? null) as PublicSellerListingCounts | null
-  const sellerListings = (listings ?? []) as CatalogListing[]
+  const sellerListings = (listings ?? []).map((item) => refreshPromotion(item))
   const latestListings = sellerListings.slice(0, 8)
   const favoriteIds = new Set((favoritesResponse.data ?? []).map((item) => item.listing_id))
   const activeListingsCount = Number(sellerCounts?.active_count ?? 0)
@@ -137,6 +112,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
           sale_type: item.sale_type ?? null,
           cover_image_url: item.cover_image_url,
           is_vip: item.is_vip,
+          vip_until: item.vip_until,
           is_featured: Boolean(item.is_featured),
           promotion_tier: item.promotion_tier ?? null,
           published_at: item.published_at ?? null,
@@ -580,7 +556,7 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {storeVipListings.map((item) => (
-                <StoreVipCard key={item.id} item={item} />
+                <PromotionExpiry key={item.id} until={item.vip_until}><StoreVipCard item={item} /></PromotionExpiry>
               ))}
             </div>
           </div>

@@ -24,6 +24,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+  revalidateTag: vi.fn(),
 }))
 
 const listingId = "277f3329-6c04-4c40-8f33-873ab3ee4f76"

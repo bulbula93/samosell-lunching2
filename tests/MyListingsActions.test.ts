@@ -17,6 +17,7 @@ vi.mock("@/lib/rate-limit", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+  revalidateTag: vi.fn(),
 }))
 
 const ownerId = "177f3329-6c04-4c40-8f33-873ab3ee4f76"

@@ -1,3 +1,4 @@
+import PromotionExpiry from "@/components/shared/PromotionExpiry"
 import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import type { CatalogListing } from "@/types/marketplace"
@@ -33,6 +34,7 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
   const seller = featured.seller_username || featured.seller_full_name || "SAMOSELL გამყიდველი"
 
   return (
+    <PromotionExpiry until={featured.home_banner_until}>
     <section className="border-b border-line bg-white py-10">
       <div className="ui-container">
         <Link
@@ -63,5 +65,6 @@ export default function HomePromoBanner({ bannerItems }: { bannerItems: CatalogL
         </Link>
       </div>
     </section>
+    </PromotionExpiry>
   )
 }

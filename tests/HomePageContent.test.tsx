@@ -7,12 +7,14 @@ import type { HomePageData } from "@/lib/home-page"
 import { makeListing } from "@/tests/fixtures"
 
 function makeHomeData(): HomePageData {
+  const paidUntil = "2099-01-01T00:00:00Z"
   const listing = makeListing({ cover_image_url: "/listing.jpg" })
-  const vipListing = makeListing({ id: "vip-rail-1", title: "VIP ნივთი", cover_image_url: "/vip.jpg", is_vip: true })
+  const vipListing = makeListing({ id: "vip-rail-1", title: "VIP ნივთი", cover_image_url: "/vip.jpg", is_vip: true, vip_until: paidUntil })
   const vipMaxListing = makeListing({
     id: "vip-max-1",
     title: "VIP MAX ნივთი",
     cover_image_url: "/vip-max.jpg",
+    vip_until: paidUntil, promoted_until: paidUntil, featured_until: paidUntil,
     is_vip: true,
     is_promoted: true,
     is_featured: true,
@@ -55,8 +57,8 @@ describe("HomePageContent", () => {
   it("renders only VIP MAX listings in the hero carousel and keeps neighboring VIP MAX cards visible", () => {
     const data = makeHomeData()
     data.heroItems = [
-      makeListing({ id: "max-1", title: "VIP MAX კაბა", cover_image_url: "/max-1.jpg", is_vip: true, is_promoted: true, is_featured: true }),
-      makeListing({ id: "max-2", title: "VIP MAX პალტო", cover_image_url: "/max-2.jpg", is_vip: true, is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-1", title: "VIP MAX კაბა", cover_image_url: "/max-1.jpg", is_vip: true, vip_until: "2099-01-01T00:00:00Z", promoted_until: "2099-01-01T00:00:00Z", featured_until: "2099-01-01T00:00:00Z", is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-2", title: "VIP MAX პალტო", cover_image_url: "/max-2.jpg", is_vip: true, vip_until: "2099-01-01T00:00:00Z", promoted_until: "2099-01-01T00:00:00Z", featured_until: "2099-01-01T00:00:00Z", is_promoted: true, is_featured: true }),
       makeListing({ id: "vip-only", title: "ჩვეულებრივი VIP", cover_image_url: "/vip-only.jpg", is_vip: true, is_promoted: false, is_featured: false }),
     ]
 
@@ -91,8 +93,8 @@ describe("HomePageContent", () => {
     vi.useFakeTimers()
     const data = makeHomeData()
     data.heroItems = [
-      makeListing({ id: "max-1", title: "პირველი VIP MAX", cover_image_url: "/max-1.jpg", is_vip: true, is_promoted: true, is_featured: true }),
-      makeListing({ id: "max-2", title: "მეორე VIP MAX", cover_image_url: "/max-2.jpg", is_vip: true, is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-1", title: "პირველი VIP MAX", cover_image_url: "/max-1.jpg", is_vip: true, vip_until: "2099-01-01T00:00:00Z", promoted_until: "2099-01-01T00:00:00Z", featured_until: "2099-01-01T00:00:00Z", is_promoted: true, is_featured: true }),
+      makeListing({ id: "max-2", title: "მეორე VIP MAX", cover_image_url: "/max-2.jpg", is_vip: true, vip_until: "2099-01-01T00:00:00Z", promoted_until: "2099-01-01T00:00:00Z", featured_until: "2099-01-01T00:00:00Z", is_promoted: true, is_featured: true }),
     ]
 
     render(<HomePageContent data={data} />)

@@ -1,5 +1,7 @@
 "use client"
 
+import { refreshPublicProfileAction } from "@/app/dashboard/profile/actions"
+
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -330,6 +332,8 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
       }).select("id").single()
       if (saveError) throw saveError
       profileSaved = true
+      let publicProfileRefreshed = false
+      try { publicProfileRefreshed = (await refreshPublicProfileAction()).ok } catch { /* Public cache also expires after 30 seconds. */ }
 
       const previousAvatarPath = previousAvatarUrl ? extractStoragePathFromPublicUrl(previousAvatarUrl, AVATAR_BUCKET) : null
       const previousStoreLogoPath = previousStoreLogoUrl ? extractStoragePathFromPublicUrl(previousStoreLogoUrl, BRANDING_BUCKET) : null
@@ -360,7 +364,7 @@ export default function ProfileForm({ userId, initialProfile, startStoreSetup = 
       clearSelectedFile(logoInputRef, selectedLogoPreviewUrl, setSelectedLogoPreviewUrl, setSelectedLogoFile)
       clearSelectedFile(bannerInputRef, selectedBannerPreviewUrl, setSelectedBannerPreviewUrl, setSelectedBannerFile)
 
-      setSuccess("პროფილი წარმატებით განახლდა.")
+      setSuccess(publicProfileRefreshed ? "პროფილი წარმატებით განახლდა." : "პროფილი შენახულია. საჯარო გვერდი მალე განახლდება.")
       if (startStoreSetup) {
         router.push(getStoreSetupContinuePath(continuePath))
         router.refresh()

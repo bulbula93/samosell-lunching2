@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { isChatUuid } from "@/lib/chats"
 import { enforceRateLimit } from "@/lib/rate-limit"
 import { createClient } from "@/lib/supabase/server"
@@ -46,6 +47,7 @@ function revalidateChat(chatId: string) {
   revalidatePath(`/dashboard/chats/${chatId}`)
   revalidatePath("/dashboard/chats")
   revalidatePath("/dashboard/listings")
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
 }
 

@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }))
 vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: mocks.rateLimit }))
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }))
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath, revalidateTag: vi.fn() }))
 
 const userId = "177f3329-6c04-4c40-8f33-873ab3ee4f76"
 const sellerId = "277f3329-6c04-4c40-8f33-873ab3ee4f76"

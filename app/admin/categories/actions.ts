@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { requireAdminUser } from "@/lib/auth"
 
 const NOTE_MAX_LENGTH = 2000
@@ -71,8 +72,8 @@ export async function updateAdminCategoryAction(formData: FormData) {
     redirect(withFlash(path, errorMessage(error.message), "error"))
   }
 
-  revalidateTag("marketplace-navigation", "max")
-  revalidatePath("/")
+  revalidateTag("marketplace-navigation", { expire: 0 })
+  invalidatePublicMarketplace()
   revalidatePath("/catalog")
   revalidatePath("/dashboard/listings/new")
   revalidatePath("/admin")

@@ -1,5 +1,6 @@
 "use server"
 
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAuthenticatedUser } from "@/lib/auth"
@@ -60,6 +61,7 @@ export async function upsertListingReviewAction(formData: FormData) {
     redirect(withSafeFeedback(nextPath, "review", reviewErrorCode(error.message)))
   }
 
+  invalidatePublicMarketplace()
   revalidatePath(nextPath)
   revalidatePath("/seller/[username]", "page")
   redirect(withSafeFeedback(nextPath, "review", "saved"))

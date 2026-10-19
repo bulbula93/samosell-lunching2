@@ -81,9 +81,11 @@ function MarketplaceActionLink({
 export default function MarketplaceHeader({
   items,
   userState: initialUserState,
+  personalizationPending = false,
 }: {
   items: MarketplaceNavItem[]
   userState: MarketplaceUserState
+  personalizationPending?: boolean
 }) {
   const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
@@ -123,7 +125,7 @@ export default function MarketplaceHeader({
           <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
           <MarketplaceActionLink kind="buy" href="/catalog" />
 
-          {userState.signedIn ? (
+          {personalizationPending ? <span aria-hidden="true" className="ui-skeleton h-11 w-36 rounded-xl" /> : userState.signedIn ? (
             <>
               <Link
                 href="/dashboard/favorites"
@@ -202,7 +204,7 @@ export default function MarketplaceHeader({
           )}
         </div>
 
-        {userState.signedIn ? <>
+        {personalizationPending ? <span aria-hidden="true" className="ui-skeleton ml-auto h-11 w-24 rounded-xl lg:hidden" /> : userState.signedIn ? <>
           <Link prefetch={false} href="/dashboard/chats" aria-label={unread.chats > 0 ? `ჩათები — ${unread.chats} წაუკითხავი` : "ჩათები"} title="ჩათები" className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-lg text-text transition hover:border-brand/40 hover:bg-brand-soft md:inline-flex">
             <span aria-hidden="true">✉</span>
             {unread.chats > 0 ? <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-black text-white ring-2 ring-white">{unread.chats > 99 ? "99+" : unread.chats}</span> : null}

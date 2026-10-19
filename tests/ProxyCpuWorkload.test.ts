@@ -29,8 +29,19 @@ describe("Proxy CPU workload and auth boundaries", () => {
     },
   )
 
-  it("still validates a chunked session cookie on public pages", async () => {
-    await updateSession(new NextRequest("https://example.com/", { headers: { cookie: "sb-example-auth-token.0=test" } }))
+  it("still validates a chunked session cookie on the private personalization request", async () => {
+    await updateSession(new NextRequest("https://example.com/api/home-personalization", { headers: { cookie: "sb-example-auth-token.0=test" } }))
+    expect(mocks.claims).toHaveBeenCalledOnce()
+  })
+
+  it.each(["GET", "HEAD"])("keeps a signed-in homepage %s free of session cookies and SDK work", async (method) => {
+    const response = await updateSession(new NextRequest("https://example.com/", { method, headers: { cookie: "sb-example-auth-token.0=test" } }))
+    expect(mocks.create).not.toHaveBeenCalled()
+    expect(response.headers.get("set-cookie")).toBeNull()
+  })
+
+  it("keeps session refresh for homepage server actions", async () => {
+    await updateSession(new NextRequest("https://example.com/", { method: "POST", headers: { cookie: "sb-example-auth-token.0=test" } }))
     expect(mocks.claims).toHaveBeenCalledOnce()
   })
 

@@ -1,5 +1,6 @@
 import "server-only"
 
+import { invalidatePublicAds } from "@/lib/public-marketplace-invalidation"
 import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -29,6 +30,7 @@ export async function finalizeFlittAdPayment(orderId: string) {
   })
 
   if (error) throw error
+  if ((data as { changed?: boolean })?.changed) invalidatePublicAds()
   scheduleGrowthMetaDelivery()
   return data as FlittAdFinalizeResult
 }
@@ -42,6 +44,7 @@ export async function reverseFlittAdPayment(orderId: string) {
   })
 
   if (error) throw error
+  if ((data as { changed?: boolean })?.changed) invalidatePublicAds()
   return data as FlittAdReversalResult
 }
 
@@ -54,5 +57,6 @@ export async function failFlittAdPayment(orderId: string) {
   })
 
   if (error) throw error
+  if ((data as { changed?: boolean })?.changed) invalidatePublicAds()
   return data as FlittAdFailureResult
 }

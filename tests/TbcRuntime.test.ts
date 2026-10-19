@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const rpc = vi.hoisted(() => vi.fn())
+const invalidate = vi.hoisted(() => vi.fn())
+vi.mock("@/lib/public-marketplace-invalidation", () => ({ invalidatePublicMarketplace: invalidate }))
+vi.mock("@/lib/admin-activity-email", () => ({ notifyAdminBoostPurchase: vi.fn() }))
+vi.mock("@/lib/growth/server", () => ({ scheduleGrowthMetaDelivery: vi.fn() }))
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc }) }))
 
 beforeEach(() => {
   vi.resetModules()
   rpc.mockReset()
+  invalidate.mockReset()
   vi.stubEnv("TBC_CHECKOUT_ENABLED", "true")
   vi.stubEnv("TBC_API_KEY", "test-api-key")
   vi.stubEnv("TBC_CLIENT_ID", "test-client-id")
@@ -73,10 +78,21 @@ describe("TBC network and orchestration boundary", () => {
       .mockResolvedValueOnce(response({ payId: "payment", status, amount: 10, currency: "GEL", cardMask: "never-store", developerMessage: "never-store" })))
     const { syncBoostOrderFromTbcByPayId } = await import("@/lib/tbc-sync")
     await syncBoostOrderFromTbcByPayId("payment", "callback")
+    expect(invalidate).toHaveBeenCalledTimes(["Failed", "Expired", "Returned", "PartialReturned"].includes(status) ? 1 : 0)
     expect(rpc).toHaveBeenLastCalledWith("apply_verified_tbc_payment", {
       p_order_id: id, p_expected_updated_at: "2026-09-07T00:00:00Z", p_payment_id: "payment",
       p_provider_status: status, p_result_code: null, p_amount: 10, p_currency: "GEL", p_source: "callback",
     })
+  })
+
+  it("invalidates public placements after verified activation", async () => {
+    claim()
+    rpc.mockResolvedValueOnce({ data: { outcome: "applied", activated: true, order: { id, status: "active", provider_status: "Succeeded" } }, error: null })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(response({ access_token: "test" }))
+      .mockResolvedValueOnce(response({ payId: "payment", status: "Succeeded", amount: 10, currency: "GEL" })))
+    const { syncBoostOrderFromTbcByPayId } = await import("@/lib/tbc-sync")
+    await syncBoostOrderFromTbcByPayId("payment", "callback")
+    expect(invalidate).toHaveBeenCalledOnce()
   })
 
   it("provider identity mismatch is not applied", async () => {

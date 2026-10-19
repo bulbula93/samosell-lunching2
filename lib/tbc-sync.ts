@@ -1,5 +1,6 @@
 import "server-only"
 
+import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { scheduleGrowthMetaDelivery } from "@/lib/growth/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getTbcPaymentDetails, isTbcCheckoutEnabled, isTbcFinalStatus } from "@/lib/tbc"
@@ -40,6 +41,10 @@ export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostP
   const applied = appliedData as Applied
 
   if (applied.outcome === "applied") scheduleGrowthMetaDelivery()
+  if (applied.outcome === "applied" && (applied.activated ||
+    ["Failed", "Expired", "Returned", "PartialReturned", "CancelPaymentProcessing"].includes(applied.order.provider_status ?? ""))) {
+    invalidatePublicMarketplace()
+  }
   if (applied.outcome === "applied" && applied.activated) {
     await notifyAdminBoostPurchase(claim.id, "TBC")
   }

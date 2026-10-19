@@ -39,22 +39,29 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
   useEffect(() => {
     let active = true
     let refreshTimer: number | null = null
+    let generation = 0
+    let request: AbortController | null = null
+    const reset = () => setPayload({ userState: guestMarketplaceUserState, favoriteIds: [], storyRail: null })
 
     async function loadPersonalization() {
+      const current = ++generation
+      request?.abort()
+      request = new AbortController()
       try {
         const response = await fetch("/api/home-personalization", {
           cache: "no-store",
+          signal: request.signal,
           credentials: "same-origin",
           headers: { accept: "application/json" },
         })
 
         if (!response.ok) return
         const data = (await response.json()) as HomePersonalizationPayload
-        if (active) setPayload(data)
+        if (active && current === generation) setPayload(data)
       } catch {
         // Keep the public/guest shell usable when personalization is unavailable.
       } finally {
-        if (active) setLoaded(true)
+        if (active && current === generation) setLoaded(true)
       }
     }
 
@@ -71,11 +78,10 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT") {
-        setPayload({
-          userState: guestMarketplaceUserState,
-          favoriteIds: [],
-          storyRail: null,
-        })
+        generation++
+        request?.abort()
+        if (refreshTimer !== null) window.clearTimeout(refreshTimer)
+        reset()
         setLoaded(true)
         return
       }
@@ -85,12 +91,18 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
         || event === "TOKEN_REFRESHED"
         || event === "USER_UPDATED"
       ) {
+        generation++
+        request?.abort()
+        reset()
+        setLoaded(false)
         schedulePersonalizationRefresh()
       }
     })
 
     return () => {
       active = false
+      generation++
+      request?.abort()
       if (refreshTimer !== null) window.clearTimeout(refreshTimer)
       subscription.unsubscribe()
     }
