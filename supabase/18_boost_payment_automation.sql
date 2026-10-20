@@ -47,3 +47,8 @@ on public.listing_boost_order_events
 for select
 to authenticated
 using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin = true));
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.listing_boost_order_events to authenticated;
+grant select, insert, update, delete on table public.listing_boost_order_events to service_role;
+grant usage, select on sequence public.listing_boost_order_events_id_seq to service_role;

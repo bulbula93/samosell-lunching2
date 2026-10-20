@@ -74,3 +74,6 @@ left join lateral (
 where c.buyer_id = auth.uid() or c.seller_id = auth.uid();
 
 grant select on public.chat_threads to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.chat_threads to service_role;

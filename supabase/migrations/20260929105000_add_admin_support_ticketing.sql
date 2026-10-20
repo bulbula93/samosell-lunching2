@@ -305,3 +305,6 @@ revoke all on function public.admin_manage_support_ticket(uuid, text, text)
   from public, anon, authenticated;
 grant execute on function public.admin_manage_support_ticket(uuid, text, text)
   to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.support_tickets to service_role;

@@ -370,3 +370,6 @@ revoke all on function public.admin_manage_user(uuid, text, text)
   from public, anon, authenticated;
 grant execute on function public.admin_manage_user(uuid, text, text)
   to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.admin_audit_log to service_role;

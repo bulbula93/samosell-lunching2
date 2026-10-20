@@ -569,3 +569,6 @@ select cron.schedule(
   '*/5 * * * *',
   'select public.reconcile_expired_listing_boosts();'
 );
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.listings_catalog to service_role;
