@@ -61,3 +61,6 @@ revoke all on public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approval
 grant select on public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approvals, public.ai_ops_control to authenticated;
 revoke insert, update, delete on public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approvals, public.ai_ops_control from authenticated;
 -- Only the strictly scoped server-side executor (future) may write; service_role bypasses RLS.
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.ai_ops_jobs, public.ai_ops_activity, public.ai_ops_approvals, public.ai_ops_control to service_role;

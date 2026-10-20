@@ -69,3 +69,6 @@ using (sender_id = auth.uid());
 -- Done! Verify with:
 -- select * from public.chat_threads limit 5;
 -- =============================================
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.chat_threads to service_role;
