@@ -33,7 +33,7 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
         >
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
-          <div className="relative grid min-h-[380px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
+          <div className={`relative grid min-h-[380px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:gap-10 lg:px-14 lg:py-12 ${carouselItems.length > 0 ? "lg:grid-cols-[0.82fr_1.18fr]" : "lg:grid-cols-1"}`}>
             <div className="relative z-10 max-w-2xl">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">{ka.home.eyebrow}</p>
               <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.45rem,5vw,4.65rem)] font-normal leading-[1.06] tracking-[-0.04em] text-[#172321]">
