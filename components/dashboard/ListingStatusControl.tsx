@@ -202,7 +202,7 @@ export default function ListingStatusControl({
               <label className="flex items-center gap-2 text-sm"><input type="radio" name={`sale-source-${listingId}`} checked={saleSource === "external"} onChange={() => setSaleSource("external")} /> სხვაგან გაიყიდა</label>
             </fieldset>
             {saleSource === "samosell" ? (
-            {buyerLoading ? (
+            buyerLoading ? (
               <p role="status" className="mt-5 rounded-xl bg-surface-alt px-4 py-4 text-sm text-text-soft">
                 მყიდველების სია იტვირთება…
               </p>
@@ -248,7 +248,7 @@ export default function ListingStatusControl({
                   ))}
                 </div>
               </fieldset>
-            )}
+            )
 
             ) : <p className="mt-4 text-sm text-text-soft">გარე გაყიდვისას მყიდველის შეფასების მოთხოვნა არ გაიგზავნება.</p>}
 
