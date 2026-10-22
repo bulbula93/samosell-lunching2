@@ -33,18 +33,18 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
         >
           <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
-          <div className="relative grid min-h-[520px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
+          <div className="relative grid min-h-[380px] items-center gap-6 px-6 py-9 sm:px-9 sm:py-11 lg:grid-cols-[0.82fr_1.18fr] lg:gap-10 lg:px-14 lg:py-12">
             <div className="relative z-10 max-w-2xl">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-brand">{ka.home.eyebrow}</p>
               <h1 className="mt-5 max-w-[15ch] text-balance text-[clamp(2.45rem,5vw,4.65rem)] font-normal leading-[1.06] tracking-[-0.04em] text-[#172321]">
-                {ka.home.title}
+                გაყიდე ტანსაცმელი უფასოდ.
               </h1>
               <div className="mt-6 max-w-xl rounded-2xl bg-[#fffaf5]/78 px-4 py-3 shadow-[0_8px_24px_rgba(7,63,59,0.06)] backdrop-blur-[3px] sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
                 <p className="text-base leading-8 text-text-soft sm:text-lg">
-                  {ka.home.description}
+                  ახალი და მეორადი ტანსაცმლის ქართული ონლაინ პლატფორმა — 0% საკომისიო გაყიდვაზე.
                 </p>
                 <p className="mt-4 text-sm font-semibold text-text-soft sm:mt-5">
-                  რეალური განცხადებები · პირდაპირი კავშირი გამყიდველთან
+                  პირდაპირი კავშირი მყიდველთან და გამყიდველთან
                 </p>
               </div>
 
@@ -53,31 +53,16 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
                   href="/catalog"
                   className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-brand/15 bg-white/85 px-6 text-sm font-black text-brand transition hover:border-brand/30 hover:bg-white"
                 >
-                  ნახე კატალოგი
+                  იყიდე
                 </Link>
+                <Link href="/sell" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-6 text-sm font-black text-white transition hover:bg-brand-hover">გაყიდე უფასოდ</Link>
               </div>
 
             </div>
 
-            <div className="relative z-10 mx-auto h-[360px] w-full max-w-[760px] sm:h-[420px] lg:h-[440px]">
-              {carouselItems.length > 0 ? (
-                <HeroListingCarousel items={carouselItems} />
-              ) : (
-                <div className="flex h-full items-end justify-end p-3 sm:p-5 lg:p-6">
-                  <div className="w-full max-w-[460px] rounded-[28px] border border-white/70 bg-white/90 p-7 text-center shadow-[0_22px_58px_rgba(7,63,59,0.14)] backdrop-blur-md sm:p-8">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl text-accent">★</div>
-                    <h2 className="mt-4 text-2xl font-black text-brand sm:text-[28px]">VIP MAX სივრცე</h2>
-                    <p className="mx-auto mt-3 max-w-[360px] text-sm leading-7 text-text-soft sm:text-[15px]">აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.</p>
-                    <Link
-                      href="/dashboard/listings"
-                      className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-accent px-7 text-sm font-black text-brand shadow-[0_12px_28px_rgba(233,150,79,0.18)] transition hover:-translate-y-0.5 hover:bg-accent-hover hover:text-white"
-                    >
-                      გააქტიურე VIP MAX
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            {carouselItems.length > 0 ? <div className="relative z-10 mx-auto h-[360px] w-full max-w-[760px] sm:h-[420px] lg:h-[440px]">
+              <HeroListingCarousel items={carouselItems} />
+            </div> : null}
           </div>
         </div>
       </div>
