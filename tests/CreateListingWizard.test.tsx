@@ -125,12 +125,19 @@ describe("CreateListingWizard", () => {
       screen.getByRole("heading", { name: "3. ფასი და გაყიდვის ტიპი" }),
     ).toBeInTheDocument()
     await user.type(screen.getByLabelText(/^ფასი/), "120")
-    await user.click(screen.getByRole("button", { name: "გაგრძელება →" }))
+    const continueButton = screen.getByRole("button", { name: "გაგრძელება →" })
+    await user.click(continueButton)
 
     expect(
       screen.getByRole("heading", { name: /Preview — ასე გამოჩნდება განცხადება/ }),
     ).toBeInTheDocument()
     expect(screen.getByText("4/4 · Preview")).toBeInTheDocument()
+    // Native browser activation must not see the clicked navigation button
+    // turn into a submit button before the click's default action finishes.
+    expect(continueButton).not.toBeInTheDocument()
+    expect(mocks.prepare).not.toHaveBeenCalled()
+    expect(mocks.save).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "განცხადების გამოქვეყნება" })).toBeEnabled()
   })
 
   it("keeps the user on the first step until at least one image is selected", async () => {

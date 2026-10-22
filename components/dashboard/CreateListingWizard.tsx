@@ -1364,9 +1364,9 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         )}
 
         {step < 4 ? (
-          <button type="button" disabled={loading} onClick={handleNext} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
+          <button key="continue" type="button" disabled={loading} onClick={(event) => { event.preventDefault(); handleNext() }} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
         ) : (
-          <button type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
+          <button key="publish" type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
             {loading ? "ინახება…" : publishNow ? "განცხადების გამოქვეყნება" : "დრაფტის შექმნა"}
           </button>
         )}
