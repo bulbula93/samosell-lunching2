@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { PRODUCTION_PUBLIC_FALLBACK } from "./lib/env";
+import { getPublicStorageHosts } from "./lib/media";
 
 const isReadOnlyReviewPreview =
   process.env.VERCEL_ENV === "preview" &&
@@ -25,13 +26,13 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   images: {
-    remotePatterns: [
+    remotePatterns: getPublicStorageHosts().map((hostname) => (
       {
-        protocol: "https",
-        hostname: "lxsvjzbiuewgwpajqrwr.supabase.co",
+        protocol: "https" as const,
+        hostname,
         pathname: "/storage/v1/object/public/**",
-      },
-    ],
+      }
+    )),
     // Keep one optimized output format. Supporting AVIF and WebP creates
     // separate cached transformations for the same source/size combination.
     formats: ["image/webp"],
