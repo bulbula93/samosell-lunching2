@@ -165,6 +165,7 @@ describe("my listings status action", () => {
       status: "reserved",
       published_at: "2026-08-03T08:00:00.000Z",
       sold_to_user_id: null,
+      sold_source: null,
     })
     expect(update.getPayload()).not.toHaveProperty("seller_id")
     expect(update.eq).toHaveBeenCalledWith("id", listingId)
@@ -201,7 +202,7 @@ describe("my listings status action", () => {
     })
 
     expect(result).toMatchObject({ ok: true, status: "draft" })
-    expect(update.getPayload()).toEqual({ status: "draft", published_at: null, sold_to_user_id: null })
+    expect(update.getPayload()).toEqual({ status: "draft", published_at: null, sold_to_user_id: null, sold_source: null })
   })
 
   it("blocks publication when the authenticated seller has no contact phone", async () => {
@@ -251,5 +252,41 @@ describe("my listings status action", () => {
     expect(result).toMatchObject({ ok: false, code: "server_error" })
     if (!result.ok) expect(result.message).not.toContain("postgres")
     expect(mocks.revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { soldSource: "samosell" as const, soldToUserId: null },
+    { soldSource: "external" as const, soldToUserId: ownerId },
+  ])("rejects invalid source/buyer combinations before database access: %j", async (sale) => {
+    await expect(updateListingStatusAction({ listingId, nextStatus: "sold", expectedUpdatedAt: updatedAt, ...sale })).resolves.toMatchObject({ ok: false, code: "invalid" })
+    expect(mocks.createClient).not.toHaveBeenCalled()
+  })
+
+  it("persists an external sale without querying buyer candidates", async () => {
+    const lookup = lookupBuilder({ id: listingId, slug: "test-listing", status: "active", updated_at: updatedAt, published_at: updatedAt })
+    const update = updateBuilder({ status: "sold", updated_at: updatedAt })
+    const from = vi.fn().mockReturnValueOnce(lookup).mockReturnValueOnce(update)
+    mocks.createClient.mockResolvedValue({ auth: auth({ id: ownerId }), from })
+    const result = await updateListingStatusAction({ listingId, nextStatus: "sold", expectedUpdatedAt: updatedAt, soldSource: "external" })
+    expect(result).toMatchObject({ ok: true, status: "sold" })
+    expect(update.getPayload()).toEqual({ status: "sold", published_at: updatedAt, sold_source: "external", sold_to_user_id: null })
+    expect(from.mock.calls.map(([table]) => table)).toEqual(["listings", "listings"])
+  })
+
+  it("clears both sale fields when reopening a sold listing", async () => {
+    const lookup = lookupBuilder({ id: listingId, slug: "test-listing", status: "sold", updated_at: updatedAt, published_at: updatedAt })
+    const profile = lookupBuilder({ store_phone: "+995555000000" })
+    const update = updateBuilder({ status: "active", updated_at: updatedAt })
+    mocks.createClient.mockResolvedValue({ auth: auth({ id: ownerId }), from: vi.fn().mockReturnValueOnce(lookup).mockReturnValueOnce(profile).mockReturnValueOnce(update) })
+    await expect(updateListingStatusAction({ listingId, nextStatus: "active", expectedUpdatedAt: updatedAt })).resolves.toMatchObject({ ok: true })
+    expect(update.getPayload()).toMatchObject({ sold_source: null, sold_to_user_id: null })
+  })
+
+  it("rejects a second submit with the original version after the first sale", async () => {
+    const lookup = lookupBuilder({ id: listingId, slug: "test-listing", status: "sold", updated_at: "2026-08-04T08:05:00.000Z", published_at: updatedAt })
+    const from = vi.fn().mockReturnValue(lookup)
+    mocks.createClient.mockResolvedValue({ auth: auth({ id: ownerId }), from })
+    await expect(updateListingStatusAction({ listingId, nextStatus: "sold", expectedUpdatedAt: updatedAt, soldSource: "external" })).resolves.toMatchObject({ ok: false, code: "conflict" })
+    expect(from).toHaveBeenCalledOnce()
   })
 })
