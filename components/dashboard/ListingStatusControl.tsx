@@ -46,6 +46,7 @@ export default function ListingStatusControl({
   const [buyerLoadError, setBuyerLoadError] = useState("")
   const [buyerCandidates, setBuyerCandidates] = useState<ListingBuyerCandidate[]>([])
   const [selectedBuyerId, setSelectedBuyerId] = useState("")
+  const [saleSource, setSaleSource] = useState<"samosell" | "external">("samosell")
   const transitions = getAllowedStatusTransitions(currentStatus)
 
   if (transitions.length === 0) {
@@ -56,7 +57,7 @@ export default function ListingStatusControl({
     )
   }
 
-  function applyStatus(nextStatus: ListingStatus, soldToUserId?: string) {
+  function applyStatus(nextStatus: ListingStatus, soldToUserId?: string, source?: "samosell" | "external") {
     if (isPending || nextStatus === currentStatus) return
 
     setResult(null)
@@ -66,6 +67,7 @@ export default function ListingStatusControl({
         nextStatus,
         expectedUpdatedAt: currentUpdatedAt,
         soldToUserId: soldToUserId ?? null,
+        soldSource: nextStatus === "sold" ? (source ?? "samosell") : null,
       })
       setResult(actionResult)
 
@@ -88,6 +90,7 @@ export default function ListingStatusControl({
     setBuyerLoadError("")
     setBuyerCandidates([])
     setSelectedBuyerId("")
+    setSaleSource("samosell")
     setResult(null)
 
     const candidateResult = await getListingBuyerCandidatesAction(listingId)
@@ -176,10 +179,10 @@ export default function ListingStatusControl({
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand">გაყიდვის დასრულება</p>
                 <h3 id={`sold-buyer-title-${listingId}`} className="mt-2 text-xl font-black text-text">
-                  ვის მიჰყიდე?
+                  სად გაიყიდა ნივთი?
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-text-soft">
-                  აირჩიე მხოლოდ ის მომხმარებელი, რომელმაც ამ ნივთზე მოგწერა. შეფასების დატოვება მხოლოდ არჩეულ მყიდველს შეეძლება.
+                  SamoSell-ზე გაყიდვის შემთხვევაში აირჩიე მყიდველი, რომელმაც ამ ნივთზე მოგწერა. სხვაგან გაყიდვისას მყიდველის არჩევა საჭირო არ არის.
                 </p>
               </div>
               <button
@@ -193,7 +196,13 @@ export default function ListingStatusControl({
               </button>
             </div>
 
-            {buyerLoading ? (
+            <fieldset className="mt-5 grid gap-2">
+              <legend className="mb-2 text-sm font-bold text-text">გაყიდვის წყარო</legend>
+              <label className="flex items-center gap-2 text-sm"><input type="radio" name={`sale-source-${listingId}`} checked={saleSource === "samosell"} onChange={() => setSaleSource("samosell")} /> SamoSell-ის მეშვეობით</label>
+              <label className="flex items-center gap-2 text-sm"><input type="radio" name={`sale-source-${listingId}`} checked={saleSource === "external"} onChange={() => setSaleSource("external")} /> სხვაგან გაიყიდა</label>
+            </fieldset>
+            {saleSource === "samosell" ? (
+            buyerLoading ? (
               <p role="status" className="mt-5 rounded-xl bg-surface-alt px-4 py-4 text-sm text-text-soft">
                 მყიდველების სია იტვირთება…
               </p>
@@ -239,7 +248,9 @@ export default function ListingStatusControl({
                   ))}
                 </div>
               </fieldset>
-            )}
+            )
+
+            ) : <p className="mt-4 text-sm text-text-soft">გარე გაყიდვისას მყიდველის შეფასების მოთხოვნა არ გაიგზავნება.</p>}
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
@@ -252,8 +263,8 @@ export default function ListingStatusControl({
               </button>
               <button
                 type="button"
-                disabled={buyerLoading || isPending || !selectedBuyerId}
-                onClick={() => applyStatus("sold", selectedBuyerId)}
+                disabled={isPending || (saleSource === "samosell" && (buyerLoading || !selectedBuyerId))}
+                onClick={() => applyStatus("sold", saleSource === "samosell" ? selectedBuyerId : undefined, saleSource)}
                 className="ui-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending ? "ინახება…" : "გაყიდულად მონიშვნა"}

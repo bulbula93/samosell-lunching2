@@ -43,8 +43,11 @@ describe("HomePageContent", () => {
   it("renders the hero, dedicated VIP rail, real product section, brands, and how-it-works content", () => {
     render(<HomePageContent data={makeHomeData()} />)
 
+    // The H1 keeps the buyer-facing category phrase so it still matches the page
+    // title; the free-selling message lives in the subheading and the CTA.
     expect(screen.getByRole("heading", { level: 1, name: ka.home.title })).toBeInTheDocument()
-    expect(screen.getByText(ka.home.description)).toBeInTheDocument()
+    expect(screen.getByText(/0% საკომისიო გაყიდვაზე/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "გაყიდე უფასოდ" })).toHaveAttribute("href", "/sell")
     expect(screen.getByRole("heading", { name: "VIP განცხადებები" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
@@ -84,8 +87,8 @@ describe("HomePageContent", () => {
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
-    expect(screen.getByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).toBeInTheDocument()
+    expect(screen.queryByText("VIP MAX სივრცე")).not.toBeInTheDocument()
+    expect(screen.queryByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).not.toBeInTheDocument()
     expect(screen.queryByRole("region", { name: "პოპულარული ნივთები" })).not.toBeInTheDocument()
   })
 
@@ -108,15 +111,17 @@ describe("HomePageContent", () => {
     expect(screen.getByText("აქტიური VIP MAX განცხადება: მეორე VIP MAX")).toBeInTheDocument()
   })
 
-  it("shows the VIP MAX promotion when no VIP MAX listing exists", () => {
+  it("hides the empty VIP MAX promotion and keeps free-selling links", () => {
     const data = makeHomeData()
     data.heroItems = []
 
     render(<HomePageContent data={data} />)
 
-    expect(screen.getByText("VIP MAX სივრცე")).toBeInTheDocument()
-    expect(screen.getByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "გააქტიურე VIP MAX" })).toHaveAttribute("href", "/dashboard/listings")
+    expect(screen.queryByText("VIP MAX სივრცე")).not.toBeInTheDocument()
+    expect(screen.queryByText("აქ გამოჩნდება აქტიური VIP MAX განცხადებები დიდი ვიზუალური პრეზენტაციით.")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "გააქტიურე VIP MAX" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "გაყიდე უფასოდ" })).toHaveAttribute("href", "/sell")
+    expect(screen.getByRole("link", { name: "იყიდე" })).toHaveAttribute("href", "/catalog")
   })
 
   it("renders the requested footer description without a sentence-ending period", () => {

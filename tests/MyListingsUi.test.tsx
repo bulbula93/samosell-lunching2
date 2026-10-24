@@ -124,6 +124,7 @@ describe("my listings helpers and management UI", () => {
       nextStatus: "sold",
       expectedUpdatedAt: baseItem.updated_at,
       soldToUserId: buyerId,
+      soldSource: "samosell",
     })
     expect(await screen.findByRole("status")).toHaveTextContent(
       "განცხადება გაყიდულად მოინიშნა."
@@ -174,6 +175,50 @@ describe("my listings helpers and management UI", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("სტატუსი ვერ განახლდა.")
     expect(mocks.refresh).not.toHaveBeenCalled()
+  })
+
+  it("blocks a SamoSell sale without a buyer but lets an external sale finish", async () => {
+    const user = userEvent.setup()
+    mocks.getBuyerCandidates.mockResolvedValue({ ok: true, candidates: [] })
+    mocks.updateStatus.mockResolvedValue({ ok: true, status: "sold", updatedAt: "2026-08-04T08:05:00.000Z", message: "გარე გაყიდვა შენახულია" })
+    render(<ListingStatusControl listingId={baseItem.id} listingTitle={baseItem.title} status="active" updatedAt={baseItem.updated_at} />)
+    await user.selectOptions(screen.getByLabelText(`სტატუსის ახალი მნიშვნელობა — ${baseItem.title}`), "sold")
+    await user.click(screen.getByRole("button", { name: "შენახვა" }))
+    const submit = await screen.findByRole("button", { name: "გაყიდულად მონიშვნა" })
+    expect(submit).toBeDisabled()
+    await user.click(submit)
+    expect(mocks.updateStatus).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("radio", { name: "სხვაგან გაიყიდა" }))
+    expect(submit).toBeEnabled()
+    await user.click(submit)
+    expect(mocks.updateStatus).toHaveBeenCalledExactlyOnceWith({ listingId: baseItem.id, nextStatus: "sold", expectedUpdatedAt: baseItem.updated_at, soldToUserId: null, soldSource: "external" })
+    expect(await screen.findByRole("status")).toHaveTextContent("გარე გაყიდვა შენახულია")
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("drops a previously selected buyer when switching to external sale", async () => {
+    const user = userEvent.setup()
+    mocks.getBuyerCandidates.mockResolvedValue({ ok: true, candidates: [{ id: "377f3329-6c04-4c40-8f33-873ab3ee4f76", label: "ნინო", username: "nino", fullName: "ნინო" }] })
+    mocks.updateStatus.mockResolvedValue({ ok: true, status: "sold", updatedAt: baseItem.updated_at, message: "შენახულია" })
+    render(<ListingStatusControl listingId={baseItem.id} listingTitle={baseItem.title} status="active" updatedAt={baseItem.updated_at} />)
+    await user.selectOptions(screen.getByLabelText(`სტატუსის ახალი მნიშვნელობა — ${baseItem.title}`), "sold")
+    await user.click(screen.getByRole("button", { name: "შენახვა" }))
+    await screen.findByRole("radio", { name: /ნინო/ })
+    await user.click(screen.getByRole("radio", { name: "სხვაგან გაიყიდა" }))
+    await user.click(screen.getByRole("button", { name: "გაყიდულად მონიშვნა" }))
+    expect(mocks.updateStatus).toHaveBeenCalledWith(expect.objectContaining({ soldSource: "external", soldToUserId: null }))
+  })
+
+  it("allows external completion even when the buyer lookup fails", async () => {
+    const user = userEvent.setup()
+    mocks.getBuyerCandidates.mockResolvedValue({ ok: false, code: "server_error", message: "სია ვერ ჩაიტვირთა" })
+    render(<ListingStatusControl listingId={baseItem.id} listingTitle={baseItem.title} status="active" updatedAt={baseItem.updated_at} />)
+    await user.selectOptions(screen.getByLabelText(`სტატუსის ახალი მნიშვნელობა — ${baseItem.title}`), "sold")
+    await user.click(screen.getByRole("button", { name: "შენახვა" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("სია ვერ ჩაიტვირთა")
+    await user.click(screen.getByRole("radio", { name: "სხვაგან გაიყიდა" }))
+    expect(screen.getByRole("button", { name: "გაყიდულად მონიშვნა" })).toBeEnabled()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
   it("announces loading and offers a private-safe error retry", async () => {

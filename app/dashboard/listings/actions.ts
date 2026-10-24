@@ -45,6 +45,7 @@ export type UpdateListingStatusInput = {
   nextStatus: string
   expectedUpdatedAt: string
   soldToUserId?: string | null
+  soldSource?: "samosell" | "external" | null
 }
 
 export type UpdateListingStatusResult =
@@ -225,20 +226,25 @@ export async function updateListingStatusAction(
   const nextStatus = String(input?.nextStatus ?? "")
   const expectedUpdatedAt = String(input?.expectedUpdatedAt ?? "")
   const soldToUserId = input?.soldToUserId ? String(input.soldToUserId) : null
+  const soldSource = nextStatus === "sold" ? (input?.soldSource ?? "samosell") : null
 
   if (
     !isUuid(listingId) ||
     !isListingStatus(nextStatus) ||
     !expectedUpdatedAt ||
     Number.isNaN(new Date(expectedUpdatedAt).getTime()) ||
-    (nextStatus === "sold" && (!soldToUserId || !isUuid(soldToUserId)))
+    (nextStatus === "sold" && (
+      !["samosell", "external"].includes(soldSource ?? "") ||
+      (soldSource === "samosell" && (!soldToUserId || !isUuid(soldToUserId))) ||
+      (soldSource === "external" && soldToUserId !== null)
+    ))
   ) {
     return {
       ok: false,
       code: "invalid",
       message:
         nextStatus === "sold"
-          ? "გაყიდულად მონიშვნამდე აირჩიე მყიდველი."
+          ? "მიუთითე გაყიდვის წყარო. SamoSell-ზე გაყიდვისას აირჩიე მყიდველი."
           : "სტატუსის მოთხოვნა არასწორია. განაახლე გვერდი და სცადე ხელახლა.",
     }
   }
@@ -315,7 +321,7 @@ export async function updateListingStatusAction(
     }
   }
 
-  if (nextStatus === "sold") {
+  if (nextStatus === "sold" && soldSource === "samosell") {
     const buyerIsValid = await validateSelectedBuyer(supabase, listingId, user.id, soldToUserId!)
     if (!buyerIsValid) {
       return {
@@ -356,6 +362,7 @@ export async function updateListingStatusAction(
       status: nextStatus,
       published_at: publishedAt,
       sold_to_user_id: nextStatus === "sold" ? soldToUserId : null,
+      sold_source: soldSource,
     })
     .eq("id", listingId)
     .eq("seller_id", user.id)
@@ -424,7 +431,7 @@ export async function updateListingStatusAction(
     ok: true,
     status: updatedListing.status,
     updatedAt: updatedListing.updated_at,
-    message: statusSuccessMessage(updatedListing.status),
+    message: updatedListing.status === "sold" && soldSource === "external" ? "განცხადება მოინიშნა სხვაგან გაყიდულად. მყიდველის შეფასება არ გაიგზავნება." : statusSuccessMessage(updatedListing.status),
   }
 }
 
