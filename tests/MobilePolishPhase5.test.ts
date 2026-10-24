@@ -15,8 +15,14 @@ const vitalsClient = read("components/shared/FieldWebVitals.tsx")
 const vitalsRoute = read("app/api/web-vitals/route.ts")
 const vitalsMigration = read("supabase/migrations/20260921090130_add_mobile_dimensions_to_web_vitals.sql")
 const homeData = read("lib/home-page.ts")
+const listingMobileCTA = read("components/listings/MobileListingActionBar.tsx")
 
 describe("Phase 5 mobile QA and app-like polish", () => {
+  it("keeps the mobile listing contact bar above the floating sell button and safe area", () => {
+    expect(listingMobileCTA).toContain("var(--mobile-nav-offset) + env(safe-area-inset-bottom) + 1rem")
+    expect(listingMobileCTA).toContain("md:static")
+  })
+
   it("offers contextual installation without repeatedly nagging dismissed users", () => {
     expect(prompt).toContain("beforeinstallprompt")
     expect(prompt).toContain("Add to Home Screen")
