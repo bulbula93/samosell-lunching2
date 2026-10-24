@@ -1,10 +1,38 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest"
 import nextConfig from "../next.config"
-import sitemap from "@/app/sitemap"
 import { buildCatalogDescription, buildHomeStructuredData, getSiteUrl } from "@/lib/seo"
 
-vi.mock("next/cache", () => ({ unstable_cache: (load: unknown) => load }))
+const mocks = vi.hoisted(() => ({
+  listings: [{ slug: "test-listing", updated_at: "2026-10-06T00:00:00Z" }],
+  sellers: [{ seller_username: "test-seller", published_at: "2026-10-06T00:00:00Z" }],
+}))
+
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: (...args: unknown[]) => Promise<unknown>) => fn,
+}))
+
+// The sitemap reads its inventory through the anonymous public client. Without
+// this stub the query escapes to the network and the test times out.
+vi.mock("@/lib/supabase/public-server", () => ({
+  createPublicServerClient: () => ({
+    from: (table: string) => {
+      const query = {
+        select: () => query,
+        eq: () => query,
+        order: () => query,
+        limit: () => query,
+        abortSignal: async () =>
+          table === "listings"
+            ? { data: mocks.listings, error: null }
+            : { data: mocks.sellers, error: null },
+      }
+      return query
+    },
+  }),
+}))
+
+import sitemap from "@/app/sitemap"
 
 type SecurityHeaders = Array<{
   source: string
@@ -28,7 +56,8 @@ describe("baseline response hardening", () => {
     expect(byKey.get("X-Content-Type-Options")).toBe("nosniff")
     expect(byKey.get("X-Frame-Options")).toBe("SAMEORIGIN")
     expect(byKey.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin")
-    // Payment and camera features must stay available to the app itself.
+    // Payments and fullscreen must stay available to the app itself.
+    expect(byKey.get("Permissions-Policy")).toContain("geolocation=()")
     expect(byKey.get("Permissions-Policy")).not.toContain("payment=")
     expect(byKey.get("Permissions-Policy")).not.toContain("fullscreen=")
   })
@@ -38,8 +67,8 @@ describe("catalog metadata language", () => {
   it("describes the catalog in Georgian", () => {
     const description = buildCatalogDescription()
     expect(description).toContain("SamoSell")
-    // Georgian script must dominate; an English sentence here competed with the
-    // Georgian category pages in search result snippets.
+    // Georgian script must dominate; the English sentence that shipped before
+    // this change competed with the Georgian category pages in SERP snippets.
     expect(/[\u10A0-\u10FF]/.test(description)).toBe(true)
     expect(description).not.toMatch(/[A-Za-z]{4,}\s+[A-Za-z]{4,}\s+[A-Za-z]{4,}/)
   })
@@ -73,18 +102,21 @@ describe("website structured data", () => {
 })
 
 describe("sitemap commercial entry points", () => {
+  const urls = async () => (await sitemap()).map((entry) => entry.url)
+
   it("lists the sell, stores and for-stores routes", async () => {
-    const urls = (await sitemap()).map((entry) => entry.url)
+    const result = await urls()
     const siteUrl = getSiteUrl()
-    expect(urls).toContain(`${siteUrl}/sell`)
-    expect(urls).toContain(`${siteUrl}/stores`)
-    expect(urls).toContain(`${siteUrl}/for-stores`)
+    expect(result).toContain(`${siteUrl}/sell`)
+    expect(result).toContain(`${siteUrl}/stores`)
+    expect(result).toContain(`${siteUrl}/for-stores`)
   })
 
   it("keeps private routes out of the sitemap", async () => {
-    const urls = (await sitemap()).map((entry) => entry.url)
-    for (const privateRoute of ["/dashboard", "/admin", "/login", "/api"]) {
-      expect(urls.some((url) => url.includes(`/samosell.ge${privateRoute}`))).toBe(false)
+    const privatePrefixes = ["/dashboard", "/admin", "/login", "/register", "/api"]
+    for (const url of await urls()) {
+      const pathname = new URL(url).pathname
+      expect(privatePrefixes.some((prefix) => pathname.startsWith(prefix))).toBe(false)
     }
   })
 })
