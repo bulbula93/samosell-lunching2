@@ -9,7 +9,7 @@ import GlobalNavigationProgress from "@/components/shared/GlobalNavigationProgre
 import BrowserConsentPanel from "@/components/privacy/BrowserConsentPanel"
 import OptionalAnalytics from "@/components/privacy/OptionalAnalytics"
 import { absoluteUrl, getSiteUrl, GOOGLE_SITE_VERIFICATION } from "@/lib/seo"
-import { SITE_DESCRIPTION_EN, SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
+import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import "./globals.css"
 
 export const viewport: Viewport = {
@@ -48,14 +48,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     title: SITE_NAME,
-    description: SITE_DESCRIPTION_EN,
+    description: SITE_DESCRIPTION_KA,
     url: getSiteUrl(),
     images: [{ url: absoluteUrl("/og-cover.png") }],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_NAME,
-    description: SITE_DESCRIPTION_EN,
+    description: SITE_DESCRIPTION_KA,
     images: [absoluteUrl("/og-cover.png")],
   },
 }

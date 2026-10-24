@@ -1,4 +1,4 @@
-import { SITE_DESCRIPTION_EN, SITE_NAME } from "@/lib/site"
+import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import type { CatalogListing } from "@/types/marketplace"
 
 export const GOOGLE_SITE_VERIFICATION = "uQuez09mPR--nX75FjQfxC1lHoSPZ4Kp19VP2rdNhf0"
@@ -104,7 +104,9 @@ export function buildCatalogTitle(page = 1, categoryLabel = "") {
 }
 
 export function buildCatalogDescription(filters: string[] = []) {
-  const base = SITE_DESCRIPTION_EN
+  // SamoSell is a Georgian-language marketplace; an English description here
+  // competed with every Georgian category page in the SERP snippet.
+  const base = SITE_DESCRIPTION_KA
   if (filters.length === 0) return base
   return `${base} აქტიური ფილტრები: ${filters.join(", ")}.`
 }
@@ -271,6 +273,16 @@ export function buildHomeStructuredData() {
         url: siteUrl,
         inLanguage: "ka-GE",
         publisher: { "@id": `${siteUrl}/#organization` },
+        // Declares the internal search results page to search engines so a
+        // sitelinks search box can be offered for brand queries.
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${siteUrl}/catalog?q={search_term_string}`,
+          },
+          "query-input": "required name=search_term_string",
+        },
       },
     ],
   }

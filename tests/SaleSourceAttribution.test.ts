@@ -3,7 +3,9 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8")
-const migration = read("supabase/migrations/20261022090000_track_sale_source.sql")
+// Same version that was applied and validated on the QA project, so Production
+// runs exactly the migration the QA report describes.
+const migration = read("supabase/migrations/20261022085227_track_sale_source.sql")
 const actions = read("app/dashboard/listings/actions.ts")
 const dialog = read("components/dashboard/ListingStatusControl.tsx")
 

@@ -89,6 +89,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/`, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/catalog`, changeFrequency: "hourly", priority: 0.9 },
+    // Commercial entry points. These are the pages seller acquisition and the
+    // homepage CTA land on, so they must not be discoverable only via links.
+    { url: `${siteUrl}/sell`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${siteUrl}/stores`, changeFrequency: "daily", priority: 0.8 },
+    { url: `${siteUrl}/for-stores`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${siteUrl}/contact`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/faq`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/safety`, changeFrequency: "monthly", priority: 0.6 },
