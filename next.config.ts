@@ -10,6 +10,18 @@ const isReadOnlyReviewPreview =
     "preview/store-cards-copy-20261016",
   ].includes(process.env.VERCEL_GIT_COMMIT_REF ?? "");
 
+// Applied to every response. `X-Frame-Options` stays SAMEORIGIN rather than DENY
+// so the app can keep framing its own routes (admin previews, OG debugging).
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+];
+
 const nextConfig: NextConfig = {
   // These exact review branches read public production data and block writes.
   // No persisted Vercel environment variables are changed.
@@ -21,6 +33,18 @@ const nextConfig: NextConfig = {
       NEXT_PUBLIC_SITE_URL: PRODUCTION_PUBLIC_FALLBACK.siteUrl,
     },
   } : {}),
+  // Do not advertise the framework in every response.
+  poweredByHeader: false,
+  // Baseline hardening. Deliberately no CSP yet: the app inlines styles and
+  // hydration data, so a policy needs its own audited rollout.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: SECURITY_HEADERS,
+      },
+    ];
+  },
   turbopack: {
     root: process.cwd(),
   },

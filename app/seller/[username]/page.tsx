@@ -46,8 +46,12 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const { username: rawUsername } = await params
   const username = normalizeSellerUsernameParam(rawUsername)
   const profile = (await fetchSeller(username))?.profile
-  if (!profile) return { title: "გამყიდველი ვერ მოიძებნა", robots: { index: false, follow: false } }
-  const title = `${profile.full_name || profile.username} — ${SITE_NAME} სელერი`
+  // Throwing from generateMetadata happens before the response streams, so an
+  // unknown seller answers 404 instead of a 200 soft-404 page.
+  if (!profile) notFound()
+  // The root layout already appends "| SamoSell"; repeating the brand here
+  // produced titles such as "დკ — SamoSell სელერი | SamoSell".
+  const title = `${profile.full_name || profile.username} — გამყიდველის პროფილი`
   const description = truncateDescription(profile.bio || `${profile.full_name || profile.username} სელერის საჯარო პროფილი ${SITE_NAME}-ზე.`, 155)
   const path = `/seller/${profile.username}`
   return {
