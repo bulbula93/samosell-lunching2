@@ -30,3 +30,5 @@ tsconfig.tsbuildinfo
 *.zip
 *.bak
 story-release.sql
+
+supabase/.temp/

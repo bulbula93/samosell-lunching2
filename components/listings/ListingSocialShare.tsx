@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getSafeImageSource } from "@/lib/media"
+import { buildListingSharePost } from "@/lib/share-post"
 
 type ShareStatus =
   | "idle"
@@ -339,6 +340,19 @@ export default function ListingSocialShare({
     }
   }
 
+  // Sellers paste this straight into a Facebook group or a Telegram channel, so
+  // it carries the size, price, condition, city and link instead of just the URL.
+  async function copyPost() {
+    try {
+      await navigator.clipboard.writeText(buildListingSharePost(text, url))
+      setStatus("copied")
+      resetStatus()
+    } catch {
+      setStatus("error")
+      resetStatus()
+    }
+  }
+
   async function shareNative() {
     if (!navigator.share) {
       await copyLink()
@@ -515,14 +529,14 @@ export default function ListingSocialShare({
 
         <button
           type="button"
-          onClick={copyLink}
+          onClick={copyPost}
           className={itemClass}
-          aria-label="პროდუქტის ბმულის კოპირება"
+          aria-label="განცხადების ტექსტის კოპირება ჯგუფისთვის"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface-alt text-text shadow-sm transition group-hover:scale-105 group-hover:border-brand/30">
             <LinkIcon />
           </span>
-          <span className="text-[10px] font-bold leading-4 text-text-soft sm:text-xs">ლინკი</span>
+          <span className="text-[10px] font-bold leading-4 text-text-soft sm:text-xs">პოსტი</span>
         </button>
 
         <button

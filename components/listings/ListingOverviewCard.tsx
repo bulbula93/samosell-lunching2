@@ -11,6 +11,7 @@ import TikTokLiveBadge from "@/components/shared/TikTokLiveBadge"
 import StoryRingAvatar from "@/components/stories/StoryRingAvatar"
 import type { StoryOwner } from "@/types/story"
 import ListingSocialShare from "@/components/listings/ListingSocialShare"
+import { buildListingShareCaption } from "@/lib/share-post"
 import { ka } from "@/lib/i18n/ka"
 import {
   conditionLabel,
@@ -395,7 +396,13 @@ export default function ListingOverviewCard({
           <ListingSocialShare
             url={shareUrl}
             title={listing.title}
-            text={`${listing.title} — ${listingPriceLabel(listing.price, listing.currency, listing.sale_type)}`}
+            text={buildListingShareCaption({
+              title: listing.title,
+              priceText: listingPriceLabel(listing.price, listing.currency, listing.sale_type),
+              sizeLabel: listing.size_label,
+              conditionText: listing.condition ? conditionLabel(listing.condition) : null,
+              city: listing.city,
+            })}
             imageUrl={listing.cover_image_url}
             priceText={listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
             className="sm:col-span-2"

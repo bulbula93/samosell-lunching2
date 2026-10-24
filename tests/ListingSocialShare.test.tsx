@@ -2,6 +2,7 @@ import React from "react"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import ListingSocialShare from "@/components/listings/ListingSocialShare"
 
@@ -31,9 +32,37 @@ describe("ListingSocialShare", () => {
       "href",
       expect.stringContaining("t.me/share/url"),
     )
-    expect(screen.getByRole("button", { name: "პროდუქტის ბმულის კოპირება" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "განცხადების ტექსტის კოპირება ჯგუფისთვის" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "სხვა აპში გაზიარება" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /^გაზიარება$/ })).not.toBeInTheDocument()
+  })
+
+  it("copies a ready-to-paste post instead of a bare link", async () => {
+    const writes: string[] = []
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (value: string) => { writes.push(value) } },
+    })
+
+    render(
+      <ListingSocialShare
+        url="https://samosell.ge/listing/palto-1234"
+        title="ქალის პალტო"
+        text={"ქალის პალტო · M\n45 ₾\nახალი · თბილისი"}
+        imageUrl={null}
+        priceText="45 ₾"
+      />,
+    )
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "განცხადების ტექსტის კოპირება ჯგუფისთვის" }),
+    )
+
+    // Size, price, condition and city travel with the link so a seller only has
+    // to paste once into a group.
+    expect(writes[0]).toBe(
+      "ქალის პალტო · M\n45 ₾\nახალი · თბილისი\n\nhttps://samosell.ge/listing/palto-1234",
+    )
   })
 
   it("contains the Instagram Story 9:16 file sharing flow", () => {
