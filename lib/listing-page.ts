@@ -9,6 +9,7 @@ import { conditionLabel, listingPriceLabel } from "@/lib/listings"
 import { getSafeImageSource } from "@/lib/media"
 import { fetchSellerReviewData } from "@/lib/reviews"
 import { absoluteUrl, truncateDescription } from "@/lib/seo"
+import { buildListingCardDescription } from "@/lib/share-post"
 import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 import { createClient } from "@/lib/supabase/server"
 import type { CatalogListing, ListingImage } from "@/types/marketplace"
@@ -222,6 +223,17 @@ export async function generateListingMetadata(slug: string): Promise<Metadata | 
     listing.description || [listing.category_name, listing.brand_name].filter(Boolean).join(" · "),
     155,
   ) || SITE_DESCRIPTION_KA
+  // The share card is read in a Facebook or Telegram feed, not in a search
+  // result, so it leads with the facts a buyer scans for.
+  const cardDescription = buildListingCardDescription(
+    {
+      sizeLabel: listing.size_label,
+      conditionText: listing.condition ? conditionLabel(listing.condition) : null,
+      city: listing.city,
+      brandName: listing.brand_name,
+    },
+    listing.description,
+  ) || description
   const path = `/listing/${listing.slug}`
   const canonicalUrl = absoluteUrl(path)
   const imageUrl = getMetadataImage(listing.cover_image_url)
@@ -235,7 +247,7 @@ export async function generateListingMetadata(slug: string): Promise<Metadata | 
       : { robots: { index: false, follow: false } }),
     openGraph: {
       title,
-      description,
+      description: cardDescription,
       url: canonicalUrl,
       type: "website",
       siteName: SITE_NAME,
@@ -244,7 +256,7 @@ export async function generateListingMetadata(slug: string): Promise<Metadata | 
     twitter: {
       card: "summary_large_image",
       title,
-      description,
+      description: cardDescription,
       images: [imageUrl],
     },
   }
