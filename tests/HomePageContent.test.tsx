@@ -43,8 +43,11 @@ describe("HomePageContent", () => {
   it("renders the hero, dedicated VIP rail, real product section, brands, and how-it-works content", () => {
     render(<HomePageContent data={makeHomeData()} />)
 
-    expect(screen.getByRole("heading", { level: 1, name: "გაყიდე ტანსაცმელი უფასოდ." })).toBeInTheDocument()
+    // The H1 keeps the buyer-facing category phrase so it still matches the page
+    // title; the free-selling message lives in the subheading and the CTA.
+    expect(screen.getByRole("heading", { level: 1, name: ka.home.title })).toBeInTheDocument()
     expect(screen.getByText(/0% საკომისიო გაყიდვაზე/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "გაყიდე უფასოდ" })).toHaveAttribute("href", "/sell")
     expect(screen.getByRole("heading", { name: "VIP განცხადებები" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
