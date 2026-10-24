@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("next/cache", () => ({ unstable_cache: (load: unknown) => load }))
@@ -49,6 +51,12 @@ function params(username: string) {
 describe("public seller profile metadata", () => {
   beforeEach(() => {
     state.profile = null
+  })
+
+  it("ships a segment not-found boundary so the 404 status survives", () => {
+    // Without this file the thrown notFound() renders the root boundary and the
+    // response keeps a 200 status, which is the soft 404 this change fixes.
+    expect(existsSync(join(process.cwd(), "app/seller/[username]/not-found.tsx"))).toBe(true)
   })
 
   it("404s an unknown seller instead of answering 200 with a soft-404 page", async () => {
