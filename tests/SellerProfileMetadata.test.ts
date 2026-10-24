@@ -15,8 +15,16 @@ const state = vi.hoisted(() => ({
   },
 }))
 
+// generateMetadata must never take this path: constructing the cookie client is
+// what made the metadata dynamic and turned the 404 into a 200 soft 404.
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({
+  createClient: async () => {
+    throw new Error("seller metadata must not read cookies")
+  },
+}))
+
+vi.mock("@/lib/supabase/public-server", () => ({
+  createPublicServerClient: () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
@@ -29,7 +37,6 @@ vi.mock("@/lib/supabase/server", () => ({
         }),
       }),
     }),
-    auth: { getUser: async () => ({ data: { user: null } }) },
   }),
 }))
 
