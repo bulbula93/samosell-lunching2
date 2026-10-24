@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith("/catalog/") ||
       pathname.startsWith("/listing/") ||
       pathname.startsWith("/seller/") ||
-      ["/contact", "/faq", "/safety", "/sell-fast", "/vintage-georgia", "/sustainable-fashion", "/listing-not-found", "/catalog-not-found"].includes(pathname)
+      ["/contact", "/faq", "/safety", "/sell-fast", "/vintage-georgia", "/sustainable-fashion", "/where-to-sell-clothes", "/listing-not-found", "/catalog-not-found"].includes(pathname)
     if (!publicPage || !["GET", "HEAD"].includes(request.method)) {
       return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
     }
