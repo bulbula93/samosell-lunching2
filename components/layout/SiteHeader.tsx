@@ -3,6 +3,8 @@ import type { User } from "@supabase/supabase-js"
 import { unstable_cache } from "next/cache"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
 import type { MarketplaceNavItem } from "@/components/layout/MobileNavigation"
+import { HomePersonalizationProvider } from "@/components/home/HomePersonalizationProvider"
+import HomeSiteHeader from "@/components/home/HomeSiteHeader"
 import { getCatalogItemLabel } from "@/lib/catalog-taxonomy"
 import { getUserAvatar } from "@/lib/profiles"
 import { createClient } from "@/lib/supabase/server"
@@ -83,6 +85,19 @@ export const getMarketplaceNavigationItems = unstable_cache(
 export default async function SiteHeader({ authenticatedUser }: { authenticatedUser?: Pick<User, "id"> | null } = {}) {
   const itemsPromise = getMarketplaceNavigationItems()
 
+  if (authenticatedUser === undefined) {
+    // Reading the session while rendering makes every route that renders this
+    // header dynamic, which kept the legal, FAQ and seller landing pages off the
+    // CDN. Pages that do not already know the viewer now take the same
+    // client-hydrated path as the homepage, so their HTML can be cached.
+    const items = await itemsPromise
+    return (
+      <HomePersonalizationProvider>
+        <HomeSiteHeader items={items} />
+      </HomePersonalizationProvider>
+    )
+  }
+
   if (authenticatedUser === null) {
     const items = await itemsPromise
     return (
@@ -103,12 +118,7 @@ export default async function SiteHeader({ authenticatedUser }: { authenticatedU
   }
 
   const supabase = await createClient()
-  const [user, items] = await Promise.all([
-    authenticatedUser === undefined
-      ? supabase.auth.getUser().then((response) => response.data.user)
-      : Promise.resolve(authenticatedUser),
-    itemsPromise,
-  ])
+  const [user, items] = await Promise.all([Promise.resolve(authenticatedUser), itemsPromise])
 
   let profile: {
     is_admin: boolean

@@ -29,6 +29,7 @@ import { formatSellerTenure } from "@/lib/seller-trust"
 import { SITE_NAME } from "@/lib/site"
 import { normalizeStoreHero } from "@/lib/store-hero"
 import { createClient } from "@/lib/supabase/server"
+import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { getFollowSummary, hasActiveStory } from "@/lib/story-data"
 
 const fetchSeller = cache(async (username: string) => {
@@ -42,10 +43,25 @@ const fetchSeller = cache(async (username: string) => {
   return data
 })
 
+// Metadata must not read cookies. A dynamic generateMetadata makes Next stream
+// the document shell, which commits a 200 status before notFound() runs, so an
+// unknown seller answered 200 instead of 404. The public client is anonymous and
+// reads the same rows through the same RLS policies.
+const fetchSellerProfileForMetadata = cache(async (username: string) => {
+  const supabase = createPublicServerClient()
+  const { data: visibility, error } = await supabase.from("profiles")
+    .select("id, is_suspended").eq("username", username).maybeSingle()
+  if (error) throw new Error("SELLER_VISIBILITY_FAILED", { cause: error })
+  if (!visibility || visibility.is_suspended) return null
+  const data = await getCachedPublicSellerData(visibility.id, username)
+  if (!data.profile || data.profile.id !== visibility.id || data.profile.is_suspended) return null
+  return data.profile
+})
+
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username: rawUsername } = await params
   const username = normalizeSellerUsernameParam(rawUsername)
-  const profile = (await fetchSeller(username))?.profile
+  const profile = await fetchSellerProfileForMetadata(username)
   // Throwing from generateMetadata happens before the response streams, so an
   // unknown seller answers 404 instead of a 200 soft-404 page.
   if (!profile) notFound()
