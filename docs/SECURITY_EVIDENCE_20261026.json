@@ -390,5 +390,39 @@
     "browser": "Home/catalog/login rendering PASS; authenticated browser scenarios not completed"
   },
   "migrationSha256": "1a9488d243c297beaf67f6e32877b3f9ec1f496c2b7c530a42dfa315e823c84e",
-  "cleanup": "Disposable QA users, sessions, orders, chats, listings and temporary policies removed; storage fixture count zero"
+  "cleanup": "Disposable QA users, sessions, orders, chats, listings and temporary policies removed; storage fixture count zero",
+  "authDashboardReadOnly": {
+    "bothProjects": {
+      "anonymousSignIn": false,
+      "manualIdentityLinking": false,
+      "secureEmailChange": true,
+      "securePasswordChange": false,
+      "requireCurrentPassword": false,
+      "signupSignInPer5MinPerIp": 30,
+      "verifyPer5MinPerIp": 30,
+      "refreshPer5MinPerIp": 150,
+      "accessTokenExpirySeconds": 3600,
+      "refreshReuseDetection": true,
+      "refreshReuseIntervalSeconds": 10,
+      "totpEnabled": true,
+      "maxMfaFactors": 10,
+      "limitAal1Duration": true,
+      "captchaEnabled": false
+    },
+    "qaRedirectGap": "Current security Preview alias absent; no configuration change performed",
+    "passwordPolicy": "Minimum length redacted; requirements value unavailable",
+    "productionAdminMfa": {
+      "activeAdministrators": 1,
+      "withVerifiedMfaFactor": 0
+    }
+  },
+  "previewFinalCode": {
+    "sha": "e5f8daed674c34688ef00f2f68bbd09cbfd5433b",
+    "status": "READY",
+    "url": "https://samosell-lunching2-jipuojfrt-giorgibulbula-6265s-projects.vercel.app",
+    "ci": {
+      "run": 40313631173,
+      "conclusion": "success"
+    }
+  }
 }

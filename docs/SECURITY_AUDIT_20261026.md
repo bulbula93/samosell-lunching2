@@ -10,7 +10,7 @@ Production-ზე დადასტურდა მაღალი სიმძ
 
 QA-ზე პროფილის პრივილეგიების თვითნებური შეცვლა, სხვის ჩატში/შეტყობინებაში/განცხადებაში/შეკვეთაში/notification-ში ჩარევა და გადახდის finalizer-ების უნებართვო გაშვება იბლოკება. ადმინისტრატორის ნებადართული verify/unverify მუშაობს. **Production-ის მონაცემები, პოლიტიკები, სქემა, გადახდები, credentials და deployment არ შეცვლილა.** ამიტომ Production-ზე თავდაპირველი Storage პრობლემა კვლავ მოსაგვარებელია მხოლოდ ცალკე დამტკიცებული release-ით.
 
-READY ვერ გამოცხადდება, სანამ არ დასრულდება ავტორიზებული მომხმარებლისა და ადმინისტრატორის სრული ბრაუზერული E2E და Auth-ის დახურული კონფიგურაციის შემოწმება. Preview განზრახ იყენებს QA public client-ს და არ იღებს Production service-role/payment/email/AI credentials-ს. QA service-role-ზე დამოკიდებული ადმინისტრაციული UI-ს ყველა სცენარი ამ გარემოში ვერ დადასტურდა. ეს შეზღუდვა არ უნდა ჩაითვალოს გავლილ ტესტად.
+READY ვერ გამოცხადდება, სანამ არ დასრულდება ავტორიზებული მომხმარებლისა და ადმინისტრატორის სრული ბრაუზერული E2E და QA OAuth redirect-ის გამართვა. Preview განზრახ იყენებს QA public client-ს და არ იღებს Production service-role/payment/email/AI credentials-ს. QA service-role-ზე დამოკიდებული ადმინისტრაციული UI-ს ყველა სცენარი ამ გარემოში ვერ დადასტურდა. ეს შეზღუდვა არ უნდა ჩაითვალოს გავლილ ტესტად.
 
 ## Scope and revision
 
@@ -36,6 +36,7 @@ No load flood, brute force, exploit payload for framework RCE/DoS, real payment,
 | SEC-04 | Medium, defense in depth | Admin agent and admin test checkout POST | Cookie-authenticated routes lacked their own explicit same-origin check. Browser cookie defaults reduce some CSRF paths; no cross-site financial action was executed. | Reject missing/foreign Origin and cross-site Fetch Metadata. Admin agent streaming body limit 32 KiB and malformed-body handling. |
 | SEC-05 | Medium | Client error telemetry | Unbounded arbitrary JSON could be retained as log metadata; server monitoring could retain raw client text/URLs. | Same-origin, 8 KiB body bound, fixed categorical metadata and message fingerprint; no raw client fields/URLs/messages retained. |
 | SEC-06 | Low | Headers / supply chain | CSP absent; workflow action tags mutable; privileged client lacked explicit server-only import barrier. | CSP Report-Only, preserve two-year HSTS, pin actions to verified official tag SHAs, add server-only barrier. |
+| SEC-07 | Medium | Authentication hardening | One active Production admin has no verified MFA factor; CAPTCHA and password-change reauthentication are off. No session theft was demonstrated. | Documented; TOTP enrollment/recovery and challenge integration must be tested before enforcement. Production Auth unchanged. |
 
 The namespace owner is the first path segment matching auth.uid(), consistent with existing profile/store clients. Existing legacy/service-created objects are not moved or deleted; owner_id is not used as an incompatible second ownership requirement.
 
@@ -114,6 +115,8 @@ Review covered broken access control, request/schema bounds, Supabase parameteri
 
 Existing /test-db and /test-marketplace pages require administrator access outside development and are noindex. No public debug endpoint was made available by this change.
 
+Final code candidate e5f8daed674c34688ef00f2f68bbd09cbfd5433b Preview is also READY: https://samosell-lunching2-jipuojfrt-giorgibulbula-6265s-projects.vercel.app.
+
 ## Headers and browser coverage
 
 CSP is **Report-Only**, without enforcement or per-request nonces that would disable existing public ISR. Inline hydration/styles are explicitly accommodated. Supabase HTTPS/WebSockets, Google, analytics, payment form destinations and media are included. There is no new public CSP report collector; initial violations are reviewed in browser developer logs.
@@ -130,9 +133,13 @@ Public Auth settings on both projects confirm email and Google are enabled and m
 
 Leaked-password protection remains disabled in both advisor snapshots. Official Supabase documentation states this feature requires Pro or above; no upgrade or paid service was introduced. A disabled advisor warning is not evidence of compromised passwords.
 
-Detailed password complexity/minimum length, project-specific Auth rate limits, CAPTCHA settings, OAuth redirect allowlist/client configuration, MFA enrollment, refresh-token rotation and session lifetime could not all be read with the available connector. The dashboard reached a sign-in wall. These remain explicit verification items. Existing sessions were not invalidated. No Production Auth setting was changed.
+Dashboard access subsequently became available and the following settings were inspected read-only in both QA and Production: anonymous sign-ins OFF; manual identity linking OFF; secure email change ON; secure password change/current-password requirement OFF; email OTP 3600 seconds / 8 digits; sign-in/signup rate 30 per 5 minutes per IP; token verification 30 per 5 minutes; refresh 150 per 5 minutes; access tokens expire after 3600 seconds; refresh-token reuse detection ON with 10-second reuse interval; TOTP enabled (maximum 10 factors); AAL1 factor verification limit ON; CAPTCHA OFF. Session time-box/inactivity/single-session controls are Pro-only and not configured. Minimum password length is redacted by the browser and the requirements selector did not expose a value, so these values remain unverified. Existing sessions were not invalidated. No Production Auth setting was changed.
 
-Before release, inspect these settings read-only in the authenticated dashboard; prototype any change on QA. Administrator TOTP enrollment/enforcement needs its own tested recovery/enrollment flow before any lockout-capable policy is enabled.
+Production Site URL is https://samosell.ge. Its redirect allowlist includes the two SamoSell domains, localhost development callbacks and a wildcard limited to the owner’s Vercel team hostname suffix. Narrowing Production redirects to intended trusted deployments is a Medium hardening recommendation; no open wildcard across all vercel.app hosts was observed.
+
+QA Site URL and six redirect entries reference previous review branches. The current security Preview alias is missing, so Google OAuth/password recovery can fall back to the wrong QA branch. Completing the browser OAuth flow requires approving narrowly scoped QA redirect entries for https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback and /reset-password (including the application’s next query parameters). No redirect list was changed during this audit.
+
+Read-only aggregate query found **1 active Production administrator and 0 with a verified MFA factor**. Administrator TOTP enrollment/enforcement needs its own tested recovery/enrollment flow before any lockout-capable policy is enabled. CAPTCHA requires a client challenge integration before it can safely be enabled; turning it on alone would break sign-in.
 
 ## Vercel / abuse protection
 
@@ -210,8 +217,9 @@ CSP is report-only and can be removed independently if it causes excessive diagn
 - [x] Tests, TypeScript, lint (warnings only), local production build and initial Preview pass.
 - [ ] Complete authenticated user/admin browser E2E, including real profile/store upload UI on QA.
 - [ ] Configure a legitimate QA-only privileged backend credential where admin UI requires it, without retrieving/copying Production secrets.
-- [ ] Verify full Auth rate/password/OAuth/session/MFA configuration in the signed-in dashboard.
-- [ ] Confirm final documentation/CI commit's Preview and required GitHub checks.
+- [x] Read Auth signup/rate/session/MFA/CAPTCHA and redirect settings from the signed-in dashboard.
+- [ ] Confirm redacted password-policy values and test narrowly scoped QA OAuth/recovery redirects.
+- [x] Code candidate e5f8daed674c34688ef00f2f68bbd09cbfd5433b: Preview READY and GitHub CI run 40313631173 successful; subsequent changes are audit documentation only.
 - [ ] Explicitly approve and execute Production migration/deployment sequence.
 
 ## Evidence and primary references
