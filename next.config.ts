@@ -1,3 +1,4 @@
+import { SECURITY_HEADERS } from "./lib/security-headers";
 import type { NextConfig } from "next";
 import { PRODUCTION_PUBLIC_FALLBACK } from "./lib/env";
 import { getPublicStorageHosts } from "./lib/media";
@@ -10,18 +11,6 @@ const isReadOnlyReviewPreview =
     "preview/listing-upload-idempotency-20261016",
     "preview/store-cards-copy-20261016",
   ].includes(process.env.VERCEL_GIT_COMMIT_REF ?? "");
-
-// Applied to every response. `X-Frame-Options` stays SAMEORIGIN rather than DENY
-// so the app can keep framing its own routes (admin previews, OG debugging).
-const SECURITY_HEADERS = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
-  },
-];
 
 const nextConfig: NextConfig = {
   // These exact review branches read public production data and block writes.
@@ -36,8 +25,7 @@ const nextConfig: NextConfig = {
   } : {}),
   // Do not advertise the framework in every response.
   poweredByHeader: false,
-  // Baseline hardening. Deliberately no CSP yet: the app inlines styles and
-  // hydration data, so a policy needs its own audited rollout.
+  // CSP starts in report-only mode to preserve hydration and existing workflows.
   async headers() {
     return [
       {
