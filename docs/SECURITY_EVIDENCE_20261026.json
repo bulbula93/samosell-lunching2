@@ -424,5 +424,80 @@
       "run": 40313631173,
       "conclusion": "success"
     }
+  },
+  "followup20261026": {
+    "verdict": "NOT READY",
+    "applicationCommit": "8d518c81c225c92873192df4a41ffc2df89b8b1e",
+    "codeChanged": false,
+    "configurationSaved": false,
+    "productionChanged": false,
+    "duplicateMigrationCreated": false,
+    "previewDeploymentId": "dpl_CBxkoZB2buZKBvn3QkyMjGPgQsVx",
+    "previewState": "READY",
+    "pr": {
+      "number": 136,
+      "draft": true,
+      "merged": false
+    },
+    "suites": {
+      "full": {
+        "files": 206,
+        "tests": 1174,
+        "failed": 0
+      },
+      "paymentSelection": {
+        "files": 14,
+        "tests": 112,
+        "failed": 0
+      },
+      "repeatedAfterNoRerunInstruction": false
+    },
+    "liveQa": {
+      "storage": "PASS",
+      "profiles": "PASS",
+      "listings": "PASS",
+      "chat": "PASS",
+      "admin": "PASS",
+      "paymentFinalizerDenial": "PASS",
+      "ordersAndNotifications": "PASS"
+    },
+    "browser": {
+      "loginRender": "PASS",
+      "anonymousProfile": "PASS",
+      "anonymousAdmin": "PASS",
+      "resetWithoutSession": "PASS",
+      "authenticatedUser": "NOT VERIFIED",
+      "authenticatedAdmin": "NOT VERIFIED",
+      "googleOAuthCompletion": "NOT VERIFIED",
+      "emailRecoveryCompletion": "NOT VERIFIED"
+    },
+    "serviceCredential": {
+      "exists": true,
+      "emptyInEditUi": true,
+      "scope": "preview/security-hardening-20261026",
+      "saved": false,
+      "secretValueExposed": false
+    },
+    "qaAdvisorCounts": {
+      "rls_enabled_no_policy": 21,
+      "anon_security_definer_function_executable": 10,
+      "authenticated_security_definer_function_executable": 56,
+      "auth_leaked_password_protection": 1
+    },
+    "cleanup": {
+      "users": 0,
+      "profiles": 0,
+      "sessions": 0,
+      "refreshTokens": 0,
+      "storageObjects": 0,
+      "listings": 0,
+      "chats": 0,
+      "messages": 0,
+      "notifications": 0,
+      "orders": 0,
+      "adminAuditRows": 0,
+      "growthEvents": 0,
+      "privateFixtureFilesRemoved": true
+    }
   }
 }

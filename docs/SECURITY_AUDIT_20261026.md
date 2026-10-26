@@ -137,7 +137,7 @@ Dashboard access subsequently became available and the following settings were i
 
 Production Site URL is https://samosell.ge. Its redirect allowlist includes the two SamoSell domains, localhost development callbacks and a wildcard limited to the owner’s Vercel team hostname suffix. Narrowing Production redirects to intended trusted deployments is a Medium hardening recommendation; no open wildcard across all vercel.app hosts was observed.
 
-QA Site URL and six redirect entries reference previous review branches. The current security Preview alias is missing, so Google OAuth/password recovery can fall back to the wrong QA branch. Completing the browser OAuth flow requires approving narrowly scoped QA redirect entries for https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback and /reset-password (including the application’s next query parameters). No redirect list was changed during this audit.
+QA Site URL and six redirect entries reference previous review branches. The current security Preview alias is missing, so Google OAuth/password recovery can fall back to the wrong QA branch. The follow-up below supersedes the earlier wildcard proposal with four exact callback URLs, including the reset-password next parameter. The reset-password landing page itself is not the redirectTo sent by the application. No redirect list was saved during this audit.
 
 Read-only aggregate query found **1 active Production administrator and 0 with a verified MFA factor**. Administrator TOTP enrollment/enforcement needs its own tested recovery/enrollment flow before any lockout-capable policy is enabled. CAPTCHA requires a client challenge integration before it can safely be enabled; turning it on alone would break sign-in.
 
@@ -232,3 +232,86 @@ CSP is report-only and can be removed independently if it causes excessive diagn
 - https://supabase.com/docs/guides/auth/password-security
 - https://vercel.com/docs/security/ddos-mitigation
 - https://vercel.com/docs/vercel-firewall/vercel-waf
+
+
+## Follow-up verification — 2026-10-26
+
+**NOT READY remains the release verdict.** This continuation changes audit evidence only. It does not change application code, database schemas, grants, Storage policies, Auth configuration, environment values or Deployment Protection. Production and main remain unchanged. No duplicate migration was created or applied.
+
+### Revision, Preview and migration readback
+
+- Tested application head: `8d518c81c225c92873192df4a41ffc2df89b8b1e`; `main` remains `23fa44a0c11ccdd3cba6b72d318252cd4d93b7fe`.
+- PR #136 is open, Draft, unmerged and mergeable at readback. GitHub CI run `40314515460` succeeded for the tested head.
+- Preview deployment `dpl_CBxkoZB2buZKBvn3QkyMjGPgQsVx` is READY for that head. Deployment URL: https://samosell-lunching2-g4n8kyqa6-giorgibulbula-6265s-projects.vercel.app.
+- Its stable branch alias is https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app. Use this stable alias for the QA Auth configuration and browser flow, rather than a URL that changes on each deployment.
+- QA migration history contains exactly one matching entry: `20261026105600 / security_storage_and_rpc_hardening`. The existing repository file and SHA-256 remain the identifiers recorded above. No migration replay was needed.
+- Readback confirms six ownership mutation policies, three RESTRICTIVE guards, both UPDATE predicates and public SELECT policies. Advisor remains 21 no-policy INFO / 10 anon SECURITY DEFINER / 56 authenticated SECURITY DEFINER / 1 leaked-password warning. These counts are unchanged and are not a test of Storage ownership.
+
+### Prepared QA configuration — NOT saved
+
+QA project: `ydocqjdjmffysexkzxyc` only. The persisted Site URL is still:
+
+`https://samosell-lunching2-git-prev-3132e4-giorgibulbula-6265s-projects.vercel.app`
+
+Proposed replacement Site URL:
+
+`https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app`
+
+Add these exact redirect URLs for the planned login, dashboard, recovery and default store-registration flows:
+
+```text
+https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback?next=%2F
+https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback?next=%2Fdashboard
+https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback?next=%2Freset-password
+https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app/auth/callback?next=%2Fdashboard%2Fstore%2Fsetup
+```
+
+No `*` or `**`, team-wide Vercel hostname pattern, direct reset-password redirect, or extra deployment hostname is proposed. Existing entries are preserved pending a separate review of other QA branches. These four entries cover the named flows; arbitrary other dynamic next paths are not claimed covered. Such paths need their own reviewed exact entry or a separately designed fixed-callback continuation flow. Google Cloud's provider callback is the QA Supabase Auth callback, not the Vercel app callback; no Google Cloud configuration was changed or verified through a provider login.
+
+Vercel metadata confirms `SUPABASE_SERVICE_ROLE_KEY` exists as an encrypted variable with target `preview`, gitBranch `preview/security-hardening-20261026`, ID `r3Z3BsMdWwQJwctP`. The authenticated edit UI shows **Empty**. Existence of an encrypted variable is therefore not evidence that a usable credential is installed. The form is prepared to use the non-revealable Secret type and retains its existing environment/branch selectors. No value was copied, revealed, submitted or committed.
+
+Conditional proposal: populate that existing variable with the existing **QA-only** server key and save as Secret, without widening its target or branch scope. A service/secret key bypasses QA RLS for the backend: it does add backend privilege relative to the current empty value, even when the environment scope stays fixed. Consequently this cannot honestly be described as having no privilege impact, and it has not been applied under the instruction not to expand Preview rights. No Production key, new key, database grant, broad Preview target, payment/email/AI credential or protection bypass is proposed. The key is not required for browser password login or direct user-token RLS tests; its absence affects server-side administrative workflows that construct the privileged client.
+
+The Browser action-time confirmation rule, “Creates or materially expands security-sensitive access,” blocks saving the new trusted Auth destinations or transferring the QA server credential until the concrete changes are confirmed. This is an execution-control requirement, not a request to approve Production. The current user instruction to avoid Preview privilege expansion is also preserved.
+
+### Tests completed in this continuation
+
+The full suite was run once before the latest instruction to avoid repeats: **206 files / 1,174 tests PASS**. The selected payment mock/invariant suite was also run once: **14 files / 112 tests PASS**. This 112-test selection differs from the earlier 117-test selection; both counts identify their actual runs. Neither suite was rerun after the user requested no repetition, and no application code changed.
+
+Fresh disposable QA fixtures were used to repeat direct Auth/REST/RPC/Storage checks. The access script was interrupted after the first six completed groups; only its outstanding order/notification group was resumed separately. Completed results:
+
+| Scenario | Evidence / result |
+|---|---|
+| Three disposable email/password Auth sign-ins | PASS through the QA Auth API; not a browser Login PASS |
+| Both Storage buckets: foreign INSERT, UPDATE, upsert create/overwrite, DELETE and owner move into foreign namespace | DENIED |
+| Both Storage buckets: owner upload, update, upsert, cleanup and public image delivery | PASS; anonymous INSERT DENIED |
+| Privileged profiles INSERT/UPDATE, foreign profile/store edit | Privileged flags preserved/normalized; foreign edit DENIED |
+| Own draft listing creation/edit and participant chat send | PASS |
+| Foreign draft listing read/edit, private chat/message read/send, direct VIP activation | DENIED |
+| Anonymous/non-admin administrative RPC calls | DENIED |
+| Disposable admin verifies/unverifies disposable seller | PASS |
+| Internal metrics, private admin/payment tables and payment finalizers | Non-admin access DENIED |
+| Order/notification outsider reads, read-state mutation and direct paid transition | DENIED; legitimate owner reads PASS |
+| Current Preview Login page | Renders email/password, Google and recovery controls |
+| Current Preview anonymous /dashboard/profile | Redirects to /login?next=%2Fdashboard%2Fprofile |
+| Current Preview anonymous /admin | Redirects to /login?next=%2Fdashboard; login heading visibly confirmed |
+| Current Preview /reset-password without a session | Redirects to /forgot-password?error=invalid_or_expired |
+| Browser password Login, completed Google OAuth, emailed recovery and password change | BLOCKED / NOT VERIFIED; requires a disposable browser sign-in and the reviewed QA redirect configuration |
+| Authenticated browser profile/store uploads, user-to-user UI boundaries and privileged admin UI | NOT VERIFIED; direct API results above do not substitute for these flows |
+
+Cleanup readback found zero fixture users, profiles, sessions, refresh tokens, Storage objects, listings, chats, messages, notifications, orders, admin audit rows and growth events. Disposable credential and password-hash setup files were removed. No real user files, identities, messages or financial records were used for destructive tests. No payment or external email was sent by the test scripts.
+
+### Remaining release risks and exact approval boundary
+
+The implemented fixes and root causes remain SEC-01 through SEC-06 above; the Storage flaw is fixed and verified in QA, and the candidate code contains the dependency/API/header changes. These fixes have **not** been deployed to Production. Remaining blockers are the pending QA Auth configuration, the privileged-backend credential decision, completed authorized browser user/admin E2E, and final release approval. Administrator MFA enrollment/challenge/recovery remains a separate unresolved Medium item; no factor was registered or AAL2 rule enforced. CAPTCHA integration, Free-plan leaked-password protection limitations, redacted password-policy values and residual abuse surfaces remain as documented.
+
+Production execution is **not approved**. The exact release sequence remains:
+
+1. Save only explicitly confirmed QA configuration; keep the stable alias, branch scope and existing protection. If a QA server key is approved, prove it is QA-only before saving it, never exposing the value, and rebuild Preview so the server receives it.
+2. Complete browser Login, Google OAuth, recovery, own image replacement, regular/admin authorization and two-user UI boundary checks using disposable QA data. Do not mark direct API checks as browser passes. Resolve any regression before changing the verdict.
+3. Freeze the exact final PR commit and its successful relevant checks. The last tested application code is `8d518c81c225c92873192df4a41ffc2df89b8b1e`; subsequent audit-document-only commits do not change the application. Re-read main before approval; rebase and retest if application changes require it.
+4. Request explicit Production approval for target `lxsvjzbiuewgwpajqrwr`, migration name `security_storage_and_rpc_hardening`, repository file `supabase/migrations/20261026092938_security_storage_and_rpc_hardening.sql`, SHA-256 `1a9488d243c297beaf67f6e32877b3f9ec1f496c2b7c530a42dfa315e823c84e`, and the frozen final release commit. Capture ACL/policy definitions and bucket metadata without exporting user data.
+5. Apply only those exact reviewed SQL bytes through the migration runner to the approved Production project. Record the actual runner-assigned migration version and reconcile history explicitly. Preserve the existing QA version; do not bulk-push historical migrations or create a duplicate migration to disguise timestamp drift.
+6. Read back the six owner mutation policies, three restrictive guards, UPDATE USING/WITH CHECK, public SELECT and service-only marketing RPC grants; run Security Advisor. A mismatch halts release.
+7. After explicit merge/deployment approval, merge PR #136 through the normal protected main workflow and release the frozen patched code. Verify the deployment's Supabase target is Production and that QA branch overrides/test data do not carry over. Do not change Production payment configuration or credentials.
+8. Run low-impact public and legitimate owner/admin smoke checks; monitor upload/auth/payment errors and report-only CSP. Keep destructive boundary testing on QA. On regression, halt rollout; retain the ownership guards and choose a patched application rollback build. Never restore the bucket-only permissive mutation policies. MFA enrollment/enforcement needs its own reviewed deployment and secure authenticator handoff.
