@@ -6,6 +6,7 @@ import assert from "node:assert/strict"
 const url = "https://ydocqjdjmffysexkzxyc.supabase.co"
 const key = "sb_publishable_GimAu7-NHZn6fbQdl0rTmA_vaDHd4MM"
 const credentials = JSON.parse(await readFile(process.env.SECURITY_QA_CREDENTIALS, "utf8"))
+assert(credentials.length===3 && credentials.every(c=>/^security-[abc]-20261026@example\.invalid$/.test(c.email)), "Disposable fixture credentials required")
 const before = process.argv.includes("--before")
 const results = []
 const clients = []
