@@ -26,13 +26,13 @@
     "gitBranch": "preview/security-hardening-20261026",
     "updatedAt": 1793082730424,
     "valueReturned": false,
-    "functionalAdminValidation": "PENDING"
+    "functionalAdminValidation": "PASS: three service-only Search RPCs rendered the Admin page"
   },
   "authConfiguration": {
     "siteUrlReadback": "PASS",
     "fourExactRedirectsReadback": "PASS",
     "existingSixRedirectsPreserved": true,
-    "googleSuccessfulLogin": "NOT_RUN",
+    "googleSuccessfulLogin": "PASS: completed browser OAuth, signed-in QA-origin profile visible",
     "emailedRecovery": "NOT_RUN"
   },
   "protection": {
@@ -189,10 +189,32 @@
     "fullSuiteRerun": false,
     "paymentSuiteRerun": false,
     "applicationCodeChanged": true,
-    "temporaryAccountRegistration": "AWAITING_USER_HANDOFF",
-    "adminE2E": "NOT_RUN",
-    "applicationChange": "RegisterForm neutral signup success copy only",
-    "targetedEslint": "PASS"
+    "temporaryAccountRegistration": "PARTIAL: new email/password account created and confirmed; email-link session callback failed in user screenshot",
+    "adminE2E": "PASS for dashboard, service-only Search RPCs, fixture moderation and audit; regular-user browser rejection NOT_RUN",
+    "applicationChange": "Neutral signup confirmation copy; generic callback error copy without claiming social-provider failure",
+    "targetedEslint": "PASS",
+    "browserGoogleLogin": "PASS",
+    "googleSessionPersistence": "PASS",
+    "logoutAndProtectedRouteAfterLogout": "PASS",
+    "adminActor": "Existing QA-only administrator; not a new disposable administrator",
+    "fixtureUserModeration": "PASS: suspend / restore",
+    "fixtureSellerVerification": "PASS: verify / unverify",
+    "fixtureListingModeration": "PASS: restore / hide",
+    "fixtureAuditEntries": 7,
+    "fixtureAuditUiReadback": "PASS",
+    "fixtureCleanup": {
+      "users": 0,
+      "profiles": 0,
+      "listings": 0,
+      "auditRows": 0
+    },
+    "browserPasswordLogin": "PASS: secure browserAuth password submission and signed-in User A homepage",
+    "userASessionPersistence": "PASS: protected routes and full reload",
+    "userAAdminRoutes": "PASS: /admin, /admin/users, /admin/search redirect to /dashboard",
+    "profileNamePersistence": "PASS: Security QA A Updated saved and reloaded",
+    "avatarLifecycle": "PASS: upload, replace (old object removed), delete (null profile URL and zero avatar objects)",
+    "storeCreation": "PASS after restoring missing existing store_hero schema",
+    "storeBrandingOwner": "PASS: logo/cover upload and replacement, two correctly owned objects, replaced paths removed"
   },
   "productionChanged": false,
   "prMerged": false,
@@ -206,5 +228,46 @@
     "smtpHost": "smtp.resend.com",
     "emailDeliveryVerified": false,
     "settingsChanged": false
+  },
+  "currentApplicationCommit": "9ed49957d2ad692ec23c3d6c9dc5bdb444d02379",
+  "latestDeployment": {
+    "id": "dpl_2DxSyYkjCZBpgg7KgUeGCP8bCsju",
+    "url": "https://samosell-lunching2-8lvotxrrt-giorgibulbula-6265s-projects.vercel.app",
+    "state": "READY",
+    "target": null,
+    "commit": "9ed49957d2ad692ec23c3d6c9dc5bdb444d02379"
+  },
+  "temporaryUserA": {
+    "id": "deef129e-5cbc-461a-86e7-f2b913f6b14e",
+    "provider": "email",
+    "isAdmin": false,
+    "createdAt": "2026-10-27T07:29:28.827427Z",
+    "emailConfirmedAt": "2026-10-27T07:29:46.422709Z",
+    "fixtureRetainedForCrossUserTests": true
+  },
+  "emailLinkSessionFailure": {
+    "source": "user screenshot",
+    "message": "Social authorization could not finish",
+    "rootCause": "NOT_CONFIRMED; missing same-browser PKCE verifier is a likely explanation, not proven by the screenshot",
+    "databaseConfirmed": true,
+    "passwordLoginSucceeded": true,
+    "authBypassed": false
+  },
+  "qaSchemaRepair": {
+    "file": "supabase/migrations/20261015125726_store_hero_customization.sql",
+    "reason": "Store creation preflight failed; profiles.store_hero absent and no matching migration ledger entry",
+    "qaRegisteredVersion": "20261027074002",
+    "name": "store_hero_customization",
+    "existingFileReused": true,
+    "newMigrationFileCreated": false,
+    "securityMigrationLedgerCount": 1,
+    "columnAndConstraintReadback": true,
+    "productionTouched": false,
+    "advisorBeforeAfterCounts": {
+      "rls_enabled_no_policy": 21,
+      "anon_security_definer_function_executable": 10,
+      "authenticated_security_definer_function_executable": 56,
+      "auth_leaked_password_protection": 1
+    }
   }
 }
