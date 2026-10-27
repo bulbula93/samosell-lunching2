@@ -1,3 +1,5 @@
+import { BoundedBodyError, readBoundedRequestBody } from "@/lib/bounded-request-body"
+import { isSameOriginMutation } from "@/lib/security-headers"
 import { NextResponse } from "next/server"
 import { requireAdminUser } from "@/lib/auth"
 import {
@@ -83,9 +85,10 @@ function sanitizeHistory(value: unknown): HistoryItem[] {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginMutation(request)) return NextResponse.json({ error: "invalid_origin" }, { status: 403 })
   try {
     const { supabase } = await requireAdminUser("/dashboard")
-    const body = (await request.json().catch(() => ({}))) as {
+    const body = (await readBoundedRequestBody(request, 32_768).then(text => JSON.parse(text || "{}"))) as {
       message?: unknown
       history?: unknown
     }
@@ -167,6 +170,8 @@ export async function POST(request: Request) {
       generatedAt: snapshot.generatedAt,
     })
   } catch (error) {
+    if (error instanceof BoundedBodyError) return NextResponse.json({ error: error.code }, { status: error.httpStatus })
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "invalid_body" }, { status: 400 })
     console.error("admin_agent_error", {
       message: error instanceof Error ? error.message : "unknown_error",
     })

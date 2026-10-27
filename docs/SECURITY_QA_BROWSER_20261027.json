@@ -1,0 +1,313 @@
+{
+  "date": "2026-10-27",
+  "timezone": "Asia/Tbilisi",
+  "scope": "intermediate security browser E2E continuation",
+  "project": "samosell-lunching2",
+  "branch": "preview/security-hardening-20261026",
+  "commit": "7107d99f1a2e2a7eba2927de6d287da418232b48",
+  "deployment": {
+    "id": "dpl_8edyAfgr9BQhyJvTwaz4dTrSjiNu",
+    "url": "https://samosell-lunching2-pplu7xq23-giorgibulbula-6265s-projects.vercel.app",
+    "stableAlias": "https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app",
+    "state": "READY",
+    "apiTarget": "staging",
+    "environment": "Preview",
+    "source": "redeploy",
+    "buildingAt": 1793082886789,
+    "readyAt": 1793083011383
+  },
+  "credential": {
+    "key": "SUPABASE_SERVICE_ROLE_KEY",
+    "id": "r3Z3BsMdWwQJwctP",
+    "type": "sensitive",
+    "target": [
+      "preview"
+    ],
+    "gitBranch": "preview/security-hardening-20261026",
+    "updatedAt": 1793082730424,
+    "valueReturned": false,
+    "functionalAdminValidation": "PASS: three service-only Search RPCs rendered the Admin page"
+  },
+  "authConfiguration": {
+    "siteUrlReadback": "PASS",
+    "fourExactRedirectsReadback": "PASS",
+    "existingSixRedirectsPreserved": true,
+    "googleSuccessfulLogin": "PASS: completed browser OAuth, signed-in QA-origin profile visible",
+    "emailedRecovery": "PASS: user requested and received email; latest link opened in same Cloud Browser; QA reset form rendered; user saved password; login?password_reset=success displayed; later signed-in User A homepage verified"
+  },
+  "protection": {
+    "ssoEnabled": true,
+    "deploymentType": "all_except_custom_domains",
+    "modified": false
+  },
+  "publicExposureScan": {
+    "page": "/register",
+    "htmlStatus": 200,
+    "htmlBytes": 41288,
+    "secretKeyFormatInHtml": false,
+    "serviceRoleJwtInHtml": "not separately decoded; no secret-format finding",
+    "javascript": [
+      {
+        "path": "/_next/static/chunks/52b27230-32361d5c43894a33.js",
+        "status": 200,
+        "bytes": 203721,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/6554-fd0718021a2a8732.js",
+        "status": 200,
+        "bytes": 242545,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/main-app-a7386ae3fbb918be.js",
+        "status": 200,
+        "bytes": 711,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/loading-30b69bd08e850a9e.js",
+        "status": 200,
+        "bytes": 1484,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/7676-39c5dbde723b6acf.js",
+        "status": 200,
+        "bytes": 7640,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/7812-b721e20b174e0401.js",
+        "status": 200,
+        "bytes": 14727,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/4766-28a9f6a20cf7b32a.js",
+        "status": 200,
+        "bytes": 15355,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/layout-d547c4719878ce35.js",
+        "status": 200,
+        "bytes": 24330,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/error-b93ff3815ffea315.js",
+        "status": 200,
+        "bytes": 4703,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/1bbca088-3555fad9a0f9c240.js",
+        "status": 200,
+        "bytes": 63824,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/5700-db7afc6e838db47b.js",
+        "status": 200,
+        "bytes": 185550,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/register/page-d440c511e52c6910.js",
+        "status": 200,
+        "bytes": 9989,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": true,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/global-error-5fe202a66f378667.js",
+        "status": 200,
+        "bytes": 1223,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+        "status": 200,
+        "bytes": 112541,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/webpack-dbc44401c3525dc4.js",
+        "status": 200,
+        "bytes": 3371,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      }
+    ],
+    "scopeLimit": "Only register HTML and its 15 script resources; authenticated responses, additional chunks, all mobile flows and actual installed-key equality not yet verified."
+  },
+  "tests": {
+    "fullSuiteRerun": false,
+    "paymentSuiteRerun": false,
+    "applicationCodeChanged": true,
+    "temporaryAccountRegistration": "PARTIAL: new email/password account created and confirmed; email-link session callback failed in user screenshot",
+    "adminE2E": "PASS for dashboard, service-only Search RPCs, fixture moderation and audit; regular-user browser rejection NOT_RUN",
+    "applicationChange": "Neutral signup confirmation copy; generic callback error copy without claiming social-provider failure",
+    "targetedEslint": "PASS",
+    "browserGoogleLogin": "PASS",
+    "googleSessionPersistence": "PASS",
+    "logoutAndProtectedRouteAfterLogout": "PASS",
+    "adminActor": "Existing QA-only administrator; not a new disposable administrator",
+    "fixtureUserModeration": "PASS: suspend / restore",
+    "fixtureSellerVerification": "PASS: verify / unverify",
+    "fixtureListingModeration": "PASS: restore / hide",
+    "fixtureAuditEntries": 7,
+    "fixtureAuditUiReadback": "PASS",
+    "fixtureCleanup": {
+      "users": 0,
+      "profiles": 0,
+      "listings": 0,
+      "auditRows": 0
+    },
+    "browserPasswordLogin": "PASS: secure browserAuth password submission and signed-in User A homepage",
+    "userASessionPersistence": "PASS: protected routes and full reload",
+    "userAAdminRoutes": "PASS: /admin, /admin/users, /admin/search redirect to /dashboard",
+    "profileNamePersistence": "PASS: Security QA A Updated saved and reloaded",
+    "avatarLifecycle": "PASS: upload, replace (old object removed), delete (null profile URL and zero avatar objects)",
+    "storeCreation": "PASS after restoring missing existing store_hero schema",
+    "storeBrandingOwner": "PASS: logo/cover upload and replacement, two correctly owned objects, replaced paths removed",
+    "postResetPasswordLogin": "PASS after two visible invalid-credential responses; final fresh homepage shows Security QA A Store; exact cause of earlier rejected credentials unknown",
+    "invalidPasswordHandling": "PASS scoped: visible invalid-credential rejection without session, followed by successful User A login",
+    "userBAdminRoutes": "PASS: /admin, /admin/users, /admin/search all redirect to ordinary dashboard",
+    "userBForeignListingUi": "PASS: existing User A draft returns 404/no permission",
+    "userBForeignChatUi": "PASS: existing User A private chat returns not participant; marker absent",
+    "userBDatabaseRls": "PASS in rollback transaction as authenticated with B claims: foreign profile/store_hero write 0, listing write 0, chat read 0, message read 0",
+    "userBStorageSqlDiagnostic": "NOT an ownership PASS: direct storage DELETE was stopped by storage.protect_delete; transaction failed without retained changes; historical Storage HTTP tests remain separate",
+    "mobileBrowser": "BLOCKED: documented Cloud Browser API has no viewport/device emulation capability",
+    "authenticatedNetworkExposure": "INCOMPLETE: sampled DOM and console show no key; exhaustive authenticated network responses not available through documented browser API"
+  },
+  "productionChanged": false,
+  "prMerged": false,
+  "readiness": "NOT_READY",
+  "signupDiagnosis": {
+    "suppliedAddressAlreadyConfirmed": true,
+    "existingProvider": "google",
+    "existingPasswordConfigured": false,
+    "temporaryUsernameCreated": false,
+    "customSmtpEnabled": true,
+    "smtpHost": "smtp.resend.com",
+    "emailDeliveryVerified": false,
+    "settingsChanged": false
+  },
+  "currentApplicationCommit": "b2e02792c05735d949e205d18f96b41d5c0cc578",
+  "latestDeployment": {
+    "id": "dpl_3iDdwqhxhxC27FEv1SVppSuJGojB",
+    "url": "https://samosell-lunching2-bznb8rlc1-giorgibulbula-6265s-projects.vercel.app",
+    "state": "READY",
+    "target": null,
+    "commit": "b2e02792c05735d949e205d18f96b41d5c0cc578",
+    "stableAliasReadback": true,
+    "vercelCommitStatus": "success",
+    "protectionPreserved": true
+  },
+  "temporaryUserA": {
+    "id": "deef129e-5cbc-461a-86e7-f2b913f6b14e",
+    "provider": "email",
+    "isAdmin": false,
+    "createdAt": "2026-10-27T07:29:28.827427Z",
+    "emailConfirmedAt": "2026-10-27T07:29:46.422709Z",
+    "fixtureRetainedForCrossUserTests": true
+  },
+  "emailLinkSessionFailure": {
+    "source": "user screenshot",
+    "message": "Social authorization could not finish",
+    "rootCause": "NOT_CONFIRMED; missing same-browser PKCE verifier is a likely explanation, not proven by the screenshot",
+    "databaseConfirmed": true,
+    "passwordLoginSucceeded": true,
+    "authBypassed": false
+  },
+  "qaSchemaRepair": {
+    "file": "supabase/migrations/20261015125726_store_hero_customization.sql",
+    "reason": "Store creation preflight failed; profiles.store_hero absent and no matching migration ledger entry",
+    "qaRegisteredVersion": "20261027074002",
+    "name": "store_hero_customization",
+    "existingFileReused": true,
+    "newMigrationFileCreated": false,
+    "securityMigrationLedgerCount": 1,
+    "columnAndConstraintReadback": true,
+    "productionTouched": false,
+    "advisorBeforeAfterCounts": {
+      "rls_enabled_no_policy": 21,
+      "anon_security_definer_function_executable": 10,
+      "authenticated_security_definer_function_executable": 56,
+      "auth_leaked_password_protection": 1
+    }
+  },
+  "crossUserBrowserFixtures": {
+    "partnerUserId": "f590087a-bd2a-4842-a4f1-0a4be20c8986",
+    "listingId": "f766c9d9-211f-48de-bcb9-f981917fe662",
+    "chatId": "e52a14d1-5474-42e0-b538-fc02a7889867",
+    "messageId": "35c5efbc-0cf3-47d4-9c44-cc6b0b438995",
+    "ownerUserId": "deef129e-5cbc-461a-86e7-f2b913f6b14e",
+    "status": "CLEANED: zero partner users, listings, chats and messages",
+    "partnerCannotLogin": true,
+    "ownerChatRead": "PASS: User A sees exact synthetic private marker",
+    "ownerListingRoute": "PASS scoped: owned route loads delete card and phone-required gate; editing form intentionally unavailable without contact phone"
+  },
+  "temporaryUserB": {
+    "id": "59696213-9008-49e8-98f3-2be11d051f53",
+    "emailConfirmed": true,
+    "isAdmin": false,
+    "browserDashboard": "PASS: Security QA B visible"
+  },
+  "retainedQaArtifacts": {
+    "userA": true,
+    "userB": true,
+    "userABrandingObjects": 2,
+    "reason": "retain user-created QA accounts for remaining mobile/exposure acceptance; no production data"
+  },
+  "remainingReleaseGates": [
+    "Mobile login/upload browser acceptance",
+    "Complete authenticated network/client-log privileged credential exposure review",
+    "Production administrator MFA risk decision and approved implementation/enrollment as recorded in audit"
+  ]
+}
