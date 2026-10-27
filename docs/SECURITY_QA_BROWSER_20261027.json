@@ -33,7 +33,7 @@
     "fourExactRedirectsReadback": "PASS",
     "existingSixRedirectsPreserved": true,
     "googleSuccessfulLogin": "PASS: completed browser OAuth, signed-in QA-origin profile visible",
-    "emailedRecovery": "NOT_RUN"
+    "emailedRecovery": "PASS: user requested and received email; latest link opened in same Cloud Browser; QA reset form rendered; user saved password; login?password_reset=success displayed; later signed-in User A homepage verified"
   },
   "protection": {
     "ssoEnabled": true,
@@ -214,7 +214,16 @@
     "profileNamePersistence": "PASS: Security QA A Updated saved and reloaded",
     "avatarLifecycle": "PASS: upload, replace (old object removed), delete (null profile URL and zero avatar objects)",
     "storeCreation": "PASS after restoring missing existing store_hero schema",
-    "storeBrandingOwner": "PASS: logo/cover upload and replacement, two correctly owned objects, replaced paths removed"
+    "storeBrandingOwner": "PASS: logo/cover upload and replacement, two correctly owned objects, replaced paths removed",
+    "postResetPasswordLogin": "PASS after two visible invalid-credential responses; final fresh homepage shows Security QA A Store; exact cause of earlier rejected credentials unknown",
+    "invalidPasswordHandling": "PASS scoped: visible invalid-credential rejection without session, followed by successful User A login",
+    "userBAdminRoutes": "PASS: /admin, /admin/users, /admin/search all redirect to ordinary dashboard",
+    "userBForeignListingUi": "PASS: existing User A draft returns 404/no permission",
+    "userBForeignChatUi": "PASS: existing User A private chat returns not participant; marker absent",
+    "userBDatabaseRls": "PASS in rollback transaction as authenticated with B claims: foreign profile/store_hero write 0, listing write 0, chat read 0, message read 0",
+    "userBStorageSqlDiagnostic": "NOT an ownership PASS: direct storage DELETE was stopped by storage.protect_delete; transaction failed without retained changes; historical Storage HTTP tests remain separate",
+    "mobileBrowser": "BLOCKED: documented Cloud Browser API has no viewport/device emulation capability",
+    "authenticatedNetworkExposure": "INCOMPLETE: sampled DOM and console show no key; exhaustive authenticated network responses not available through documented browser API"
   },
   "productionChanged": false,
   "prMerged": false,
@@ -229,13 +238,16 @@
     "emailDeliveryVerified": false,
     "settingsChanged": false
   },
-  "currentApplicationCommit": "9ed49957d2ad692ec23c3d6c9dc5bdb444d02379",
+  "currentApplicationCommit": "b2e02792c05735d949e205d18f96b41d5c0cc578",
   "latestDeployment": {
-    "id": "dpl_2DxSyYkjCZBpgg7KgUeGCP8bCsju",
-    "url": "https://samosell-lunching2-8lvotxrrt-giorgibulbula-6265s-projects.vercel.app",
+    "id": "dpl_3iDdwqhxhxC27FEv1SVppSuJGojB",
+    "url": "https://samosell-lunching2-bznb8rlc1-giorgibulbula-6265s-projects.vercel.app",
     "state": "READY",
     "target": null,
-    "commit": "9ed49957d2ad692ec23c3d6c9dc5bdb444d02379"
+    "commit": "b2e02792c05735d949e205d18f96b41d5c0cc578",
+    "stableAliasReadback": true,
+    "vercelCommitStatus": "success",
+    "protectionPreserved": true
   },
   "temporaryUserA": {
     "id": "deef129e-5cbc-461a-86e7-f2b913f6b14e",
@@ -269,5 +281,33 @@
       "authenticated_security_definer_function_executable": 56,
       "auth_leaked_password_protection": 1
     }
-  }
+  },
+  "crossUserBrowserFixtures": {
+    "partnerUserId": "f590087a-bd2a-4842-a4f1-0a4be20c8986",
+    "listingId": "f766c9d9-211f-48de-bcb9-f981917fe662",
+    "chatId": "e52a14d1-5474-42e0-b538-fc02a7889867",
+    "messageId": "35c5efbc-0cf3-47d4-9c44-cc6b0b438995",
+    "ownerUserId": "deef129e-5cbc-461a-86e7-f2b913f6b14e",
+    "status": "CLEANED: zero partner users, listings, chats and messages",
+    "partnerCannotLogin": true,
+    "ownerChatRead": "PASS: User A sees exact synthetic private marker",
+    "ownerListingRoute": "PASS scoped: owned route loads delete card and phone-required gate; editing form intentionally unavailable without contact phone"
+  },
+  "temporaryUserB": {
+    "id": "59696213-9008-49e8-98f3-2be11d051f53",
+    "emailConfirmed": true,
+    "isAdmin": false,
+    "browserDashboard": "PASS: Security QA B visible"
+  },
+  "retainedQaArtifacts": {
+    "userA": true,
+    "userB": true,
+    "userABrandingObjects": 2,
+    "reason": "retain user-created QA accounts for remaining mobile/exposure acceptance; no production data"
+  },
+  "remainingReleaseGates": [
+    "Mobile login/upload browser acceptance",
+    "Complete authenticated network/client-log privileged credential exposure review",
+    "Production administrator MFA risk decision and approved implementation/enrollment as recorded in audit"
+  ]
 }
