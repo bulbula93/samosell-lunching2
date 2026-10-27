@@ -1,0 +1,210 @@
+{
+  "date": "2026-10-27",
+  "timezone": "Asia/Tbilisi",
+  "scope": "intermediate security browser E2E continuation",
+  "project": "samosell-lunching2",
+  "branch": "preview/security-hardening-20261026",
+  "commit": "7107d99f1a2e2a7eba2927de6d287da418232b48",
+  "deployment": {
+    "id": "dpl_8edyAfgr9BQhyJvTwaz4dTrSjiNu",
+    "url": "https://samosell-lunching2-pplu7xq23-giorgibulbula-6265s-projects.vercel.app",
+    "stableAlias": "https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app",
+    "state": "READY",
+    "apiTarget": "staging",
+    "environment": "Preview",
+    "source": "redeploy",
+    "buildingAt": 1793082886789,
+    "readyAt": 1793083011383
+  },
+  "credential": {
+    "key": "SUPABASE_SERVICE_ROLE_KEY",
+    "id": "r3Z3BsMdWwQJwctP",
+    "type": "sensitive",
+    "target": [
+      "preview"
+    ],
+    "gitBranch": "preview/security-hardening-20261026",
+    "updatedAt": 1793082730424,
+    "valueReturned": false,
+    "functionalAdminValidation": "PENDING"
+  },
+  "authConfiguration": {
+    "siteUrlReadback": "PASS",
+    "fourExactRedirectsReadback": "PASS",
+    "existingSixRedirectsPreserved": true,
+    "googleSuccessfulLogin": "NOT_RUN",
+    "emailedRecovery": "NOT_RUN"
+  },
+  "protection": {
+    "ssoEnabled": true,
+    "deploymentType": "all_except_custom_domains",
+    "modified": false
+  },
+  "publicExposureScan": {
+    "page": "/register",
+    "htmlStatus": 200,
+    "htmlBytes": 41288,
+    "secretKeyFormatInHtml": false,
+    "serviceRoleJwtInHtml": "not separately decoded; no secret-format finding",
+    "javascript": [
+      {
+        "path": "/_next/static/chunks/52b27230-32361d5c43894a33.js",
+        "status": 200,
+        "bytes": 203721,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/6554-fd0718021a2a8732.js",
+        "status": 200,
+        "bytes": 242545,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/main-app-a7386ae3fbb918be.js",
+        "status": 200,
+        "bytes": 711,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/loading-30b69bd08e850a9e.js",
+        "status": 200,
+        "bytes": 1484,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/7676-39c5dbde723b6acf.js",
+        "status": 200,
+        "bytes": 7640,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/7812-b721e20b174e0401.js",
+        "status": 200,
+        "bytes": 14727,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/4766-28a9f6a20cf7b32a.js",
+        "status": 200,
+        "bytes": 15355,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/layout-d547c4719878ce35.js",
+        "status": 200,
+        "bytes": 24330,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/error-b93ff3815ffea315.js",
+        "status": 200,
+        "bytes": 4703,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/1bbca088-3555fad9a0f9c240.js",
+        "status": 200,
+        "bytes": 63824,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/5700-db7afc6e838db47b.js",
+        "status": 200,
+        "bytes": 185550,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/register/page-d440c511e52c6910.js",
+        "status": 200,
+        "bytes": 9989,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": true,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/app/global-error-5fe202a66f378667.js",
+        "status": 200,
+        "bytes": 1223,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+        "status": 200,
+        "bytes": 112541,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      },
+      {
+        "path": "/_next/static/chunks/webpack-dbc44401c3525dc4.js",
+        "status": 200,
+        "bytes": 3371,
+        "secretKeyDetected": false,
+        "serviceJwtDetected": false,
+        "qaUrlPresent": false,
+        "productionPublicFallbackPresent": false
+      }
+    ],
+    "scopeLimit": "Only register HTML and its 15 script resources; authenticated responses, additional chunks, all mobile flows and actual installed-key equality not yet verified."
+  },
+  "tests": {
+    "fullSuiteRerun": false,
+    "paymentSuiteRerun": false,
+    "applicationCodeChanged": true,
+    "temporaryAccountRegistration": "AWAITING_USER_HANDOFF",
+    "adminE2E": "NOT_RUN",
+    "applicationChange": "RegisterForm neutral signup success copy only",
+    "targetedEslint": "PASS"
+  },
+  "productionChanged": false,
+  "prMerged": false,
+  "readiness": "NOT_READY",
+  "signupDiagnosis": {
+    "suppliedAddressAlreadyConfirmed": true,
+    "existingProvider": "google",
+    "existingPasswordConfigured": false,
+    "temporaryUsernameCreated": false,
+    "customSmtpEnabled": true,
+    "smtpHost": "smtp.resend.com",
+    "emailDeliveryVerified": false,
+    "settingsChanged": false
+  }
+}

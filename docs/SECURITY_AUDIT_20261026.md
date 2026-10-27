@@ -1,5 +1,7 @@
 # SamoSell Security Audit — 2026-10-26
 
+> **2026-10-27 continuation checkpoint (Asia/Tbilisi): NOT READY. QA Auth URL Configuration: PASS; branch-only Secret configuration saved; refreshed security Preview: READY.** Fresh dashboard reload confirms all four exact QA callback additions, preservation of the six existing redirects, and the stable security Preview as the persisted Site URL. The user installed the QA server credential as Secret, and its exact Preview/branch scope was verified without returning its value. Functional admin acceptance and authenticated E2E remain outstanding. No completed browser sign-in, upload, Google OAuth, recovery or privileged admin E2E is claimed. See the checkpoints at the end of this report; earlier results remain historical evidence with their original scope.
+
 ## აღმასრულებელი შეჯამება
 
 **ვერდიქტი: NOT READY სრული Production release-ისთვის.**
@@ -315,3 +317,89 @@ Production execution is **not approved**. The exact release sequence remains:
 6. Read back the six owner mutation policies, three restrictive guards, UPDATE USING/WITH CHECK, public SELECT and service-only marketing RPC grants; run Security Advisor. A mismatch halts release.
 7. After explicit merge/deployment approval, merge PR #136 through the normal protected main workflow and release the frozen patched code. Verify the deployment's Supabase target is Production and that QA branch overrides/test data do not carry over. Do not change Production payment configuration or credentials.
 8. Run low-impact public and legitimate owner/admin smoke checks; monitor upload/auth/payment errors and report-only CSP. Keep destructive boundary testing on QA. On regression, halt rollout; retain the ownership guards and choose a patched application rollback build. Never restore the bucket-only permissive mutation policies. MFA enrollment/enforcement needs its own reviewed deployment and secure authenticator handoff.
+
+## QA Auth / privileged Preview continuation checkpoint — 2026-10-27
+
+This is an intermediate checkpoint, not a completed final browser E2E report. Application code and migration bytes have not changed. No application or payment suite was repeated. No SQL mutation, Production change, credential transfer, deployment, merge or PR-state change was performed in this continuation.
+
+### Fresh infrastructure evidence
+
+- GitHub PR #136: OPEN, DRAFT, unmerged; head `7107d99f1a2e2a7eba2927de6d287da418232b48`, base main `23fa44a0c11ccdd3cba6b72d318252cd4d93b7fe`. Both remote refs matched local readback.
+- Stable QA alias resolves to deployment `dpl_C1eg4f9xrKZrXjSv9zrGSYuTwTe9`, URL `https://samosell-lunching2-aleim19fu-giorgibulbula-6265s-projects.vercel.app`, state READY, target Preview (`target: null`), git ref `preview/security-hardening-20261026`, SHA `7107d99f1a2e2a7eba2927de6d287da418232b48`.
+- GitHub Vercel status for that head: SUCCESS. Application-head CI run `40314515460` for `8d518c81c225c92873192df4a41ffc2df89b8b1e`: COMPLETED / SUCCESS. The intervening head changes only the audit Markdown and evidence JSON, so the 1,174 application and 112 selected payment test results were retained without rerunning.
+- QA migration listing contains one `20261026105600 / security_storage_and_rpc_hardening`. Local migration SHA-256 remains `1a9488d243c297beaf67f6e32877b3f9ec1f496c2b7c530a42dfa315e823c84e`. Storage policy readback still contains six owner mutation policies, three restrictive namespace guards and both public SELECT policies.
+- Vercel branch overrides are target `preview`, gitBranch `preview/security-hardening-20261026`; Supabase URL is `https://ydocqjdjmffysexkzxyc.supabase.co`; public Site URL is the stable security alias. Flitt payments and TBC checkout flags remain false. No wider environment was selected.
+- `SUPABASE_SERVICE_ROLE_KEY`, ID `r3Z3BsMdWwQJwctP`, is still EMPTY, encrypted/Config and confined to this Preview branch. It has not been populated or converted. The current editor requires email verification before revealing/editing the existing value; that verification was not completed. No key was revealed, copied or submitted. The installed Supabase tool surface exposes publishable keys but no secure server-key transfer or Auth-config update operation.
+- Vercel Deployment Protection UI: Require Log In checked, Standard Protection selected, no domain exceptions shown. Existing Trusted Sources permits this project's development tokens to access Preview. No protection setting, source or bypass was changed.
+
+### Prepared QA Auth form — unsaved
+
+The authenticated dashboard positively identifies **Samosell-QA / `ydocqjdjmffysexkzxyc`**. Persisted Site URL still has the old `3132e4` alias and six existing redirects. The Site URL form contains the requested replacement; the Add URL dialog contains exactly the four callback URLs in the prior proposal. Neither Save URLs nor Save changes has been submitted. Existing entries, including earlier QA branch patterns, are retained. No wildcard was added.
+
+Saving these new trusted Auth destinations falls under the Cloud Browser's action-time confirmation rule, **“Creates or materially expands security-sensitive access.”** The rule requires confirmation at the save step even when initial task authorization exists. This is a browser execution requirement, not a new request to approve Production. The exact prepared QA change is ready for user review.
+
+QA Google provider is enabled; its displayed callback is `https://ydocqjdjmffysexkzxyc.supabase.co/auth/v1/callback`; nonce checks remain enabled. This proves the Supabase callback identity only. Google Cloud's registered redirect list and successful Google login are not yet verified.
+
+### Fresh browser evidence and current result matrix
+
+| Requirement | Status | Actual evidence and limit |
+|---|---|---|
+| QA Redirect URLs | BLOCKED | Four exact additions and Site URL prepared; action-time save confirmation pending. Persisted old configuration still applies. |
+| Google OAuth | BLOCKED | QA provider enabled and callback targets QA; no successful disposable Google sign-in. |
+| Password Reset | BLOCKED | Sessionless `/reset-password` redirects to QA `/forgot-password?error=invalid_or_expired`, with the Georgian invalid/expired message. Email delivery, valid recovery exchange and password change not run. |
+| QA Server Credential | BLOCKED | Existing branch-only variable is empty; secure credential input and Vercel email verification required. |
+| Browser Login | BLOCKED | Login controls render; completed disposable user sign-in, wrong-password, logout and persistence not run. |
+| Profile Upload | BLOCKED | Anonymous `/dashboard/profile` redirects to `/login?next=%2Fdashboard%2Fprofile`; authenticated upload/replacement/deletion not run. Historical Storage API PASS is retained separately. |
+| Store Branding | BLOCKED | Historical owner and foreign-namespace Storage API tests PASS; creation and image lifecycle through authenticated UI not run. |
+| Cross-user Authorization | PASS at prior API scope; browser BLOCKED | Existing redacted REST/RPC/Storage evidence retained without repetition. No two-user browser session test yet. |
+| Admin Authorization | PASS at prior RPC scope; browser BLOCKED | Anonymous `/admin` redirects to QA `/login?next=%2Fdashboard`; authorized admin UI, moderation and audit-log UI not run. |
+| Payment Security | PASS at prior mocked/invariant scope | Existing 14-file / 112-test log verified, not rerun. No real payment, VIP activation or live provider callback performed. |
+| Preview Deployment | READY build; NOT READY for full privileged E2E | Exact branch/commit and Vercel success confirmed; missing QA server credential blocks privileged backend acceptance. |
+| Production Readiness | NOT READY | Auth save, secure credential installation and full disposable user/admin browser flows remain outstanding; previously documented MFA risk remains. |
+
+Sampled browser warnings/errors during login and anonymous redirect checks contain only extension-origin metadata errors. No app-origin CSP/auth/CORS error appeared in that sample. This does not cover authenticated network responses, all bundles, uploads, session isolation or mobile rendering. Privileged-key exposure cannot be certified for a credential that has not been installed.
+
+No fixture accounts were created during this checkpoint, so no new test records require cleanup. New registration and password changes require user browser handoff under the current secure authentication rules; no passwords or tokens may be pasted into chat or filled through model-visible tools.
+
+### Continuation and conditional Production release
+
+1. Obtain action-time confirmation for the exact Site URL and four callback additions. Save both QA forms and freshly read back all ten redirects plus the Site URL; preserve the six existing entries.
+2. Have the user securely supply the existing **QA** server key into the existing Vercel variable. Verify QA project identity, Secret type, Preview target and exact security branch; retain Deployment Protection. Do not use Production or another branch's key. No key contents should be returned to the model.
+3. Redeploy only the security Preview after the credential is saved. Verify new deployment SHA, branch, QA backend, protection and public bundle/network secret absence. Carry out the requested disposable A/B/admin browser cases; only changed application areas need regression tests. Google and emailed recovery remain BLOCKED until actually completed.
+4. Update the final matrix and freeze the final commit/checks. Keep PR Draft until real acceptance criteria are met. The conditional Production procedure and exact migration bytes/hash in the preceding release section remain the proposal; **none of its Production actions is approved or executed**. Main drift requires review and relevant retesting. Administrator MFA remains unresolved and must be assessed explicitly before a READY verdict.
+
+This checkpoint is intentionally an uncommitted working-tree update while external QA approval/input is pending, avoiding an unnecessary documentation-triggered Preview rebuild. It must be incorporated into the final branch report once the continuation is complete.
+
+### User-saved redirects — fresh readback, 2026-10-27
+
+After the user reported saving the new addresses, the QA URL Configuration page was reloaded. Readback confirms exactly ten redirect entries: the original six plus all four exact requested callbacks, with encoded `next` values `%2F`, `%2Fdashboard`, `%2Freset-password` and `%2Fdashboard%2Fstore%2Fsetup`. No existing entry was removed and no wildcard was added. **Redirect allowlist subcheck: PASS.**
+
+The initial fresh persisted page still showed the previous Site URL. Following the user's response to the concrete QA configuration approval request, the separate **Save changes** action was completed for the already specified stable security Preview. A second page reload confirms persisted Site URL `https://samosell-lunching2-git-prev-f7eae1-giorgibulbula-6265s-projects.vercel.app`, disabled Save changes button, and all ten redirect entries. **Complete QA Auth URL configuration: PASS.** No duplicate redirects were added. This supersedes the unsaved Site URL observations above.
+
+Vercel alias readback remains on `dpl_C1eg4f9xrKZrXjSv9zrGSYuTwTe9`. Branch-only `SUPABASE_SERVICE_ROLE_KEY` readback still reports an empty value, type encrypted, target Preview and gitBranch `preview/security-hardening-20261026`; no secret was printed. No redeployment is necessary for the redirect-only change. Credential-dependent and authenticated browser cases remain unrun.
+
+The QA API Keys page (`/dashboard/project/ydocqjdjmffysexkzxyc/settings/api-keys`) was opened for the user. It shows an existing default Secret key, masked, with a Copy API key control; no key was created or revealed. The user must copy that existing QA-only server key directly into the existing branch-scoped Vercel variable, choose Secret storage, and preserve Preview + exact security branch. Vercel's email verification prompt is left for secure user completion. No new key or rotation is required. This is a user-input handoff, not completed credential configuration.
+
+### User-saved credential and refreshed security Preview — 2026-10-27
+
+The user reported saving the credential. Fresh Vercel metadata confirms the existing ID `r3Z3BsMdWwQJwctP` is now type `sensitive` (Secret), target only `preview`, gitBranch exactly `preview/security-hardening-20261026`, updatedAt `1793082730424`. The single-variable readback returns no value. No key was printed, read into a local environment file, revealed in the browser, committed, or copied to another branch. The public Supabase URL override remains the QA project. Configuration installation is confirmed; key/project compatibility remains a functional admin test requirement, not an inferred PASS.
+
+The user's screenshot showed a separate Preview build from `main` at `23fa44a`; this was not a Production deployment and could not consume the security-branch-only key. It was not treated as the security QA build. The agent redeployed only the known security-branch deployment, preserving commit `7107d99f1a2e2a7eba2927de6d287da418232b48` and using the refreshed branch environment. A request using API target `preview` was rejected before creating anything; the API's accepted non-Production target `staging` was used for the redeploy.
+
+New deployment `dpl_8edyAfgr9BQhyJvTwaz4dTrSjiNu` is READY, source redeploy, security branch and exact SHA above. URL: `https://samosell-lunching2-pplu7xq23-giorgibulbula-6265s-projects.vercel.app`. Stable security alias readback points to this deployment. Build start `1793082886789`, ready `1793083011383`. Project protection readback after the credential update still reports SSO enabled for `all_except_custom_domains`; no protection setting was changed. The privileged backend's functional behavior still requires the pending authenticated admin checks.
+
+Public response verification after redeploy: `/register` HTTP 200, 41,288-character HTML with CSP Report-Only, private/no-store caching, nosniff and SAMEORIGIN headers. All 15 script URLs advertised by that HTML returned HTTP 200. Scanning those scripts found no `sb_secret_` credential or JWT with `service_role` role; the registration bundle contains the QA Supabase URL. No secret-key pattern was found in the HTML. This is a scoped format/role scan, not a guarantee about every bundle, authenticated response, log or equality with the unretrieved installed key. Redacted scan details are in `SECURITY_QA_BROWSER_20261027.json`.
+
+Authenticated HTTP retrieval used the Vercel connector's temporary share-link mechanism; its documented access link expires after 23 hours. SSO was not disabled and no long-lived automation bypass was added. Share tokens are excluded from the committed evidence.
+
+The rebuilt registration page renders, and only synthetic non-secret name/username fields were prepared for User A. Email and password are left for the user. No registration submission or confirmation email was initiated by the agent. Cloud Browser authentication guidance requires manual handoff for new account creation and prevents model-visible credential entry; the user must complete registration/confirmation and sign in before profile/storage/browser authorization checks can proceed. Disposable PNG fixtures for avatar/replacement/logo/cover are prepared locally. Sampled warnings/errors still contain only extension-origin metadata errors. Application/payment suites and migrations were not rerun. Production and main remain unchanged by the agent, and PR #136 remains Draft and unmerged.
+
+### Signup confusion diagnosis and narrowly scoped copy fix — 2026-10-27
+
+The user supplied a registration-success screenshot but reported no confirmation email. Read-only QA Auth checks show the supplied address already belonged to a confirmed Google-only account created on 2026-10-03, with no password configured. No account with the prepared temporary username was created. The attempted signup did not set a password on the existing identity. This does not establish an SMTP outage or successful delivery. Sampled Auth logs returned no matching signup/email error in the selected window, which is insufficient evidence to certify an email send.
+
+QA SMTP settings were inspected read-only: custom SMTP is enabled, host `smtp.resend.com`, port 465, sender name SamoSell. Password and sender address were not revealed. Default-SMTP recipient restrictions are therefore not a demonstrated cause here. No email configuration, auth identity, administrator flag or password was modified.
+
+`components/auth/RegisterForm.tsx` unconditionally promised a confirmation email for every error-free, sessionless signup response. Its success copy now conditionally describes new-account confirmation and tells existing users to sign in or use Google. The same neutral message is shown for every such response; no email-existence endpoint, identity check, sign-in attempt, confirmation bypass or new account-enumeration signal was added. Auth calls, redirect construction and store continuation paths are unchanged. This fixes the observed misleading UI, not the provider's anti-enumeration behavior.
+
+Validation for the text-only application change: targeted ESLint PASS and `git diff --check` PASS. No mirrored copy test was added and no full application/payment suite or migration was repeated. Earlier application test results remain evidence for the earlier head, not a new test run. A new Preview build is required to deliver this text change. Existing QA Google login is the next read-only authentication step; all destructive authorization tests must still use disposable target records.
