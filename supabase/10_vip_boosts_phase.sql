@@ -164,3 +164,9 @@ left join lateral (
 ) img on true;
 
 grant select on public.listings_catalog to anon, authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.listing_boost_products to anon, authenticated;
+grant select on table public.listing_boost_orders to authenticated;
+grant select, insert, update, delete on table public.listing_boost_products, public.listing_boost_orders to service_role;
+grant select on table public.listings_catalog to service_role;

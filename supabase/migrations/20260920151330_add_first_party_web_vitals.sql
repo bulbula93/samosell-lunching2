@@ -18,3 +18,6 @@ create index if not exists web_vitals_events_route_metric_created_idx
 
 create index if not exists web_vitals_events_created_at_idx
   on public.web_vitals_events (created_at desc);
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant usage, select on sequence public.web_vitals_events_id_seq to service_role;

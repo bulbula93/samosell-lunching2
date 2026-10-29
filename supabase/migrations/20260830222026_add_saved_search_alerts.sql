@@ -323,3 +323,6 @@ after insert or update of status, title, description, price, condition, gender, 
 on public.listings
 for each row
 execute function public.trigger_saved_search_alerts();
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.saved_searches, public.saved_search_listing_matches to service_role;

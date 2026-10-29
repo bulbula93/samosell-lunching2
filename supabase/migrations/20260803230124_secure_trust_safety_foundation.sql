@@ -706,3 +706,8 @@ revoke all on table public.admin_listing_reports from public, anon, authenticate
 revoke all on table public.admin_user_reports from public, anon, authenticated;
 grant select on table public.admin_listing_reports to authenticated;
 grant select on table public.admin_user_reports to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.user_reports, public.moderation_audit_log to service_role;
+grant select on table public.admin_listing_reports to service_role;
+grant select on table public.admin_user_reports to service_role;
