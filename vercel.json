@@ -1,12 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "git": {
     "deploymentEnabled": {
       "**": false,
       "main": true,
-      "preview/**": true
+      "preview/**": true,
+      "preview/cpu-optimization-20261102": false
     }
   }
 }
