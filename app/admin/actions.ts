@@ -78,7 +78,7 @@ export async function adminListingAction(formData: FormData) {
     redirect(withFlash(adminPath, adminErrorMessage(error.message), "error"))
   }
 
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ listingId })
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/listings")
@@ -118,7 +118,7 @@ export async function adminUserAction(formData: FormData) {
     redirect(withFlash(adminPath, adminErrorMessage(error.message), "error"))
   }
 
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ sellerId: userId })
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/users")

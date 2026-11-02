@@ -795,7 +795,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       })
     }
 
-    invalidatePublicMarketplace()
+    invalidatePublicMarketplace({ listingId: input.listingId, sellerId: user.id, slug, previousSlug: ownedListing?.slug })
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

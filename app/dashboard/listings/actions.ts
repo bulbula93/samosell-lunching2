@@ -423,7 +423,7 @@ export async function updateListingStatusAction(
   if (updatedListing.status === "active" && !ownedListing.published_at) await recordListingOutcome("listing_published", user.id, listingId)
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: ownedListing.slug })
   revalidatePath("/catalog")
   if (ownedListing.slug) revalidatePath(`/listing/${ownedListing.slug}`)
 
@@ -504,7 +504,7 @@ export async function deleteListingAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/listings")
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: listing.slug })
   revalidatePath("/catalog")
   if (listing.slug) revalidatePath(`/listing/${listing.slug}`)
 
