@@ -9,7 +9,7 @@ import { getPublicHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
 
-export const revalidate = 60
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: "მეორადი ტანსაცმლის ონლაინ მარკეტპლეისი საქართველოში",
@@ -34,7 +34,7 @@ export default async function Home() {
   // Fail regeneration on a catalog outage: ISR retains the last good page.
   const [data, heroAds, navigation] = await Promise.all([
     getPublicHomePageData(),
-    getActiveAdRotation(["home_hero_left", "home_hero_right"]),
+    getActiveAdRotation(["home_hero_left", "home_hero_right"], { home: true }),
     getMarketplaceNavigationItems(),
   ])
   const structuredData = buildHomeStructuredData()

@@ -249,9 +249,9 @@ const getCachedPublicHomePageData = unstable_cache(
       activeCount: usable.count ?? rows.length,
     }
   }),
-  ["home-public-data-v6"],
+  ["home-public-data-v7"],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ["home-public-data"],
   },
 )
