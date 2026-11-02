@@ -8,11 +8,14 @@ export default function GrowthInstrumentation() {
   const pathname = usePathname()
   const search = useSearchParams()
   const consent = useBrowserConsent()
+  const analytics = consent?.analytics
+  const marketing = consent?.marketing
+  const updatedAt = consent?.updatedAt
   const last = useRef("")
   const previous = useRef(false)
   const anonymous = useRef<string | null>(null)
   useEffect(() => {
-    if (!consent?.analytics) { clearGrowthStorage(); last.current = ""; return }
+    if (!analytics) { clearGrowthStorage(); last.current = ""; return }
     // Auth codes/queries never enter event payloads. Query changes still represent navigation.
     const key = `${pathname}?${search.toString()}`
     if (last.current === key) return
@@ -21,13 +24,13 @@ export default function GrowthInstrumentation() {
     const id = crypto.randomUUID()
     const timer = setTimeout(() => { void trackGrowth("page_view", id) }, 0)
     return () => { clearTimeout(timer); last.current = "" }
-  }, [pathname, search, consent?.analytics])
+  }, [pathname, search, analytics])
   useEffect(() => {
-    if (!consent) return
-    if (previous.current && (!consent.analytics || !consent.marketing)) void fetch("/api/growth/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_name: "consent_revoked", anonymous_id: anonymous.current }), keepalive: true }).catch(() => undefined)
-    previous.current = consent.analytics || consent.marketing === true
-    if (!consent.marketing) void import("@/lib/growth/meta-browser").then(module => module.revokeMetaBrowser())
-    if (consent.analytics) void trackGrowth("identify")
-  }, [consent])
+    if (updatedAt === undefined) return
+    if (previous.current && (!analytics || !marketing)) void fetch("/api/growth/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_name: "consent_revoked", anonymous_id: anonymous.current }), keepalive: true }).catch(() => undefined)
+    previous.current = analytics || marketing === true
+    if (!marketing) void import("@/lib/growth/meta-browser").then(module => module.revokeMetaBrowser())
+    if (analytics) void trackGrowth("identify")
+  }, [analytics, marketing, updatedAt])
   return null
 }

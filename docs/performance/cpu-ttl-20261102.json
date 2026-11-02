@@ -1,0 +1,116 @@
+{
+  "method": "Local Next 16.2.3 production servers; identical 20-row deterministic fixture; real elapsed time, no virtual clocks; process.cpuUsage via IPC includes server/background activity during each sample and excludes HTTP client/fixture. Not Vercel billed Active CPU. Two HTML requests per interval, no browser JS/images. CPU samples may include JIT/GC; no statistics or live origin invocation measurements.",
+  "measuredAt": "2026-11-02T08:09:53.051Z",
+  "results": [
+    {
+      "name": "baseline",
+      "ttl": 60,
+      "manifestTTL": 60,
+      "rows": [
+        {
+          "elapsedSeconds": 0,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 579
+        },
+        {
+          "elapsedSeconds": 65,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 250
+        },
+        {
+          "elapsedSeconds": 130,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 157
+        },
+        {
+          "elapsedSeconds": 195,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 250
+        },
+        {
+          "elapsedSeconds": 260,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 203
+        },
+        {
+          "elapsedSeconds": 325,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 125
+        }
+      ]
+    },
+    {
+      "name": "ttl-candidate",
+      "ttl": 300,
+      "manifestTTL": 300,
+      "rows": [
+        {
+          "elapsedSeconds": 0,
+          "requests": 2,
+          "cache": "HIT",
+          "followupCache": "HIT",
+          "upstreamRequests": 0,
+          "processCpuMs": 47
+        },
+        {
+          "elapsedSeconds": 65,
+          "requests": 2,
+          "cache": "HIT",
+          "followupCache": "HIT",
+          "upstreamRequests": 0,
+          "processCpuMs": 47
+        },
+        {
+          "elapsedSeconds": 130,
+          "requests": 2,
+          "cache": "HIT",
+          "followupCache": "HIT",
+          "upstreamRequests": 0,
+          "processCpuMs": 16
+        },
+        {
+          "elapsedSeconds": 195,
+          "requests": 2,
+          "cache": "HIT",
+          "followupCache": "HIT",
+          "upstreamRequests": 0,
+          "processCpuMs": 47
+        },
+        {
+          "elapsedSeconds": 260,
+          "requests": 2,
+          "cache": "HIT",
+          "followupCache": "HIT",
+          "upstreamRequests": 0,
+          "processCpuMs": 31
+        },
+        {
+          "elapsedSeconds": 325,
+          "requests": 2,
+          "cache": "STALE",
+          "followupCache": "HIT",
+          "upstreamRequests": 2,
+          "processCpuMs": 640
+        }
+      ]
+    }
+  ]
+}

@@ -24,5 +24,17 @@ export async function getActiveAdsForPlacements(placementKeys:readonly AdPlaceme
 }
 export async function getActiveAdRotation(placementKeys:readonly AdPlacementKey[], options: { home?: boolean } = {}) {
   if(!placementKeys.length)return []
-  try{return (await rows(placementKeys, options.home)).filter(ad=>isAdActive(ad)).sort((a,b)=>a.id.localeCompare(b.id))}catch(error){unstable_rethrow(error);console.error("[ads] active rotation lookup failed");return []}
+  try {
+    const now = Date.now()
+    return (await rows(placementKeys, options.home))
+      // Include known future campaigns for the home client's deadline timer;
+      // they stay hidden in SSR until starts_at, then activate without polling.
+      .filter(ad => isAdActive(ad, new Date(options.home ? Math.max(now, ad.starts_at ? Date.parse(ad.starts_at) : now) : now)))
+      .sort((a,b) => a.id.localeCompare(b.id))
+  } catch(error) {
+    unstable_rethrow(error)
+    if (options.home) throw error // preserve the last successful ISR page
+    console.error("[ads] active rotation lookup failed")
+    return []
+  }
 }

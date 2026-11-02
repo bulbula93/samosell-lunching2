@@ -4,8 +4,12 @@ import { GROWTH_COOKIE, GROWTH_KEY, TOUCH_TTL, SESSION_TTL, cleanTouch, parseCon
 
 let memory: GrowthContext | null = null
 const pending = new Map<string, Promise<void>>()
+const completed = new Map<string, number>()
+const COMPLETED_TTL_MS = 120_000
+const MAX_COMPLETED = 128
 export function clearGrowthStorage() {
   memory = null
+  completed.clear()
   try { localStorage.removeItem(GROWTH_KEY); for (const key of Object.keys(sessionStorage)) if (key.startsWith(`${GROWTH_KEY}:`) || key.startsWith("samosell:meta:")) sessionStorage.removeItem(key) } catch { /* unavailable */ }
   try { document.cookie = `${GROWTH_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax` } catch { /* unavailable */ }
 }
@@ -36,6 +40,10 @@ export function trackGrowth(eventName: "page_view" | "listing_started" | "listin
   if (pending.has(eventId)) return pending.get(eventId)!
   const context = growthContext()
   if (!context) return Promise.resolve()
+  const now = Date.now()
+  for (const [id, until] of completed) if (until <= now) completed.delete(id)
+  const completedKey = `${context.session_id}:${eventId}`
+  if (completed.has(completedKey)) return Promise.resolve()
   const path = safePath(location.pathname)
   const task = fetch("/api/growth/events", {
     method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
@@ -43,6 +51,12 @@ export function trackGrowth(eventName: "page_view" | "listing_started" | "listin
   }).then(async response => {
     if (!response.ok) return
     const data = await response.json()
+    // Suppress only the same acknowledged event ID. A new identify after a
+    // publish/login must still retrieve newly available conversion attribution.
+    if (allowsAnalytics()) {
+      completed.set(completedKey, Date.now() + COMPLETED_TTL_MS)
+      if (completed.size > MAX_COMPLETED) completed.delete(completed.keys().next().value!)
+    }
     if (getBrowserConsent()?.marketing) {
       const { trackMetaBrowser } = await import("./meta-browser")
       for (const event of data.conversions ?? []) trackMetaBrowser(event)

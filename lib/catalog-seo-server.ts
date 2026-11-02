@@ -1,4 +1,5 @@
 import "server-only"
+import { categoryTag } from "@/lib/public-marketplace-tags"
 import { unstable_cache } from "next/cache"
 import { applyCatalogFilters, resolveCatalogState } from "@/lib/catalog-page"
 import { buildCatalogMetadata, resolveCatalogSeo, type CatalogPageParams } from "@/lib/catalog-seo"
@@ -6,7 +7,7 @@ import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { withQueryTimeout } from "@/lib/supabase/query-timeout"
 import { PAGE_SIZE } from "@/lib/catalog-page"
 
-const getCategoryCount = unstable_cache(async (category: string) => {
+const loadCategoryCount = async (category: string) => {
   const client = createPublicServerClient()
   const response = await withQueryTimeout(applyCatalogFilters(
     client.from("listings_catalog").select("id", { count: "exact", head: true }).eq("status", "active"),
@@ -14,7 +15,13 @@ const getCategoryCount = unstable_cache(async (category: string) => {
   ))
   if (response.error) throw new Error("catalog_seo_count_failed")
   return response.count ?? 0
-}, ["catalog-seo-pagination-count-v1"], { revalidate: 300, tags: ["catalog-seo-pagination-count"] })
+}
+function getCategoryCount(category: string) {
+  return unstable_cache(loadCategoryCount, ["catalog-seo-pagination-count-v2"], {
+    revalidate: 300,
+    tags: ["catalog-seo-pagination-count", "public-listings", ...(category ? ["public-categories", categoryTag(category)] : ["public-feed"])],
+  })(category)
+}
 
 // Production diagnostics are opt-in, deliberately limited to non-sensitive classifications.
 // Never log query values, search terms, UTM values, cookies, or user identifiers.

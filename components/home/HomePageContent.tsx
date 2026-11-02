@@ -18,7 +18,7 @@ export default function HomePageContent({data,heroAds=[],catalogUnavailable=fals
  {!catalogUnavailable?<HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>:null}
  <HomePromoBanner bannerItems={data.bannerItems}/>
  <HomeProductsSection title={ka.home.popular} description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით" href="/catalog?sort=popular" items={data.popularItems} favoriteIds={[]}/>
- <section aria-label="რეკლამა" className="border-b border-line bg-white py-8 sm:py-10"><div className="ui-container"><AdCarousel ads={heroAds} pagePath="/" fallbackPlacement="home_hero_left"/></div></section>
+ <section aria-label="რეკლამა" className="border-b border-line bg-white py-8 sm:py-10"><div className="ui-container"><AdCarousel renderedAt={data.renderedAt} ads={heroAds} pagePath="/" fallbackPlacement="home_hero_left"/></div></section>
  <HomeProductsSection title={ka.home.affordable} description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით" href="/catalog?sort=price_asc" items={data.affordableItems} favoriteIds={[]}/>
  <HomeProductsSection title={ka.home.vintage} href="/catalog/vintage" items={data.vintageItems} favoriteIds={[]}/><HomeCollectionsSection brands={data.popularBrands}/><HomeHowItWorks/></>
 }

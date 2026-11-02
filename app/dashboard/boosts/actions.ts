@@ -303,7 +303,7 @@ export async function createBoostOrderAction(formData: FormData) {
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
 
-  invalidatePublicMarketplace()
+  // Pending payment is private; no public placement has changed.
   revalidatePath("/catalog")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
@@ -403,6 +403,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
   if (!orderId || !decision) redirect(withFlash(nextPath, "missing"))
 
   const { supabase, user } = await requireAdmin()
+  let publicChange: { listingId: string; sellerId: string } | undefined
 
   try {
     const { data: order, error } = await supabase
@@ -431,6 +432,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
     if (!order) redirect(withFlash(nextPath, "not_found"))
 
     const orderRow = order as unknown as AdminOrderRow
+    publicChange = { listingId: orderRow.listing_id, sellerId: orderRow.seller_id }
     const reviewableStatuses = ["pending_payment", "under_review", "approved"]
 
     if (decision === "review") {
@@ -481,7 +483,7 @@ export async function adminReviewBoostOrderAction(formData: FormData) {
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
 
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace(publicChange)
   revalidatePath("/catalog")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
@@ -526,7 +528,7 @@ export async function refreshBoostOrderStatusAction(formData: FormData) {
     const result = await syncBoostOrderFromTbcByOrderId(orderId, mode === "admin" ? "manual_admin_sync" : "manual_sync")
     const providerStatus = String(result?.payment?.status ?? ((result?.order as { provider_status?: string | null } | null)?.provider_status ?? ""))
 
-    invalidatePublicMarketplace()
+    // The verified sync invalidates only when public payment state changes.
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

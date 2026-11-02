@@ -109,7 +109,7 @@ export function isAdActive(ad: AdRecord, now = new Date()) {
   const startsAt = ad.starts_at ? Date.parse(ad.starts_at) : null
   const endsAt = ad.ends_at ? Date.parse(ad.ends_at) : null
   if (startsAt !== null && (!Number.isFinite(startsAt) || startsAt > timestamp)) return false
-  if (endsAt !== null && (!Number.isFinite(endsAt) || endsAt < timestamp)) return false
+  if (endsAt !== null && (!Number.isFinite(endsAt) || endsAt <= timestamp)) return false
   return true
 }
 

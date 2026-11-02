@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ aut
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: state.rpc }) }))
 vi.mock("next/server", () => ({ after: state.after }))
 vi.mock("next/headers", () => ({ cookies: vi.fn() }))
+import { createClient } from "@/lib/supabase/server"
 import { POST } from "@/app/api/growth/events/route"
 const anon = "11111111-1111-4111-8111-111111111111"
 function request(body: unknown, analytics = true, marketing = false, extra: Record<string, string> = {}) {
@@ -40,6 +41,13 @@ describe("Growth ingestion security", () => {
   })
   it("does no optional database work after denied consent", async () => {
     await POST(request(event(), false))
+    expect(state.rpc).not.toHaveBeenCalled()
+  })
+  it.each(["denied", "bot", "invalid"])("rejects %s before initializing authenticated Supabase", async kind => {
+    state.user = { id: "authenticated" }
+    const body = kind === "invalid" ? { ...event(), event_id: "invalid" } : event()
+    await POST(request(body, kind !== "denied", false, kind === "bot" ? { "user-agent": "crawler" } : {}))
+    expect(createClient).not.toHaveBeenCalled()
     expect(state.rpc).not.toHaveBeenCalled()
   })
   it("rejects cross-origin and oversized requests", async () => {

@@ -17,7 +17,7 @@ vi.mock("@/lib/supabase/public-server", () => ({ createPublicServerClient: () =>
 } }) }))
 import { getCachedPublicRows } from "@/lib/public-marketplace-cache"
 import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
-import { marketplaceChangeTags } from "@/lib/public-marketplace-tags"
+import { marketplaceChangeTags, listingCategoryScope } from "@/lib/public-marketplace-tags"
 const read = (id: string, seller: string) => getCachedPublicRows({ table: "listings_catalog", select: "id, title", eq: [["id", id], ["seller_id", seller]], single: true })
 beforeEach(() => { state.entries.clear(); state.read.mockReset().mockResolvedValue({ data: { title: "before" }, count: null, error: null }) })
 describe("scoped marketplace invalidation", () => {
@@ -39,6 +39,13 @@ describe("scoped marketplace invalidation", () => {
     const tags = marketplaceChangeTags({ listingId: "A", sellerId: "S", slug: "new", previousSlug: "old", categories: ["women", "men"] })
     expect(tags).toEqual(expect.arrayContaining(["public-category:women", "public-category:men", "public-listing-slug:old", "public-listing-slug:new", "public-feed", "home-public-data"]))
     expect(tags).not.toContain("public-listings")
+  })
+  it("invalidates both old/new gender routes and overlapping taxonomy routes on edits", () => {
+    const categories = listingCategoryScope("women", "men")
+    expect(categories).toEqual(expect.arrayContaining(["women", "men", "footwear", "bags", "vintage", "accessories", "perfume"]))
+    expect(categories).not.toContain("kids")
+    expect(listingCategoryScope(undefined, "men")).toBeUndefined()
+    expect(marketplaceChangeTags({ listingId: "A", sellerId: "S", categories: [undefined, "men"] })).toContain("public-categories")
   })
   it("safely expires all category feeds when mutation scope is unknown", () => {
     expect(marketplaceChangeTags({ listingId: "A", sellerId: "S" })).toContain("public-categories")

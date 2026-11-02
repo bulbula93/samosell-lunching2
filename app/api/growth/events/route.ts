@@ -16,8 +16,10 @@ export async function POST(request: Request) {
   if (!body || typeof body !== "object") return Response.json({ error: "invalid_body" }, { status: 400, headers })
   const consent = cookieConsent(request.headers.get("cookie"))
   const hasAuth = /(?:^|;\s*)sb-[^=]+-auth-token/.test(request.headers.get("cookie") ?? "")
-  const user = hasAuth ? (await (await createClient()).auth.getUser()).data.user : null
+  const getUser = async () => hasAuth ? (await (await createClient()).auth.getUser()).data.user : null
   if (body.event_name === "consent_revoked") {
+    if (!consent) return Response.json({ conversions: [] }, { headers })
+    const user = await getUser()
     if (consent && (user || uuid(body.anonymous_id))) await createAdminClient().rpc("revoke_growth_consent", { p_user_id: user?.id ?? null, p_anonymous_id: uuid(body.anonymous_id) ? body.anonymous_id : null, p_decided_at: consent.updatedAt })
     return Response.json({ conversions: [] }, { headers })
   }
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
   const context = parseContext(JSON.stringify(body.context))
   if (!context || !["page_view", "listing_started", "listing_publish_failed", "identify"].includes(String(body.event_name))) return Response.json({ error: "invalid_event" }, { status: 400, headers })
   if (!uuid(body.event_id) && !(body.event_name === "listing_started" && uuid(body.attempt_id) && body.event_id === `listing_started:${body.attempt_id}`)) return Response.json({ error: "invalid_id" }, { status: 400, headers })
+  const user = await getUser()
   const path = safePath(body.path)
   if (["listing_started", "listing_publish_failed"].includes(String(body.event_name)) && (!user || path !== "/dashboard/listings/new")) return Response.json({ error: "unauthorized" }, { status: 403, headers })
   try {

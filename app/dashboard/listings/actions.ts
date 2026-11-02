@@ -2,6 +2,7 @@
 
 import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
+import { listingCategoryScope } from "@/lib/public-marketplace-tags"
 import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
@@ -275,7 +276,7 @@ export async function updateListingStatusAction(
 
   const { data: ownedListing, error: lookupError } = await supabase
     .from("listings")
-    .select("id, slug, title, price, currency, status, updated_at, published_at")
+    .select("id, slug, title, price, currency, status, updated_at, published_at, gender")
     .eq("id", listingId)
     .eq("seller_id", user.id)
     .maybeSingle()
@@ -404,6 +405,8 @@ export async function updateListingStatusAction(
     }
   }
 
+  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: ownedListing.slug, categories: listingCategoryScope(ownedListing.gender) })
+
   if (
     updatedListing.status === "active" &&
     !ownedListing.published_at &&
@@ -423,7 +426,6 @@ export async function updateListingStatusAction(
   if (updatedListing.status === "active" && !ownedListing.published_at) await recordListingOutcome("listing_published", user.id, listingId)
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
-  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: ownedListing.slug })
   revalidatePath("/catalog")
   if (ownedListing.slug) revalidatePath(`/listing/${ownedListing.slug}`)
 
@@ -452,7 +454,7 @@ export async function deleteListingAction(formData: FormData) {
 
   const { data: listing, error: listingError } = await supabase
     .from("listings")
-    .select("id, slug, cover_image_url")
+    .select("id, slug, cover_image_url, gender")
     .eq("id", listingId)
     .eq("seller_id", user.id)
     .maybeSingle()
@@ -496,6 +498,8 @@ export async function deleteListingAction(formData: FormData) {
   }
   if (deleteError) redirect(buildRedirect(filter, humanizeSupabaseError(deleteError.message)))
 
+  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: listing.slug, categories: listingCategoryScope(listing.gender) })
+
   if (storagePaths.length > 0) {
     const { error: storageError } = await supabase.storage.from("listing-images").remove(storagePaths)
     if (storageError) {
@@ -504,7 +508,6 @@ export async function deleteListingAction(formData: FormData) {
   }
 
   revalidatePath("/dashboard/listings")
-  invalidatePublicMarketplace({ listingId, sellerId: user.id, slug: listing.slug })
   revalidatePath("/catalog")
   if (listing.slug) revalidatePath(`/listing/${listing.slug}`)
 
