@@ -44,7 +44,11 @@ function getFlashMessage(params: MyListingsSearchParams) {
     case "deleted":
       return "განცხადება წაიშალა."
     case "payment_history":
-      return "ამ განცხადების წაშლა შეუძლებელია, რადგან მას VIP/გადახდის ისტორია აქვს. საჭიროების შემთხვევაში გადაიტანე არქივში."
+      return "ამ განცხადების წაშლა შეუძლებელია, რადგან მას რეალური VIP/გადახდის ისტორია აქვს. საჭიროების შემთხვევაში გადაიტანე არქივში."
+    case "rate_limited":
+      return "ძალიან ბევრი წაშლის მცდელობა დაფიქსირდა. ცოტა ხანში სცადე ხელახლა."
+    case "error":
+      return "განცხადების წაშლა ვერ შესრულდა. გვერდი განაახლე და სცადე ხელახლა."
     default:
       return ""
   }
@@ -77,7 +81,7 @@ export default async function DashboardListingsPage({
   const rangeFrom = (page - 1) * MY_LISTINGS_PAGE_SIZE
   const rangeTo = rangeFrom + MY_LISTINGS_PAGE_SIZE - 1
   const flashMessage = getFlashMessage(params)
-  const flashIsWarning = readParam(params.flash) === "payment_history"
+  const flashIsWarning = ["payment_history", "rate_limited", "error"].includes(readParam(params.flash))
 
   const { supabase, user } = await requireAuthenticatedUser(
     getMyListingsPath(activeFilter, page, publicId)
