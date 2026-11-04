@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { extractStoragePathFromPublicUrl, humanizeSupabaseError } from "@/lib/listings"
+import { extractStoragePathFromPublicUrl } from "@/lib/listings"
 import { isUuid } from "@/lib/listing-form"
 import {
   canTransitionListingStatus,
@@ -457,7 +457,10 @@ export async function deleteListingAction(formData: FormData) {
     .eq("seller_id", user.id)
     .maybeSingle()
 
-  if (listingError) redirect(buildRedirect(filter, humanizeSupabaseError(listingError.message)))
+  if (listingError) {
+    console.error("listing_delete_lookup_failed", listingError.message)
+    redirect(buildRedirect(filter, "error"))
+  }
   if (!listing) redirect(buildRedirect(filter, "error"))
 
   const { data: paymentHistory, error: paymentHistoryError } = await supabase
@@ -465,10 +468,12 @@ export async function deleteListingAction(formData: FormData) {
     .select("id")
     .eq("listing_id", listingId)
     .eq("seller_id", user.id)
+    .not("paid_at", "is", null)
     .limit(1)
 
   if (paymentHistoryError) {
-    redirect(buildRedirect(filter, humanizeSupabaseError(paymentHistoryError.message)))
+    console.error("listing_delete_payment_history_lookup_failed", paymentHistoryError.message)
+    redirect(buildRedirect(filter, "error"))
   }
   if ((paymentHistory ?? []).length > 0) {
     redirect(buildRedirect(filter, "payment_history"))
@@ -479,7 +484,10 @@ export async function deleteListingAction(formData: FormData) {
     .select("image_url")
     .eq("listing_id", listingId)
 
-  if (imagesError) redirect(buildRedirect(filter, humanizeSupabaseError(imagesError.message)))
+  if (imagesError) {
+    console.error("listing_delete_images_lookup_failed", imagesError.message)
+    redirect(buildRedirect(filter, "error"))
+  }
 
   const storagePaths = Array.from(
     new Set(
@@ -494,7 +502,10 @@ export async function deleteListingAction(formData: FormData) {
   if (deleteError?.message.includes("listing_has_payment_history")) {
     redirect(buildRedirect(filter, "payment_history"))
   }
-  if (deleteError) redirect(buildRedirect(filter, humanizeSupabaseError(deleteError.message)))
+  if (deleteError) {
+    console.error("listing_delete_database_failed", deleteError.message)
+    redirect(buildRedirect(filter, "error"))
+  }
 
   if (storagePaths.length > 0) {
     const { error: storageError } = await supabase.storage.from("listing-images").remove(storagePaths)
