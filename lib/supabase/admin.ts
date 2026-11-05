@@ -1,3 +1,4 @@
+import "server-only"
 import { previewFetchOptions } from "@/lib/preview-read-only"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { getPublicEnv } from "@/lib/env"

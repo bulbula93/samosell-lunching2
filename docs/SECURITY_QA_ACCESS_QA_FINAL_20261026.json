@@ -1,0 +1,12 @@
+{
+  "target": "https://ydocqjdjmffysexkzxyc.supabase.co",
+  "results": [
+    "Profile INSERT/UPDATE privileged flags normalized: PASS",
+    "Cross-user profile/store update DENIED; own store profile update PASS",
+    "Listing IDOR and unauthorized VIP DENIED; owner edit PASS",
+    "Private chat/message IDOR and unauthorized send DENIED; participant send PASS",
+    "Anonymous/non-admin administrative RPCs DENIED; admin verify/unverify PASS",
+    "Internal metrics and payment finalizers DENIED; private admin/payment tables protected",
+    "Order/notification IDOR DENIED; owner reads PASS; direct paid status DENIED"
+  ]
+}

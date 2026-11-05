@@ -1,0 +1,12 @@
+{
+  "target": "https://ydocqjdjmffysexkzxyc.supabase.co",
+  "phase": "before",
+  "results": [
+    "avatars: own upload PASS",
+    "avatars: cross-user INSERT/UPDATE/upsert/DELETE REPRODUCED",
+    "avatars: own replacement/upsert and public delivery PASS; anonymous INSERT DENIED",
+    "store-branding: own upload PASS",
+    "store-branding: cross-user INSERT/UPDATE/upsert/DELETE REPRODUCED",
+    "store-branding: own replacement/upsert and public delivery PASS; anonymous INSERT DENIED"
+  ]
+}

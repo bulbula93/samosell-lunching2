@@ -1,6 +1,10 @@
 packages:
   - "."
 
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+
 # Fetch libc metadata and install only the build host's native variants.
 supportedArchitectures:
   os:
@@ -9,3 +13,8 @@ supportedArchitectures:
     - current
   libc:
     - current
+
+# Patched transitive versions required by the 2026-10 security audit.
+overrides:
+  'brace-expansion@>=4 <5.0.12': 5.0.12
+  'vite@>=8.2.0 <=8.2.3': 8.2.4

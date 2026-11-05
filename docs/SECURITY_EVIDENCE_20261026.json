@@ -1,0 +1,503 @@
+{
+  "date": "2026-10-26",
+  "productionBase": "23fa44a0c11ccdd3cba6b72d318252cd4d93b7fe",
+  "scope": "Production read-only; QA disposable objects/accounts only",
+  "storageBefore": "Cross-user INSERT/UPDATE/upsert/DELETE reproduced with QA-only policies scoped to disposable object prefix",
+  "storageAfter": "Cross-user INSERT/UPDATE/upsert/DELETE denied; own upload/update/upsert/delete/public delivery passed",
+  "qaMigrationVersion": "20261026105600",
+  "repoMigrationVersion": "20261026092938",
+  "tests": {
+    "files": 206,
+    "tests": 1174,
+    "failed": 0
+  },
+  "dependencyBefore": {
+    "critical": 5,
+    "high": 31,
+    "moderate": 30,
+    "low": 7
+  },
+  "dependencyAfter": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0
+  },
+  "advisorProductionBefore": [
+    {
+      "name": "rls_enabled_no_policy",
+      "count": 26
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "count": 11
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "count": 58
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "count": 1
+    }
+  ],
+  "advisorQaBefore": [
+    {
+      "name": "rls_enabled_no_policy",
+      "count": 21
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "count": 10
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "count": 56
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "count": 1
+    }
+  ],
+  "advisorQaAfter": [
+    {
+      "name": "rls_enabled_no_policy",
+      "count": 21
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "count": 10
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "count": 56
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "count": 1
+    }
+  ],
+  "qaPolicies": [
+    {
+      "result": {
+        "policies": [
+          {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can upload own listing images",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'listing-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+          },
+          {
+            "cmd": "UPDATE",
+            "qual": "((bucket_id = 'listing-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can update own listing images",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'listing-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))"
+          },
+          {
+            "cmd": "DELETE",
+            "qual": "((bucket_id = 'listing-images'::text) AND ((storage.foldername(name))[1] = (auth.uid())::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can delete own listing images",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "((bucket_id = 'listing-images'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can read own listing images",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "((bucket_id = 'story-media'::text) AND (EXISTS ( SELECT 1\n   FROM stories s\n  WHERE ((s.media_path = objects.name) AND (s.deleted_at IS NULL) AND (s.expires_at > now())))))",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "read visible story media",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "(bucket_id = 'avatars'::text)",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "public can view avatars",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can upload own avatars",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))"
+          },
+          {
+            "cmd": "UPDATE",
+            "qual": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can update own avatars",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))"
+          },
+          {
+            "cmd": "DELETE",
+            "qual": "((bucket_id = 'avatars'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can delete own avatars",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "(bucket_id = 'store-branding'::text)",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "public can view store branding",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can upload own store branding",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'store-branding'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))"
+          },
+          {
+            "cmd": "UPDATE",
+            "qual": "((bucket_id = 'store-branding'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can update own store branding",
+            "schemaname": "storage",
+            "with_check": "((bucket_id = 'store-branding'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))"
+          },
+          {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "deny direct story insert",
+            "schemaname": "storage",
+            "with_check": "(bucket_id <> 'story-media'::text)"
+          },
+          {
+            "cmd": "UPDATE",
+            "qual": "(bucket_id <> 'story-media'::text)",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "deny direct story update",
+            "schemaname": "storage",
+            "with_check": "(bucket_id <> 'story-media'::text)"
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "((bucket_id = 'story-media'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "users can read own story media metadata",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "DELETE",
+            "qual": "(bucket_id <> 'story-media'::text)",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "deny direct story delete",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "SELECT",
+            "qual": "((bucket_id = 'story-media'::text) AND ( SELECT is_current_user_admin() AS is_current_user_admin))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "admins read story media",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "DELETE",
+            "qual": "((bucket_id = 'store-branding'::text) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text))",
+            "roles": [
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "PERMISSIVE",
+            "policyname": "authenticated can delete own store branding",
+            "schemaname": "storage",
+            "with_check": null
+          },
+          {
+            "cmd": "INSERT",
+            "qual": null,
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "branding namespace guard insert",
+            "schemaname": "storage",
+            "with_check": "((bucket_id <> ALL (ARRAY['avatars'::text, 'store-branding'::text])) OR ((( SELECT auth.uid() AS uid) IS NOT NULL) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)))"
+          },
+          {
+            "cmd": "UPDATE",
+            "qual": "((bucket_id <> ALL (ARRAY['avatars'::text, 'store-branding'::text])) OR ((( SELECT auth.uid() AS uid) IS NOT NULL) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)))",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "branding namespace guard update",
+            "schemaname": "storage",
+            "with_check": "((bucket_id <> ALL (ARRAY['avatars'::text, 'store-branding'::text])) OR ((( SELECT auth.uid() AS uid) IS NOT NULL) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)))"
+          },
+          {
+            "cmd": "DELETE",
+            "qual": "((bucket_id <> ALL (ARRAY['avatars'::text, 'store-branding'::text])) OR ((( SELECT auth.uid() AS uid) IS NOT NULL) AND ((storage.foldername(name))[1] = (( SELECT auth.uid() AS uid))::text)))",
+            "roles": [
+              "anon",
+              "authenticated"
+            ],
+            "tablename": "objects",
+            "permissive": "RESTRICTIVE",
+            "policyname": "branding namespace guard delete",
+            "schemaname": "storage",
+            "with_check": null
+          }
+        ],
+        "marketing_anon": false,
+        "marketing_auth": false,
+        "security_migrations": [
+          {
+            "name": "security_storage_and_rpc_hardening",
+            "version": "20261026105600"
+          }
+        ]
+      }
+    }
+  ],
+  "authPublicSettings": {
+    "production": {
+      "email": true,
+      "google": true,
+      "mailer_autoconfirm": false,
+      "signupDisabled": false
+    },
+    "qa": {
+      "email": true,
+      "google": true,
+      "mailer_autoconfirm": false,
+      "signupDisabled": false
+    }
+  },
+  "qaAccess": "all seven groups PASS",
+  "paymentTests": {
+    "files": 14,
+    "tests": 117,
+    "failed": 0
+  },
+  "secretScan": {
+    "secretlintFiles": 933,
+    "findings": 1,
+    "disposition": "test-password fixture in qa-reader.test.ts; not a credential"
+  },
+  "historyScan": {
+    "reachableCommits": 1662,
+    "signatureMatches": 0
+  },
+  "preview": {
+    "url": "https://samosell-lunching2-425f9h42u-giorgibulbula-6265s-projects.vercel.app",
+    "sha": "f1b801a9bd02d800860055c50775c32cf74fdb70",
+    "status": "READY",
+    "browser": "Home/catalog/login rendering PASS; authenticated browser scenarios not completed"
+  },
+  "migrationSha256": "1a9488d243c297beaf67f6e32877b3f9ec1f496c2b7c530a42dfa315e823c84e",
+  "cleanup": "Disposable QA users, sessions, orders, chats, listings and temporary policies removed; storage fixture count zero",
+  "authDashboardReadOnly": {
+    "bothProjects": {
+      "anonymousSignIn": false,
+      "manualIdentityLinking": false,
+      "secureEmailChange": true,
+      "securePasswordChange": false,
+      "requireCurrentPassword": false,
+      "signupSignInPer5MinPerIp": 30,
+      "verifyPer5MinPerIp": 30,
+      "refreshPer5MinPerIp": 150,
+      "accessTokenExpirySeconds": 3600,
+      "refreshReuseDetection": true,
+      "refreshReuseIntervalSeconds": 10,
+      "totpEnabled": true,
+      "maxMfaFactors": 10,
+      "limitAal1Duration": true,
+      "captchaEnabled": false
+    },
+    "qaRedirectGap": "Current security Preview alias absent; no configuration change performed",
+    "passwordPolicy": "Minimum length redacted; requirements value unavailable",
+    "productionAdminMfa": {
+      "activeAdministrators": 1,
+      "withVerifiedMfaFactor": 0
+    }
+  },
+  "previewFinalCode": {
+    "sha": "e5f8daed674c34688ef00f2f68bbd09cbfd5433b",
+    "status": "READY",
+    "url": "https://samosell-lunching2-jipuojfrt-giorgibulbula-6265s-projects.vercel.app",
+    "ci": {
+      "run": 40313631173,
+      "conclusion": "success"
+    }
+  },
+  "followup20261026": {
+    "verdict": "NOT READY",
+    "applicationCommit": "8d518c81c225c92873192df4a41ffc2df89b8b1e",
+    "codeChanged": false,
+    "configurationSaved": false,
+    "productionChanged": false,
+    "duplicateMigrationCreated": false,
+    "previewDeploymentId": "dpl_CBxkoZB2buZKBvn3QkyMjGPgQsVx",
+    "previewState": "READY",
+    "pr": {
+      "number": 136,
+      "draft": true,
+      "merged": false
+    },
+    "suites": {
+      "full": {
+        "files": 206,
+        "tests": 1174,
+        "failed": 0
+      },
+      "paymentSelection": {
+        "files": 14,
+        "tests": 112,
+        "failed": 0
+      },
+      "repeatedAfterNoRerunInstruction": false
+    },
+    "liveQa": {
+      "storage": "PASS",
+      "profiles": "PASS",
+      "listings": "PASS",
+      "chat": "PASS",
+      "admin": "PASS",
+      "paymentFinalizerDenial": "PASS",
+      "ordersAndNotifications": "PASS"
+    },
+    "browser": {
+      "loginRender": "PASS",
+      "anonymousProfile": "PASS",
+      "anonymousAdmin": "PASS",
+      "resetWithoutSession": "PASS",
+      "authenticatedUser": "NOT VERIFIED",
+      "authenticatedAdmin": "NOT VERIFIED",
+      "googleOAuthCompletion": "NOT VERIFIED",
+      "emailRecoveryCompletion": "NOT VERIFIED"
+    },
+    "serviceCredential": {
+      "exists": true,
+      "emptyInEditUi": true,
+      "scope": "preview/security-hardening-20261026",
+      "saved": false,
+      "secretValueExposed": false
+    },
+    "qaAdvisorCounts": {
+      "rls_enabled_no_policy": 21,
+      "anon_security_definer_function_executable": 10,
+      "authenticated_security_definer_function_executable": 56,
+      "auth_leaked_password_protection": 1
+    },
+    "cleanup": {
+      "users": 0,
+      "profiles": 0,
+      "sessions": 0,
+      "refreshTokens": 0,
+      "storageObjects": 0,
+      "listings": 0,
+      "chats": 0,
+      "messages": 0,
+      "notifications": 0,
+      "orders": 0,
+      "adminAuditRows": 0,
+      "growthEvents": 0,
+      "privateFixtureFilesRemoved": true
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { isSameOriginMutation } from "@/lib/security-headers"
 import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { createFlittCheckout, getFlittCheckoutConfig, getFlittReadiness } from "@/lib/flitt"
@@ -21,6 +22,7 @@ async function requireAdmin() {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOriginMutation(request)) return NextResponse.json({ error: "invalid_origin" }, { status: 403 })
   const auth = await requireAdmin()
   if ("error" in auth) return auth.error
 
