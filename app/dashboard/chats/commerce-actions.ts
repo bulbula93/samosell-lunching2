@@ -43,11 +43,11 @@ async function rateLimitedClient() {
   return { supabase, error: "" }
 }
 
-function revalidateChat(chatId: string) {
+function revalidateChat(chatId: string, publicChanged = true) {
   revalidatePath(`/dashboard/chats/${chatId}`)
   revalidatePath("/dashboard/chats")
   revalidatePath("/dashboard/listings")
-  invalidatePublicMarketplace()
+  if (publicChanged) invalidatePublicMarketplace()
   revalidatePath("/catalog")
 }
 
@@ -70,7 +70,7 @@ export async function createChatOfferAction(input: {
   })
   if (error) return { ok: false, message: commerceErrorMessage(error.message) }
 
-  revalidateChat(chatId)
+  revalidateChat(chatId, false)
   return { ok: true, message: "ფასის შეთავაზება გაიგზავნა." }
 }
 
@@ -95,7 +95,7 @@ export async function respondChatOfferAction(input: {
   })
   if (error) return { ok: false, message: commerceErrorMessage(error.message) }
 
-  revalidateChat(chatId)
+  revalidateChat(chatId, action === "accept")
   return {
     ok: true,
     message: action === "accept" ? "შეთავაზება მიიღე და ნივთი ამ მყიდველისთვის დაიჯავშნა." : "შეთავაზება უარყავი.",

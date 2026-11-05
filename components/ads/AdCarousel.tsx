@@ -9,9 +9,9 @@ import type { AdPlacementKey, AdRecord } from "@/lib/ads"
 
 const ROTATION_MS = 6000
 
-export default function AdCarousel({ ads, pagePath, fallbackPlacement }: { ads: AdRecord[]; pagePath: string; fallbackPlacement: AdPlacementKey }) {
+export default function AdCarousel({ ads, pagePath, fallbackPlacement, renderedAt }: { renderedAt?: number; ads: AdRecord[]; pagePath: string; fallbackPlacement: AdPlacementKey }) {
   const now = useExpiryClock(ads.flatMap((ad) => [ad.starts_at, ad.ends_at]))
-  const ordered = useMemo(() => ads.filter((ad) => now === null || isAdActive(ad, new Date(now))).sort((a,b) => a.id.localeCompare(b.id)), [ads, now])
+  const ordered = useMemo(() => ads.filter((ad) => (now === null && renderedAt === undefined) || isAdActive(ad, new Date(now ?? renderedAt!))).sort((a,b) => a.id.localeCompare(b.id)), [ads, now, renderedAt])
   const [index, setIndex] = useState(0)
   const touchX = useRef<number | null>(null)
   const move = useCallback((step:number) => {

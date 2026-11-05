@@ -1,0 +1,305 @@
+{
+  "measuredAt": "2026-11-02T08:24:02.508Z",
+  "node": "v24.14.1",
+  "method": "Local next start; same 20-row read-only fixture; process.cpuUsage via IPC, excludes fixture/client processes. First request includes JIT/startup and shared cache warm-up; warm sample 10 sequential HTML requests per path. No browser hydration/images, live users, Vercel invocations or billed Active CPU measured. Dynamic catalog origin HTTP requests remain unchanged.",
+  "reports": [
+    {
+      "variant": "baseline-main",
+      "rows": [
+        {
+          "path": "/catalog",
+          "scenario": "first-request",
+          "requests": 1,
+          "upstreamRequests": 4,
+          "processCpuMs": 484,
+          "status": 200,
+          "cache": "DYNAMIC",
+          "canonical": "https://samosell.ge/catalog"
+        },
+        {
+          "path": "/catalog",
+          "scenario": "warm",
+          "requests": 10,
+          "localOriginHttpRequests": 10,
+          "upstreamRequests": 10,
+          "upstreamByPath": {
+            "/rest/v1/listings_catalog": 10
+          },
+          "processCpuMs": 828,
+          "statuses": [
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            }
+          ]
+        },
+        {
+          "path": "/catalog/women",
+          "scenario": "first-request",
+          "requests": 1,
+          "upstreamRequests": 1,
+          "processCpuMs": 110,
+          "status": 200,
+          "cache": "DYNAMIC",
+          "canonical": "https://samosell.ge/catalog/women"
+        },
+        {
+          "path": "/catalog/women",
+          "scenario": "warm",
+          "requests": 10,
+          "localOriginHttpRequests": 10,
+          "upstreamRequests": 10,
+          "upstreamByPath": {
+            "/rest/v1/listings_catalog": 10
+          },
+          "processCpuMs": 766,
+          "statuses": [
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "variant": "candidate",
+      "rows": [
+        {
+          "path": "/catalog",
+          "scenario": "first-request",
+          "requests": 1,
+          "upstreamRequests": 4,
+          "processCpuMs": 483,
+          "status": 200,
+          "cache": "DYNAMIC",
+          "canonical": "https://samosell.ge/catalog"
+        },
+        {
+          "path": "/catalog",
+          "scenario": "warm",
+          "requests": 10,
+          "localOriginHttpRequests": 10,
+          "upstreamRequests": 0,
+          "upstreamByPath": {},
+          "processCpuMs": 813,
+          "statuses": [
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog"
+            }
+          ]
+        },
+        {
+          "path": "/catalog/women",
+          "scenario": "first-request",
+          "requests": 1,
+          "upstreamRequests": 1,
+          "processCpuMs": 109,
+          "status": 200,
+          "cache": "DYNAMIC",
+          "canonical": "https://samosell.ge/catalog/women"
+        },
+        {
+          "path": "/catalog/women",
+          "scenario": "warm",
+          "requests": 10,
+          "localOriginHttpRequests": 10,
+          "upstreamRequests": 0,
+          "upstreamByPath": {},
+          "processCpuMs": 594,
+          "statuses": [
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            },
+            {
+              "status": 200,
+              "cache": "DYNAMIC",
+              "canonical": "https://samosell.ge/catalog/women"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

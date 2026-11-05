@@ -45,6 +45,7 @@ export type PopularBrand = {
 }
 
 export type PublicHomePageData = {
+  renderedAt?: number
   heroItems: CatalogListing[]
   vipItems: CatalogListing[]
   bannerItems: CatalogListing[]
@@ -249,9 +250,9 @@ const getCachedPublicHomePageData = unstable_cache(
       activeCount: usable.count ?? rows.length,
     }
   }),
-  ["home-public-data-v6"],
+  ["home-public-data-v7"],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ["home-public-data"],
   },
 )
@@ -263,6 +264,7 @@ export async function getPublicHomePageData(): Promise<PublicHomePageData> {
   const refresh = (items: CatalogListing[]) => items.map((item) => refreshPromotion(item, now))
   return {
     ...data,
+    renderedAt: now,
     heroItems: refresh(data.heroItems).filter((item) => item.is_vip && item.is_promoted && item.is_featured),
     vipItems: refresh(data.vipItems).filter((item) => item.is_vip).sort((a, b) =>
       numberValue(b.promotion_tier) - numberValue(a.promotion_tier) ||

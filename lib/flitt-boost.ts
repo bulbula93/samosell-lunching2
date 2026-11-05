@@ -35,7 +35,7 @@ export async function finalizeFlittBoostPayment(orderId: string) {
 
   scheduleGrowthMetaDelivery()
   if (result.activated) {
-    invalidatePublicMarketplace()
+    invalidatePublicMarketplace({ listingId: result.listing_id })
     await notifyAdminBoostPurchase(safeOrderId, "Flitt")
   }
 
@@ -51,6 +51,6 @@ export async function reverseFlittBoostPayment(orderId: string) {
   })
 
   if (error) throw error
-  if ((data as FlittBoostReversalResult)?.changed) invalidatePublicMarketplace()
+  if ((data as FlittBoostReversalResult)?.changed) invalidatePublicMarketplace({ listingId: (data as FlittBoostReversalResult).listing_id })
   return data as FlittBoostReversalResult
 }

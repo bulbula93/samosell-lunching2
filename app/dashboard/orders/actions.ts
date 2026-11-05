@@ -202,7 +202,7 @@ export async function transitionMarketplaceOrderAction(
 
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/orders")
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ slug: typeof transition.listing_slug === "string" ? transition.listing_slug : null })
   revalidatePath("/catalog")
   if (typeof transition.listing_slug === "string" && transition.listing_slug) {
     revalidatePath(`/listing/${transition.listing_slug}`)

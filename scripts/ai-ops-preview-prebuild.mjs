@@ -1,3 +1,5 @@
+await import("./cpu-preview-guard.mjs")
+
 // This verification never connects from Production, local builds, or other Preview branches.
 if (
   process.env.VERCEL_ENV === "preview" &&

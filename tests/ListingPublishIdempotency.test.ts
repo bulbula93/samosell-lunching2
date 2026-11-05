@@ -4,12 +4,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { abortListingUploadsAction, prepareListingUploadsAction, saveListingAction, type SaveListingInput } from "@/app/dashboard/listings/form-actions"
 import { isUuid } from "@/lib/listing-form"
 
-const mocks = vi.hoisted(() => ({ client: vi.fn(), rateLimit: vi.fn(), notify: vi.fn(), outcome: vi.fn(), revalidate: vi.fn() }))
+const mocks = vi.hoisted(() => ({ client: vi.fn(), rateLimit: vi.fn(), notify: vi.fn(), outcome: vi.fn(), revalidate: vi.fn(), tag: vi.fn() }))
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.client }))
 vi.mock("@/lib/rate-limit", () => ({ enforceRateLimit: mocks.rateLimit }))
 vi.mock("@/lib/admin-activity-email", () => ({ notifyAdminNewListing: mocks.notify }))
 vi.mock("@/lib/growth/server", () => ({ recordListingOutcome: mocks.outcome }))
-vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }))
+vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate, revalidateTag: mocks.tag }))
 vi.mock("@/lib/listings", async (original) => ({
   ...await original<typeof import("@/lib/listings")>(),
   generateUniqueListingSlug: vi.fn(async () => "test-listing"),
@@ -268,7 +268,10 @@ describe("listing publication idempotency with PostgreSQL", () => {
   })
 
   it("keeps the committed listing when a post-save operation throws", async () => {
-    mocks.notify.mockRejectedValueOnce(new Error("notification transport unavailable"))
+    mocks.notify.mockImplementationOnce(async () => {
+      expect(mocks.tag).toHaveBeenCalledWith(`public-listing:${listingId}`, { expire: 0 })
+      throw new Error("notification transport unavailable")
+    })
     expect(await saveListingAction(input())).toMatchObject({ ok: true, cleanupWarning: false })
     expect(await counts()).toEqual({ listings: 1, images: 2 })
     expect(files.size).toBe(2)

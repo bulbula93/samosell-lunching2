@@ -1,5 +1,6 @@
 import "server-only"
 
+import { listingTag, slugTag, sellerTag, categoryTag } from "@/lib/public-marketplace-tags"
 import { unstable_cache } from "next/cache"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { withQueryTimeout } from "@/lib/supabase/query-timeout"
@@ -35,26 +36,36 @@ async function executePublicQuery(spec: PublicQuery | null, supabase = createPub
   if (result.error) throw new Error("PUBLIC_MARKETPLACE_QUERY_FAILED", { cause: result.error })
   return { data: result.data, count: result.count, error: null }
 }
-function makeCachedReader() {
-  return unstable_cache(executePublicQuery, ["anonymous-marketplace-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+export function publicQueryTags(spec: PublicQuery | null): string[] {
+  if (!spec) return []
+  const eq = new Map(spec.eq ?? [])
+  const tags = ["public-listings"] // explicit bulk/unknown-scope fallback
+  if (spec.table === "profiles") tags.push("public-sellers")
+  const seller = eq.get("seller_id") ?? (spec.table === "profiles" ? eq.get("id") : undefined)
+  const listing = eq.get("listing_id") ?? (["listings", "listings_catalog"].includes(spec.table) ? eq.get("id") : undefined)
+  const slug = eq.get("slug")
+  if (seller) tags.push(sellerTag(seller))
+  if (listing) tags.push(listingTag(listing))
+  if (slug) tags.push(slugTag(slug))
+  const category = eq.get("category_slug")
+  if (category) tags.push("public-categories", categoryTag(category))
+  if (!listing && !slug && !seller && !category) tags.push("public-feed")
+  return [...new Set(tags)]
 }
-function makeBatchReader() {
-  return unstable_cache(async (specs: (PublicQuery | null)[]) => {
-    const supabase = createPublicServerClient()
-    return Promise.all(specs.map((spec) => executePublicQuery(spec, supabase)))
-  },
-    ["anonymous-marketplace-batch-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
-}
-let readPublicBatch: ReturnType<typeof makeBatchReader> | undefined
 
 export async function getCachedPublicBatch(specs: (PublicQuery | null)[]) {
-  readPublicBatch ??= makeBatchReader()
-  return readPublicBatch(specs)
+  // Creating a wrapper does not create an in-process key registry; Next owns
+  // the persistent cache. Arguments remain part of the key.
+  return unstable_cache(async (queries: (PublicQuery | null)[]) => {
+    const supabase = createPublicServerClient()
+    return Promise.all(queries.map((spec) => executePublicQuery(spec, supabase)))
+  }, ["anonymous-marketplace-batch-v2"], {
+    revalidate: 30, tags: [...new Set(specs.flatMap(publicQueryTags))],
+  })(specs)
 }
-let readPublicQuery: ReturnType<typeof makeCachedReader> | undefined
 
 export async function getCachedPublicRows<T>(spec: PublicQuery): Promise<{ data: T | null; count: number | null; error: null }> {
-  readPublicQuery ??= makeCachedReader()
-  return await readPublicQuery(spec) as { data: T | null; count: number | null; error: null }
+  return await unstable_cache(executePublicQuery, ["anonymous-marketplace-v2"], {
+    revalidate: 30, tags: publicQueryTags(spec),
+  })(spec) as { data: T | null; count: number | null; error: null }
 }
-

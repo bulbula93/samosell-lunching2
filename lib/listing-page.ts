@@ -164,7 +164,7 @@ const fetchMetadataListing = cache(async (slug: string) => {
   const supabase = await createClient()
   // Authorization and price/status are live even when the public description is cached.
   const { data: live, error } = await supabase.from("listings_catalog")
-    .select("id, status, price, currency, sale_type, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, promotion_tier")
+    .select("id, seller_id, status, price, currency, sale_type, is_vip, is_promoted, is_featured, vip_until, promoted_until, featured_until, promotion_tier")
     .eq("slug", slug).maybeSingle()
   if (error) throw new Error("LISTING_METADATA_QUERY_FAILED", { cause: error })
   if (!live) return null
@@ -174,7 +174,7 @@ const fetchMetadataListing = cache(async (slug: string) => {
     return response.data as CatalogListing | null
   }
   const cached = await getCachedPublicRows<CatalogListing>({
-    table: "listings_catalog", select: listingSelect, eq: [["slug", slug], ["status", "active"]], single: true,
+    table: "listings_catalog", select: listingSelect, eq: [["slug", slug], ["id", live.id], ["status", "active"], ...(live.seller_id ? [["seller_id", live.seller_id] as [string, string]] : [])], single: true,
   })
   // A slug may have been reused or the listing changed between the two reads.
   if (!cached.data || cached.data.id !== live.id) return null

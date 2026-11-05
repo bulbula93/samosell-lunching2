@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto"
 import { recordListingOutcome } from "@/lib/growth/server"
 import { revalidatePath } from "next/cache"
+import { listingCategoryScope } from "@/lib/public-marketplace-tags"
 import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -759,6 +760,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     }
 
     committedResult = { ok: true, listingId: input.listingId, slug, status, cleanupWarning: false }
+    invalidatePublicMarketplace({ listingId: input.listingId, sellerId: user.id, slug, previousSlug: ownedListing?.slug, categories: listingCategoryScope(...(ownedListing ? [ownedListing.gender] : []), data.gender) })
 
     const removedStoragePaths =
       input.mode === "edit"
@@ -795,7 +797,6 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
       })
     }
 
-    invalidatePublicMarketplace()
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

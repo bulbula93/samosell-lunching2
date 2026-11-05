@@ -152,7 +152,7 @@ export async function toggleBlockUserAction(formData: FormData) {
     )
   }
 
-  invalidatePublicMarketplace()
+  // Blocking changes private relationships, not anonymous marketplace data.
   revalidateModerationPaths(nextPath)
   redirect(
     withSafeFeedback(

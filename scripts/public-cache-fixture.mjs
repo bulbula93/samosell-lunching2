@@ -17,11 +17,16 @@ export function createPublicCacheFixture(onRequest = () => {}) {
     vip_until: null, promoted_until: null, featured_until: null, home_banner_until: null,
   }))
   const fixture = http.createServer((req, res) => {
-    onRequest()
+    onRequest(req)
     const url = new URL(req.url, "http://fixture")
     const table = url.pathname.split("/").at(-1)
-    if (!["GET", "HEAD"].includes(req.method) && !(req.method === "POST" && table === "get_public_seller_listing_counts")) {
+    if (!["GET", "HEAD"].includes(req.method) && !(req.method === "POST" && ["get_public_seller_listing_counts", "get_catalog_public_facets"].includes(table))) {
       res.writeHead(405, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "fixture_read_only" })); return
+    }
+    if (table === "get_catalog_public_facets") {
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ colors: [], cities: ["თბილისი"] }))
+      return
     }
     let data = table === "profiles" ? [seller] : ["listings_catalog", "listings"].includes(table) ? listings
       : table === "get_public_seller_listing_counts" ? [{ active_count: listings.length, sold_count: 0 }]

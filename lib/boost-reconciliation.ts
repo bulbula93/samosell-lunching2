@@ -28,7 +28,7 @@ export async function activateBoostOrder(params: ActivateBoostOrderParams) {
   })
 
   if (error) throw error
-  if ((data as BoostActivationResult)?.activated) invalidatePublicMarketplace()
+  if ((data as BoostActivationResult)?.activated) invalidatePublicMarketplace({ listingId: (data as BoostActivationResult).listing_id })
   return data as BoostActivationResult
 }
 
@@ -38,7 +38,7 @@ export async function reconcileListingBoosts(listingId: string) {
   })
 
   if (error) throw error
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ listingId })
 }
 
 export async function reconcileExpiredBoostOrders() {

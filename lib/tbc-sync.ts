@@ -7,7 +7,7 @@ import { getTbcPaymentDetails, isTbcCheckoutEnabled, isTbcFinalStatus } from "@/
 import { notifyAdminBoostPurchase } from "@/lib/admin-activity-email"
 
 export type BoostPaymentSyncSource = "callback" | "return" | "manual_sync" | "manual_admin_sync" | "reconciliation" | "system"
-type SyncOrder = { id: string; status: string; provider_status?: string | null }
+type SyncOrder = { id: string; listing_id?: string; seller_id?: string; status: string; provider_status?: string | null }
 type Claim = { outcome: "claimed" | "busy" | "missing"; id?: string; status?: string; updated_at?: string }
 type Applied = { outcome: "applied" | "stale" | "ignored"; order: SyncOrder; activated?: boolean }
 
@@ -43,7 +43,7 @@ export async function syncBoostOrderFromTbcByPayId(payId: string, source: BoostP
   if (applied.outcome === "applied") scheduleGrowthMetaDelivery()
   if (applied.outcome === "applied" && (applied.activated ||
     ["Failed", "Expired", "Returned", "PartialReturned", "CancelPaymentProcessing"].includes(applied.order.provider_status ?? ""))) {
-    invalidatePublicMarketplace()
+    invalidatePublicMarketplace({ listingId: applied.order.listing_id, sellerId: applied.order.seller_id })
   }
   if (applied.outcome === "applied" && applied.activated) {
     await notifyAdminBoostPurchase(claim.id, "TBC")

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ read: vi.fn(), cache: vi.fn() }))
+const mocks = vi.hoisted(() => ({ read: vi.fn(), cache: vi.fn(), values: new Map<string, unknown>() }))
 vi.mock("next/cache", () => ({ unstable_cache: (load: (...args: unknown[]) => Promise<unknown>, keys: string[], options: unknown) => {
   mocks.cache(keys, options)
-  const values = new Map<string, unknown>()
+  const values = mocks.values
   return async (...args: unknown[]) => {
     const key = JSON.stringify(args)
     if (values.has(key)) return values.get(key)
@@ -19,7 +19,7 @@ vi.mock("@/lib/supabase/public-server", () => ({ createPublicServerClient: () =>
     then: (resolve: (value: unknown) => unknown, reject: (error: unknown) => unknown) => mocks.read(table, filters).then(resolve, reject) }
   return query
 } }) }))
-beforeEach(() => { vi.resetModules(); vi.clearAllMocks() })
+beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); mocks.values.clear() })
 
 describe("anonymous public query cache", () => {
   it("shares identical reads but keeps different seller keys separate", async () => {
@@ -30,7 +30,7 @@ describe("anonymous public query cache", () => {
     await read("seller-A")
     await expect(read("seller-B")).resolves.toMatchObject({ data: { id: "seller-B" } })
     expect(mocks.read).toHaveBeenCalledTimes(2)
-    expect(mocks.cache).toHaveBeenCalledWith(["anonymous-marketplace-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+    expect(mocks.cache).toHaveBeenCalledWith(["anonymous-marketplace-v2"], { revalidate: 30, tags: ["public-listings", "public-sellers", "public-seller:seller-B"] })
   })
   it("does not cache a database failure as empty successful public data", async () => {
     mocks.read.mockResolvedValueOnce({ data: null, error: { message: "unavailable" } })

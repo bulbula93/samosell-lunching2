@@ -12,7 +12,7 @@ describe("public homepage ISR", () => {
   it("fails regeneration instead of caching a fake empty marketplace", async () => {
     mocks.catalog.mockRejectedValue(new Error("catalog unavailable"))
     await expect(Home()).rejects.toThrow("catalog unavailable")
-    expect(revalidate).toBe(60)
+    expect(revalidate).toBe(300)
     expect(mocks.session).not.toHaveBeenCalled()
   })
   it("builds its shared tree without a cookie-bound session client", async () => {

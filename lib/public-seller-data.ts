@@ -1,5 +1,6 @@
 import "server-only"
 
+import { sellerTag } from "@/lib/public-marketplace-tags"
 import { unstable_cache } from "next/cache"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 import { isReadOnlyPreview } from "@/lib/preview-read-only"
@@ -38,11 +39,8 @@ const loadPublicSeller = async (id: string, username: string) => {
   return { profile: profile.data as PublicSellerProfile | null, listings: (listings.data ?? []) as CatalogListing[],
     sellerCounts: counts.data as PublicSellerListingCounts | null, sellerReviewData: reviewData }
 }
-function makeReader() {
-  return unstable_cache(loadPublicSeller, ["public-seller-bundle-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
-}
-let read: ReturnType<typeof makeReader> | undefined
 export async function getCachedPublicSellerData(id: string, username: string) {
-  read ??= makeReader()
-  return read(id, username)
+  return unstable_cache(loadPublicSeller, ["public-seller-bundle-v2"], {
+    revalidate: 30, tags: ["public-listings", "public-sellers", sellerTag(id)],
+  })(id, username)
 }

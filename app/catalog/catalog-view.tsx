@@ -29,6 +29,7 @@ import {
 import { createClient } from "@/lib/supabase/server"
 import { withQueryTimeoutResult as withQueryTimeout } from "@/lib/supabase/query-timeout"
 import { compactReadOnlyRpcArgs } from "@/lib/search/read-only-rpc-args"
+import { CATALOG_LISTING_SELECT, publicBrowseKey, getCachedPublicBrowse } from "@/lib/catalog-public-data"
 import type { CatalogListing } from "@/types/marketplace"
 
 
@@ -46,8 +47,7 @@ type SearchExperimentAssignment = {
   ranking_version?: string | null
 }
 
-const CATALOG_LISTING_SELECT =
-  "id, public_id, slug, title, price, currency, condition, sale_type, city, is_vip, is_promoted, is_featured, brand_name, size_label, category_name, seller_username, seller_full_name, seller_is_verified, seller_type, seller_avatar_url, seller_store_logo_url, cover_image_url, status"
+
 
 
 function optionalNumber(value: string) {
@@ -159,9 +159,12 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     ? withQueryTimeout(supabase.rpc("search_catalog_ranked", isReadOnlyPreview() ? compactReadOnlyRpcArgs(rankedArgs) : rankedArgs, { get: isReadOnlyPreview() }))
     : Promise.resolve({ data: null, error: null })
 
+  const browseKey = publicBrowseKey(filters, sort, page)
   const listingsPromise = useRankedSearch
     ? Promise.resolve({ data: [] as CatalogListing[], count: 0, error: null })
-    : withQueryTimeout(listingsQuery.range(rangeFrom, rangeTo))
+    : browseKey
+      ? getCachedPublicBrowse(browseKey).catch(() => ({ data: [] as CatalogListing[], count: 0, error: { message: "public_catalog_unavailable", code: "upstream" } }))
+      : withQueryTimeout(listingsQuery.range(rangeFrom, rangeTo))
   const [
     rankedSearchResponse,
     listingsResponse,

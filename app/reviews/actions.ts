@@ -61,7 +61,7 @@ export async function upsertListingReviewAction(formData: FormData) {
     redirect(withSafeFeedback(nextPath, "review", reviewErrorCode(error.message)))
   }
 
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ listingId })
   revalidatePath(nextPath)
   revalidatePath("/seller/[username]", "page")
   redirect(withSafeFeedback(nextPath, "review", "saved"))

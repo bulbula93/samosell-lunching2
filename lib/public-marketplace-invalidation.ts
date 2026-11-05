@@ -2,9 +2,11 @@ import "server-only"
 
 import { revalidatePath, revalidateTag } from "next/cache"
 
+import { marketplaceChangeTags, type MarketplaceChange } from "@/lib/public-marketplace-tags"
+
 /** Call only after a successful public marketplace mutation. */
-export function invalidatePublicMarketplace() {
-  for (const tag of ["home-public-data", "public-listings", "public-sellers"]) {
+export function invalidatePublicMarketplace(change?: MarketplaceChange) {
+  for (const tag of marketplaceChangeTags(change)) {
     revalidateTag(tag, { expire: 0 })
   }
   revalidatePath("/")

@@ -12,6 +12,6 @@ export async function refreshPublicProfileAction() {
   if (error || !user) return { ok: false }
   // Reuse the existing public-mutation budget; no new database allowlist or migration.
   await enforceRateLimit(supabase, "listing_status_update")
-  invalidatePublicMarketplace()
+  invalidatePublicMarketplace({ sellerId: user.id })
   return { ok: true }
 }
