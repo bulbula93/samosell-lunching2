@@ -31,6 +31,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { buildListingCategoryOptions, isVirtualListingCategory } from "@/lib/listing-categories"
 import { MAX_LISTING_IMAGES, validateImageFile } from "@/lib/listings"
+import { prepareListingImageForUpload } from "@/lib/listing-image-compression"
 
 type Option = { id: string; name?: string; label?: string }
 type CategoryOption = { id: number; name: string; slug?: string | null }
@@ -545,7 +546,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         setFieldErrors((current) => ({ ...current, images: validationError }))
         return
       }
-      next.push({ id: `new-${crypto.randomUUID()}`, imageUrl: URL.createObjectURL(file), file })
+      const prepared = await prepareListingImageForUpload(file)
+      next.push({ id: `new-${crypto.randomUUID()}`, imageUrl: URL.createObjectURL(prepared), file: prepared })
     }
 
     setImages((current) => [...current, ...next])
