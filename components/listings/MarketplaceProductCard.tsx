@@ -123,7 +123,10 @@ export default function MarketplaceProductCard({
           src={item.cover_image_url}
           alt={item.title}
           wrapperClassName="h-full w-full"
-          className={`h-full w-full object-cover transition duration-300 group-hover:scale-[1.025] ${unavailable ? "grayscale-[30%]" : ""}`}
+          className={`transition duration-300 group-hover:scale-[1.025] ${unavailable ? "grayscale-[30%]" : ""}`}
+          fit="auto"
+          frameAspect={4 / 5}
+          backdrop
           fallbackLabel={ka.product.imageUnavailable}
           loading={imageLoading}
           sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1280px) 25vw, 20vw"

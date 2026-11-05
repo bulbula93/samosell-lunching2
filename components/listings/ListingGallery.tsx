@@ -111,7 +111,8 @@ export default function ListingGallery({
               : title
           }
           wrapperClassName="h-full w-full"
-          className="object-contain"
+          fit="contain"
+          backdrop
           fallbackLabel={ka.product.imageUnavailable}
           loading="eager"
           sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 58vw, 720px"
