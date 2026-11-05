@@ -1250,10 +1250,14 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
               <span className="ui-pill-soft self-start">{images.length} ფოტო</span>
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-[180px_1fr]">
-              <div className="aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
                 {images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={images[0].imageUrl} alt="მთავარი ფოტო" className="h-full w-full object-cover" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={images[0].imageUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={images[0].imageUrl} alt="მთავარი ფოტო" className="relative h-full w-full object-contain" />
+                  </>
                 ) : (
                   <div className="flex h-full items-center justify-center px-4 text-center text-xs font-bold text-text-soft">ფოტო არ არის დამატებული</div>
                 )}
