@@ -184,3 +184,8 @@ left join public.profiles reporter on reporter.id = r.reporter_id
 left join public.profiles seller on seller.id = r.seller_id;
 
 grant select on public.admin_listing_reports to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.user_blocks, public.listing_reports to authenticated;
+grant select, insert, update, delete on table public.user_blocks, public.listing_reports to service_role;
+grant select on table public.admin_listing_reports to service_role;

@@ -161,3 +161,6 @@ begin
     end if;
   end if;
 end $$;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.chat_threads to service_role;

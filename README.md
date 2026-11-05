@@ -103,6 +103,19 @@ Supabase SQL migrations are in `/supabase` and should be applied in order:
 18. `18_boost_payment_automation.sql`
 19. `19_chat_hotfix.sql` *(run this if chat is already broken in an older database and you need a safe one-shot repair)*
 
+### Explicit Data API grants
+
+Supabase stops automatically granting access to newly created `public` tables on
+30 October 2026. Keep explicit, per-role table/view and sequence grants in the
+same SQL file that creates the object, alongside RLS and its policies. Browser
+roles should receive only the operations the application uses; sensitive writes
+continue through their existing authorized RPCs or server code.
+
+`pnpm test` includes `DataApiGrants.test.ts` (permission replay without default
+grants) and `DataApiCoreDatabase.test.ts` (real core schema and ownership policies).
+See [the audit and verification limits](docs/supabase-data-api-grants-20261020.md).
+Historical SQL changes apply on replay; they do not rerun on existing databases.
+
 ## Deploy checklist
 
 ### Chat hotfix

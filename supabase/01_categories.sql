@@ -22,3 +22,8 @@ on public.categories
 for select
 to anon, authenticated
 using (true);
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.categories to anon, authenticated;
+grant select, insert, update, delete on table public.categories to service_role;
+grant usage, select on sequence public.categories_id_seq to service_role;

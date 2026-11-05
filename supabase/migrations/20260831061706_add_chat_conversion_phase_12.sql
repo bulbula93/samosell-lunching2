@@ -561,3 +561,6 @@ $$;
 
 revoke all on function public.consume_action_rate_limit(text, integer, integer) from public, anon;
 grant execute on function public.consume_action_rate_limit(text, integer, integer) to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.chat_offers to service_role;

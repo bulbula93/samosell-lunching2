@@ -124,3 +124,6 @@ $$;
 
 revoke all on function public.mark_chat_notifications_read(uuid) from public, anon, authenticated;
 grant execute on function public.mark_chat_notifications_read(uuid) to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.notifications to service_role;

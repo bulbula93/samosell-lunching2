@@ -886,3 +886,9 @@ grant execute on function public.list_expired_story_media_for_cleanup(integer) t
 -- Existing chat RPC grants stay intact; recreate explicit grants defensively.
 revoke all on function public.send_chat_message(uuid,text,uuid) from public,anon;
 grant execute on function public.send_chat_message(uuid,text,uuid) to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.user_follows, public.stories, public.story_views, public.story_mutes, public.story_listing_clicks, public.story_reports to service_role;
+grant select on table public.chat_threads to service_role;
+grant select on table public.admin_story_reports to service_role;
+grant usage, select on sequence public.story_listing_clicks_id_seq to service_role;

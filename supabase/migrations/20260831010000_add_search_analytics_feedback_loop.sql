@@ -666,3 +666,8 @@ $$;
 
 revoke all on function public.search_catalog_ranked(text, text, text[], text, text, text, text, text, text, boolean, numeric, numeric, integer, integer) from public;
 grant execute on function public.search_catalog_ranked(text, text, text[], text, text, text, text, text, text, boolean, numeric, numeric, integer, integer) to anon, authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.search_ranking_config, public.search_ranking_config_history, public.search_impressions, public.search_interactions to service_role;
+grant usage, select on sequence public.search_ranking_config_history_id_seq to service_role;
+grant usage, select on sequence public.search_interactions_id_seq to service_role;

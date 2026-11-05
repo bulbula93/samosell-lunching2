@@ -148,3 +148,7 @@ group by seller_id;
 revoke all on table public.seller_review_summaries
   from public, anon, authenticated;
 grant select on table public.seller_review_summaries to anon, authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.seller_review_summaries to service_role;
+grant select, insert, update, delete on table public.listing_reviews to service_role;
