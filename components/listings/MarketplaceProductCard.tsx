@@ -124,7 +124,8 @@ export default function MarketplaceProductCard({
           alt={item.title}
           wrapperClassName="h-full w-full"
           className={`transition duration-300 group-hover:scale-[1.025] ${unavailable ? "grayscale-[30%]" : ""}`}
-          fit="contain"
+          fit="auto"
+          frameAspect={4 / 5}
           backdrop
           fallbackLabel={ka.product.imageUnavailable}
           loading={imageLoading}

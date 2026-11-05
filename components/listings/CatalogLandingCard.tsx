@@ -42,7 +42,8 @@ export default function CatalogLandingCard({ item, currentPath = "/catalog", isF
             alt={item.title}
             wrapperClassName="h-full w-full"
             className="transition duration-300 group-hover:scale-[1.02]"
-            fit="contain"
+            fit="auto"
+            frameAspect={0.95}
             backdrop
             fallbackLabel="სურათი მალე დაემატება"
           />

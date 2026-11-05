@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import BrandCombobox from "@/components/dashboard/BrandCombobox"
+import SmartImage from "@/components/shared/SmartImage"
 import { trackGrowth, listingAttempt, clearListingAttempt } from "@/lib/growth/client"
 import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
@@ -1252,12 +1253,16 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             <div className="mt-6 grid gap-4 md:grid-cols-[180px_1fr]">
               <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
                 {images[0] ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={images[0].imageUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={images[0].imageUrl} alt="მთავარი ფოტო" className="relative h-full w-full object-contain" />
-                  </>
+                  <SmartImage
+                    src={images[0].imageUrl}
+                    alt="მთავარი ფოტო"
+                    wrapperClassName="h-full w-full"
+                    fit="auto"
+                    frameAspect={4 / 5}
+                    backdrop
+                    loading="eager"
+                    sizes="180px"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center px-4 text-center text-xs font-bold text-text-soft">ფოტო არ არის დამატებული</div>
                 )}
