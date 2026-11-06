@@ -72,7 +72,7 @@ export async function runPublishTick(opts: {
     } catch (error) {
       const e = error instanceof PublishError ? error : new PublishError("publish_failed", false)
       const status = await store.failJob(jobId, leaseToken, e.code, e.retryable)
-      await store.appendAudit({ actorType: "system", actor: "publishing_worker", action: "publish_organic", decision: "failure", reason: e.code, resourceType: "social_publish_job", resourceId: jobId, details: { platform: job.platform, next: status } })
+      await store.appendAudit({ actorType: "system", actor: "publishing_worker", action: "publish_organic", decision: "failure", reason: e.code, resourceType: "social_publish_job", resourceId: jobId, details: { platform: job.platform, next: status, meta_code: e.metaCode, meta_subcode: e.metaSubcode } })
       result.failed++; result.results.push({ jobId, outcome: status })
     }
   }
