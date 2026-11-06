@@ -61,6 +61,9 @@ describe("home top ad slot", () => {
 
   it("keeps advertising discoverable from the footer", () => {
     render(<SiteFooter />)
-    expect(screen.getByRole("link", { name: "რეკლამა SamoSell-ზე" })).toHaveAttribute("href", "/advertise")
+    // Rendered twice: mobile accordion + desktop column (CSS shows one).
+    const links = screen.getAllByRole("link", { name: "რეკლამა SamoSell-ზე" })
+    expect(links.length).toBeGreaterThan(0)
+    for (const link of links) expect(link).toHaveAttribute("href", "/advertise")
   })
 })

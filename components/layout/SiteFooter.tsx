@@ -43,8 +43,8 @@ const footerGroups = [
 export default function SiteFooter() {
   return (
     <footer className="bg-[#073f3b] text-white">
-      <div className="ui-container py-12 sm:py-16">
-        <div className="grid gap-12 border-b border-white/15 pb-12 lg:grid-cols-[1.1fr_2fr]">
+      <div className="ui-container py-8 sm:py-16">
+        <div className="grid gap-6 border-b border-white/15 pb-6 sm:gap-12 sm:pb-12 lg:grid-cols-[1.1fr_2fr]">
           <div className="max-w-md">
             <Link
               href="/"
@@ -63,14 +63,31 @@ export default function SiteFooter() {
             <p className="mt-4 text-sm leading-7 text-white/70">
               ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
             </p>
-            <Link prefetch={false} href="/sell-fast" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
+            <Link prefetch={false} href="/sell-fast" className="mt-7 hidden min-h-12 sm:inline-flex items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
             </Link>
           </div>
 
-          <nav aria-label="ქვედა ნავიგაცია" className="grid gap-8 sm:grid-cols-3">
+          <nav aria-label="ქვედა ნავიგაცია" className="grid sm:grid-cols-3 sm:gap-8">
             {footerGroups.map((group) => (
-              <div key={group.title}>
+              <details key={`${group.title}-mobile`} className="group border-b border-white/10 sm:hidden" data-footer-accordion>
+                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-sm font-black text-white [&::-webkit-details-marker]:hidden">
+                  {group.title}
+                  <span aria-hidden="true" className="text-lg leading-none text-white/60 transition group-open:rotate-45">+</span>
+                </summary>
+                <ul className="pb-2">
+                  {group.links.map((link) => (
+                    <li key={link.href}>
+                      <Link prefetch={false} href={link.href} className="flex min-h-11 items-center text-sm text-white/75 hover:text-white">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ))}
+            {footerGroups.map((group) => (
+              <div key={group.title} className="hidden sm:block">
                 <h2 className="text-sm font-black text-white">{group.title}</h2>
                 <ul className="mt-4 space-y-3">
                   {group.links.map((link) => (
@@ -86,12 +103,12 @@ export default function SiteFooter() {
           </nav>
         </div>
 
-        <div className="grid gap-6 border-b border-white/15 py-7 sm:grid-cols-4">
-          <div>
+        <div className="grid grid-cols-2 gap-5 border-b border-white/15 py-6 sm:grid-cols-4 sm:gap-6 sm:py-7">
+          <div className="col-span-2 sm:col-span-1">
             <h2 className="text-sm font-black">მიწოდება</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">ცენტრალიზებული მიწოდების სერვისი ჯერ არ არის ჩართული</p>
           </div>
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <h2 className="text-sm font-black">დაბრუნება</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება და samosell.ge პასუხისმგებლობას იხსნის ნივთებთან დაკავშირებული პრობლემებისგან</p>
           </div>

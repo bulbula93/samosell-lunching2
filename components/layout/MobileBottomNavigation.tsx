@@ -62,7 +62,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
   }
 
   const itemClass = (key: NavKey) =>
-    `relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${active(key) ? "text-brand" : "text-text-soft"}`
+    `relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-bold transition ${active(key) ? "text-brand" : "text-text-soft"}`
 
   return (
     <nav
@@ -88,7 +88,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
           aria-current={active("sell") ? "page" : undefined}
           aria-label="განცხადების დამატება"
           data-mobile-sell
-          className="relative -top-2 flex min-h-16 flex-col items-center justify-start gap-1 text-[10px] font-black text-brand"
+          className="relative -top-2 flex min-h-16 flex-col items-center justify-start gap-1 text-[11px] font-black text-brand"
         >
           <span data-mobile-sell-icon className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-brand shadow-[0_8px_24px_rgba(255,122,0,0.22)] ring-4 ring-white">
             <Icon name="sell" />

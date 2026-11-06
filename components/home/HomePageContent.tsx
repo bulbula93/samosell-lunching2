@@ -14,9 +14,9 @@ export default function HomePageContent({data,heroAds=[],catalogUnavailable=fals
  return <><HomeSearchHeroSection featuredItems={data.heroItems}/>{catalogUnavailable ? <section role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-4 text-center text-sm text-amber-900"><p>განცხადებების ნაწილი დროებით ვერ ჩაიტვირთა. შეგიძლიათ გახსნათ <Link href="/catalog" className="font-semibold underline underline-offset-4">კატალოგი</Link> ან განაახლოთ გვერდი მოგვიანებით.</p></section> : null}<AdCarousel ads={heroAds} pagePath="/"/>
  {data.vipItems.length > 0 ? <HomeProductsSection title="VIP განცხადებები" description="VIP და VIP MAX განცხადებები — გამორჩეული ბეჯით და მთავარი გვერდის სპეციალურ ჰორიზონტალურ სივრცეში." href="/catalog?vip=1&sort=vip" items={data.vipItems} favoriteIds={[]} layout="horizontal" promotionOnly/> : null}
  {!catalogUnavailable&&data.latestItems.length===0?<HomeMarketplaceEmptyState/>:null}
- {!catalogUnavailable?<HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]}/>:null}
+ {!catalogUnavailable?<HomeProductsSection title={ka.home.latest} description={`${data.activeCount} აქტიური განცხადება SAMOSELL-ზე`} href="/catalog?sort=latest" items={data.latestItems} favoriteIds={[]} mobileLimit={6}/>:null}
  <HomePromoBanner bannerItems={data.bannerItems}/>
- <HomeProductsSection title={ka.home.popular} description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით" href="/catalog?sort=popular" items={data.popularItems} favoriteIds={[]}/>
- <HomeProductsSection title={ka.home.affordable} description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით" href="/catalog?sort=price_asc" items={data.affordableItems} favoriteIds={[]}/>
- <HomeProductsSection title={ka.home.vintage} href="/catalog/vintage" items={data.vintageItems} favoriteIds={[]}/><HomeCollectionsSection brands={data.popularBrands}/><HomeHowItWorks/></>
+ <HomeProductsSection title={ka.home.popular} description="დალაგებულია რჩეულებისა და ნახვების რაოდენობის მიხედვით" href="/catalog?sort=popular" items={data.popularItems} favoriteIds={[]} layout="rail"/>
+ <HomeProductsSection title={ka.home.affordable} description="აქტიური განცხადებები დალაგებულია ფასის ზრდის მიხედვით" href="/catalog?sort=price_asc" items={data.affordableItems} favoriteIds={[]} layout="rail"/>
+ <HomeProductsSection title={ka.home.vintage} href="/catalog/vintage" items={data.vintageItems} favoriteIds={[]} layout="rail"/><HomeCollectionsSection brands={data.popularBrands}/><HomeHowItWorks/></>
 }
