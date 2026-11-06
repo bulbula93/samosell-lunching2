@@ -81,10 +81,13 @@ export type MetaCredentials = {
 export function readMetaCredentials(env: Record<string, string | undefined> = process.env): MetaCredentials | null {
   const version = env.META_SOCIAL_GRAPH_API_VERSION ?? ""
   const pageToken = env.META_SOCIAL_PAGE_ACCESS_TOKEN
-  const igToken = env.META_SOCIAL_IG_ACCESS_TOKEN
   const igUserId = env.META_SOCIAL_IG_USER_ID ?? ""
   const pageId = env.META_SOCIAL_PAGE_ID ?? ""
   const igHost = env.META_SOCIAL_IG_HOST === "graph.facebook.com" ? "graph.facebook.com" : "graph.instagram.com"
+  // New Meta apps only offer Unified login: one system-user token (no ads_* scopes) serves the Page
+  // and the linked Instagram account via graph.facebook.com. An Instagram-Login token is only
+  // ever used with graph.instagram.com and must then be configured explicitly.
+  const igToken = env.META_SOCIAL_IG_ACCESS_TOKEN || (igHost === "graph.facebook.com" ? pageToken : undefined)
   if (!pageToken || !igToken || !/^v\d+\.0$/.test(version) || !/^\d{5,25}$/.test(igUserId) || !/^\d{5,25}$/.test(pageId)) return null
   return { version, appSecret: env.META_SOCIAL_APP_SECRET || undefined, igUserId, pageId, pageToken, igToken, igHost }
 }

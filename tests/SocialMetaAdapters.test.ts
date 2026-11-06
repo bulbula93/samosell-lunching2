@@ -39,6 +39,8 @@ describe("dry-run adapter", () => {
     expect(readMetaCredentials({})).toBeNull()
     // Both tokens are required; a Page token alone never enables Instagram (or vice versa).
     expect(readMetaCredentials({ META_SOCIAL_PAGE_ACCESS_TOKEN: "x", META_SOCIAL_GRAPH_API_VERSION: "v23.0", META_SOCIAL_IG_USER_ID: "17841400000000000", META_SOCIAL_PAGE_ID: "100000000000001" })).toBeNull()
+    // Unified login: graph.facebook.com reuses the system-user Page token for Instagram.
+    expect(readMetaCredentials({ META_SOCIAL_PAGE_ACCESS_TOKEN: "x", META_SOCIAL_IG_HOST: "graph.facebook.com", META_SOCIAL_GRAPH_API_VERSION: "v27.0", META_SOCIAL_IG_USER_ID: "17841400000000000", META_SOCIAL_PAGE_ID: "100000000000001" })).toMatchObject({ igToken: "x", igHost: "graph.facebook.com" })
     expect(readMetaCredentials({ META_SOCIAL_PAGE_ACCESS_TOKEN: "x", META_SOCIAL_IG_ACCESS_TOKEN: "y", META_SOCIAL_GRAPH_API_VERSION: "v23.0", META_SOCIAL_IG_USER_ID: "17841400000000000", META_SOCIAL_PAGE_ID: "100000000000001" })?.igHost).toBe("graph.instagram.com")
     expect(readMetaCredentials({ META_SOCIAL_PAGE_ACCESS_TOKEN: "x", META_SOCIAL_GRAPH_API_VERSION: "latest", META_SOCIAL_IG_USER_ID: "1", META_SOCIAL_PAGE_ID: "2" })).toBeNull()
   })
