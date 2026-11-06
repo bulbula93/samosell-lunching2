@@ -17,7 +17,8 @@ import { renderCaption } from "../agents/creative"
 import type { ContentType, ExecutionMode, SocialPlatform } from "../types"
 
 export class PublishError extends Error {
-  constructor(public readonly code: string, public readonly retryable: boolean) { super(code) }
+  /** Numeric Meta error code/subcode only (never messages, which can echo request data). */
+  constructor(public readonly code: string, public readonly retryable: boolean, public readonly metaCode: number | null = null, public readonly metaSubcode: number | null = null) { super(code) }
 }
 
 export type PublishInput = {
@@ -98,6 +99,12 @@ const ID = /^[0-9_]{1,64}$/
 
 /** Map a Graph API error to a stable code. `sideEffect` = the request may have made content public. */
 export function classifyGraphError(status: number, body: unknown, sideEffect: boolean): PublishError {
+  const base = classifyGraphErrorCode(status, body, sideEffect)
+  const e = isRecord(body) && isRecord(body.error) ? body.error : null
+  return new PublishError(base.code, base.retryable, typeof e?.code === "number" ? e.code : null, typeof e?.error_subcode === "number" ? e.error_subcode : null)
+}
+
+function classifyGraphErrorCode(status: number, body: unknown, sideEffect: boolean): PublishError {
   const e = isRecord(body) && isRecord(body.error) ? body.error : null
   const code = typeof e?.code === "number" ? e.code : null
   const sub = typeof e?.error_subcode === "number" ? e.error_subcode : null
@@ -184,29 +191,44 @@ export class InstagramLiveAdapter implements PublishAdapter {
 export class FacebookLiveAdapter implements PublishAdapter {
   readonly platform = "facebook" as const
   readonly mode = "live" as const
-  constructor(private readonly creds: MetaCredentials, private readonly client = new MetaGraphClient(pageTarget(creds))) {}
+  private pageClient: MetaGraphClient | null = null
+  constructor(private readonly creds: MetaCredentials, private readonly client = new MetaGraphClient(pageTarget(creds)), private readonly fetcher: Fetcher = fetch) {}
+
+  /**
+   * Page publishing requires a Page access token. A system-user token is exchanged once per
+   * adapter instance (read-only GET, never logged or stored). If the configured token already is
+   * a Page token, Meta returns it unchanged.
+   */
+  private async publisher(): Promise<MetaGraphClient> {
+    if (this.pageClient) return this.pageClient
+    const r = await this.client.call("GET", this.creds.pageId, { fields: "access_token" }, false)
+    if (typeof r.access_token !== "string" || r.access_token.length < 20) throw new PublishError("meta_page_token_unavailable", false)
+    this.pageClient = new MetaGraphClient({ ...pageTarget(this.creds), token: r.access_token }, this.fetcher)
+    return this.pageClient
+  }
 
   async publish(input: PublishInput): Promise<PublishResult> {
     validatePayload("facebook", input)
     const message = renderCaption(input, "facebook")
     const page = this.creds.pageId
+    const client = await this.publisher()
     let result: Record<string, unknown>
     if (input.contentType === "single_image") {
-      result = await this.client.call("POST", `${page}/photos`, { url: input.mediaUrls[0], message }, true)
+      result = await client.call("POST", `${page}/photos`, { url: input.mediaUrls[0], message }, true)
       result = { id: result.post_id ?? result.id }
     } else if (input.contentType === "carousel") {
       // Unpublished photo uploads are not public; only the final /feed call is.
       const ids: string[] = []
       for (const url of input.mediaUrls) {
-        const r = await this.client.call("POST", `${page}/photos`, { url, published: "false" }, false)
+        const r = await client.call("POST", `${page}/photos`, { url, published: "false" }, false)
         if (typeof r.id !== "string" || !ID.test(r.id)) throw new PublishError("meta_invalid_response", false)
         ids.push(r.id)
       }
       const params: Record<string, string> = { message }
       ids.forEach((id, i) => { params[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id }) })
-      result = await this.client.call("POST", `${page}/feed`, params, true)
+      result = await client.call("POST", `${page}/feed`, params, true)
     } else {
-      result = await this.client.call("POST", `${page}/feed`, { message, ...(input.linkUrl ? { link: input.linkUrl } : {}) }, true)
+      result = await client.call("POST", `${page}/feed`, { message, ...(input.linkUrl ? { link: input.linkUrl } : {}) }, true)
     }
     if (typeof result.id !== "string" || !ID.test(result.id)) throw new PublishError("unknown_outcome", false)
     return { externalPostId: result.id }

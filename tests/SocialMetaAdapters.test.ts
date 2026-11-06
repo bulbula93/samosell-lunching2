@@ -87,12 +87,25 @@ describe("Instagram live adapter (mocked Graph API)", () => {
 })
 
 describe("Facebook live adapter and error classification", () => {
-  it("single image uses /photos and returns the post id", async () => {
-    const { fn, calls } = fakeFetch([[200, { id: "555", post_id: "100000000000001_777" }]])
-    const r = await new FacebookLiveAdapter(creds, new MetaGraphClient(pageTarget(creds), fn)).publish({ ...input })
+  it("exchanges the system-user token for a Page token, then publishes with the Page token", async () => {
+    const PAGE_TOKEN = "EAAPAGE-page-token-value-0000"
+    const { fn, calls } = fakeFetch([[200, { access_token: PAGE_TOKEN, id: "100000000000001" }], [200, { id: "555", post_id: "100000000000001_777" }]])
+    const r = await new FacebookLiveAdapter(creds, new MetaGraphClient(pageTarget(creds), fn), fn).publish({ ...input })
     expect(r.externalPostId).toBe("100000000000001_777")
-    expect(calls[0].url).toContain("https://graph.facebook.com/v23.0/100000000000001/photos")
-    expect(calls[0].body).toContain("appsecret_proof=")
+    expect(calls[0]).toMatchObject({ method: "GET", auth: `Bearer ${TOKEN}` })
+    expect(calls[0].url).toContain("/100000000000001?")
+    expect(calls[1].url).toContain("https://graph.facebook.com/v23.0/100000000000001/photos")
+    expect(calls[1].auth).toBe(`Bearer ${PAGE_TOKEN}`)
+    expect(calls[1].body).toContain("appsecret_proof=")
+    expect(calls.every(c => !c.url.includes(PAGE_TOKEN) && !(c.body ?? "").includes(PAGE_TOKEN))).toBe(true)
+  })
+  it("missing Page token is a non-retryable error before anything is posted", async () => {
+    const { fn, calls } = fakeFetch([[200, { id: "100000000000001" }]])
+    await expect(new FacebookLiveAdapter(creds, new MetaGraphClient(pageTarget(creds), fn), fn).publish({ ...input })).rejects.toMatchObject({ code: "meta_page_token_unavailable", retryable: false })
+    expect(calls).toHaveLength(1)
+  })
+  it("permission errors carry numeric Meta codes for diagnosis", () => {
+    expect(classifyGraphError(403, { error: { code: 10, error_subcode: 2069007, message: "secret stuff" } }, true)).toMatchObject({ code: "meta_permission_denied", metaCode: 10, metaSubcode: 2069007 })
   })
   it("classifies errors by side effect", () => {
     expect(classifyGraphError(400, { error: { code: 4 } }, true)).toMatchObject({ code: "meta_rate_limited", retryable: true })
