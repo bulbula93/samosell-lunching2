@@ -6,10 +6,12 @@ import { runSimulation } from "@/lib/social/simulation"
 import { PLATFORM_LABEL } from "@/lib/social/store"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import type { AdDraft, MetricRow, PublishJob, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
-import { approvePostAction, draftAdAction, editCaptionAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
+import { approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
 import { PlatformPreview } from "./previews"
 
 export const dynamic = "force-dynamic"
+// Server actions on this page may convert a few images for Instagram (sharp); keep headroom.
+export const maxDuration = 30
 export const metadata = { title: "AI Marketing Control Center | SamoSell", robots: { index: false, follow: false } }
 
 const STATUS_LABEL: Record<SocialPost["status"], string> = {
@@ -27,6 +29,11 @@ const FLASH: Record<string, string> = {
   social_post_locked: "რიგში ჩამდგარი პოსტის რედაქტირება შეუძლებელია.", social_os_disabled: "Social OS ამ გარემოში გამორთულია.",
   qa_backend_not_allowed: "QA ბაზა ამ Preview-ზე არ არის დაკავშირებული.", preview_read_only: "Preview მხოლოდ სანახავადაა.",
   non_production_always_dry_run: "Preview-ზე მხოლოდ dry-run არის დაშვებული.", paid_ads_forbidden: "ფასიანი რეკლამა აკრძალულია.",
+  instagram_media_prepared_qa_rerun: "სურათები მომზადდა Instagram-ისთვის — QA თავიდან გაეშვა, საჭიროა ხელახლა დამტკიცება.",
+  instagram_disabled: "Instagram გამორთულია პარამეტრებში.", media_source_not_allowed: "სურათი SamoSell-ის Storage-დან არ არის.",
+  media_source_unavailable: "სურათის ჩამოტვირთვა ვერ მოხერხდა.", media_not_image: "ფაილი სურათი არ არის.", media_too_large: "სურათი ძალიან დიდია.",
+  media_convert_failed: "სურათის JPEG-ად გადაყვანა ვერ მოხერხდა.", media_upload_failed: "მომზადებული სურათის შენახვა ვერ მოხერხდა.",
+  media_preparer_unavailable: "სურათის მომზადება ამ გარემოში მიუწვდომელია.",
   kill_switch_engaged: "Kill switch ჩაირთო.", kill_switch_released: "Kill switch გამოირთო (dry-run რჩება).", settings_saved: "პარამეტრები შენახულია.",
   rejected: "პოსტი უარყოფილია.", caption_saved_qa_rerun: "ტექსტი შეინახა, QA ხელახლა შესრულდა.", qa_rerun: "QA ხელახლა შესრულდა.",
   ad_draft_created_zero_budget: "სარეკლამო იდეა შეიქმნა ($0, მხოლოდ დრაფტი).", invalid_input: "არასწორი მონაცემები.",
@@ -181,6 +188,10 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
                           {post.status === "ready_for_review" ? (
                             <form action={rejectPostAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
                               <button className="rounded-full border px-4 py-2 text-sm font-bold">უარყოფა</button></form>
+                          ) : null}
+                          {c?.instagramEnabled && !post.platforms.includes("instagram") && ["draft", "qa_failed", "ready_for_review"].includes(post.status) ? (
+                            <form action={enableInstagramAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
+                              <button className="rounded-full border border-pink-600 px-4 py-2 text-sm font-bold text-pink-700">📸 Instagram-ზეც</button></form>
                           ) : null}
                           {["draft", "qa_failed"].includes(post.status) ? (
                             <form action={rerunQualityAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />

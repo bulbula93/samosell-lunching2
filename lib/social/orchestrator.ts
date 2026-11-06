@@ -7,6 +7,7 @@ import { draftAdPlan } from "./agents/ads-planner"
 import { createDraft } from "./agents/creative"
 import { checkQuality } from "./agents/quality"
 import { buildWeeklyPlan, mondayOf } from "./agents/strategy"
+import { MediaPrepareError, type MediaPreparer } from "./media"
 import { evaluateSocialAction, type PolicyResult, type SocialAction, type SocialAgent } from "./policy-gateway"
 import { effectiveExecutionMode, type SocialRuntime } from "./runtime"
 import { SocialStoreError, type SocialStore } from "./store"
@@ -19,7 +20,7 @@ export class PolicyDeniedError extends Error {
   constructor(public readonly reason: string) { super(reason) }
 }
 
-type Ctx = { store: SocialStore; runtime: SocialRuntime; now?: () => Date }
+type Ctx = { store: SocialStore; runtime: SocialRuntime; now?: () => Date; prepareMedia?: MediaPreparer | null }
 
 async function gate(ctx: Ctx, actor: SocialAgent, action: SocialAction, extra: Partial<Parameters<typeof evaluateSocialAction>[0]> = {}, resource: { type: string; id: string | null } = { type: "system", id: null }): Promise<PolicyResult> {
   const control = await ctx.store.getControl()
@@ -50,10 +51,14 @@ export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; li
   for (const slot of slots) {
     const draftGate = await gate(ctx, "creative", "create_draft")
     if (draftGate.decision === "deny") throw new PolicyDeniedError(draftGate.reason)
-    const { post, created } = await ctx.store.insertDraft(createDraft(slot), { type: "agent", id: "creative" })
-    if (!created) { result.existing++; result.posts.push(post); continue }
+    const inserted = await ctx.store.insertDraft(createDraft(slot), { type: "agent", id: "creative" })
+    if (!inserted.created) { result.existing++; result.posts.push(inserted.post); continue }
     result.created++
-    await ctx.store.appendAudit({ actorType: "agent", actor: "creative", action: "create_draft", decision: "success", reason: "draft_created", resourceType: "social_post", resourceId: post.id, details: { pillar: post.pillar } })
+    await ctx.store.appendAudit({ actorType: "agent", actor: "creative", action: "create_draft", decision: "success", reason: "draft_created", resourceType: "social_post", resourceId: inserted.post.id, details: { pillar: inserted.post.pillar } })
+    // Instagram needs 4:5–1.91:1 JPEGs; convert listing photos once instead of dropping Instagram.
+    const post = slot.platforms.includes("instagram")
+      ? await tryPrepareInstagram(ctx, inserted.post, "creative").catch(() => inserted.post)
+      : inserted.post
     const checked = await runQualityCheck(ctx, post, "quality")
     if (checked.qualityPassed) {
       result.passedQa++
@@ -67,6 +72,44 @@ export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; li
     result.posts.push(checked)
   }
   return result
+}
+
+/**
+ * Convert the post's media into Instagram-ready JPEGs and add Instagram as a platform.
+ * Returns the post unchanged when there is nothing to do; audits both success and failure.
+ */
+async function tryPrepareInstagram(ctx: Ctx, post: SocialPost, actor: SocialAgent | string): Promise<SocialPost> {
+  if (!ctx.prepareMedia) return post
+  const actorType = actor === "creative" ? "agent" as const : "human" as const
+  try {
+    const mediaUrls = await ctx.prepareMedia(post.mediaUrls)
+    const platforms: SocialPlatform[] = post.platforms.includes("instagram") ? post.platforms : ["instagram", ...post.platforms]
+    const unchanged = mediaUrls.length === post.mediaUrls.length && mediaUrls.every((u, i) => u === post.mediaUrls[i]) && platforms.length === post.platforms.length
+    if (unchanged) return post
+    const updated = await ctx.store.updatePostContent(post.id, { mediaUrls, platforms })
+    await ctx.store.appendAudit({ actorType, actor, action: "edit_draft", decision: "success", reason: "instagram_media_prepared", resourceType: "social_post", resourceId: post.id, details: { images: mediaUrls.length, version: updated.version } })
+    return updated
+  } catch (e) {
+    const code = e instanceof MediaPrepareError ? e.code : "media_prepare_failed"
+    await ctx.store.appendAudit({ actorType, actor, action: "edit_draft", decision: "failure", reason: code, resourceType: "social_post", resourceId: post.id })
+    throw e
+  }
+}
+
+/** Admin "Instagram-ზეც": prepare media, re-run QA, request a fresh approval for the new version. */
+export async function enableInstagramForPost(ctx: Ctx, postId: string, version: number, adminUserId: string) {
+  const post = await ctx.store.getPost(postId)
+  if (!post) throw new SocialStoreError("post_not_found")
+  if (post.version !== version) throw new SocialStoreError("stale_version")
+  const g = await gate(ctx, "human_admin", "edit_draft", {}, { type: "social_post", id: postId })
+  if (g.decision === "deny") throw new PolicyDeniedError(g.reason)
+  const control = await ctx.store.getControl()
+  if (!control?.instagramEnabled) throw new PolicyDeniedError("instagram_disabled")
+  if (!ctx.prepareMedia) throw new SocialStoreError("media_preparer_unavailable")
+  const updated = await tryPrepareInstagram(ctx, post, adminUserId)
+  const checked = await runQualityCheck(ctx, updated, "human_admin")
+  if (checked.qualityPassed) await ctx.store.requestApproval(checked.id, checked.version)
+  return checked
 }
 
 export async function runQualityCheck(ctx: Ctx, post: SocialPost, actor: SocialAgent = "quality"): Promise<SocialPost> {
