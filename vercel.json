@@ -1,12 +1,20 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "git": {
     "deploymentEnabled": {
       "**": false,
       "main": true,
       "preview/**": true
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/internal/social/tick",
+      "schedule": "0 17 * * *"
+    }
+  ]
 }
