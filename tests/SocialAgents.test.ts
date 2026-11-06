@@ -26,9 +26,18 @@ describe("Strategy agent", () => {
     const ids = plan.flatMap(s => [s.listing?.id, ...s.listings.map(l => l.id)]).filter(Boolean)
     expect(new Set(ids).size).toBe(ids.length)
   })
-  it("falls back to evergreen posts with no listings", () => {
+  it("falls back to evergreen posts with no listings, never the same one twice", () => {
     const plan = buildWeeklyPlan({ weekStart: "2026-11-09", listings: [], platforms: both })
     expect(plan.every(s => s.listing === null && ["trust", "how_to_sell"].includes(s.pillar))).toBe(true)
+    expect(plan.map(s => s.pillar).sort()).toEqual(["how_to_sell", "trust"])
+  })
+  it("without gift listings the giveaway slot features another real item (no duplicate posts)", () => {
+    const plan = buildWeeklyPlan({ weekStart: "2026-11-09", listings: SIMULATION_LISTINGS.filter(l => !l.isGift), platforms: both })
+    const pillars = plan.map(s => s.pillar)
+    expect(pillars.filter(p => p === "how_to_sell")).toHaveLength(1)
+    expect(pillars.filter(p => p === "trust")).toHaveLength(1)
+    expect(plan[2]).toMatchObject({ pillar: "featured_listing" })
+    expect(plan[2].listing).not.toBeNull()
   })
   it("rejects non-Monday weeks; mondayOf works", () => {
     expect(() => buildWeeklyPlan({ weekStart: "2026-11-10", listings: [], platforms: both })).toThrow("week_must_start_monday")
