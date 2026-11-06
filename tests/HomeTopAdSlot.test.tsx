@@ -1,8 +1,12 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen, within } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 import HomePageContent from "@/components/home/HomePageContent"
+import SiteFooter from "@/components/layout/SiteFooter"
 import type { HomePageData } from "@/lib/home-page"
+import type { AdRecord } from "@/lib/ads"
 import { makeListing } from "@/tests/fixtures"
+
+vi.mock("@/components/ads/AdImpressionTracker", () => ({ default: () => null }))
 
 function homeData(): HomePageData {
   return {
@@ -20,20 +24,43 @@ function homeData(): HomePageData {
   }
 }
 
+const liveAd: AdRecord = {
+  id: "ad-1",
+  placement_key: "home_hero_left",
+  title: "ბრენდის შეთავაზება",
+  description: "აღწერა",
+  image_url: null,
+  target_url: "https://example.com",
+  is_active: true,
+  starts_at: null,
+  ends_at: null,
+  priority: 0,
+  advertiser_name: "ბრენდი",
+  created_at: "2026-11-01T00:00:00Z",
+}
+
 describe("home top ad slot", () => {
-  it("replaces the empty stories slot with a single ad section right after the hero", () => {
-    const { container } = render(<HomePageContent data={homeData()} />)
+  it("collapses completely when there is no paid ad (no filler, no empty band)", () => {
+    const { container } = render(<HomePageContent data={homeData()} heroAds={[]} />)
+
+    expect(screen.queryByRole("region", { name: "რეკლამა" })).not.toBeInTheDocument()
+    expect(container.querySelector("[data-home-top-ad]")).toBeNull()
+    expect(container.querySelector("[data-home-stories-slot]")).toBeNull()
+    expect(screen.queryByRole("link", { name: "რეკლამის შექმნა" })).not.toBeInTheDocument()
+  })
+
+  it("shows one paid ad right after the hero, above the first product section", () => {
+    render(<HomePageContent data={homeData()} heroAds={[liveAd]} />)
 
     const adSections = screen.getAllByRole("region", { name: "რეკლამა" })
     expect(adSections).toHaveLength(1)
-    expect(adSections[0]).toHaveAttribute("data-home-top-ad")
-    expect(container.querySelector("[data-home-stories-slot]")).toBeNull()
-
-    // With no paid ads, the self-service "advertise with us" placeholder fills the slot.
-    expect(screen.getAllByRole("link", { name: "რეკლამის შექმნა" })[0]).toHaveAttribute("href", "/advertise")
-
-    // The ad sits above the first product section.
+    expect(within(adSections[0]).getAllByRole("article")).toHaveLength(1)
     const latestHeading = screen.getByRole("heading", { name: "ბოლოს დამატებული" })
     expect(adSections[0].compareDocumentPosition(latestHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("keeps advertising discoverable from the footer", () => {
+    render(<SiteFooter />)
+    expect(screen.getByRole("link", { name: "რეკლამა SamoSell-ზე" })).toHaveAttribute("href", "/advertise")
   })
 })
