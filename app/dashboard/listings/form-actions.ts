@@ -112,6 +112,22 @@ function uploadedImageId(listingId: string, path: string) {
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-${variant}${hash.slice(17, 20)}-${hash.slice(20, 32)}`
 }
 
+/**
+ * Server-side reason for a failed listing save, visible in runtime logs even when the
+ * visitor declined analytics. Only the error class, Postgres/Storage code and a short
+ * message are logged: never form values, file names or user identifiers.
+ */
+function logListingFailure(stage: string, error: unknown) {
+  const raw = error && typeof error === "object" ? (error as { name?: unknown; code?: unknown; status?: unknown; statusCode?: unknown; message?: unknown }) : {}
+  console.error("Listing save failed.", {
+    stage,
+    name: typeof raw.name === "string" ? raw.name.slice(0, 60) : typeof error,
+    code: typeof raw.code === "string" || typeof raw.code === "number" ? String(raw.code).slice(0, 40) : undefined,
+    status: ["number", "string"].includes(typeof (raw.status ?? raw.statusCode)) ? String(raw.status ?? raw.statusCode).slice(0, 8) : undefined,
+    message: typeof raw.message === "string" ? raw.message.slice(0, 160) : undefined,
+  })
+}
+
 function safeServerError(message: string) {
   if (message.includes("rate") || message.includes("ბევრი მოთხოვნა")) {
     return "ძალიან ბევრი მოთხოვნაა. ცოტა ხანში სცადე ხელახლა."
@@ -477,6 +493,7 @@ export async function prepareListingUploadsAction(
     return { ok: true, listingId, plans }
   } catch (error) {
     const message = error instanceof Error ? error.message : ""
+    logListingFailure("prepare_uploads", error)
     return { ok: false, code: "server_error", message: safeServerError(message) }
   }
 }
@@ -858,6 +875,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     }
 
     const message = error instanceof Error ? error.message : ""
+    logListingFailure(input.mode === "create" ? "save_create" : "save_edit", error)
     return {
       ok: false,
       code: message.includes("ბევრი მოთხოვნა") ? "rate_limited" : "server_error",

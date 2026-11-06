@@ -75,6 +75,14 @@ describe("Growth consent, UTM and sessions", () => {
     const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
     expect(body.path).toBe("/auth/callback"); expect(JSON.stringify(body)).not.toMatch(/private-secret|private@example/)
   })
+  it("sends sanitized publish-failure diagnostics only with the failed-publish event", async () => {
+    saveBrowserConsent(false, true)
+    await trackGrowth("listing_publish_failed", undefined, undefined, { stage: "upload", code: "upload_error", http_status: 413, images: 4, total_mb: 7.77, online: true })
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)
+    expect(body.failure).toEqual({ stage: "upload", code: "upload_error", http_status: 413, images: 4, total_mb: 7.8, online: true })
+    await trackGrowth("page_view", undefined, undefined, { stage: "upload", code: "upload_error" })
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string)).not.toHaveProperty("failure")
+  })
   it("tracks a query navigation without double-counting rerenders", async () => {
     saveBrowserConsent(false, true)
     const view = render(<GrowthInstrumentation />)

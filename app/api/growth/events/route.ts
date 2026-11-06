@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { growthWritesEnabled } from "@/lib/growth/server"
 import { deliverMetaEvents } from "@/lib/growth/meta-server"
-import { parseContext, safePath, routeGroup, uuid } from "@/lib/growth/shared"
+import { parseContext, safePath, routeGroup, sanitizePublishFailure, uuid } from "@/lib/growth/shared"
 
 const headers = { "Cache-Control": "private, no-store" }
 export async function POST(request: Request) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   const path = safePath(body.path)
   if (["listing_started", "listing_publish_failed"].includes(String(body.event_name)) && (!user || path !== "/dashboard/listings/new")) return Response.json({ error: "unauthorized" }, { status: 403, headers })
   try {
-    const { data, error } = await createAdminClient().rpc("ingest_growth_browser_event", { p_event: { ...context, event_name: body.event_name, event_id: body.event_id, user_id: user?.id ?? null, path, route_group: routeGroup(path), device_class: ["mobile", "tablet", "desktop"].includes(String(body.device_class)) ? body.device_class : "desktop", marketing_consent: consent.marketing === true, consent_updated_at: consent.updatedAt } })
+    const { data, error } = await createAdminClient().rpc("ingest_growth_browser_event", { p_event: { ...context, event_name: body.event_name, event_id: body.event_id, user_id: user?.id ?? null, path, route_group: routeGroup(path), device_class: ["mobile", "tablet", "desktop"].includes(String(body.device_class)) ? body.device_class : "desktop", marketing_consent: consent.marketing === true, consent_updated_at: consent.updatedAt, ...(body.event_name === "listing_publish_failed" ? { failure: sanitizePublishFailure(body.failure) } : {}) } })
     if (error) return Response.json({ error: "tracking_unavailable" }, { status: error.code === "P0001" ? 429 : 503, headers })
     after(() => deliverMetaEvents(user?.id).catch(() => undefined))
     return Response.json({ conversions: data ?? [] }, { headers })

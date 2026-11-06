@@ -1,6 +1,6 @@
 "use client"
 import { allowsAnalytics, getBrowserConsent } from "@/lib/browser-preferences"
-import { GROWTH_COOKIE, GROWTH_KEY, TOUCH_TTL, SESSION_TTL, cleanTouch, parseContext, routeGroup, safePath, type GrowthContext, type GrowthEventName, type Touch, uuid } from "./shared"
+import { GROWTH_COOKIE, GROWTH_KEY, TOUCH_TTL, SESSION_TTL, cleanTouch, parseContext, routeGroup, safePath, sanitizePublishFailure, type GrowthContext, type GrowthEventName, type PublishFailure, type Touch, uuid } from "./shared"
 
 let memory: GrowthContext | null = null
 const pending = new Map<string, Promise<void>>()
@@ -31,7 +31,7 @@ export function growthContext(): GrowthContext | null {
   try { document.cookie = `${GROWTH_COOKIE}=${encodeURIComponent(raw)}; Path=/; Max-Age=${Math.ceil((context.expires_at - Date.now()) / 1000)}; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}` } catch { /* unavailable */ }
   return context
 }
-export function trackGrowth(eventName: "page_view" | "listing_started" | "listing_publish_failed" | "identify", eventId = crypto.randomUUID(), attemptId?: string): Promise<void> {
+export function trackGrowth(eventName: "page_view" | "listing_started" | "listing_publish_failed" | "identify", eventId = crypto.randomUUID(), attemptId?: string, failure?: PublishFailure): Promise<void> {
   if (!allowsAnalytics() || process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY === "true") return Promise.resolve()
   if (pending.has(eventId)) return pending.get(eventId)!
   const context = growthContext()
@@ -39,7 +39,7 @@ export function trackGrowth(eventName: "page_view" | "listing_started" | "listin
   const path = safePath(location.pathname)
   const task = fetch("/api/growth/events", {
     method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
-    body: JSON.stringify({ event_name: eventName, event_id: eventId, attempt_id: attemptId, context, path, route_group: routeGroup(location.pathname), device_class: innerWidth < 768 ? "mobile" : innerWidth < 1024 ? "tablet" : "desktop" }),
+    body: JSON.stringify({ event_name: eventName, event_id: eventId, attempt_id: attemptId, context, path, route_group: routeGroup(location.pathname), device_class: innerWidth < 768 ? "mobile" : innerWidth < 1024 ? "tablet" : "desktop", ...(eventName === "listing_publish_failed" && failure ? { failure: sanitizePublishFailure(failure) } : {}) }),
   }).then(async response => {
     if (!response.ok) return
     const data = await response.json()
