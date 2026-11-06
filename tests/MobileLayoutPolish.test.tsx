@@ -13,7 +13,7 @@ const items = Array.from({ length: 10 }, (_, index) => makeListing({ id: `l-${in
 describe("mobile layout polish", () => {
   it("hero headline is phone-sized and CTAs sit in a 2-column row on phones", () => {
     const hero = read("components", "home", "HomeSearchHeroSection.tsx")
-    expect(hero).toContain("text-[1.8rem]")
+    expect(hero).toContain("max-w-none text-balance text-[1.8rem]")
     expect(hero).toContain("sm:text-[clamp(2.45rem,5vw,4.65rem)]")
     expect(hero).toContain("mt-5 grid grid-cols-2 gap-3")
     expect(hero).not.toContain("min-h-[380px] items-center gap-6 px-6 py-9")
