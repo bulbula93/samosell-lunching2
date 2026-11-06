@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import { readMetaCredentials } from "@/lib/social/adapters/meta"
-import { approveAndSchedule, draftAdForPost, PolicyDeniedError, rejectPost, runPlanningCycle, runQualityCheck } from "@/lib/social/orchestrator"
+import { approveAndSchedule, draftAdForPost, enableInstagramForPost, PolicyDeniedError, rejectPost, runPlanningCycle, runQualityCheck } from "@/lib/social/orchestrator"
 import { evaluateSocialAction } from "@/lib/social/policy-gateway"
 import { currentSocialRuntime } from "@/lib/social/runtime"
 import { SocialStoreError, type SocialStore } from "@/lib/social/store"
+import { MediaPrepareError } from "@/lib/social/media"
+import { createSocialMediaPreparer } from "@/lib/social/supabase-media"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import { runPublishTick } from "@/lib/social/worker"
 
@@ -31,6 +33,7 @@ async function context() {
 function errorCode(error: unknown) {
   if (error instanceof PolicyDeniedError) return error.reason
   if (error instanceof SocialStoreError) return error.code
+  if (error instanceof MediaPrepareError) return error.code
   return "action_failed"
 }
 function readPost(formData: FormData) {
@@ -44,7 +47,7 @@ export async function runPlanningAction() {
   const { store, runtime } = await context()
   let code: string
   try {
-    const r = await runPlanningCycle({ store, runtime })
+    const r = await runPlanningCycle({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime) })
     code = `planned_${r.created}_created_${r.passedQa}_qa_passed`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)
@@ -59,6 +62,13 @@ export async function approvePostAction(formData: FormData) {
     code = `approved_${r.jobs}_jobs_${r.mode}`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)
+}
+
+export async function enableInstagramAction(formData: FormData) {
+  const { store, runtime, user } = await context()
+  const { postId, version } = readPost(formData)
+  try { await enableInstagramForPost({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime) }, postId, version, user.id) } catch (e) { go("error", errorCode(e)) }
+  go("ok", "instagram_media_prepared_qa_rerun")
 }
 
 export async function rejectPostAction(formData: FormData) {
