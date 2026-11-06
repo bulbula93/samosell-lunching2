@@ -90,7 +90,7 @@ export default function MarketplaceProductCard({
         alt={sellerLabel}
         fallbackText={sellerLabel}
         sizeClassName="h-7 w-7"
-        textClassName="text-[8px]"
+        textClassName="text-[10px]"
         className="shrink-0 border border-line/80 shadow-none ring-0"
       />
       <span className="min-w-0 flex-1 truncate font-bold text-text">{sellerLabel}</span>
@@ -135,14 +135,14 @@ export default function MarketplaceProductCard({
         {(isGift || statusBadge || promotionBadge) ? (
           <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5 sm:left-2.5 sm:top-2.5">
             {isGift ? (
-              <span className="inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[10px] font-black text-[#d85f0e] shadow-sm backdrop-blur sm:text-[11px]">
+              <span className="inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[11px] font-black text-[#d85f0e] shadow-sm backdrop-blur">
                 🎁 ჩუქება
               </span>
             ) : null}
             {statusBadge || promotionBadge ? (
               <PromotionExpiry until={statusBadge ? "9999-01-01T00:00:00Z" : item.is_featured ? item.featured_until : item.is_promoted ? item.promoted_until : item.vip_until}>
               <span
-                className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur sm:text-[11px] ${
+                className={`inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm backdrop-blur ${
                   statusBadge ? "bg-text text-white" : promotionClass(item)
                 }`}
               >
@@ -178,13 +178,14 @@ export default function MarketplaceProductCard({
           <span>{priceLabel}</span>
         </div>
 
-        <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-text-soft sm:text-xs">
-          <span className="min-w-0 truncate rounded-full bg-surface-alt px-2.5 py-1">
+        {/* Wrap instead of truncating: on 2-column phones "ახალი"/"თბილისი" used to become "ასა…"/"თბილ…". */}
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 text-xs font-medium text-text-soft sm:gap-1.5" data-card-meta>
+          <span className="max-w-full rounded-full bg-surface-alt px-2 py-0.5 sm:px-2.5 sm:py-1">
             {conditionLabel(item.condition)}
           </span>
-          <span className="flex min-w-0 items-center gap-1 rounded-full bg-surface-alt px-2.5 py-1">
+          <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-alt px-2 py-0.5 sm:px-2.5 sm:py-1">
             <LocationIcon />
-            <span className="truncate">{locationLabel}</span>
+            <span className="break-words">{locationLabel}</span>
           </span>
         </div>
 
@@ -194,7 +195,7 @@ export default function MarketplaceProductCard({
               href={sellerHref}
               prefetch={false}
               aria-label={`${sellerLabel} — გამყიდველის გვერდი`}
-              className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1 text-[11px] text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35 sm:text-xs"
+              className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1 text-xs text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
             >
               {sellerIdentity}
               <span className="shrink-0 text-text-soft transition group-hover/seller:translate-x-0.5 group-hover/seller:text-brand">
