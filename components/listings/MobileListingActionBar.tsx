@@ -45,7 +45,7 @@ export default function MobileListingActionBar({
     >
       <div className="mx-auto flex max-w-lg items-center gap-3 md:max-w-none">
         <div className="min-w-0 flex-1 md:hidden">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-text-soft">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-text-soft">
             ფასი
           </span>
           <strong className="block truncate text-lg font-black leading-tight text-text">

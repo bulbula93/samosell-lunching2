@@ -24,9 +24,20 @@ function Icon({ name }: { name: NavKey }) {
   return <svg aria-hidden="true" viewBox="0 0 24 24" className={common} fill="none" stroke="currentColor" strokeWidth="1.8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 9a7 7 0 0 0-14 0" /></svg>
 }
 
+/** Listing detail and listing create/edit pages have their own fixed bottom bar. */
+export function hidesMobileBottomNavigation(pathname: string) {
+  return /^\/listing\/[^/]+\/?$/.test(pathname)
+    || pathname === "/dashboard/listings/new"
+    || /^\/dashboard\/listings\/[^/]+\/edit\/?$/.test(pathname)
+}
+
 export default function MobileBottomNavigation({ userState }: { userState: MarketplaceUserState }) {
   const pathname = usePathname() ?? ""
   const hideForChatThread = pathname.startsWith("/dashboard/chats/")
+  // Pages with their own bottom action bar (contact seller, wizard navigation) give the
+  // nav's ~87px back to that bar instead of stacking two fixed bars on a phone.
+  const hideForOwnActionBar = hidesMobileBottomNavigation(pathname)
+  const hidden = hideForChatThread || hideForOwnActionBar
   const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
   const messagesHref = userState.signedIn ? "/dashboard/chats" : "/login"
   const profileHref = userState.signedIn ? "/dashboard/profile" : "/login"
@@ -36,9 +47,12 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
     const previousPaddingBottom = document.body.style.paddingBottom
     const media = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 767px)") : null
 
+    const root = document.documentElement
+    if (hideForOwnActionBar) root.style.setProperty("--mobile-nav-offset", "0px")
+
     const syncBodyPadding = () => {
       document.body.style.paddingBottom =
-        media?.matches && !hideForChatThread
+        media?.matches && !hidden
           ? "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))"
           : previousPaddingBottom
     }
@@ -48,10 +62,11 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
     return () => {
       media?.removeEventListener("change", syncBodyPadding)
       document.body.style.paddingBottom = previousPaddingBottom
+      if (hideForOwnActionBar) root.style.removeProperty("--mobile-nav-offset")
     }
-  }, [hideForChatThread])
+  }, [hidden, hideForOwnActionBar])
 
-  if (hideForChatThread) return null
+  if (hidden) return null
 
   const active = (key: NavKey) => {
     if (key === "home") return pathname === "/"
