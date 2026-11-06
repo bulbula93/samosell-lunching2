@@ -1,12 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import { useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { useUnreadNotifications } from "@/lib/use-unread-notifications"
 import SignOutButton from "@/components/dashboard/SignOutButton"
 import Avatar from "@/components/shared/Avatar"
 import MarketplaceSearch from "@/components/layout/MarketplaceSearch"
 import MobileBottomNavigation from "@/components/layout/MobileBottomNavigation"
+import { useHideOnScroll } from "@/components/layout/useHideOnScroll"
 import MobileNavigation, {
   type MarketplaceNavItem,
   type MarketplaceUserState,
@@ -96,10 +98,18 @@ export default function MarketplaceHeader({
   const isChatThread = pathname.startsWith("/dashboard/chats/")
   const isListingCreateRoute = pathname === "/dashboard/listings/new"
   const hideMobileMarketplaceSearch = isChatRoute || isListingCreateRoute
+  const headerRef = useRef<HTMLElement>(null)
+  // On phones the 128px header slides away while reading and returns on scroll-up.
+  const hiddenOnScroll = useHideOnScroll(headerRef, !isChatThread)
 
   return (
     <>
-    <header id="marketplace-header" className={`sticky top-0 z-50 border-b border-line bg-white/95 ${isChatThread ? "hidden md:block" : ""}`}>
+    <header
+      ref={headerRef}
+      id="marketplace-header"
+      data-hidden-on-scroll={hiddenOnScroll ? "true" : undefined}
+      className={`sticky top-0 z-50 border-b border-line bg-white/95 transition-transform duration-200 motion-reduce:transition-none ${hiddenOnScroll ? "max-md:-translate-y-full" : ""} ${isChatThread ? "hidden md:block" : ""}`}
+    >
       <div className="ui-container flex min-h-[60px] items-center gap-2 py-2 sm:min-h-[72px] sm:gap-3 sm:py-3 lg:gap-5">
         <MobileNavigation items={items} userState={userState} />
 
