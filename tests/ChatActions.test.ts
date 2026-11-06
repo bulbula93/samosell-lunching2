@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   notifyChatMessage: vi.fn().mockResolvedValue(undefined),
   recordSearchInteractionSafely: vi.fn().mockResolvedValue(undefined),
+  recordBuyerContact: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -31,6 +32,10 @@ vi.mock("@/lib/notifications", () => ({
 
 vi.mock("@/lib/search-analytics", () => ({
   recordSearchInteractionSafely: mocks.recordSearchInteractionSafely,
+}))
+
+vi.mock("@/lib/growth/server", () => ({
+  recordBuyerContact: mocks.recordBuyerContact,
 }))
 
 vi.mock("next/navigation", () => ({
@@ -139,6 +144,19 @@ describe("chat server actions", () => {
     expect(rpc.mock.calls[0][1]).not.toHaveProperty("sellerId")
     expect(rpc.mock.calls[0][1]).not.toHaveProperty("senderId")
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard/chats")
+    expect(mocks.recordBuyerContact).toHaveBeenCalledWith(buyerId, chatId, listingId)
+  })
+
+  it("still opens the conversation when buyer-contact analytics fails", async () => {
+    mocks.recordBuyerContact.mockRejectedValueOnce(new Error("analytics down"))
+    const rpc = vi.fn().mockReturnValue(rpcSingle({ chat_id: chatId, message_id: messageId, message_body: "გამარჯობა", message_created_at: createdAt }))
+    mocks.requireAuthenticatedUser.mockResolvedValue({ supabase: { rpc }, user: { id: buyerId } })
+    const formData = new FormData()
+    formData.set("listingId", listingId)
+    formData.set("listingSlug", "linen-jacket")
+    formData.set("clientRequestId", requestId)
+    formData.set("body", "გამარჯობა")
+    await expect(startChatAction({ ok: false, message: "" }, formData)).rejects.toThrow(`REDIRECT:/dashboard/chats/${chatId}`)
   })
 
   it("does not create an empty conversation", async () => {
@@ -157,6 +175,7 @@ describe("chat server actions", () => {
 
     expect(result).toMatchObject({ ok: false })
     expect(rpc).not.toHaveBeenCalled()
+    expect(mocks.recordBuyerContact).not.toHaveBeenCalled()
   })
 
   it("denies an unauthenticated direct message before database mutation", async () => {

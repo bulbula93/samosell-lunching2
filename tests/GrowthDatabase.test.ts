@@ -26,9 +26,12 @@ beforeAll(async () => {
     create table flitt_payment_attempts(boost_order_id uuid,ad_order_id uuid,user_id uuid,purpose text,mode text,status text,provider_status text,response_status text,provider_verified_at timestamptz,provider_verification_source text,provider_payment_id text,currency text,amount integer);
     create table favorites(id uuid,created_at timestamptz default now());
     create table chat_threads(id uuid,chat_type text,created_at timestamptz default now());
+    create table chats(id uuid primary key,listing_id uuid,buyer_id uuid,seller_id uuid,chat_type text default 'listing');
+    create table messages(id uuid primary key default gen_random_uuid(),chat_id uuid,sender_id uuid);
   `)
   await db.exec(readFileSync("supabase/migrations/20261007090317_growth_tracking_v1.sql", "utf8"))
   await db.exec(readFileSync("supabase/migrations/20261106120000_listing_publish_failure_reasons.sql", "utf8"))
+  await db.exec(readFileSync("supabase/migrations/20261106150000_growth_buyer_contact.sql", "utf8"))
 }, 30000)
 afterAll(async () => db?.close())
 describe.sequential("Growth authoritative SQL and isolation", () => {
@@ -112,6 +115,28 @@ describe.sequential("Growth authoritative SQL and isolation", () => {
     expect(await count("boost_purchase_completed")).toBe(1)
     await db.exec(`update flitt_payment_attempts set provider_verified_at=now(),provider_verification_source='status_api'; update ad_orders set provider_status='approved'; update ad_orders set status='active';`)
     expect(await count("boost_purchase_completed")).toBe(2)
+  })
+  it("records a verified buyer contact once per chat and rejects forged or empty contacts", async () => {
+    const buyer = "77777777-7777-4777-8777-777777777777", buyerAnon = "88888888-8888-4888-8888-888888888888"
+    const chat = "99999999-9999-4999-8999-999999999999", silent = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", self = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    await db.exec(`insert into auth.users(id) values('${buyer}');`)
+    await db.exec(`insert into chats(id,listing_id,buyer_id,seller_id) values('${chat}','${listing}','${buyer}','${seller}'),('${silent}','${listing}','${buyer}','${seller}'),('${self}','${listing}','${seller}','${seller}');
+      insert into messages(chat_id,sender_id) values('${chat}','${buyer}'),('${silent}','${seller}'),('${self}','${seller}');`)
+    const contact = async (id: string, user = buyer, listingId = listing) => (await rpc("record_growth_outcome", { event_name: "buyer_contact_started", event_id: `buyer_contact_started:${id}`, user_id: user, listing_id: listingId, anonymous_id: buyerAnon, session_id: session, first_touch: { utm_source: "meta", utm_campaign: "under50" }, last_touch: {}, marketing_consent: true, path: "/listing/:id", route_group: "listing" })) as { rows: { result: boolean }[] }
+    expect((await contact(chat)).rows[0].result).toBe(true)
+    await contact(chat)
+    expect(await count("buyer_contact_started")).toBe(1)
+    expect((await contact(silent)).rows[0].result).toBe(false)
+    expect((await contact(self, seller)).rows[0].result).toBe(false)
+    expect((await contact(chat, seller)).rows[0].result).toBe(false)
+    expect((await contact(chat, buyer, order)).rows[0].result).toBe(false)
+    expect(await count("buyer_contact_started")).toBe(1)
+    await expect(rpc("record_growth_outcome", { event_name: "buyer_contact_started", event_id: "buyer_contact_started:x", user_id: buyer, listing_id: listing })).rejects.toThrow("Invalid contact key")
+    await expect(rpc("ingest_growth_browser_event", { ...context(), event_name: "buyer_contact_started", event_id: "forged" })).rejects.toThrow("Untrusted event")
+    const row = (await db.query<{ first_touch: { utm_campaign: string }; listing_id: string }>("select first_touch,listing_id from growth_events where event_name='buyer_contact_started'")).rows[0]
+    expect(row).toMatchObject({ listing_id: listing, first_touch: { utm_campaign: "under50" } })
+    const claimed = (await db.query<{ event_name: string }>("select event_name from claim_growth_meta_events(null,20)")).rows.map(r => r.event_name)
+    expect(claimed).toContain("buyer_contact_started")
   })
   it("protects every telemetry table and RPC from anon/authenticated roles", async () => {
     for (const role of ["anon", "authenticated"]) {

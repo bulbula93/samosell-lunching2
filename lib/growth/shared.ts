@@ -2,7 +2,7 @@ export const GROWTH_COOKIE = "samosell_growth"
 export const GROWTH_KEY = "samosell:growth:v1"
 export const TOUCH_TTL = 30 * 86400_000
 export const SESSION_TTL = 30 * 60_000
-export const EVENT_NAMES = ["page_view", "registration_completed", "listing_started", "listing_published", "listing_edit_completed", "listing_publish_failed", "boost_checkout_started", "boost_purchase_completed"] as const
+export const EVENT_NAMES = ["page_view", "registration_completed", "listing_started", "listing_published", "listing_edit_completed", "listing_publish_failed", "boost_checkout_started", "boost_purchase_completed", "buyer_contact_started"] as const
 export type GrowthEventName = typeof EVENT_NAMES[number]
 export type Touch = Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>> & { referrer?: string }
 export type GrowthContext = { anonymous_id: string; session_id: string; first_touch: Touch; last_touch: Touch; expires_at: number; last_seen: number }
@@ -45,7 +45,7 @@ export function parseContext(raw: string | null): GrowthContext | null {
   } catch { return null }
 }
 export const META_MAPPING: Partial<Record<GrowthEventName, { name: string; custom?: boolean }>> = {
-  page_view: { name: "PageView" }, registration_completed: { name: "CompleteRegistration" }, listing_started: { name: "StartListing", custom: true }, listing_published: { name: "PublishListing", custom: true }, boost_checkout_started: { name: "InitiateCheckout" }, boost_purchase_completed: { name: "Purchase" },
+  page_view: { name: "PageView" }, registration_completed: { name: "CompleteRegistration" }, listing_started: { name: "StartListing", custom: true }, listing_published: { name: "PublishListing", custom: true }, boost_checkout_started: { name: "InitiateCheckout" }, boost_purchase_completed: { name: "Purchase" }, buyer_contact_started: { name: "Contact" },
 }
 export function metaCustomData(event: GrowthEvent) {
   return event.amount != null ? { value: Number(event.amount), currency: "GEL", content_ids: [event.product_id ?? event.listing_id ?? "boost"], content_type: "product", ...(event.order_id ? { order_id: event.order_id } : {}) } : event.listing_id ? { content_ids: [event.listing_id] } : {}
