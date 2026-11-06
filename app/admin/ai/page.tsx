@@ -67,6 +67,11 @@ export default async function AiOperationsPage() {
         <p className="mt-2 text-sm text-text-soft">დავალებებისა და აუდიტის რეალური მონაცემები SamoSell-QA-დან. სერვერული წვდომა მხოლოდ წაკითხვაზეა შეზღუდული. განრიგის მიმდინარე დაშვება და ბოლო ციკლი ნახე Queue &amp; Activity პანელში.</p>
         <Link href="/admin/ai/activity" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">დავალებებისა და აქტივობის ნახვა →</Link>
       </section>
+      <section className="ui-card p-6">
+        <h2 className="text-xl font-bold text-text">Social Media Agent OS</h2>
+        <p className="mt-2 text-sm text-text-soft">Marketing როლის ქვეშ: Instagram/Facebook ორგანული კონტენტის დაგეგმვა, QA, დამტკიცება და dry-run გამოქვეყნება. ფასიანი რეკლამა აკრძალულია ($0).</p>
+        <Link href="/admin/social" className="mt-4 inline-flex rounded-full border px-4 py-2 text-sm font-bold text-text hover:underline">AI Marketing Control Center →</Link>
+      </section>
       <Link href="/admin" className="inline-flex text-sm font-bold underline">← ადმინისტრირების პანელი</Link>
     </main>
   )
