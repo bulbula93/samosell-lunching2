@@ -803,7 +803,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
               {published ? (
                 <>
                   <Link href={`/listing/${successResult.slug}`} className="ui-btn-primary">ნახე განცხადება</Link>
-                  <Link href={`/dashboard/listings/${successResult.listingId}/promote`} className="ui-btn-secondary">გახადე VIP</Link>
+                  <Link href={`/dashboard/listings/${successResult.listingId}/promote`} className="ui-btn-secondary">გახადე VIP · პირველი უფასოა</Link>
                 </>
               ) : (
                 <Link href="/dashboard/listings" className="ui-btn-primary">ჩემი განცხადებები</Link>

@@ -82,9 +82,32 @@ export function validateAdminAdInput(input: {
 }
 
 export function createSevenDayAdSchedule(now = new Date()) {
+  return createAdSchedule(AD_DURATION_DAYS, now)
+}
+
+/** Admin-run (e.g. partner programme) campaigns may run 7 or 14 days. */
+export const ADMIN_AD_DURATION_OPTIONS = [7, 14] as const
+
+export function parseAdminAdDurationDays(value: unknown) {
+  const days = Number(value)
+  return (ADMIN_AD_DURATION_OPTIONS as readonly number[]).includes(days) ? days : AD_DURATION_DAYS
+}
+
+export function createAdSchedule(days: number, now = new Date()) {
   const startsAt = new Date(now)
-  const endsAt = new Date(startsAt.getTime() + AD_DURATION_MS)
+  const endsAt = new Date(startsAt.getTime() + days * 24 * 60 * 60 * 1000)
   return { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() }
+}
+
+/** The home ad slot shows one ad at a time; paid + admin campaigns share at most this many seats. */
+export const HOME_AD_SEATS = 3
+
+/** Weekly home page views at which paid home ads are worth re-enabling (launch-phase rule). */
+export const PAID_ADS_HOME_VIEWS_THRESHOLD = 2000
+export const HOME_AD_PLACEMENT_KEYS = ["home_hero_left", "home_hero_right"] as const
+
+export function isHomeAdPlacement(value: unknown) {
+  return (HOME_AD_PLACEMENT_KEYS as readonly unknown[]).includes(value)
 }
 
 export type AdminAdStatus = "active" | "scheduled" | "expired" | "stopped" | "draft"

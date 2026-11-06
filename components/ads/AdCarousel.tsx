@@ -5,20 +5,26 @@ import { isAdActive } from "@/lib/ads"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import AdBanner from "@/components/ads/AdBanner"
 import type { AdRecord } from "@/lib/ads"
+import { HOME_AD_SEATS } from "@/lib/admin-ads"
 
 const ROTATION_MS = 6000
 
 /**
  * Home ad slot policy: exactly one ad is visible at a time, full width.
- * Up to HOME_AD_ROTATION_LIMIT paid ads share the slot (enforced at approval
- * time in approve_self_service_ad). Each page view starts on a random ad so
+ * Up to HOME_AD_SEATS paid + partner ads share the slot (enforced when paid ads
+ * are approved and admin ads are launched; capped again here as a safety net). Each page view starts on a random ad so
  * every advertiser gets an equal share of first impressions. With no live
  * paid ad the slot renders nothing instead of an "advertise here" filler.
  */
 export default function AdCarousel({ ads, pagePath }: { ads: AdRecord[]; pagePath: string }) {
   const now = useExpiryClock(ads.flatMap((ad) => [ad.starts_at, ad.ends_at]))
   const ordered = useMemo(
-    () => ads.filter((ad) => now === null || isAdActive(ad, new Date(now))).sort((a, b) => a.id.localeCompare(b.id)),
+    () => ads
+      .filter((ad) => now === null || isAdActive(ad, new Date(now)))
+      // Safety net for the seat cap: keep the highest-priority campaigns, then a stable order.
+      .sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id))
+      .slice(0, HOME_AD_SEATS)
+      .sort((a, b) => a.id.localeCompare(b.id)),
     [ads, now],
   )
   const [index, setIndex] = useState(0)

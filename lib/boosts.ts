@@ -134,6 +134,8 @@ export function paymentMethodLabel(value?: string | null) {
       return "TBC Checkout"
     case "flitt":
       return "Flitt / ბარათით გადახდა"
+    case "promo_first_vip":
+      return "უფასო პირველი VIP"
     default:
       return value || "—"
   }
@@ -237,4 +239,18 @@ export function promotionBadgeClass(label?: string | null) {
   if (value.includes("top")) return "ui-pill-promoted"
   if (value.includes("vip")) return "ui-pill-vip"
   return "ui-pill-soft"
+}
+
+/** Launch promotion: every seller can activate one free 7-day VIP. Disable with FIRST_FREE_VIP_ENABLED=false. */
+export function isFirstFreeVipEnabled() {
+  return process.env.FIRST_FREE_VIP_ENABLED !== "false"
+}
+
+export function firstFreeVipErrorFlash(message?: string | null) {
+  const text = String(message ?? "")
+  if (text.includes("promo_already_used")) return "free_vip_used"
+  if (text.includes("listing_not_active")) return "free_vip_listing_inactive"
+  if (text.includes("listing_not_found")) return "not_found"
+  if (text.includes("promo_unavailable")) return "free_vip_unavailable"
+  return "free_vip_failed"
 }
