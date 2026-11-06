@@ -31,7 +31,7 @@ export default function HomeSearchHeroSection({ featuredItems }: { featuredItems
           className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]"
           style={{ backgroundImage: "url('/brand/samosell-hero-bg.jpg')" }}
         >
-          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
+          <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.94)_0%,rgba(255,251,246,0.86)_55%,rgba(255,251,246,0.55)_100%)] sm:bg-[linear-gradient(90deg,rgba(255,251,246,0.95)_0%,rgba(255,251,246,0.78)_34%,rgba(255,251,246,0.06)_56%,rgba(255,251,246,0.00)_100%)]" />
 
           <div className={`relative grid items-center gap-5 px-5 py-6 sm:min-h-[380px] sm:gap-6 sm:px-9 sm:py-11 lg:gap-10 lg:px-14 lg:py-12 ${carouselItems.length > 0 ? "lg:grid-cols-[0.82fr_1.18fr]" : "lg:grid-cols-1"}`}>
             <div className="relative z-10 max-w-2xl">
