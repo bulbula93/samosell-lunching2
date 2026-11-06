@@ -55,6 +55,7 @@ export function checkQuality(input: QualityInput, now = new Date()): QualityRepo
   if (input.mediaUrls.some(u => !mediaHostAllowed(u))) err("media_host", "სურათი უნდა იყოს samosell.ge-დან ან SamoSell-ის Storage-დან (HTTPS).")
   if (input.contentType === "carousel" && (input.mediaUrls.length < 2 || input.mediaUrls.length > 10)) err("carousel_size", "კარუსელს სჭირდება 2–10 სურათი.")
   if (input.contentType === "single_image" && input.mediaUrls.length !== 1) err("single_image_media", "ერთ პოსტს ზუსტად ერთი სურათი სჭირდება.")
+  if (input.contentType === "story" && (input.mediaUrls.length !== 1 || !input.mediaUrls.every(instagramCompatibleMedia))) err("story_media", "Story-ს ზუსტად ერთი JPEG სურათი სჭირდება.")
 
   for (const platform of input.platforms) {
     const rendered = renderCaption(input, platform)

@@ -14,7 +14,7 @@ export class SocialStoreError extends Error {
   constructor(public readonly code: string) { super(code) }
 }
 
-export type ControlPatch = Partial<Pick<SocialControl, "killSwitch" | "executionMode" | "instagramEnabled" | "facebookEnabled" | "organicAutoPublish">>
+export type ControlPatch = Partial<Pick<SocialControl, "killSwitch" | "executionMode" | "instagramEnabled" | "facebookEnabled" | "organicAutoPublish" | "storiesEnabled">>
 export type ContentPatch = Partial<Pick<SocialPost, "caption" | "hashtags" | "mediaUrls" | "linkUrl" | "platforms" | "scheduledFor">>
 export type ClaimedJob = { jobId: string; leaseToken: string }
 
@@ -26,6 +26,7 @@ export interface SocialStore {
   listAudit(limit: number): Promise<StoredAuditEntry[]>
   insertDraft(draft: CreativeDraft, createdBy: { type: "agent" | "human"; id: string }): Promise<{ post: SocialPost; created: boolean }>
   getPost(id: string): Promise<SocialPost | null>
+  getPostByKey(idempotencyKey: string): Promise<SocialPost | null>
   listPosts(fromIso: string, toIso: string, limit: number): Promise<SocialPost[]>
   updatePostContent(id: string, patch: ContentPatch): Promise<SocialPost>
   setQuality(id: string, version: number, report: QualityReport): Promise<SocialPost>
@@ -43,12 +44,13 @@ export interface SocialStore {
   insertAdDraft(draft: Omit<AdDraft, "id">): Promise<AdDraft>
   listAdDrafts(limit: number): Promise<AdDraft[]>
   listCandidateListings(limit: number): Promise<CandidateListing[]>
+  getCandidateListing(id: string): Promise<CandidateListing | null>
 }
 
 export function defaultControl(nowIso: string): SocialControl {
   return {
     killSwitch: true, executionMode: "dry_run", instagramEnabled: true, facebookEnabled: true, tiktokEnabled: false,
-    organicAutoPublish: false, approvalMode: "paid", dailyAdsBudgetUsd: 0,
+    organicAutoPublish: false, storiesEnabled: false, approvalMode: "paid", dailyAdsBudgetUsd: 0,
     paidAdsCreateAllowed: false, paidAdsActivateAllowed: false, paidAdsSpendModifyAllowed: false, updatedAt: nowIso,
   }
 }
@@ -96,6 +98,7 @@ export class MemorySocialStore implements SocialStore {
     return { post: { ...post }, created: true }
   }
   async getPost(id: string) { const p = this.posts.get(id); return p ? { ...p } : null }
+  async getPostByKey(key: string) { const p = [...this.posts.values()].find(x => x.idempotencyKey === key); return p ? { ...p } : null }
   async listPosts(fromIso: string, toIso: string, limit: number) {
     return [...this.posts.values()].filter(p => p.scheduledFor >= fromIso && p.scheduledFor < toIso)
       .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor)).slice(0, limit).map(p => ({ ...p }))
@@ -242,6 +245,7 @@ export class MemorySocialStore implements SocialStore {
   }
   async listAdDrafts(limit: number) { return this.adDrafts.slice(-limit).reverse() }
   async listCandidateListings(limit: number) { return this.listings.slice(0, limit) }
+  async getCandidateListing(id: string) { return this.listings.find(l => l.id === id) ?? null }
 }
 
 export const PLATFORM_LABEL: Record<SocialPlatform, string> = { instagram: "Instagram", facebook: "Facebook" }

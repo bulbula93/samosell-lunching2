@@ -28,7 +28,7 @@ function toControl(r: Row): SocialControl {
   return {
     killSwitch: r.kill_switch !== false, executionMode: r.execution_mode === "live" ? "live" : "dry_run",
     instagramEnabled: r.instagram_enabled === true, facebookEnabled: r.facebook_enabled === true, tiktokEnabled: false,
-    organicAutoPublish: r.organic_auto_publish === true, approvalMode: "paid", dailyAdsBudgetUsd: num(r.daily_ads_budget_usd),
+    organicAutoPublish: r.organic_auto_publish === true, storiesEnabled: r.stories_enabled === true, approvalMode: "paid", dailyAdsBudgetUsd: num(r.daily_ads_budget_usd),
     paidAdsCreateAllowed: false, paidAdsActivateAllowed: false, paidAdsSpendModifyAllowed: false, updatedAt: String(r.updated_at),
     // Raw DB values are re-checked by the Policy Gateway; any non-false paid flag fails closed there.
     ...(r.paid_ads_create_allowed || r.paid_ads_activate_allowed || r.paid_ads_spend_modify_allowed || r.tiktok_enabled ? { dailyAdsBudgetUsd: -1 } : {}),
@@ -57,6 +57,7 @@ function toJob(r: Row): PublishJob {
   }
 }
 const POST_COLS = "id,idempotency_key,status,pillar,content_type,caption,hashtags,media_urls,link_url,listing_id,platforms,scheduled_for,version,quality_passed,quality_report,created_by_type,created_by,created_at,updated_at"
+const LISTING_COLS = "id,slug,title,price,city,cover_image_url,sale_type,brands(name),categories(name)"
 const JOB_COLS = "id,post_id,post_version,platform,execution_mode,idempotency_key,status,attempt,max_attempts,leased_until,scheduled_at,external_container_id,external_post_id,last_error_code"
 
 export class SupabaseSocialStore implements SocialStore {
@@ -75,6 +76,7 @@ export class SupabaseSocialStore implements SocialStore {
     if (patch.instagramEnabled !== undefined) row.instagram_enabled = patch.instagramEnabled
     if (patch.facebookEnabled !== undefined) row.facebook_enabled = patch.facebookEnabled
     if (patch.organicAutoPublish !== undefined) row.organic_auto_publish = patch.organicAutoPublish
+    if (patch.storiesEnabled !== undefined) row.stories_enabled = patch.storiesEnabled
     const { data, error } = await this.db.from("social_control").update(row).eq("singleton", true).select("*").single()
     if (error || !data) fail(error)
     return toControl(data)
@@ -105,6 +107,11 @@ export class SupabaseSocialStore implements SocialStore {
   }
   async getPost(id: string) {
     const { data, error } = await this.db.from("social_posts").select(POST_COLS).eq("id", id).maybeSingle()
+    if (error) fail(error)
+    return data ? toPost(data) : null
+  }
+  async getPostByKey(key: string) {
+    const { data, error } = await this.db.from("social_posts").select(POST_COLS).eq("idempotency_key", key).maybeSingle()
     if (error) fail(error)
     return data ? toPost(data) : null
   }
@@ -205,18 +212,25 @@ export class SupabaseSocialStore implements SocialStore {
     if (error) fail(error)
     return (data ?? []).map(r => ({ id: r.id, idempotencyKey: r.idempotency_key, title: r.title, objective: r.objective, audienceNotes: r.audience_notes, creativePostId: r.creative_post_id, dailyBudgetUsd: 0, status: r.status }))
   }
+  private mapListing(r: Row): CandidateListing {
+    const rel = (v: unknown) => (Array.isArray(v) ? str((v[0] as Row | undefined)?.name) : v && typeof v === "object" ? str((v as Row).name) : null)
+    return { id: String(r.id), slug: String(r.slug), title: String(r.title), brand: rel(r.brands), category: rel(r.categories), priceGel: r.price === null ? null : num(r.price), city: str(r.city), imageUrl: str(r.cover_image_url), isGift: r.sale_type === "gift" }
+  }
   async listCandidateListings(limit: number): Promise<CandidateListing[]> {
     // Public listing fields only — no seller identity, phone or description text.
     const { data, error } = await this.db.from("listings")
-      .select("id,slug,title,price,city,cover_image_url,sale_type,brands(name),categories(name)")
+      .select(LISTING_COLS)
       .eq("status", "active").not("cover_image_url", "is", null)
       .order("published_at", { ascending: false }).limit(Math.min(limit, 60))
     if (error) fail(error)
-    return (data ?? []).map((r: Row) => {
-      const rel = (v: unknown) => (Array.isArray(v) ? str((v[0] as Row | undefined)?.name) : v && typeof v === "object" ? str((v as Row).name) : null)
-      return { id: String(r.id), slug: String(r.slug), title: String(r.title), brand: rel(r.brands), category: rel(r.categories), priceGel: r.price === null ? null : num(r.price), city: str(r.city), imageUrl: str(r.cover_image_url), isGift: r.sale_type === "gift" }
-    })
+    return (data ?? []).map((r: Row) => this.mapListing(r))
   }
+  async getCandidateListing(id: string): Promise<CandidateListing | null> {
+    const { data, error } = await this.db.from("listings").select(LISTING_COLS).eq("id", id).eq("status", "active").maybeSingle()
+    if (error) fail(error)
+    return data ? this.mapListing(data as Row) : null
+  }
+
 }
 
 /** Fail-closed factory: returns null whenever the runtime does not allow a backend. */

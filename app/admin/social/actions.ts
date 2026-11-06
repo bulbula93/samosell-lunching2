@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import { readMetaCredentials } from "@/lib/social/adapters/meta"
-import { approveAndSchedule, draftAdForPost, enableInstagramForPost, PolicyDeniedError, rejectPost, runPlanningCycle, runQualityCheck } from "@/lib/social/orchestrator"
+import { addStoryForPost, approvePostAndStory, draftAdForPost, enableInstagramForPost, PolicyDeniedError, rejectPost, runPlanningCycle, runQualityCheck } from "@/lib/social/orchestrator"
 import { evaluateSocialAction } from "@/lib/social/policy-gateway"
 import { currentSocialRuntime } from "@/lib/social/runtime"
 import { SocialStoreError, type SocialStore } from "@/lib/social/store"
 import { MediaPrepareError } from "@/lib/social/media"
-import { createSocialMediaPreparer } from "@/lib/social/supabase-media"
+import { createSocialMediaPreparer, createSocialStoryPreparer } from "@/lib/social/supabase-media"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import { runPublishTick } from "@/lib/social/worker"
 
@@ -47,8 +47,8 @@ export async function runPlanningAction() {
   const { store, runtime } = await context()
   let code: string
   try {
-    const r = await runPlanningCycle({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime) })
-    code = `planned_${r.created}_created_${r.passedQa}_qa_passed`
+    const r = await runPlanningCycle({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime), prepareStory: createSocialStoryPreparer(runtime) })
+    code = `planned_${r.created}_created_${r.passedQa}_qa_passed_${r.storiesCreated}_stories`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)
 }
@@ -58,8 +58,8 @@ export async function approvePostAction(formData: FormData) {
   const { postId, version } = readPost(formData)
   let code: string
   try {
-    const r = await approveAndSchedule({ store, runtime }, postId, version, user.id)
-    code = `approved_${r.jobs}_jobs_${r.mode}`
+    const r = await approvePostAndStory({ store, runtime }, postId, version, user.id)
+    code = `approved_${r.feed.jobs}_jobs_${r.feed.mode}${r.story ? `_story_${r.story.jobs}_jobs` : ""}`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)
 }
@@ -69,6 +69,13 @@ export async function enableInstagramAction(formData: FormData) {
   const { postId, version } = readPost(formData)
   try { await enableInstagramForPost({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime) }, postId, version, user.id) } catch (e) { go("error", errorCode(e)) }
   go("ok", "instagram_media_prepared_qa_rerun")
+}
+
+export async function addStoryAction(formData: FormData) {
+  const { store, runtime, user } = await context()
+  const { postId } = readPost(formData)
+  try { await addStoryForPost({ store, runtime, prepareStory: createSocialStoryPreparer(runtime) }, postId, user.id) } catch (e) { go("error", errorCode(e)) }
+  go("ok", "story_created_awaiting_approval")
 }
 
 export async function rejectPostAction(formData: FormData) {
@@ -135,6 +142,7 @@ export async function settingsAction(formData: FormData) {
     instagramEnabled: formData.get("instagram") === "on",
     facebookEnabled: formData.get("facebook") === "on",
     organicAutoPublish: formData.get("autoPublish") === "on",
+    storiesEnabled: formData.get("stories") === "on",
     executionMode: formData.get("executionMode") === "live" ? "live" as const : "dry_run" as const,
   }
   try {
@@ -142,7 +150,7 @@ export async function settingsAction(formData: FormData) {
     const decision = evaluateSocialAction({ actor: "human_admin", action: "change_settings", runtime, control, settings: patch })
     if (decision.decision === "deny") throw new PolicyDeniedError(decision.reason)
     await store.updateControl(patch, user.id)
-    await store.appendAudit({ actorType: "human", actor: user.id, action: "change_settings", decision: "success", reason: "settings_saved", resourceType: "social_control", resourceId: "singleton", details: { instagram: patch.instagramEnabled, facebook: patch.facebookEnabled, auto_publish: patch.organicAutoPublish, mode: patch.executionMode } })
+    await store.appendAudit({ actorType: "human", actor: user.id, action: "change_settings", decision: "success", reason: "settings_saved", resourceType: "social_control", resourceId: "singleton", details: { instagram: patch.instagramEnabled, facebook: patch.facebookEnabled, auto_publish: patch.organicAutoPublish, stories: patch.storiesEnabled, mode: patch.executionMode } })
   } catch (e) { go("error", errorCode(e)) }
   go("ok", "settings_saved")
 }

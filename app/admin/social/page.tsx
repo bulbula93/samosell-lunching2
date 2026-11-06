@@ -6,8 +6,8 @@ import { runSimulation } from "@/lib/social/simulation"
 import { PLATFORM_LABEL } from "@/lib/social/store"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import type { AdDraft, MetricRow, PublishJob, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
-import { approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
-import { PlatformPreview } from "./previews"
+import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
+import { PlatformPreview, StoryPreview } from "./previews"
 
 export const dynamic = "force-dynamic"
 // Server actions on this page may convert a few images for Instagram (sharp); keep headroom.
@@ -34,6 +34,9 @@ const FLASH: Record<string, string> = {
   media_source_unavailable: "სურათის ჩამოტვირთვა ვერ მოხერხდა.", media_not_image: "ფაილი სურათი არ არის.", media_too_large: "სურათი ძალიან დიდია.",
   media_convert_failed: "სურათის JPEG-ად გადაყვანა ვერ მოხერხდა.", media_upload_failed: "მომზადებული სურათის შენახვა ვერ მოხერხდა.",
   media_preparer_unavailable: "სურათის მომზადება ამ გარემოში მიუწვდომელია.",
+  story_created_awaiting_approval: "Story შეიქმნა — გადახედე და დაამტკიცე.", stories_disabled: "Story-ები გამორთულია პარამეტრებში.",
+  story_needs_listing_post: "Story მხოლოდ ნივთის პოსტს შეიძლება დაემატოს.", listing_unavailable: "ნივთი აღარ არის აქტიური.",
+  story_render_failed: "Story-ს სურათის შექმნა ვერ მოხერხდა.", story_assets_missing: "Story-ს შრიფტი/ლოგო ვერ მოიძებნა სერვერზე.",
   kill_switch_engaged: "Kill switch ჩაირთო.", kill_switch_released: "Kill switch გამოირთო (dry-run რჩება).", settings_saved: "პარამეტრები შენახულია.",
   rejected: "პოსტი უარყოფილია.", caption_saved_qa_rerun: "ტექსტი შეინახა, QA ხელახლა შესრულდა.", qa_rerun: "QA ხელახლა შესრულდა.",
   ad_draft_created_zero_budget: "სარეკლამო იდეა შეიქმნა ($0, მხოლოდ დრაფტი).", invalid_input: "არასწორი მონაცემები.",
@@ -81,6 +84,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
   const writable = !data.simulated && Boolean(c)
   const summary = summarizeMetrics(data.metrics, Object.fromEntries(data.posts.map(p => [p.id, p.pillar])))
   const byDay = new Map<string, SocialPost[]>()
+  const storyByKey = new Map(data.posts.filter(p => p.contentType === "story").map(p => [p.idempotencyKey, p]))
   for (const p of data.posts) {
     const key = new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "long", day: "numeric", month: "long" }).format(new Date(p.scheduledFor))
     byDay.set(key, [...(byDay.get(key) ?? []), p])
@@ -133,6 +137,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
             <label className="flex items-center gap-2"><input type="checkbox" name="facebook" defaultChecked={c?.facebookEnabled} disabled={!writable} /> Facebook</label>
             <label className="flex items-center gap-2 text-text-soft"><input type="checkbox" disabled /> TikTok (პოლიტიკით აკრძალული)</label>
             <label className="flex items-center gap-2"><input type="checkbox" name="autoPublish" defaultChecked={c?.organicAutoPublish} disabled={!writable} /> ორგანული ავტო-გამოქვეყნება (QA-ს შემდეგ, დამტკიცების გარეშე)</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="stories" defaultChecked={c?.storiesEnabled} disabled={!writable} /> 🎬 ნივთის პოსტს Story-ც დაემატოს (1 საათით გვიან, იგივე დამტკიცებით)</label>
             <label className="flex items-center gap-2">რეჟიმი
               <select name="executionMode" defaultValue={c?.executionMode ?? "dry_run"} disabled={!writable} className="rounded border px-2 py-1">
                 <option value="dry_run">dry-run</option>
@@ -168,10 +173,11 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
                         <Badge tone="info">{tbilisi(post.scheduledFor)}</Badge>
                         <Badge tone="info">{PILLAR_LABEL[post.pillar]}</Badge>
                         <Badge tone={post.status === "qa_failed" || post.status === "failed" ? "off" : post.status === "ready_for_review" ? "warn" : "ok"}>{STATUS_LABEL[post.status]}</Badge>
+                        {post.contentType === "story" ? <Badge tone="info">🎬 Story</Badge> : null}
                         <span className="text-text-soft">v{post.version} · QA {post.qualityReport ? `${post.qualityReport.score}/100` : "—"} · {post.platforms.map(p => PLATFORM_LABEL[p]).join(" + ")}</span>
                       </div>
                       <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                        {post.platforms.map(p => <PlatformPreview key={p} post={post} platform={p} />)}
+                        {post.contentType === "story" ? <StoryPreview post={post} /> : post.platforms.map(p => <PlatformPreview key={p} post={post} platform={p} />)}
                       </div>
                       {errors.length + warnings.length > 0 ? (
                         <ul className="mt-3 space-y-1 text-sm">
@@ -183,13 +189,17 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
                         <div className="mt-3 flex flex-wrap gap-2">
                           {post.status === "ready_for_review" ? (
                             <form action={approvePostAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
-                              <button className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white">✅ დამტკიცება და რიგში ჩაყენება ({mode})</button></form>
+                              <button className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white">✅ დამტკიცება და რიგში ჩაყენება ({mode}){storyByKey.get(`${post.idempotencyKey}:story`)?.status === "ready_for_review" ? " + Story" : ""}</button></form>
                           ) : null}
                           {post.status === "ready_for_review" ? (
                             <form action={rejectPostAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
                               <button className="rounded-full border px-4 py-2 text-sm font-bold">უარყოფა</button></form>
                           ) : null}
-                          {c?.instagramEnabled && !post.platforms.includes("instagram") && ["draft", "qa_failed", "ready_for_review"].includes(post.status) ? (
+                          {c?.storiesEnabled && post.listingId && post.contentType !== "story" && !storyByKey.has(`${post.idempotencyKey}:story`) && !["rejected", "cancelled", "failed"].includes(post.status) ? (
+                            <form action={addStoryAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
+                              <button className="rounded-full border border-violet-600 px-4 py-2 text-sm font-bold text-violet-700">🎬 Story-ც</button></form>
+                          ) : null}
+                          {c?.instagramEnabled && post.contentType !== "story" && !post.platforms.includes("instagram") && ["draft", "qa_failed", "ready_for_review"].includes(post.status) ? (
                             <form action={enableInstagramAction}><input type="hidden" name="postId" value={post.id} /><input type="hidden" name="version" value={post.version} />
                               <button className="rounded-full border border-pink-600 px-4 py-2 text-sm font-bold text-pink-700">📸 Instagram-ზეც</button></form>
                           ) : null}

@@ -18,6 +18,18 @@ function Media({ post }: { post: SocialPost }) {
   )
 }
 
+/** 9:16 Story preview: exactly the image Meta will receive; Stories carry no caption. */
+export function StoryPreview({ post }: { post: SocialPost }) {
+  const src = post.mediaUrls[0] ? displaySrc(post.mediaUrls[0]) : undefined
+  return (
+    <figure className="w-full max-w-[220px] overflow-hidden rounded-2xl border bg-black text-[12px] text-white" aria-label="Story preview">
+      <div className="flex items-center gap-2 px-3 py-2 font-semibold">🎬 Story · {post.platforms.map(p => (p === "instagram" ? "Instagram" : "Facebook")).join(" + ")}</div>
+      {src ? <img src={src} alt="" loading="lazy" className="aspect-[9/16] w-full object-cover" /> : <div className="flex aspect-[9/16] items-center justify-center text-xs">სურათი არ არის</div>}
+      <figcaption className="px-3 py-2 text-[11px] text-white/70">ლინკი: {post.linkUrl ? "პროფილში (samosell.ge/links)" : "—"}</figcaption>
+    </figure>
+  )
+}
+
 export function PlatformPreview({ post, platform }: { post: SocialPost; platform: SocialPlatform }) {
   const text = renderCaption(post, platform)
   if (platform === "instagram") {

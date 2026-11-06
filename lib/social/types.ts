@@ -9,7 +9,7 @@ export type RuntimeEnvironment = "production" | "preview" | "development" | "tes
 
 export const PILLARS = ["featured_listing", "giveaway", "how_to_sell", "trust", "category_roundup"] as const
 export type Pillar = (typeof PILLARS)[number]
-export type ContentType = "single_image" | "carousel" | "text_link"
+export type ContentType = "single_image" | "carousel" | "text_link" | "story"
 
 export type PostStatus =
   | "draft" | "qa_failed" | "ready_for_review" | "approved" | "scheduled" | "publishing"
@@ -25,6 +25,8 @@ export type SocialControl = {
   facebookEnabled: boolean
   tiktokEnabled: false
   organicAutoPublish: boolean
+  /** Product posts also get a 9:16 Story companion (same approval flow). */
+  storiesEnabled: boolean
   approvalMode: "paid"
   dailyAdsBudgetUsd: number
   paidAdsCreateAllowed: false
