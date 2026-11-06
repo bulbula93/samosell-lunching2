@@ -55,6 +55,15 @@ export async function recordGrowthCheckout(userId: string, orderId: string, kind
   if (!recorded) console.warn("[growth] checkout outcome unavailable", { kind })
 }
 
+// A buyer's first message to a seller on a listing. The SQL verifies the chat, the buyer and
+// the message, so a forged call cannot inflate liquidity; one event per chat.
+export async function recordBuyerContact(userId: string, chatId: string, listingId: string) {
+  if (!growthWritesEnabled()) return
+  const context = await optionalGrowthContext()
+  const recorded = await recordGrowthOutcome({ ...context, event_name: "buyer_contact_started", event_id: `buyer_contact_started:${chatId}`, user_id: userId, listing_id: listingId, path: "/listing/:id", route_group: "listing" })
+  if (!recorded) console.warn("[growth] buyer contact unavailable")
+}
+
 export function scheduleGrowthMetaDelivery(userId?: string) {
   if (!growthWritesEnabled() || process.env.META_CAPI_ENABLED !== "true") return
   try { after(async () => { const { deliverMetaEvents } = await import("./meta-server"); await deliverMetaEvents(userId).catch(() => undefined) }) } catch { /* Outbox remains durable for later retry. */ }

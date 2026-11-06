@@ -24,6 +24,7 @@ import {
 } from "@/lib/chats"
 import { isValidListingSlug } from "@/lib/listing-page"
 import { notifyChatMessage } from "@/lib/notifications"
+import { recordBuyerContact } from "@/lib/growth/server"
 import { recordSearchInteractionSafely } from "@/lib/search-analytics"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
@@ -179,6 +180,9 @@ export async function startChatAction(
     body: row.message_body,
     firstMessage: true,
   })
+
+  // Analytics never blocks the conversation: failures are swallowed inside.
+  await recordBuyerContact(user.id, row.chat_id, listingId).catch(() => undefined)
 
   revalidatePath("/dashboard/chats")
   revalidatePath("/dashboard/notifications")

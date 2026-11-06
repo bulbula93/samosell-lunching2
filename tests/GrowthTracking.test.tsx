@@ -132,7 +132,7 @@ describe("Growth data safety and period semantics", () => {
 describe("Meta readiness", () => {
   const event: GrowthEvent = { event_name: "boost_purchase_completed", event_id: "boost_purchase_completed:boost:order-one", user_id: "user-one", product_id: "vip-max", amount: 9.9, currency: "GEL", marketing_consent: true }
   it("maps all requested events with identical browser/server names", () => {
-    expect(Object.values(META_MAPPING).map(item => item.name)).toEqual(["PageView", "CompleteRegistration", "StartListing", "PublishListing", "InitiateCheckout", "Purchase"])
+    expect(Object.values(META_MAPPING).map(item => item.name)).toEqual(["PageView", "CompleteRegistration", "StartListing", "PublishListing", "InitiateCheckout", "Purchase", "Contact"])
   })
   it("sends hashed identifier, GEL value and exact authoritative event ID", () => {
     const payload = metaServerPayload(event)!
