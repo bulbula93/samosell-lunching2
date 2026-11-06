@@ -4,6 +4,7 @@ import Link from "next/link"
 import BrandCombobox from "@/components/dashboard/BrandCombobox"
 import SmartImage from "@/components/shared/SmartImage"
 import { trackGrowth, listingAttempt, clearListingAttempt } from "@/lib/growth/client"
+import type { PublishFailure } from "@/lib/growth/shared"
 import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
 import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
@@ -244,6 +245,13 @@ function TogglePills({
       <FieldError id={errorId} message={error} />
     </fieldset>
   )
+}
+
+/** Supabase storage errors expose the HTTP status as `status` (number) or `statusCode` (string). */
+function uploadErrorStatus(error: unknown): number | undefined {
+  const raw = error && typeof error === "object" ? (error as { status?: unknown; statusCode?: unknown }) : {}
+  const value = Number(raw.status ?? raw.statusCode)
+  return Number.isInteger(value) && value >= 100 && value <= 599 ? value : undefined
 }
 
 export default function CreateListingWizard({ categories, brands, sizes, initialSellerPhone, userId = "" }: Props) {
@@ -654,6 +662,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
     let listingId = createAttemptIdRef.current ??= crypto.randomUUID()
     let uploadedPaths: string[] = []
     let completed = false
+    // Structural diagnostics only (stage + code), so failed publishes can be explained later.
+    const failure: PublishFailure & { classified?: boolean } = { stage: "prepare", code: "exception" }
+    const classify = (code: PublishFailure["code"], extra: Partial<PublishFailure> = {}) => {
+      Object.assign(failure, extra, { code, classified: true })
+    }
 
     try {
       let saveInput = pendingCreateRef.current
@@ -669,16 +682,21 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             router.push(`/login?next=${encodeURIComponent("/dashboard/listings/new")}`)
             return
           }
+          classify(preparation.code)
           throw new Error(preparation.message)
         }
 
         listingId = preparation.listingId
         const plansByClientId = new Map(preparation.plans.map((plan) => [plan.clientId, plan]))
+        failure.stage = "upload"
 
         for (let index = 0; index < images.length; index += 1) {
           const image = images[index]
           const plan = plansByClientId.get(image.id)
-          if (!plan) throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
+          if (!plan) {
+            classify("missing_plan")
+            throw new Error("სურათის ატვირთვის უსაფრთხო მისამართი ვერ მომზადდა.")
+          }
 
           setUploadingImageIndex(index)
           setProgressText(`ფოტოები იტვირთება… ${index + 1}/${images.length}`)
@@ -690,7 +708,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
               contentType: image.file.type,
               cacheControl: "3600",
             })
-          if (error) throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
+          if (error) {
+            classify("upload_error", { http_status: uploadErrorStatus(error) })
+            throw new Error("სურათის ატვირთვა ვერ დასრულდა. კავშირი შეამოწმე და სცადე ხელახლა.")
+          }
           uploadedPaths.push(plan.path)
           setUploadedImageCount(index + 1)
           setProgressPercent(10 + Math.round(((index + 1) / Math.max(images.length, 1)) * 55))
@@ -706,7 +727,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           form: formInput,
           images: images.map((image) => {
             const path = pathByClientId.get(image.id)
-            if (!path) throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
+            if (!path) {
+              classify("missing_plan")
+              throw new Error("ერთ-ერთი ატვირთული სურათი ვერ მოიძებნა.")
+            }
             return { kind: "uploaded" as const, path }
           }),
         }
@@ -714,9 +738,11 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         // arrive after the server committed; re-uploading here would orphan files.
         pendingCreateRef.current = saveInput
       }
+      failure.stage = "save"
       const result = await saveListingAction(saveInput)
 
       if (!result.ok) {
+        classify(result.code, result.fieldErrors ? { field: Object.keys(result.fieldErrors)[0] } : {})
         if (result.code === "invalid") pendingCreateRef.current = null
         if (result.fieldErrors) {
           setFieldErrors(result.fieldErrors)
@@ -755,7 +781,18 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       setLoading(false)
       router.refresh()
     } catch (error) {
-      if (publishNow) void trackGrowth("listing_publish_failed")
+      if (publishNow) {
+        if (!failure.classified) failure.code = error instanceof TypeError || navigator.onLine === false ? "transport_error" : "exception"
+        void trackGrowth("listing_publish_failed", undefined, undefined, {
+          stage: failure.stage,
+          code: failure.code,
+          field: failure.field,
+          http_status: failure.http_status,
+          images: images.length,
+          total_mb: images.reduce((sum, image) => sum + image.file.size, 0) / 1_048_576,
+          online: navigator.onLine,
+        })
+      }
       if (!pendingCreateRef.current && listingId && uploadedPaths.length > 0) {
         try { await abortListingUploadsAction(listingId, uploadedPaths) } catch { /* Cleanup stays deferred. */ }
       }

@@ -56,3 +56,33 @@ export function growthPeriod(period: string, now = new Date()) {
   const from = Date.UTC(georgia.getUTCFullYear(), georgia.getUTCMonth(), georgia.getUTCDate() - days + 1) - 4 * 3600_000
   return { from: new Date(from).toISOString(), to: now.toISOString(), days }
 }
+
+export const PUBLISH_FAILURE_STAGES = ["prepare", "upload", "save", "unknown"] as const
+export const PUBLISH_FAILURE_CODES = ["unauthorized", "not_found", "invalid", "rate_limited", "server_error", "upload_error", "missing_plan", "transport_error", "exception"] as const
+export type PublishFailureStage = typeof PUBLISH_FAILURE_STAGES[number]
+export type PublishFailureCode = typeof PUBLISH_FAILURE_CODES[number]
+export type PublishFailure = {
+  stage: PublishFailureStage
+  code: PublishFailureCode
+  /** Form field name of the first validation error (structural, never user text). */
+  field?: string
+  /** HTTP status of a failed photo upload. */
+  http_status?: number
+  images?: number
+  total_mb?: number
+  online?: boolean
+}
+/** Whitelist-only: anything that is not a known stage/code or a bounded number is dropped. */
+export function sanitizePublishFailure(input: unknown): PublishFailure | null {
+  if (!input || typeof input !== "object") return null
+  const raw = input as Record<string, unknown>
+  if (!PUBLISH_FAILURE_STAGES.includes(raw.stage as PublishFailureStage)) return null
+  if (!PUBLISH_FAILURE_CODES.includes(raw.code as PublishFailureCode)) return null
+  const result: PublishFailure = { stage: raw.stage as PublishFailureStage, code: raw.code as PublishFailureCode }
+  if (typeof raw.field === "string" && /^[a-z][a-z_]{0,39}$/.test(raw.field)) result.field = raw.field
+  if (Number.isInteger(raw.http_status) && (raw.http_status as number) >= 100 && (raw.http_status as number) <= 599) result.http_status = raw.http_status as number
+  if (Number.isInteger(raw.images) && (raw.images as number) >= 0 && (raw.images as number) <= 50) result.images = raw.images as number
+  if (typeof raw.total_mb === "number" && Number.isFinite(raw.total_mb) && raw.total_mb >= 0 && raw.total_mb <= 500) result.total_mb = Math.round(raw.total_mb * 10) / 10
+  if (typeof raw.online === "boolean") result.online = raw.online
+  return result
+}

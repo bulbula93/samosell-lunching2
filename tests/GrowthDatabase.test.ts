@@ -28,6 +28,7 @@ beforeAll(async () => {
     create table chat_threads(id uuid,chat_type text,created_at timestamptz default now());
   `)
   await db.exec(readFileSync("supabase/migrations/20261007090317_growth_tracking_v1.sql", "utf8"))
+  await db.exec(readFileSync("supabase/migrations/20261106120000_listing_publish_failure_reasons.sql", "utf8"))
 }, 30000)
 afterAll(async () => db?.close())
 describe.sequential("Growth authoritative SQL and isolation", () => {
@@ -61,6 +62,17 @@ describe.sequential("Growth authoritative SQL and isolation", () => {
     await rpc("ingest_growth_browser_event", event); await rpc("ingest_growth_browser_event", event)
     await rpc("ingest_growth_browser_event", { ...context(), event_name: "listing_publish_failed", event_id: "failed-one" })
     expect(await count("listing_started")).toBe(1); expect(await count("listing_published")).toBe(0)
+  })
+  it("stores publish-failure diagnostics only on failed publishes and never echoes them back", async () => {
+    const failure = { stage: "save", code: "server_error", images: 3 }
+    const result = await rpc("ingest_growth_browser_event", { ...context(), event_name: "listing_publish_failed", event_id: "failed-two", failure })
+    const stored = (await db.query<{ failure: unknown }>("select failure from growth_events where event_id='failed-two'")).rows[0]
+    expect(stored.failure).toEqual(failure)
+    expect(JSON.stringify((result.rows[0] as { result: unknown }).result)).not.toContain("server_error")
+    await rpc("ingest_growth_browser_event", { ...context(), event_name: "page_view", event_id: "page-with-failure", failure })
+    expect((await db.query<{ failure: unknown }>("select failure from growth_events where event_id='page-with-failure'")).rows[0].failure).toBeNull()
+    await rpc("ingest_growth_browser_event", { ...context(), event_name: "listing_publish_failed", event_id: "failed-huge", failure: { stage: "save", code: "exception", pad: "x".repeat(2000) } })
+    expect((await db.query<{ failure: unknown }>("select failure from growth_events where event_id='failed-huge'")).rows[0].failure).toBeNull()
   })
   it("does not publish drafts or partially saved listings, then publishes exactly once", async () => {
     await db.exec(`insert into listings values('${listing}','${seller}','draft',null);`)

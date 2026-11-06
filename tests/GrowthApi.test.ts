@@ -61,4 +61,18 @@ describe("Growth ingestion security", () => {
     const result = await POST(request(event()))
     expect(result.status).toBe(503); expect(await result.text()).not.toContain("secret")
   })
+  it("passes only whitelisted publish-failure diagnostics to the database", async () => {
+    state.user = { id: "actual-user" }
+    const body = { ...event(), event_name: "listing_publish_failed", path: "/dashboard/listings/new", failure: { stage: "upload", code: "upload_error", http_status: 413, images: 6, total_mb: 12.345, online: true, field: "Title text", title: "my secret item", message: "raw" } }
+    expect((await POST(request(body))).status).toBe(200)
+    const sent = state.rpc.mock.calls[0][1].p_event
+    expect(sent.failure).toEqual({ stage: "upload", code: "upload_error", http_status: 413, images: 6, total_mb: 12.3, online: true })
+  })
+  it("drops failure details with an unknown stage or code and never attaches them to other events", async () => {
+    state.user = { id: "actual-user" }
+    await POST(request({ ...event(), event_name: "listing_publish_failed", path: "/dashboard/listings/new", failure: { stage: "hack", code: "upload_error" } }))
+    expect(state.rpc.mock.calls[0][1].p_event.failure).toBeNull()
+    await POST(request({ ...event(), failure: { stage: "save", code: "invalid" } }))
+    expect(state.rpc.mock.calls[1][1].p_event).not.toHaveProperty("failure")
+  })
 })
