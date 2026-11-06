@@ -5,8 +5,12 @@ import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
 import {
   AD_IMAGE_BUCKET,
-  createSevenDayAdSchedule,
+  createAdSchedule,
+  HOME_AD_PLACEMENT_KEYS,
+  HOME_AD_SEATS,
   isAdId,
+  isHomeAdPlacement,
+  parseAdminAdDurationDays,
   MAX_AD_IMAGE_FILE_SIZE_BYTES,
   validateAdminAdInput,
 } from "@/lib/admin-ads"
@@ -148,7 +152,7 @@ export async function launchAdminAdAction(formData: FormData) {
   const admin = createAdminClient()
   const { data: ad, error: adError } = await admin
     .from("ads")
-    .select("id, submitted_by")
+    .select("id, submitted_by, placement_key")
     .eq("id", adId)
     .maybeSingle()
 
@@ -165,7 +169,29 @@ export async function launchAdminAdAction(formData: FormData) {
       adminAdsRedirect("launch_failed", adId)
     }
   } else {
-    const schedule = createSevenDayAdSchedule()
+    if (isHomeAdPlacement(ad.placement_key)) {
+      // Paid and admin (partner) campaigns share the same HOME_AD_SEATS seats.
+      const nowIso = new Date().toISOString()
+      const [{ count: adminLive, error: adminLiveError }, { count: paidLive, error: paidLiveError }] = await Promise.all([
+        admin
+          .from("ads")
+          .select("id", { count: "exact", head: true })
+          .is("submitted_by", null)
+          .eq("is_active", true)
+          .in("placement_key", [...HOME_AD_PLACEMENT_KEYS])
+          .neq("id", adId)
+          .or(`ends_at.is.null,ends_at.gt.${nowIso}`),
+        admin
+          .from("ad_orders")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["active", "scheduled"])
+          .gt("ends_at", nowIso),
+      ])
+      if (adminLiveError || paidLiveError) adminAdsRedirect("launch_failed", adId)
+      if ((adminLive ?? 0) + (paidLive ?? 0) >= HOME_AD_SEATS) adminAdsRedirect("home_full", adId)
+    }
+
+    const schedule = createAdSchedule(parseAdminAdDurationDays(formData.get("durationDays")))
     const { data, error } = await admin
       .from("ads")
       .update({ is_active: true, starts_at: schedule.startsAt, ends_at: schedule.endsAt })

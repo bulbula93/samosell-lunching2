@@ -7,6 +7,7 @@ import AdminAdSubmitButton from "@/components/admin/AdminAdSubmitButton"
 import { launchAdminAdAction, rejectSelfServiceAdAction, saveAdminAdAction, stopAdminAdAction } from "@/app/admin/ads/actions"
 import {
   ADMIN_AD_PLACEMENTS,
+  PAID_ADS_HOME_VIEWS_THRESHOLD,
   AD_PLACEMENT_LABELS,
   getAdminAdStatus,
   isAdId,
@@ -71,7 +72,8 @@ function flashMessage(value: string) {
   switch (value) {
     case "created": return "რეკლამა მონახაზად შეინახა. საიტზე გამოსაჩენად დააჭირე „გაშვება 7 დღით“"
     case "updated": return "რეკლამის მონაცემები განახლდა"
-    case "launched": return "რეკლამა გაეშვა და ზუსტად 7 დღეში ავტომატურად შეწყვეტს ჩვენებას"
+    case "launched": return "რეკლამა გაეშვა და არჩეული ვადის (7 ან 14 დღე) ბოლოს ავტომატურად შეწყვეტს ჩვენებას"
+    case "home_full": return "მთავარი გვერდის სარეკლამო ადგილი სავსეა (მაქსიმუმ 3 რეკლამა ერთდროულად). დაელოდე ერთ-ერთის დასრულებას ან შეაჩერე."
     case "stopped": return "რეკლამის ჩვენება შეჩერებულია"
     case "unpaid": return "მომხმარებლის რეკლამა ჯერ გადახდილი და server-side დადასტურებული არ არის"
     case "launch_failed": return "რეკლამის დამტკიცება/დაგეგმვა ვერ დასრულდა"
@@ -106,6 +108,10 @@ function formatDateTime(value?: string | null) {
   }).format(date)
 }
 
+function sevenDaysAgoIso() {
+  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+}
+
 export default async function AdminAdsPage({ searchParams }: { searchParams?: Promise<AdminAdsSearchParams> }) {
   const params = (await searchParams) ?? {}
   const editId = typeof params.edit === "string" && isAdId(params.edit) ? params.edit : null
@@ -118,6 +124,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
     { data, error },
     { data: eventCounts, error: eventCountsError },
     { data: adOrders, error: adOrdersError },
+    { count: homeViews7d },
   ] = await Promise.all([
     admin
       .from("ads")
@@ -128,7 +135,15 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
       .from("ad_orders")
       .select("ad_id, status, amount, currency, paid_at, starts_at, ends_at, rejection_reason, rejected_at, refund_status, refund_error")
       .order("created_at", { ascending: false }),
+    admin
+      .from("growth_events")
+      .select("event_id", { count: "exact", head: true })
+      .eq("event_name", "page_view")
+      .eq("path", "/")
+      .gte("occurred_at", sevenDaysAgoIso()),
   ])
+  const homeViews = homeViews7d ?? 0
+  const pricingReady = homeViews >= PAID_ADS_HOME_VIEWS_THRESHOLD
 
   const ads = (data ?? []) as AdminAdRow[]
   const eventCountMap = new Map(
@@ -150,15 +165,34 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
             <div className="ui-eyebrow">ადმინისტრირება</div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-text sm:text-4xl">რეკლამების მართვა</h1>
             <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
-              შეინახე რეკლამა მონახაზად, გადაამოწმე მონაცემები და შემდეგ გაუშვი. ყოველი გაშვება ზუსტად 7 დღეა და ვადის გასვლის შემდეგ რეკლამა ავტომატურად ქრება საჯარო გვერდებიდან.
+              შეინახე რეკლამა მონახაზად, გადაამოწმე მონაცემები და შემდეგ გაუშვი 7 ან 14 დღით. პარტნიორი მაღაზიების უფასო რეკლამაც აქედან იშვება. მთავარ გვერდზე ერთდროულად მაქსიმუმ 3 რეკლამაა.
             </p>
           </div>
           <Link href="/admin" className="ui-btn-secondary">ადმინისტრირების მთავარი</Link>
         </div>
       </section>
 
+      <section data-paid-ads-threshold className={`mt-6 rounded-[1.5rem] border p-5 ${pricingReady ? "border-emerald-200 bg-emerald-50" : "border-line bg-white"}`}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="ui-eyebrow">ფასიანი რეკლამის ზღვარი</div>
+            <p className="mt-2 text-sm leading-6 text-text-soft">
+              მთავარი გვერდის ნახვები ბოლო 7 დღეში. ფასიანი რეკლამა დაბრუნდეს, როცა მიაღწევს {PAID_ADS_HOME_VIEWS_THRESHOLD.toLocaleString("ka-GE")}-ს;
+              ფასი დაითვალე ~15–25 ₾ ყოველ 1000 ნახვაზე.
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-black text-brand">{homeViews.toLocaleString("ka-GE")} <span className="text-base font-semibold text-text-soft">/ {PAID_ADS_HOME_VIEWS_THRESHOLD.toLocaleString("ka-GE")}</span></div>
+            <div className={`mt-1 text-xs font-bold ${pricingReady ? "text-emerald-800" : "text-text-soft"}`}>{pricingReady ? "ზღვარი მიღწეულია — შეგიძლია ფასიანი რეკლამის ჩართვა" : "ჯერ ადრეა — გამოიყენე პარტნიორების უფასო პროგრამა"}</div>
+          </div>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-surface-alt" aria-hidden="true">
+          <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, Math.round((homeViews / PAID_ADS_HOME_VIEWS_THRESHOLD) * 100))}%` }} />
+        </div>
+      </section>
+
       {flash ? (
-        <div role="status" aria-live="polite" className={`mt-6 rounded-[1.2rem] border px-4 py-3 text-sm ${flashCode.startsWith("invalid_") || flashCode.endsWith("failed") || flashCode === "not_found" ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+        <div role="status" aria-live="polite" className={`mt-6 rounded-[1.2rem] border px-4 py-3 text-sm ${flashCode.startsWith("invalid_") || flashCode.endsWith("failed") || flashCode === "not_found" || flashCode === "home_full" ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
           {flash}
         </div>
       ) : null}
@@ -282,7 +316,7 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                         <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">დაწყება</dt><dd className="mt-1">{formatDateTime(ad.starts_at)}</dd></div>
                         <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">დასრულება</dt><dd className="mt-1">{formatDateTime(ad.ends_at)}</dd></div>
                         <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">ჩვენება</dt><dd className="mt-1 text-base font-black text-brand">{eventCount.impressions}</dd></div>
-                        <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">დაჭერა</dt><dd className="mt-1 text-base font-black text-brand">{eventCount.clicks}</dd></div>
+                        <div className="rounded-xl bg-surface-alt px-3 py-2"><dt className="font-semibold text-text">დაჭერა · CTR</dt><dd className="mt-1 text-base font-black text-brand">{eventCount.clicks} · {eventCount.impressions > 0 ? ((eventCount.clicks / eventCount.impressions) * 100).toFixed(1) : "0.0"}%</dd></div>
                       </dl>
                       {rejected && adOrder?.rejection_reason ? (
                         <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-900">
@@ -343,9 +377,14 @@ export default async function AdminAdsPage({ searchParams }: { searchParams?: Pr
                             </span>
                           )
                         ) : (
-                          <form action={launchAdminAdAction}>
+                          <form action={launchAdminAdAction} className="flex flex-wrap items-center gap-2">
                             <input type="hidden" name="adId" value={ad.id} />
-                            <button className="ui-btn-primary">{status === "draft" ? "გაშვება 7 დღით" : "ხელახლა 7 დღით"}</button>
+                            <label htmlFor={`duration-${ad.id}`} className="sr-only">ვადა</label>
+                            <select id={`duration-${ad.id}`} name="durationDays" defaultValue="7" className="ui-input !min-h-11 !w-auto">
+                              <option value="7">7 დღე</option>
+                              <option value="14">14 დღე · პარტნიორი</option>
+                            </select>
+                            <button className="ui-btn-primary">{status === "draft" ? "გაშვება" : "ხელახლა გაშვება"}</button>
                           </form>
                         )}
                       </div>

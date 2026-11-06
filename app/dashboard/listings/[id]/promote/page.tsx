@@ -2,7 +2,7 @@ import Link from "next/link"
 import SmartImage from "@/components/shared/SmartImage"
 import UiPageHeader from "@/components/shared/UiPageHeader"
 import { notFound, redirect } from "next/navigation"
-import { createBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
+import { claimFirstFreeVipAction, createBoostOrderAction, refreshBoostOrderStatusAction } from "@/app/dashboard/boosts/actions"
 import {
   activePromotionEndsAt,
   boostProductBenefits,
@@ -11,6 +11,7 @@ import {
   boostStatusLabel,
   buildSuggestedBoostReference,
   formatDateOnly,
+  isFirstFreeVipEnabled,
   paymentMethodLabel,
   placementLabel,
   promotionStateFromListing,
@@ -63,6 +64,16 @@ function flashLabel(value?: string) {
       return "ამ მოთხოვნაზე TBC სტატუსის გადამოწმება ხელმისაწვდომი არ არის."
     case "tbc_disabled":
       return "TBC ბარათით გადახდა მალე იქნება ხელმისაწვდომი"
+    case "free_vip_activated":
+      return "უფასო VIP გააქტიურდა 7 დღით! განცხადება უკვე ჩანს VIP რიგში."
+    case "free_vip_used":
+      return "უფასო პირველი VIP უკვე გამოყენებული გაქვს."
+    case "free_vip_listing_inactive":
+      return "უფასო VIP-ისთვის განცხადება გამოქვეყნებული და აქტიური უნდა იყოს."
+    case "free_vip_unavailable":
+      return "უფასო VIP აქცია ამ წუთას მიუწვდომელია."
+    case "free_vip_failed":
+      return "უფასო VIP ვერ გააქტიურდა. სცადე ხელახლა."
     default:
       return value || ""
   }
@@ -93,7 +104,7 @@ export default async function DashboardListingPromotePage({
 
   await reconcileExpiredBoostOrders()
 
-  const [{ data: listing }, { data: products }, { data: orders }] = await Promise.all([
+  const [{ data: listing }, { data: products }, { data: orders }, { count: freeVipUsedCount }] = await Promise.all([
     supabase
       .from("listings")
       .select("id, seller_id, slug, title, status, cover_image_url, price, currency, is_vip, vip_until, promoted_until, featured_until, featured_slot, home_banner_until, home_banner_slot")
@@ -140,11 +151,17 @@ export default async function DashboardListingPromotePage({
       .eq("listing_id", id)
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("listing_boost_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("seller_id", user.id)
+      .eq("payment_method", "promo_first_vip"),
   ])
 
   if (!listing) notFound()
 
   const state = promotionStateFromListing(listing)
+  const freeVipAvailable = isFirstFreeVipEnabled() && (freeVipUsedCount ?? 0) === 0 && listing.status === "active"
   const typedProducts = (products ?? []) as BoostProduct[]
   const orderRows = (orders ?? []) as PromoteBoostOrderRow[]
   const typedOrders = orderRows.map((item) => ({
@@ -169,6 +186,22 @@ export default async function DashboardListingPromotePage({
       />
 
       {flash ? <div className="mt-6 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{flash}</div> : null}
+
+      {freeVipAvailable ? (
+        <section data-free-first-vip className="mt-6 flex flex-col gap-4 rounded-[1.5rem] border border-brand/20 bg-brand-soft px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="ui-eyebrow">გაშვების აქცია</div>
+            <h2 className="mt-2 text-xl font-black text-text">პირველი VIP — უფასოდ, 7 დღით</h2>
+            <p className="mt-1 text-sm leading-6 text-text-soft">
+              განცხადება მიიღებს VIP ბეჯს და გამოჩნდება მთავარი გვერდის VIP რიგში. ერთხელ, ერთ განცხადებაზე, ბარათის გარეშე.
+            </p>
+          </div>
+          <form action={claimFirstFreeVipAction}>
+            <input type="hidden" name="listingId" value={listing.id} />
+            <ModerationSubmitButton idleLabel="VIP-ის უფასოდ ჩართვა" pendingLabel="აქტიურდება…" className="ui-btn-primary w-full sm:w-auto" />
+          </form>
+        </section>
+      ) : null}
 
       <section className="mt-6 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <div className="ui-card p-6">

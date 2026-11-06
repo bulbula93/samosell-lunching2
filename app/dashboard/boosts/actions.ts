@@ -5,7 +5,7 @@ import { randomUUID } from "crypto"
 import { revalidatePath } from "next/cache"
 import { invalidatePublicMarketplace } from "@/lib/public-marketplace-invalidation"
 import { redirect, unstable_rethrow } from "next/navigation"
-import { buildSuggestedBoostReference, canResumeManualBoostCheckout } from "@/lib/boosts"
+import { buildSuggestedBoostReference, canResumeManualBoostCheckout, firstFreeVipErrorFlash, isFirstFreeVipEnabled } from "@/lib/boosts"
 import { getBoostPaymentConfig } from "@/lib/boost-payment-config"
 import { createFlittBoostCheckoutSession } from "@/lib/flitt-boost-checkout"
 import type { BoostOrder } from "@/types/boost"
@@ -550,4 +550,34 @@ export async function refreshBoostOrderStatusAction(formData: FormData) {
     const message = error instanceof Error ? humanizeSupabaseError(error.message) : "სტატუსის გადამოწმება ვერ შესრულდა."
     redirect(withFlash(nextPath, encodeURIComponent(message)))
   }
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export async function claimFirstFreeVipAction(formData: FormData) {
+  const listingId = String(formData.get("listingId") ?? "").trim()
+  const nextPath = `/dashboard/listings/${encodeURIComponent(listingId)}/promote`
+  if (!UUID_PATTERN.test(listingId)) redirect("/dashboard/listings")
+  if (!isFirstFreeVipEnabled()) redirect(withFlash(nextPath, "free_vip_unavailable"))
+
+  const { supabase, user } = await requireUser()
+  if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`)
+
+  try {
+    await enforceRateLimit(supabase, "payment_create")
+    // Ownership, active status and one-per-seller are enforced by the trusted RPC.
+    const { error } = await supabase.rpc("claim_first_free_vip", { p_listing_id: listingId })
+    if (error) redirect(withFlash(nextPath, firstFreeVipErrorFlash(error.message)))
+  } catch (error) {
+    unstable_rethrow(error)
+    redirect(withFlash(nextPath, "free_vip_failed"))
+  }
+
+  invalidatePublicMarketplace()
+  revalidatePath("/")
+  revalidatePath("/catalog")
+  revalidatePath("/dashboard/listings")
+  revalidatePath(nextPath)
+  revalidatePath("/dashboard/billing")
+  redirect(withFlash(nextPath, "free_vip_activated"))
 }

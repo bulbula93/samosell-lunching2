@@ -85,7 +85,7 @@ export default function ListingManagementCard({ item, filter }: { item: ListingM
                   href={`/dashboard/listings/${item.id}/promote`}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900 transition hover:border-amber-400 hover:bg-amber-100"
                 >
-                  ★ გახადე VIP
+                  ★ გახადე VIP · პირველი უფასოა
                 </Link>
               ) : null}
               <Link href={`/dashboard/listings/${item.id}/edit`} className="ui-btn-primary">

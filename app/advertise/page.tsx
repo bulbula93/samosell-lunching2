@@ -100,13 +100,37 @@ export default async function AdvertisePage({
           </div>
         ) : null}
 
-        <SelfServiceAdForm
-          defaultAdvertiserName={advertiserName}
-          destinationOptions={destinationOptions}
-          price={price}
-          currency={currency}
-          durationDays={durationDays}
-        />
+        {product ? (
+          <SelfServiceAdForm
+            defaultAdvertiserName={advertiserName}
+            destinationOptions={destinationOptions}
+            price={price}
+            currency={currency}
+            durationDays={durationDays}
+          />
+        ) : (
+          <section data-partner-program className="ui-card grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <div className="ui-eyebrow">პარტნიორი მაღაზიის პროგრამა</div>
+              <h2 className="mt-3 text-2xl font-black text-text sm:text-3xl">რეკლამა მთავარ გვერდზე — 14 დღე უფასოდ</h2>
+              <p className="mt-3 text-sm leading-7 text-text-soft sm:text-base">
+                SamoSell ახლა იწყებს და პირველ მაღაზიებს რეკლამას უფასოდ ვთავაზობთ. სანაცვლოდ გთხოვთ ერთ პოსტს ან story-ს
+                თქვენს Instagram/Facebook/TikTok გვერდზე, რომ თქვენმა მიმდევრებმა SamoSell-ზე თქვენი ნივთები იპოვონ.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm leading-6 text-text-soft">
+                <li>• ბანერი მთავარ გვერდზე, მთელ სიგანეზე, 14 დღით</li>
+                <li>• ერთდროულად მაქსიმუმ 3 პარტნიორი — ჩვენებებს თანაბრად ინაწილებთ</li>
+                <li>• ჩვენებებისა და დაჭერების რეალური სტატისტიკა</li>
+              </ul>
+            </div>
+            <div className="rounded-[1.25rem] border border-line bg-surface-alt p-5">
+              <div className="text-sm font-semibold text-text">როგორ შევუერთდე?</div>
+              <p className="mt-2 text-sm leading-6 text-text-soft">მოგვწერე მაღაზიის სახელი, ბმული და სასურველი ტექსტი/ვიზუალი — ბანერს ჩვენ მოვამზადებთ და გავუშვებთ.</p>
+              <Link href="/contact" className="ui-btn-primary mt-4 w-full justify-center">პარტნიორობის მოთხოვნა</Link>
+              <p className="mt-3 text-xs leading-5 text-text-soft">ფასიანი თვითმომსახურების რეკლამა დაბრუნდება, როცა მთავარი გვერდის ტრაფიკი გაიზრდება.</p>
+            </div>
+          </section>
+        )}
       </section>
     </main>
   )
