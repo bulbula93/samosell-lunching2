@@ -1,9 +1,14 @@
 /* eslint-disable @next/next/no-img-element -- Admin previews must show the exact media URL Meta will fetch, without an extra Vercel image transform. */
-import { renderCaption } from "@/lib/social/agents/creative"
+import { renderCaption, SITE_ORIGIN } from "@/lib/social/agents/creative"
 import type { SocialPlatform, SocialPost } from "@/lib/social/types"
 
+/** samosell.ge assets are shown same-origin so Preview deployments render files that are not in Production yet. */
+export function displaySrc(url: string) {
+  return url.startsWith(`${SITE_ORIGIN}/`) ? url.slice(SITE_ORIGIN.length) : url
+}
+
 function Media({ post }: { post: SocialPost }) {
-  const src = post.mediaUrls[0]
+  const src = post.mediaUrls[0] ? displaySrc(post.mediaUrls[0]) : undefined
   if (!src) return <div className="flex aspect-square items-center justify-center bg-surface-alt text-xs text-text-soft">სურათი არ არის</div>
   return (
     <div className="relative aspect-square overflow-hidden bg-surface-alt">

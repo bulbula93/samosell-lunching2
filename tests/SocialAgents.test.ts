@@ -73,6 +73,17 @@ describe("Creative + Quality agents", () => {
   })
 })
 
+describe("brand media used for posts", () => {
+  it("is a real, complete baseline JPEG (Instagram rejects anything else)", async () => {
+    const { readFileSync } = await import("node:fs")
+    const { BRAND_IMAGE_URL } = await import("@/lib/social/agents/creative")
+    const bytes = readFileSync(`public${new URL(BRAND_IMAGE_URL).pathname}`)
+    expect(bytes.subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff])) // SOI
+    expect(bytes.subarray(-2)).toEqual(Buffer.from([0xff, 0xd9]))          // EOI: not truncated
+    expect(bytes.length).toBeGreaterThan(20_000)
+  })
+})
+
 describe("Community, Analytics, Ads Planner", () => {
   it("never auto-replies to complaints or spam", () => {
     expect(draftCommunityReply("ეს თაღლითობაა, ვერ მივიღე")).toEqual({ intent: "complaint", escalate: true, reply: null })

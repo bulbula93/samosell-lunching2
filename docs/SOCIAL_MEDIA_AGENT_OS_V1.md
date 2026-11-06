@@ -108,7 +108,7 @@ Instagram Login-ის long-lived token 60 დღეში იწურება
 **ლოკალური (Node 22.23.4, pnpm 10.17.1, repo-ს lockfile):**
 - `pnpm exec tsc --noEmit` — PASS
 - `pnpm lint` — 0 error, 8 warning (ყველა წინასწარ არსებული, social კოდში 0)
-- `pnpm test` — **215 files / 1,322 tests PASS** (ახალი: 6 ფაილი, ~110 ტესტი)
+- `pnpm test` — **215 files / 1,322 tests PASS** (ახალი: 6 ფაილი, 100 ტესტი)
 - `node scripts/build-with-public-fixture.mjs` (CI placeholder env) — PASS; `/admin/social`, `/api/internal/social/tick` = dynamic
 
 ახალი ტესტები: `SocialPolicyGateway` (paid-budget-zero, ყველა actor × ყველა paid action, tampered control, TikTok, kill switch, approval ვადა/ვერსია/decider, live gating), `SocialAgents`, `SocialMetaAdapters` (mock fetch; container-before-publish, resume, PUBLISHED, timeout→unknown_outcome, token არ ჟონავს), `SocialWorkflow` (E2E memory store: idempotent planning, duplicate enqueue, dry-run zero network, edit→invalidation, kill switch mid-queue, needs_review არ მეორდება, backoff→dead_letter, IG container resume), `SocialDatabase` (PGlite რეალურ SQL-ზე: CHECK-ები, approval gate, versioning/lock, duplicate jobs, SKIP LOCKED claim, lease token, retry/dead-letter/needs_review, RLS admin/non-admin/anon, RPC grants, append-only + TRUNCATE), `SocialAdminPermissions` (9 action × non-admin/no-backend, forged id, live-mode denial, kill switch audit, worker route 401, page render/simulation).

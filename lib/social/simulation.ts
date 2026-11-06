@@ -9,7 +9,7 @@ import { MemorySocialStore } from "./store"
 import { runPublishTick } from "./worker"
 import type { CandidateListing } from "./types"
 
-const FIXTURE_IMAGE = "https://samosell.ge/brand/samosell-hero-clothing-studio.jpg"
+const FIXTURE_IMAGE = "https://samosell.ge/brand/samosell-social-brand.jpg"
 export const SIMULATION_LISTINGS: CandidateListing[] = [
   { id: "sim-1", slug: "sim-zara-jacket", title: "Zara-ს ქურთუკი, M ზომა", brand: "Zara", priceGel: 45, city: "თბილისი", category: "ქურთუკები", imageUrl: FIXTURE_IMAGE, isGift: false },
   { id: "sim-2", slug: "sim-nike-sneakers", title: "Nike სპორტული ფეხსაცმელი, 42", brand: "Nike", priceGel: 80, city: "ბათუმი", category: "ფეხსაცმელი", imageUrl: FIXTURE_IMAGE, isGift: false },

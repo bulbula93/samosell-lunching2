@@ -8,7 +8,7 @@ import type { PlanSlot } from "./strategy"
 
 export const SITE_ORIGIN = "https://samosell.ge"
 /** A real JPEG (Instagram Content Publishing only accepts JPEG). */
-export const BRAND_IMAGE_URL = `${SITE_ORIGIN}/brand/samosell-hero-wardrobe.jpg`
+export const BRAND_IMAGE_URL = `${SITE_ORIGIN}/brand/samosell-social-brand.jpg`
 const BASE_TAGS = ["samosell", "სამოსელი", "მეორადი", "საქართველო"]
 
 export type CreativeDraft = {
