@@ -147,6 +147,31 @@ export function createDraft(slot: PlanSlot): CreativeDraft {
   }
 }
 
+/** Story companions: products only, published an hour after the feed post for a second touchpoint. */
+export const STORY_DELAY_MINUTES = 60
+export function storyKey(feedKey: string) { return `${feedKey}:story` }
+export function storyPriceLabel(listing: Pick<CandidateListing, "isGift" | "priceGel">) {
+  if (listing.isGift) return "უფასოდ"
+  if (listing.priceGel === null || !Number.isFinite(listing.priceGel) || listing.priceGel <= 0) return "ფასი შეთანხმებით"
+  return `${Math.round(listing.priceGel)} ₾`
+}
+export function createStoryDraft(feed: { idempotencyKey: string; pillar: Pillar; scheduledFor: string; platforms: SocialPlatform[] }, listing: CandidateListing, storyImageUrl: string): CreativeDraft {
+  const at = new Date(Date.parse(feed.scheduledFor) + STORY_DELAY_MINUTES * 60_000).toISOString()
+  return {
+    idempotencyKey: storyKey(feed.idempotencyKey),
+    pillar: feed.pillar,
+    contentType: "story",
+    // Stories show no caption; this text is only the internal label in the Control Center.
+    caption: `Story · ${listing.title.trim().slice(0, 120)}`,
+    hashtags: [],
+    mediaUrls: [storyImageUrl],
+    linkUrl: listingUrl(listing),
+    listingId: listing.id,
+    platforms: [...feed.platforms],
+    scheduledFor: at,
+  }
+}
+
 /** Platform rendering differs: Instagram captions cannot carry clickable links; Facebook can. */
 export function renderCaption(draft: Pick<CreativeDraft, "caption" | "hashtags" | "linkUrl">, platform: SocialPlatform) {
   const tags = draft.hashtags.map(t => `#${t}`).join(" ")

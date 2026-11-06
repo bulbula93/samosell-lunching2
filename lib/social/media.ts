@@ -104,3 +104,92 @@ export async function convertToInstagramJpeg(input: Uint8Array): Promise<Uint8Ar
     throw new MediaPrepareError("media_convert_failed")
   }
 }
+
+/* ───────────────────────────── Stories (9:16) ───────────────────────────── */
+
+export const STORY_WIDTH = 1080
+export const STORY_HEIGHT = 1920
+const STORY_GREEN = "#1F3D2B"
+const STORY_CREAM = "#F6F1E7"
+
+export type StoryContent = { title: string; priceLabel: string; city: string | null }
+export type StoryAssets = { fontBold: string; fontMedium: string; logo: Uint8Array }
+
+/** Pango markup must not interpret listing text (titles are user input). */
+export function escapeMarkup(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
+}
+
+export function storyTitle(title: string, max = 44) {
+  const t = title.replace(/\s+/g, " ").trim()
+  if (t.length <= max) return t
+  const cut = t.slice(0, max - 1)
+  const space = cut.lastIndexOf(" ")
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd().replace(/[,.;:–-]+$/, "")}…`
+}
+
+/**
+ * 1080×1920 Story: logo, the listing photo (never cropped), title, price, city and a footer
+ * pointing to the link-in-bio page. Text uses the bundled FiraGO font (Georgian), so rendering
+ * does not depend on fonts installed on the server. Key content stays out of Instagram's
+ * top/bottom UI zones (~250px each).
+ */
+export async function renderStoryJpeg(photo: Uint8Array, content: StoryContent, assets: StoryAssets): Promise<Uint8Array> {
+  const { default: sharp } = await import("sharp")
+  const text = async (markup: string, font: string, fontfile: string, color: string, width = 960) => {
+    const r = await sharp({ text: { text: `<span foreground="${color}">${markup}</span>`, font, fontfile, width, rgba: true, wrap: "word", align: "centre" } })
+      .png().toBuffer({ resolveWithObject: true })
+    return { input: r.data, width: r.info.width, height: r.info.height }
+  }
+  try {
+    const photoBuf = await sharp(photo, { limitInputPixels: 40_000_000, failOn: "error" })
+      .rotate().resize(940, 860, { fit: "contain", background: "#FFFFFF" }).flatten({ background: "#FFFFFF" }).png().toBuffer()
+    const card = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="980" height="900"><rect width="980" height="900" rx="36" fill="#FFFFFF"/></svg>`)
+    const cardMask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="940" height="860"><rect width="940" height="860" rx="24" fill="#000"/></svg>`)
+    const roundedPhoto = await sharp(photoBuf).composite([{ input: cardMask, blend: "dest-in" }]).png().toBuffer()
+    const logo = await sharp(assets.logo).resize({ width: 420 }).png().toBuffer({ resolveWithObject: true })
+
+    const title = await text(escapeMarkup(storyTitle(content.title)), "FiraGO ExtraBold 54", assets.fontBold, STORY_GREEN)
+    const price = await text(escapeMarkup(content.priceLabel), "FiraGO ExtraBold 88", assets.fontBold, STORY_GREEN)
+    const city = content.city ? await text(escapeMarkup(content.city), "FiraGO Medium 40", assets.fontMedium, "#5B6B61") : null
+    const cta = await text("ნახე SamoSell-ზე · samosell.ge/links", "FiraGO ExtraBold 44", assets.fontBold, "#FFFFFF")
+    const sub = await text("განცხადება უფასოა · საკომისიო 0%", "FiraGO Medium 36", assets.fontMedium, STORY_CREAM)
+
+    const centre = (w: number) => Math.round((STORY_WIDTH - w) / 2)
+    const layers: Array<{ input: Buffer; top: number; left: number }> = [
+      { input: logo.data, top: 150, left: centre(logo.info.width) },
+      { input: card, top: 300, left: 50 },
+      { input: roundedPhoto, top: 320, left: 70 },
+    ]
+    let y = 1236
+    layers.push({ input: title.input, top: y, left: centre(title.width) }); y += title.height + 10
+    layers.push({ input: price.input, top: y, left: centre(price.width) }); y += price.height + 4
+    if (city && y + city.height < 1570) layers.push({ input: city.input, top: y, left: centre(city.width) })
+    const band = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${STORY_WIDTH}" height="300"><rect width="${STORY_WIDTH}" height="300" fill="${STORY_GREEN}"/></svg>`)
+    layers.push({ input: band, top: 1590, left: 0 })
+    layers.push({ input: cta.input, top: 1624, left: centre(cta.width) })
+    layers.push({ input: sub.input, top: 1624 + cta.height + 14, left: centre(sub.width) })
+
+    const out = await sharp({ create: { width: STORY_WIDTH, height: STORY_HEIGHT, channels: 3, background: STORY_CREAM } })
+      .composite(layers).jpeg({ quality: 86, mozjpeg: true, chromaSubsampling: "4:2:0" }).toBuffer()
+    return new Uint8Array(out)
+  } catch {
+    throw new MediaPrepareError("story_render_failed")
+  }
+}
+
+export type StoryPreparer = (listing: { id: string; imageUrl: string | null; title: string; priceLabel: string; city: string | null }) => Promise<string>
+
+type StoryDeps = Omit<Deps, "convert"> & { assets: () => Promise<StoryAssets>; render?: typeof renderStoryJpeg }
+
+/** Download the listing photo (same SSRF guard), render the Story, upload under a content-addressed name. */
+export function createStoryPreparer(deps: StoryDeps): StoryPreparer {
+  return async (listing) => {
+    if (!listing.imageUrl || !sourceAllowed(listing.imageUrl, deps.supabaseUrl)) throw new MediaPrepareError("media_source_not_allowed")
+    const photo = await download(listing.imageUrl, deps.fetcher)
+    const jpeg = await (deps.render ?? renderStoryJpeg)(photo, { title: listing.title, priceLabel: listing.priceLabel, city: listing.city }, await deps.assets())
+    const path = `stories/v1/${deps.digest(JSON.stringify([listing.id, listing.imageUrl, listing.title, listing.priceLabel, listing.city]))}.jpg`
+    await deps.upload(path, jpeg)
+    return `${new URL(deps.supabaseUrl).origin}/storage/v1/object/public/${SOCIAL_MEDIA_BUCKET}/${path}`
+  }
+}

@@ -49,6 +49,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  // Story images are rendered server-side with a bundled Georgian font + logo (read from disk).
+  outputFileTracingIncludes: {
+    "/admin/social": ["./lib/social/assets/**/*"],
+  },
   images: {
     remotePatterns: getPublicStorageHosts().map((hostname) => (
       {

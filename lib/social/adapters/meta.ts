@@ -56,6 +56,7 @@ export class DryRunAdapter implements PublishAdapter {
 
 export function validatePayload(platform: SocialPlatform, input: PublishInput) {
   if (platform === "instagram" && input.mediaUrls.length === 0) throw new PublishError("instagram_media_required", false)
+  if (input.contentType === "story" && input.mediaUrls.length !== 1) throw new PublishError("story_media", false)
   if (input.contentType === "carousel" && (input.mediaUrls.length < 2 || input.mediaUrls.length > 10)) throw new PublishError("carousel_size", false)
   if (!input.mediaUrls.every(u => u.startsWith("https://"))) throw new PublishError("media_not_https", false)
 }
@@ -163,6 +164,8 @@ export class InstagramLiveAdapter implements PublishAdapter {
       for (const image of input.mediaUrls) children.push(id(await this.client.call("POST", `${this.creds.igUserId}/media`, { image_url: image, is_carousel_item: "true" }, false)))
       return id(await this.client.call("POST", `${this.creds.igUserId}/media`, { media_type: "CAROUSEL", children: children.join(","), caption }, false))
     }
+    // Stories carry no caption (Instagram ignores it); the container itself is never public.
+    if (input.contentType === "story") return id(await this.client.call("POST", `${this.creds.igUserId}/media`, { image_url: input.mediaUrls[0], media_type: "STORIES" }, false))
     return id(await this.client.call("POST", `${this.creds.igUserId}/media`, { image_url: input.mediaUrls[0], caption }, false))
   }
 
@@ -213,7 +216,14 @@ export class FacebookLiveAdapter implements PublishAdapter {
     const page = this.creds.pageId
     const client = await this.publisher()
     let result: Record<string, unknown>
-    if (input.contentType === "single_image") {
+    if (input.contentType === "story") {
+      // Page Stories API: upload unpublished (not public), then publish it as a Story (public).
+      const photo = await client.call("POST", `${page}/photos`, { url: input.mediaUrls[0], published: "false" }, false)
+      if (typeof photo.id !== "string" || !ID.test(photo.id)) throw new PublishError("meta_invalid_response", false)
+      const story = await client.call("POST", `${page}/photo_stories`, { photo_id: photo.id }, true)
+      const storyId = story.post_id ?? story.id
+      result = { id: typeof storyId === "number" ? String(storyId) : storyId }
+    } else if (input.contentType === "single_image") {
       result = await client.call("POST", `${page}/photos`, { url: input.mediaUrls[0], message }, true)
       result = { id: result.post_id ?? result.id }
     } else if (input.contentType === "carousel") {

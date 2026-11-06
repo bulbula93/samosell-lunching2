@@ -4,10 +4,10 @@
  * Every step passes the Policy Gateway and writes an audit entry, including denials.
  */
 import { draftAdPlan } from "./agents/ads-planner"
-import { createDraft } from "./agents/creative"
+import { createDraft, createStoryDraft, storyKey, storyPriceLabel } from "./agents/creative"
 import { checkQuality } from "./agents/quality"
 import { buildWeeklyPlan, mondayOf } from "./agents/strategy"
-import { MediaPrepareError, type MediaPreparer } from "./media"
+import { MediaPrepareError, type MediaPreparer, type StoryPreparer } from "./media"
 import { evaluateSocialAction, type PolicyResult, type SocialAction, type SocialAgent } from "./policy-gateway"
 import { effectiveExecutionMode, type SocialRuntime } from "./runtime"
 import { SocialStoreError, type SocialStore } from "./store"
@@ -20,7 +20,7 @@ export class PolicyDeniedError extends Error {
   constructor(public readonly reason: string) { super(reason) }
 }
 
-type Ctx = { store: SocialStore; runtime: SocialRuntime; now?: () => Date; prepareMedia?: MediaPreparer | null }
+type Ctx = { store: SocialStore; runtime: SocialRuntime; now?: () => Date; prepareMedia?: MediaPreparer | null; prepareStory?: StoryPreparer | null }
 
 async function gate(ctx: Ctx, actor: SocialAgent, action: SocialAction, extra: Partial<Parameters<typeof evaluateSocialAction>[0]> = {}, resource: { type: string; id: string | null } = { type: "system", id: null }): Promise<PolicyResult> {
   const control = await ctx.store.getControl()
@@ -31,7 +31,7 @@ async function gate(ctx: Ctx, actor: SocialAgent, action: SocialAction, extra: P
   return result
 }
 
-export type PlanningResult = { weekStart: string; created: number; existing: number; passedQa: number; failedQa: number; approvalsRequested: number; posts: SocialPost[] }
+export type PlanningResult = { weekStart: string; created: number; existing: number; passedQa: number; failedQa: number; approvalsRequested: number; storiesCreated: number; posts: SocialPost[] }
 
 export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; listings?: CandidateListing[] } = {}): Promise<PlanningResult> {
   const now = ctx.now?.() ?? new Date()
@@ -47,7 +47,7 @@ export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; li
   const slots = buildWeeklyPlan({ weekStart, listings, platforms })
   await ctx.store.appendAudit({ actorType: "agent", actor: "strategy", action: "plan_content", decision: "success", reason: "weekly_plan_built", resourceType: "plan", resourceId: weekStart, details: { slots: slots.length, candidates: listings.length } })
 
-  const result: PlanningResult = { weekStart, created: 0, existing: 0, passedQa: 0, failedQa: 0, approvalsRequested: 0, posts: [] }
+  const result: PlanningResult = { weekStart, created: 0, existing: 0, passedQa: 0, failedQa: 0, approvalsRequested: 0, storiesCreated: 0, posts: [] }
   for (const slot of slots) {
     const draftGate = await gate(ctx, "creative", "create_draft")
     if (draftGate.decision === "deny") throw new PolicyDeniedError(draftGate.reason)
@@ -70,8 +70,81 @@ export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; li
       }
     } else result.failedQa++
     result.posts.push(checked)
+    if (control?.storiesEnabled && slot.listing && (checked.pillar === "featured_listing" || checked.pillar === "giveaway")) {
+      const story = await tryCreateStory(ctx, checked, slot.listing, "creative").catch(() => null)
+      if (story) { result.storiesCreated++; result.posts.push(story) }
+    }
   }
   return result
+}
+
+/** QA → approval request, exactly like a feed draft. */
+async function qaAndRequestApproval(ctx: Ctx, post: SocialPost, actor: SocialAgent): Promise<SocialPost> {
+  const checked = await runQualityCheck(ctx, post, actor === "human_admin" ? "human_admin" : "quality")
+  if (!checked.qualityPassed) return checked
+  const approvalGate = await gate(ctx, "quality", "request_approval", { post: checked }, { type: "social_post", id: checked.id })
+  if (approvalGate.decision === "requires_approval") {
+    await ctx.store.requestApproval(checked.id, checked.version)
+    await ctx.store.appendAudit({ actorType: "agent", actor: "quality", action: "request_approval", decision: "requires_approval", reason: approvalGate.reason, resourceType: "social_post", resourceId: checked.id, details: { version: checked.version } })
+  }
+  return checked
+}
+
+/**
+ * Story companion for a product post: rendered 9:16 image → its own post row (own QA, approval, jobs).
+ * Idempotent: an existing companion is returned without re-rendering.
+ */
+async function tryCreateStory(ctx: Ctx, feed: SocialPost, listing: CandidateListing, actor: "creative" | string): Promise<SocialPost | null> {
+  if (!ctx.prepareStory) return null
+  const existing = await ctx.store.getPostByKey(storyKey(feed.idempotencyKey))
+  if (existing) return existing
+  const control = await ctx.store.getControl()
+  const platforms: SocialPlatform[] = []
+  if (control?.instagramEnabled) platforms.push("instagram")
+  if (control?.facebookEnabled) platforms.push("facebook")
+  if (platforms.length === 0) return null
+  const actorType = actor === "creative" ? "agent" as const : "human" as const
+  let url: string
+  try {
+    url = await ctx.prepareStory({ id: listing.id, imageUrl: listing.imageUrl, title: listing.title, priceLabel: storyPriceLabel(listing), city: listing.city })
+  } catch (e) {
+    const code = e instanceof MediaPrepareError ? e.code : "story_render_failed"
+    await ctx.store.appendAudit({ actorType, actor, action: "create_draft", decision: "failure", reason: code, resourceType: "social_post", resourceId: feed.id })
+    throw e
+  }
+  const { post, created } = await ctx.store.insertDraft(createStoryDraft({ ...feed, platforms }, listing, url), { type: actorType, id: actor })
+  if (!created) return post
+  await ctx.store.appendAudit({ actorType, actor, action: "create_draft", decision: "success", reason: "story_draft_created", resourceType: "social_post", resourceId: post.id, details: { feed_post: feed.id } })
+  return qaAndRequestApproval(ctx, post, actorType === "agent" ? "quality" : "human_admin")
+}
+
+/** Admin "🎬 Story-ც": add a Story companion to an existing product post. */
+export async function addStoryForPost(ctx: Ctx, postId: string, adminUserId: string) {
+  const feed = await ctx.store.getPost(postId)
+  if (!feed) throw new SocialStoreError("post_not_found")
+  if (feed.contentType === "story" || !feed.listingId) throw new SocialStoreError("story_needs_listing_post")
+  const g = await gate(ctx, "human_admin", "edit_draft", {}, { type: "social_post", id: postId })
+  if (g.decision === "deny") throw new PolicyDeniedError(g.reason)
+  const control = await ctx.store.getControl()
+  if (!control?.storiesEnabled) throw new PolicyDeniedError("stories_disabled")
+  if (!ctx.prepareStory) throw new SocialStoreError("media_preparer_unavailable")
+  const listing = await ctx.store.getCandidateListing(feed.listingId)
+  if (!listing) throw new SocialStoreError("listing_unavailable")
+  const story = await tryCreateStory(ctx, feed, listing, adminUserId)
+  if (!story) throw new PolicyDeniedError("no_enabled_platform")
+  return story
+}
+
+/** One click approves the feed post and, if it is waiting too, its Story companion. */
+export async function approvePostAndStory(ctx: Ctx, postId: string, version: number, adminUserId: string) {
+  const feed = await approveAndSchedule(ctx, postId, version, adminUserId)
+  const post = await ctx.store.getPost(postId)
+  const story = post && post.contentType !== "story" ? await ctx.store.getPostByKey(storyKey(post.idempotencyKey)) : null
+  let storyResult: Awaited<ReturnType<typeof approveAndSchedule>> | null = null
+  if (story && story.status === "ready_for_review") {
+    storyResult = await approveAndSchedule(ctx, story.id, story.version, adminUserId).catch(() => null)
+  }
+  return { feed, story: storyResult }
 }
 
 /**

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 let db: PGlite
 const ADMIN = "11111111-1111-4111-8111-111111111111"
 const USER = "22222222-2222-4222-8222-222222222222"
-const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8")
+const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8") + "\n" + readFileSync("supabase/migrations/20261107010000_social_stories.sql", "utf8")
 
 async function as<T = Record<string, unknown>>(role: string, sql: string, params: unknown[] = []) {
   await db.exec(`set role ${role}`)
@@ -50,6 +50,18 @@ beforeEach(async () => {
     delete from social_audit_log; delete from social_publish_jobs; delete from social_approvals; delete from social_ad_drafts; delete from social_posts;
     alter table social_audit_log enable trigger social_audit_append_only;
     update social_control set kill_switch=false, execution_mode='dry_run', instagram_enabled=true, facebook_enabled=true, organic_auto_publish=false;`)
+})
+
+describe("stories migration", () => {
+  it("accepts content_type 'story', still rejects unknown types, and Stories default to off", async () => {
+    const [row] = await svc<{ id: string }>(`insert into social_posts (idempotency_key,pillar,content_type,caption,media_urls,platforms,scheduled_for,created_by_type,created_by)
+      values ('k:story','featured_listing','story','Story · ტესტი','{https://samosell.ge/a.jpg}','{instagram,facebook}',now(),'agent','creative') returning id`)
+    expect(row.id).toBeTruthy()
+    await rejects(svc(`insert into social_posts (idempotency_key,pillar,content_type,caption,platforms,scheduled_for,created_by_type,created_by)
+      values ('k:reel','trust','reel','x','{facebook}',now(),'agent','creative')`), /check/i)
+    const [c] = await svc<{ stories_enabled: boolean }>("select stories_enabled from social_control")
+    expect(c.stories_enabled).toBe(false)
+  })
 })
 
 describe("paid-budget-zero and platform invariants (CHECK constraints)", () => {
