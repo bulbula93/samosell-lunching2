@@ -82,6 +82,11 @@ export default async function AdvertisePage({
               შექმენი ტექსტი და ვიზუალი თვითონ. რეკლამაზე დაკლიკებით მომხმარებელი შეიძლება გადავიდეს შენს SamoSell მაღაზიაში,
               Instagram/Facebook/TikTok გვერდზე ან საკუთარ ვებგვერდზე.
             </p>
+            <p className="mt-3 rounded-[1rem] border border-line bg-white px-4 py-3 text-sm leading-6 text-text-soft" data-ad-slot-policy>
+              რეკლამა ჩანს მთავარი გვერდის ბანერში, მთელ სიგანეზე. ერთდროულად მაქსიმუმ <strong className="text-text">3 რეკლამა</strong> მონაცვლეობს
+              და ყოველი ვიზიტი შემთხვევითი რეკლამით იწყება, ასე რომ ჩვენებებს თანაბრად ინაწილებთ. თუ ადგილი სავსეა, რეკლამა რიგში დგება
+              და ავტომატურად დაიწყება, როგორც კი ადგილი გათავისუფლდება.
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link href="/dashboard/ads" className="ui-btn-secondary">ჩემი რეკლამები</Link>

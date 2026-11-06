@@ -26,6 +26,7 @@ const footerGroups = [
       { href: "/faq", label: "ხშირი კითხვები" },
       { href: "/safety", label: "უსაფრთხოება" },
       { href: "/contact", label: "კონტაქტი" },
+      { href: "/advertise", label: "რეკლამა SamoSell-ზე" },
     ],
   },
   {

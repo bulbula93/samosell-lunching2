@@ -9,7 +9,8 @@ import {
   type AdRecord,
 } from "@/lib/ads"
 
-export default function AdBanner({ ad, pagePath }: { ad: AdRecord; pagePath: string }) {
+export default function AdBanner({ ad, pagePath, variant = "compact" }: { ad: AdRecord; pagePath: string; variant?: "compact" | "wide" }) {
+  const wide = variant === "wide"
   const image = getSafeAdImage(ad.image_url)
   const target = normalizeAdTargetUrl(ad.target_url)
   const external = isExternalAdTarget(target)
@@ -18,7 +19,7 @@ export default function AdBanner({ ad, pagePath }: { ad: AdRecord; pagePath: str
   const description = ad.description || "აღმოაჩინე SamoSell-ის პარტნიორის შეთავაზება"
 
   return (
-    <article className="relative grid min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#faf5e9] shadow-[0_12px_34px_rgba(31,74,67,0.07)] sm:grid-cols-[minmax(0,1fr)_10rem]">
+    <article className={`relative grid min-h-[13rem] overflow-hidden rounded-[1.75rem] border border-[#dfd6c2] bg-[#faf5e9] shadow-[0_12px_34px_rgba(31,74,67,0.07)] ${wide ? "sm:grid-cols-[minmax(0,1fr)_minmax(14rem,42%)]" : "sm:grid-cols-[minmax(0,1fr)_10rem]"}`}>
       <AdImpressionTracker adId={ad.id} placementKey={ad.placement_key} pagePath={pagePath} />
       <div className="relative z-10 flex min-w-0 flex-col justify-center p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
@@ -51,7 +52,7 @@ export default function AdBanner({ ad, pagePath }: { ad: AdRecord; pagePath: str
           className="object-cover"
           fallbackLabel=""
           loading="lazy"
-          sizes="(max-width: 640px) 100vw, 160px"
+          sizes={wide ? "(max-width: 640px) 100vw, 42vw" : "(max-width: 640px) 100vw, 160px"}
         />
       ) : (
         <div aria-hidden="true" className="relative hidden overflow-hidden border-l border-[#dfd6c2] bg-[radial-gradient(circle_at_30%_30%,rgba(158,227,218,0.9),transparent_36%),linear-gradient(145deg,#e8f4ef,#f4e7c7)] sm:block">
