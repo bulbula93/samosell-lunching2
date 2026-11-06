@@ -43,6 +43,7 @@ export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateL
   const gifts = pool.filter(l => l.isGift)
   const regular = pool.filter(l => !l.isGift)
   const used = new Set<string>()
+  const usedEvergreen = new Set<Pillar>()
   const take = (source: CandidateListing[]) => {
     const found = source.find(l => !used.has(l.id))
     if (found) used.add(found.id)
@@ -60,8 +61,8 @@ export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateL
     if (pillar === "featured_listing") listing = take(regular)
     if (pillar === "giveaway") {
       listing = take(gifts)
-      // No real giveaway listing → never invent one; fall back to an evergreen education post.
-      if (!listing) pillar = "how_to_sell"
+      // No real giveaway listing → never invent one; feature another real item instead.
+      if (!listing) { pillar = "featured_listing"; listing = take(regular) }
     }
     if (pillar === "category_roundup") {
       const picks: CandidateListing[] = []
@@ -70,6 +71,13 @@ export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateL
       else { picks.forEach(p => used.delete(p.id)); pillar = "trust" }
     }
     if (pillar === "featured_listing" && !listing) pillar = "trust"
+    // Never schedule the same evergreen post twice in one week.
+    if ((pillar === "trust" || pillar === "how_to_sell") && usedEvergreen.has(pillar)) {
+      const other = pillar === "trust" ? "how_to_sell" : "trust"
+      if (usedEvergreen.has(other)) continue
+      pillar = other
+    }
+    if (pillar === "trust" || pillar === "how_to_sell") usedEvergreen.add(pillar)
     slots.push({
       slotKey: `plan:${input.weekStart}:${slot.dayOffset}:${slot.pillar}`,
       scheduledFor: at.toISOString(),
