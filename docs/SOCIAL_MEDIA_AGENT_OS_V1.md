@@ -166,3 +166,12 @@ Instagram Login-ის long-lived token 60 დღეში იწურება
 - **კოდი:** Vercel → Deployments → წინა Production deployment → Promote (Instant Rollback). Social კოდი სხვა ფუნქციონალზე დამოკიდებული არ არის.
 - **სქემა:** ცხრილების წაშლა საჭირო არ არის (დამოუკიდებელია). საჭიროების შემთხვევაში: `drop table` `social_*` (dependency რიგით) — **მხოლოდ** audit-ის ექსპორტის შემდეგ.
 - გამოქვეყნებული პოსტის წაშლა ხელით ხდება Meta Business Suite-ში (v1-ში delete API არ არის — განზრახ).
+
+## 12. Production სტატუსი (2026-11-06)
+
+- **Meta:** app „SamoSell Social" (1652129523084461, Unified login — ახალ app-ებს „Instagram Login" აღარ აქვთ), system user `SocialPublisher`. Token: system-user token Vercel-ში `META_SOCIAL_PAGE_ACCESS_TOKEN`; Facebook adapter პოსტამდე ცვლის მას Page access token-ზე (`GET /{page-id}?fields=access_token`). Instagram იმავე token-ს იყენებს `graph.facebook.com`-ზე. `ads_*` permission token-ს **არ აქვს**.
+- **Facebook:** live, პირველი პოსტი `1326431663889577_122119827417497675`.
+- **Instagram:** ჯერ ბლოკირებულია — Meta code 10 (permission). საჭიროა: samo.sell-ის მინიჭება SocialPublisher-ზე (Content) და ახალი token `instagram_basic` + `instagram_content_publish`-ით.
+- **Scheduler:** Supabase pg_cron job `samosell-social-publish-tick` (`5 8,14,15,16 * * *` UTC = 12:05/18:05/19:05/20:05 თბილისი), `net.http_get` → `/api/internal/social/tick`, Bearer Vault-იდან (`samosell_social_cron_secret`, Vercel `CRON_SECRET`-ის ტოლი). Vercel Cron განზრახ არ გამოიყენება (პროექტის წესი, `TbcLaunchReadiness` ტესტი). Migration: `20261106230000_social_publish_tick_schedule.sql`.
+- Worker მხოლოდ დამტკიცებულ, დროში მოსულ job-ებს აქვეყნებს; kill switch / dry-run / env ceiling სერვერზე მოწმდება. ცარიელი queue = ~2 DB query, ≤4 გამოძახება დღეში.
+- **გამორთვა:** `select cron.unschedule('samosell-social-publish-tick');` ან Admin → AI მარკეტინგი → kill switch.
