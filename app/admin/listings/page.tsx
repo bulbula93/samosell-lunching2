@@ -1,9 +1,16 @@
 import Link from "next/link"
-import { adminListingAction } from "@/app/admin/actions"
+import { adminListingAction, adminReclassifyListingAction } from "@/app/admin/actions"
 import { requireAdminUser } from "@/lib/auth"
 import StatCard from "@/components/shared/StatCard"
 
 const PAGE_SIZE = 100
+
+const GENDER_OPTIONS = [
+  { value: "women", label: "ქალი" },
+  { value: "men", label: "კაცი" },
+  { value: "kids", label: "ბავშვი" },
+  { value: "unisex", label: "უნისექსი" },
+] as const
 
 function formatDate(value?: string | null) {
   if (!value) return "—"
@@ -55,7 +62,7 @@ export default async function AdminListingsPage({
   let listingsQuery = supabase
     .from("listings")
     .select(
-      "id, seller_id, public_id, title, slug, price, currency, status, city, is_vip, views_count, favorites_count, created_at, published_at, featured_until, home_banner_until",
+      "id, seller_id, public_id, title, slug, price, currency, status, city, is_vip, category_id, gender, views_count, favorites_count, created_at, published_at, featured_until, home_banner_until",
     )
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE)
@@ -74,13 +81,16 @@ export default async function AdminListingsPage({
     activeCount,
     draftCount,
     vipCount,
+    categoriesResponse,
   ] = await Promise.all([
     listingsQuery,
     supabase.from("listings").select("id", { count: "exact", head: true }),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("listings").select("id", { count: "exact", head: true }).eq("is_vip", true),
+    supabase.from("categories").select("id, name, slug").eq("is_active", true).order("sort_order", { ascending: true }),
   ])
+  const categories = categoriesResponse.data ?? []
 
   const listings = listingsResponse.data ?? []
   const sellerIds = [...new Set(listings.map((item) => item.seller_id).filter(Boolean))]
@@ -95,7 +105,7 @@ export default async function AdminListingsPage({
     (sellerResponse.data ?? []).map((profile) => [profile.id, profile]),
   )
 
-  const queryError = listingsResponse.error || sellerResponse.error
+  const queryError = listingsResponse.error || sellerResponse.error || categoriesResponse.error
 
   return (
     <main className="ui-container ui-section">
@@ -272,6 +282,32 @@ export default async function AdminListingsPage({
                         ) : null}
                       </form>
                     ) : null}
+
+                    <form action={adminReclassifyListingAction} className="rounded-[1.2rem] border border-line bg-surface-alt p-4">
+                      <input type="hidden" name="listingId" value={listing.id} />
+                      <div className="mb-2 text-sm font-semibold text-text">განყოფილების შეცვლა</div>
+                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                        <label className="text-xs text-text-soft">
+                          განყოფილება
+                          <select name="categoryId" defaultValue={listing.category_id ?? ""} required className="ui-input mt-1 w-full">
+                            <option value="" disabled>აირჩიე</option>
+                            {categories.map((category) => (
+                              <option key={category.id} value={category.id}>{category.name}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="text-xs text-text-soft">
+                          ვისთვის
+                          <select name="gender" defaultValue={listing.gender ?? "unisex"} className="ui-input mt-1 w-full">
+                            {GENDER_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      <input name="adminNote" maxLength={2000} className="ui-input mt-2 w-full text-sm" placeholder="შენიშვნა (არასავალდებულო)" />
+                      <button className="ui-btn-secondary mt-3 w-full">შენახვა</button>
+                    </form>
 
                     <div className="rounded-[1rem] border border-line px-4 py-3 text-xs leading-5 text-text-soft">
                       ID: {listing.public_id || listing.id}

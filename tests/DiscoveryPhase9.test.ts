@@ -81,7 +81,9 @@ describe("phase 9 discovery ranking", () => {
     })
 
     expect(filters.query).toBe("Prada")
-    expect(filters.gender).toBe("men")
+    // Section pages match gender OR section category (see applyCatalogFilters).
+    expect(filters.section).toBe("men")
+    expect(filters.gender).toBe("")
     expect(filters.itemKeywords).toContain("ჯინსი")
     expect(filters.itemKeywords).toContain("jeans")
   })

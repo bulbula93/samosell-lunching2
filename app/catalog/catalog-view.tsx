@@ -147,7 +147,8 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     p_color: color || null,
     p_city: city || null,
     p_condition: condition || null,
-    p_gender: databaseFilters.gender || null,
+    // Ranked search RPC filters by gender only; keep the section as its gender (previous behaviour).
+    p_gender: databaseFilters.gender || databaseFilters.section || null,
     p_vip: vip === "1" ? true : null,
     p_min_price: optionalNumber(min_price),
     p_max_price: optionalNumber(max_price),

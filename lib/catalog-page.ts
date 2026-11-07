@@ -49,6 +49,8 @@ export type CatalogDatabaseFilters = {
   publicId: string
   categorySlug: string
   gender: string
+  /** women/men/kids section pages: match the gender OR the listing's section (category). */
+  section: "" | "women" | "men" | "kids"
   itemKeywords: string[]
 }
 
@@ -103,10 +105,14 @@ export function getCatalogDatabaseFilters(
   const category = filters.category
   let categorySlug = ""
   let gender = filters.gender
+  let section: CatalogDatabaseFilters["section"] = ""
 
   if (category) {
     if (category === "women" || category === "men" || category === "kids") {
-      gender = category
+      // A listing placed in the kids section but saved with gender "unisex" (or similar)
+      // must still appear on /catalog/kids — the section is matched separately below.
+      section = category
+      gender = ""
     } else if (category === "accessories" || category === "vintage" || category === "perfume") {
       categorySlug = category
     } else if (category === "footwear" || category === "bags") {
@@ -126,6 +132,7 @@ export function getCatalogDatabaseFilters(
     publicId,
     categorySlug,
     gender,
+    section,
     itemKeywords: Array.from(itemKeywords),
   }
 }
@@ -163,7 +170,9 @@ export function applyCatalogFilters<T>(query: T, filters: Record<string, string>
   if (filters.color) next = next.eq("color", filters.color) as T & CatalogFilterable
   if (filters.city) next = next.eq("city", filters.city) as T & CatalogFilterable
   if (filters.condition) next = next.eq("condition", filters.condition) as T & CatalogFilterable
-  if (databaseFilters.gender) {
+  if (databaseFilters.section) {
+    next = next.or(`gender.eq.${databaseFilters.section},category_slug.eq.${databaseFilters.section}`) as T & CatalogFilterable
+  } else if (databaseFilters.gender) {
     next = next.eq("gender", databaseFilters.gender) as T & CatalogFilterable
   }
   if (filters.vip === "1") next = next.eq("is_vip", true) as T & CatalogFilterable
