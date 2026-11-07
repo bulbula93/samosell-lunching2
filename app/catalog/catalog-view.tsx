@@ -11,6 +11,7 @@ import { buildCatalogUrl } from "@/lib/catalog-urls"
 import CatalogLandingFilters from "@/components/listings/CatalogLandingFilters"
 import PerfumeBrandCarousel from "@/components/listings/PerfumeBrandCarousel"
 import CatalogPagination from "@/components/listings/CatalogPagination"
+import CategorySeoContent from "@/components/listings/CategorySeoContent"
 import CatalogPageHeader from "@/components/listings/CatalogPageHeader"
 import CatalogResultsGrid from "@/components/listings/CatalogResultsGrid"
 import {
@@ -374,6 +375,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
           <div className="mt-10">
             <CatalogPagination page={page} totalPages={totalPages} totalItems={totalCount} pageSize={PAGE_SIZE} pageHref={(nextPage: number) => getCatalogPath(queryParams, nextPage)} />
           </div>
+          {catalogSeo.categorySeo && catalogSeo.indexable && page === 1 && !queryError ? <CategorySeoContent seo={catalogSeo.categorySeo} /> : null}
         </section>
       </main>
     </>

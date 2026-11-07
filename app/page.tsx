@@ -7,25 +7,29 @@ import { getMarketplaceNavigationItems } from "@/components/layout/SiteHeader"
 import { getActiveAdRotation } from "@/lib/ad-data"
 import { getPublicHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
-import { SITE_DESCRIPTION_KA, SITE_NAME } from "@/lib/site"
+import { SITE_NAME } from "@/lib/site"
 
 export const revalidate = 60
 
+// Home targets the head terms seen in Search Console: "ახალი/მეორადი ტანსაცმელი ონლაინ".
+const HOME_TITLE = "ახალი და მეორადი ტანსაცმელი ონლაინ — იყიდე და გაყიდე საქართველოში"
+const HOME_DESCRIPTION = "იყიდე და გაყიდე ახალი და მეორადი ტანსაცმელი, ფეხსაცმელი, ჩანთები და სუნამოები მთელ საქართველოში. განცხადება უფასოა, საკომისიო — 0%."
+
 export const metadata: Metadata = {
-  title: "მეორადი ტანსაცმლის ონლაინ მარკეტპლეისი საქართველოში",
-  description: SITE_DESCRIPTION_KA,
+  title: HOME_TITLE,
+  description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
   openGraph: {
-    title: `${SITE_NAME} — მეორადი ტანსაცმლის ონლაინ მარკეტპლეისი`,
-    description: SITE_DESCRIPTION_KA,
+    title: `${SITE_NAME} — ახალი და მეორადი ტანსაცმელი ონლაინ`,
+    description: HOME_DESCRIPTION,
     url: absoluteUrl("/"),
     type: "website",
     images: [{ url: absoluteUrl("/og-cover.png") }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — მეორადი ტანსაცმლის ონლაინ მარკეტპლეისი`,
-    description: SITE_DESCRIPTION_KA,
+    title: `${SITE_NAME} — ახალი და მეორადი ტანსაცმელი ონლაინ`,
+    description: HOME_DESCRIPTION,
     images: [absoluteUrl("/og-cover.png")],
   },
 }
