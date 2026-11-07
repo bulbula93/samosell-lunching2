@@ -45,7 +45,7 @@ begin
         'keyLocation', 'https://samosell.ge/8ada49f461b715caefc3d59a7306a477.txt',
         'urlList', v_urls
       ),
-      headers := jsonb_build_object('Content-Type', 'application/json; charset=utf-8'),
+      headers := jsonb_build_object('Content-Type', 'application/json'),
       timeout_milliseconds := 10000
     ) into v_req;
   end if;
