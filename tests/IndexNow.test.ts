@@ -22,4 +22,12 @@ describe("IndexNow setup", () => {
     expect(SQL).toContain("revoke all on function private.indexnow_ping() from public, anon, authenticated")
     expect(SQL).toContain("'*/30 * * * *'")
   })
+
+  it("uses the exact Content-Type pg_net accepts (no charset parameter)", () => {
+    const fix = readFileSync("supabase/migrations/20261107030000_indexnow_content_type_fix.sql", "utf8")
+    for (const sql of [SQL, fix]) {
+      expect(sql).toContain("'Content-Type', 'application/json')")
+      expect(sql).not.toContain("charset")
+    }
+  })
 })
