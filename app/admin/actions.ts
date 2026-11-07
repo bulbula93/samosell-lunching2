@@ -79,6 +79,7 @@ export async function adminListingAction(formData: FormData) {
   }
 
   invalidatePublicMarketplace()
+  revalidatePath("/")
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/listings")
@@ -119,6 +120,7 @@ export async function adminUserAction(formData: FormData) {
   }
 
   invalidatePublicMarketplace()
+  revalidatePath("/")
   revalidatePath("/catalog")
   revalidatePath("/admin")
   revalidatePath("/admin/users")

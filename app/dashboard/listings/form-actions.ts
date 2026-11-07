@@ -813,6 +813,7 @@ export async function saveListingAction(input: SaveListingInput): Promise<SaveLi
     }
 
     invalidatePublicMarketplace()
+    revalidatePath("/")
     revalidatePath("/catalog")
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/listings")

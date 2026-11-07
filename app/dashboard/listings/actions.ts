@@ -424,6 +424,7 @@ export async function updateListingStatusAction(
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/listings")
   invalidatePublicMarketplace()
+  revalidatePath("/")
   revalidatePath("/catalog")
   if (ownedListing.slug) revalidatePath(`/listing/${ownedListing.slug}`)
 
@@ -516,6 +517,7 @@ export async function deleteListingAction(formData: FormData) {
 
   revalidatePath("/dashboard/listings")
   invalidatePublicMarketplace()
+  revalidatePath("/")
   revalidatePath("/catalog")
   if (listing.slug) revalidatePath(`/listing/${listing.slug}`)
 
