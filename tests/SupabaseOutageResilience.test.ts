@@ -9,7 +9,7 @@ function source(...parts: string[]) {
 describe("Supabase outage resilience", () => {
   it("uses ISR and lets a failed regeneration preserve the last good homepage", () => {
     const page = source("app", "page.tsx")
-    expect(page).toContain('export const revalidate = 60')
+    expect(page).toContain('export const revalidate = 600')
     expect(page).not.toContain('export const dynamic = "force-dynamic"')
     expect(page).not.toContain("Promise.allSettled")
   })

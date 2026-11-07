@@ -9,7 +9,11 @@ import { getPublicHomePageData } from "@/lib/home-page"
 import { absoluteUrl, buildHomeStructuredData, serializeJsonLd } from "@/lib/seo"
 import { SITE_NAME } from "@/lib/site"
 
-export const revalidate = 60
+// Was 60s: every regeneration costs ~0.3s of CPU, so a busy homepage re-rendered up to
+// 1,440x/day and alone used most of the Hobby Fluid CPU allowance. Listing create/edit/
+// status/delete/moderation actions call revalidatePath("/"), so new items still appear
+// immediately; the 10-minute window only bounds background refreshes.
+export const revalidate = 600
 
 // Home targets the head terms seen in Search Console: "ახალი/მეორადი ტანსაცმელი ონლაინ".
 const HOME_TITLE = "ახალი და მეორადი ტანსაცმელი ონლაინ — იყიდე და გაყიდე საქართველოში"
