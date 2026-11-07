@@ -42,6 +42,10 @@ function adminErrorMessage(message: string) {
       return "გამყიდველი ვერიფიცირებული არ არის."
     case "admin_note_too_long":
       return "ადმინისტრატორის შენიშვნა მაქსიმუმ 2000 სიმბოლო უნდა იყოს."
+    case "invalid_category":
+      return "აირჩიე არსებული განყოფილება."
+    case "invalid_gender":
+      return "აირჩიე სწორი სქესი/სექცია."
     default:
       return "მოქმედება ვერ შესრულდა."
   }
@@ -91,6 +95,41 @@ export async function adminListingAction(formData: FormData) {
       action === "hide" ? "განცხადება დამალულია." : "განცხადება აღდგენილია.",
     ),
   )
+}
+
+const LISTING_GENDERS = ["women", "men", "unisex", "kids"] as const
+
+/** Move a listing to the correct section (category) and gender — audited, admin-only (RPC re-checks). */
+export async function adminReclassifyListingAction(formData: FormData) {
+  const listingId = String(formData.get("listingId") || "")
+  const categoryId = Number(formData.get("categoryId"))
+  const gender = String(formData.get("gender") || "")
+  const note = safeNote(formData)
+  const adminPath = "/admin/listings"
+
+  if (!isUuid(listingId) || !Number.isSafeInteger(categoryId) || categoryId <= 0 || !(LISTING_GENDERS as readonly string[]).includes(gender) || note.length > NOTE_MAX_LENGTH) {
+    redirect(withFlash(adminPath, "მოქმედების მონაცემები არასწორია.", "error"))
+  }
+
+  const { supabase } = await requireAdminUser("/dashboard")
+  const { data, error } = await supabase.rpc("admin_reclassify_listing", {
+    p_listing_id: listingId,
+    p_category_id: categoryId,
+    p_gender: gender,
+    p_note: note,
+  })
+
+  if (error) {
+    redirect(withFlash(adminPath, adminErrorMessage(error.message), "error"))
+  }
+
+  invalidatePublicMarketplace()
+  revalidatePath("/")
+  revalidatePath("/catalog")
+  revalidatePath("/admin/listings")
+  revalidatePath("/admin/audit")
+
+  redirect(withFlash(adminPath, data === "unchanged" ? "განყოფილება უკვე ასეა მითითებული." : "განყოფილება შეიცვალა."))
 }
 
 export async function adminUserAction(formData: FormData) {
