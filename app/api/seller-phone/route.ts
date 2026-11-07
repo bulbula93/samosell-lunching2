@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { isReadOnlyPreview } from "@/lib/preview-read-only"
 import { createPublicServerClient } from "@/lib/supabase/public-server"
 
 export const dynamic = "force-dynamic"
 
+const BOT_UA = /bot|crawl|spider|preview|headless|lighthouse|facebookexternalhit|slackbot|whatsapp|google-inspection/i
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -15,6 +18,26 @@ function json(data: Record<string, unknown>, status = 200) {
       "Referrer-Policy": "same-origin",
     },
   })
+}
+
+// Best-effort aggregate counter: analytics must never block showing the number.
+async function recordPhoneReveal(
+  request: Request,
+  reveal: { sellerId: string; listingId: string | null; source: "listing" | "seller_page" }
+) {
+  try {
+    if (isReadOnlyPreview() || process.env.VERCEL_ENV === "preview") return
+    const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? ""
+    if (!userAgent || BOT_UA.test(userAgent)) return
+    const { error } = await createAdminClient().from("seller_phone_reveals").insert({
+      seller_id: reveal.sellerId,
+      listing_id: reveal.listingId,
+      source: reveal.source,
+    })
+    if (error) throw error
+  } catch (error) {
+    console.warn("seller_phone_reveal_not_recorded", error instanceof Error ? error.message : "unknown")
+  }
 }
 
 export async function POST(request: Request) {
@@ -69,7 +92,7 @@ export async function POST(request: Request) {
 
   let profileQuery = supabase
     .from("profiles")
-    .select("store_phone, is_suspended")
+    .select("id, store_phone, is_suspended")
 
   profileQuery = sellerId
     ? profileQuery.eq("id", sellerId)
@@ -86,6 +109,12 @@ export async function POST(request: Request) {
   ) {
     return json({ error: "not_found" }, 404)
   }
+
+  await recordPhoneReveal(request, {
+    sellerId: profile.id,
+    listingId: listingId || null,
+    source: listingId ? "listing" : "seller_page",
+  })
 
   return json({ phone: profile.store_phone.trim() })
 }
