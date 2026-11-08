@@ -8,11 +8,13 @@ beforeEach(() => { localStorage.clear(); document.cookie = "samosell_browser_con
 it("mounts no optional scripts before consent and only mounts them with analytics enabled", () => {
   render(<OptionalAnalytics />)
   expect(screen.queryByTestId("top-ge-counter")).not.toBeInTheDocument()
+  expect(screen.queryByTestId("microsoft-clarity")).not.toBeInTheDocument()
   act(() => saveBrowserConsent(true, false))
   expect(screen.queryByTestId("vitals")).not.toBeInTheDocument()
   act(() => saveBrowserConsent(false, true))
   expect(screen.getByTestId("top-ge-counter")).toHaveAttribute("data-src", "https://counter.top.ge/counter.js")
   expect(screen.getByTestId("vitals")).toBeInTheDocument()
+  expect(screen.getByTestId("microsoft-clarity")).toBeInTheDocument()
   act(() => saveBrowserConsent(false, false))
   expect(screen.queryByTestId("vercel-speed-insights")).not.toBeInTheDocument()
 })
