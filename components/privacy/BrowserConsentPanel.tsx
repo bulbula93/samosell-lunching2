@@ -56,7 +56,7 @@ export default function BrowserConsentPanel() {
         <legend className="sr-only">შენახვის პარამეტრები</legend>
         <label className="flex items-center gap-3"><input type="checkbox" checked disabled /> აუცილებელი — ყოველთვის ჩართული</label>
         <label className="flex items-center gap-3"><input type="checkbox" checked={personalization} onChange={(e) => setPersonalization(e.target.checked)} /> კომფორტი — ისტორია, ფილტრები, მონახაზი</label>
-        <label className="flex items-center gap-3"><input type="checkbox" checked={analytics} onChange={(e) => { setAnalytics(e.target.checked); if (!e.target.checked) setMarketing(false) }} /> ანალიტიკა — ვიზიტები და ჩატვირთვის სიჩქარე</label>
+        <label className="flex items-center gap-3"><input type="checkbox" checked={analytics} onChange={(e) => { setAnalytics(e.target.checked); if (!e.target.checked) setMarketing(false) }} /> ანალიტიკა — ვიზიტები, ჩატვირთვის სიჩქარე და საიტზე ქცევა</label>
         <label className="flex items-center gap-3"><input type="checkbox" checked={marketing} onChange={(e) => { setMarketing(e.target.checked); if (e.target.checked) setAnalytics(true) }} /> მარკეტინგი — Meta რეკლამის შედეგების გაზომვა</label>
         {consent?.analytics ? <p className="text-xs leading-5 text-text-soft">ანალიტიკის გამორთვისას გვერდი განახლდება. თუ ფორმას ავსებ, ჯერ დაასრულე ან შეინახე მონახაზი.</p> : null}
         <button type="button" onClick={() => void choose(personalization, analytics, marketing)} className="ui-btn-primary w-full">არჩევანის შენახვა</button>
