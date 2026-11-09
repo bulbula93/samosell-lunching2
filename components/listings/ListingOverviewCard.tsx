@@ -1,7 +1,5 @@
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
-import BuyerSafetyReminder from "@/components/listings/BuyerSafetyReminder"
-import ListingSafetyActions from "@/components/moderation/ListingSafetyActions"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
@@ -346,39 +344,6 @@ export default function ListingOverviewCard({
           />
         ) : null}
       </section>
-
-      {!isOwner && isActive ? <BuyerSafetyReminder /> : null}
-
-      {!isOwner && listing.seller_id ? (
-        <section
-          aria-labelledby="listing-safety-heading"
-          className="mt-7 border-t border-line pt-6"
-        >
-          <h2 id="listing-safety-heading" className="text-lg font-black text-text">
-            უსაფრთხოება
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-text-soft">
-            საეჭვო განცხადება ან ქცევა შეგიძლია კონფიდენციალურად გამოგვიგზავნო
-          </p>
-
-          {isAuthenticated ? (
-            <ListingSafetyActions
-              listingId={listing.id}
-              listingSlug={listing.slug}
-              sellerId={listing.seller_id}
-              nextPath={listingReturnPath}
-              isBlocked={isBlocked}
-            />
-          ) : (
-            <Link
-              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
-              className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand underline underline-offset-4"
-            >
-              უსაფრთხოების მოქმედებებისთვის გაიარე ავტორიზაცია
-            </Link>
-          )}
-        </section>
-      ) : null}
 
       <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
