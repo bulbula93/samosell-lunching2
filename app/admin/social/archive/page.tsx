@@ -24,12 +24,17 @@ const weekLocal = (post: SocialPost) => mondayUtc(new Date(post.scheduledFor).ge
 const formatDate = (ms: number) => new Intl.DateTimeFormat("ka-GE", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }).format(new Date(ms))
 const formatTime = (iso: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))
 
+// Server-side clock is resolved outside the React render body.
+async function serverNow(): Promise<number> {
+  return Date.now()
+}
+
 export default async function SocialArchive({ searchParams }: { searchParams: Promise<{ page?: string; week?: string }> }) {
   await requireAdminUser("/dashboard")
   const params = await searchParams
   const rawPage = Number(params.page ?? "0")
   const page = Number.isSafeInteger(rawPage) && rawPage >= 0 && rawPage <= 260 ? rawPage : 0
-  const currentWeek = mondayUtc(Date.now())
+  const currentWeek = mondayUtc(await serverNow())
   const firstWeek = currentWeek - (page * 12 + 12) * 7 * DAY
   const lastWeek = currentWeek - page * 12 * 7 * DAY
   const runtime = currentSocialRuntime()
