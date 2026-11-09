@@ -90,6 +90,11 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
     byDay.set(key, [...(byDay.get(key) ?? []), p])
   }
   const flash = params.ok ?? params.error
+  const queuedJobs = data.jobs.filter(j => j.status === "queued")
+  const problemJobs = data.jobs.filter(j => ["needs_review", "dead_letter", "failed"].includes(j.status))
+  const upcoming = data.posts.filter(p => ["scheduled", "approved"].includes(p.status)).sort((a,b) => a.scheduledFor.localeCompare(b.scheduledFor))
+  const publishedCount = data.posts.filter(p => p.status === "published").length
+
 
   return (
     <main className="ui-container ui-section space-y-6">
@@ -108,7 +113,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
           <Badge tone={c?.facebookEnabled ? "ok" : "off"}>Facebook: {c?.facebookEnabled ? "ჩართული" : "გამორთული"}</Badge>
           <Badge tone="off">TikTok: გამორთული</Badge>
           <Badge tone="ok">Ads ბიუჯეტი: ${SOCIAL_POLICY.dailyAdsBudgetUsd}/დღე · ფასიანი: აკრძალული</Badge>
-          <Badge tone={c?.organicAutoPublish ? "warn" : "ok"}>ავტო-გამოქვეყნება: {c?.organicAutoPublish ? "ჩართული" : "გამორთული"}</Badge>
+          <Badge tone={c?.organicAutoPublish ? "warn" : "ok"}>AI დამოუკიდებელი გამოქვეყნება: {c?.organicAutoPublish ? "ჩართული" : "გამორთული"}</Badge>
         </div>
         {data.simulated ? (
           <p role="status" className="mt-4 rounded-lg border border-amber-500 bg-amber-50 p-3 text-sm text-amber-900">
@@ -119,7 +124,21 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         {flash ? <p role={params.error ? "alert" : "status"} className={`mt-4 rounded-lg border p-3 text-sm ${params.error ? "border-red-500 bg-red-50 text-red-900" : "border-emerald-600 bg-emerald-50 text-emerald-900"}`}>{flashText(flash)}</p> : null}
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-3" aria-label="Controls">
+      <nav aria-label="Social workspace" className="flex flex-wrap gap-2 rounded-xl border p-2 text-sm font-bold">
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#overview">მიმოხილვა</a>
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#content">კონტენტი</a>
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#publishing">გამოქვეყნება</a>
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#analytics">ანალიტიკა</a>
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#advanced">პარამეტრები</a>
+      </nav>
+      <section id="overview" aria-label="Overview" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="ui-card p-5"><p className="text-xs text-text-soft">შემდეგი გამოქვეყნება</p><p className="mt-2 text-lg font-black">{upcoming[0] ? tbilisi(upcoming[0].scheduledFor) : "არ არის"}</p></div>
+        <div className="ui-card p-5"><p className="text-xs text-text-soft">რიგში</p><p className="mt-2 text-3xl font-black">{queuedJobs.length}</p></div>
+        <div className="ui-card p-5"><p className="text-xs text-text-soft">საჭიროებს ყურადღებას</p><p className="mt-2 text-3xl font-black">{problemJobs.length}</p></div>
+        <div className="ui-card p-5"><p className="text-xs text-text-soft">გამოქვეყნებული</p><p className="mt-2 text-3xl font-black">{publishedCount}</p><p className="text-xs text-text-soft">კალენდრის პერიოდში</p></div>
+      </section>
+      <p className="text-xs text-text-soft">AI-ის დამოუკიდებელი გამოქვეყნების გამორთვა არ აჩერებს უკვე დამტკიცებული პოსტების დაგეგმილ გამოქვეყნებას. სრული გაჩერებისთვის გამოიყენე Kill switch.</p>
+      <section className="grid gap-4 lg:grid-cols-2" aria-label="Controls">
         <div className="ui-card p-5">
           <h2 className="text-lg font-bold text-text">Kill switch</h2>
           <p className="mt-1 text-sm text-text-soft">აჩერებს დაგეგმვას, დრაფტებს, რიგს და გამოქვეყნებას. მიმდინარე რიგი რჩება შენახული.</p>
@@ -130,8 +149,8 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
             </button>
           </form>
         </div>
-        <div className="ui-card p-5">
-          <h2 className="text-lg font-bold text-text">პარამეტრები</h2>
+        <details id="advanced" className="ui-card p-5">
+          <summary className="cursor-pointer text-lg font-bold text-text">პარამეტრები · გაფართოებული</summary>
           <form action={settingsAction} className="mt-3 space-y-2 text-sm text-text">
             <label className="flex items-center gap-2"><input type="checkbox" name="instagram" defaultChecked={c?.instagramEnabled} disabled={!writable} /> Instagram</label>
             <label className="flex items-center gap-2"><input type="checkbox" name="facebook" defaultChecked={c?.facebookEnabled} disabled={!writable} /> Facebook</label>
@@ -146,25 +165,25 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
             </label>
             <button disabled={!writable} className="mt-2 rounded-full border px-4 py-2 font-bold disabled:opacity-40">შენახვა</button>
           </form>
-        </div>
+        </details>
         <div className="ui-card p-5">
           <h2 className="text-lg font-bold text-text">აგენტები</h2>
           <p className="mt-1 text-sm text-text-soft">შემდეგი კვირის გეგმა (5 პოსტი) აქტიური ნივთებიდან. განმეორებით გაშვება დუბლიკატს არ ქმნის.</p>
           <form action={runPlanningAction} className="mt-3"><button disabled={!writable} className="w-full rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-40">📅 კვირის გეგმის შექმნა</button></form>
-          <form action={runTickAction} className="mt-2"><button disabled={!writable} className="w-full rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-40">▶️ Publishing worker (1 ციკლი)</button></form>
+
           <p className="mt-2 text-xs text-text-soft">Live: {runtime.liveReason}</p>
         </div>
       </section>
 
-      <section className="ui-card p-5 sm:p-6" aria-label="Content calendar">
+      <section id="content" className="ui-card p-5 sm:p-6" aria-label="Content calendar">
         <h2 className="text-xl font-bold text-text">კონტენტის კალენდარი და დრაფტები</h2>
         {data.posts.length === 0 ? <p className="mt-3 text-sm text-text-soft">დაგეგმილი პოსტი ჯერ არ არის.</p> : null}
         <div className="mt-4 space-y-6">
-          {[...byDay.entries()].map(([day, posts]) => (
+          {[...byDay.entries()].filter(([, posts]) => posts.some(p => !["rejected", "cancelled"].includes(p.status))).map(([day, posts]) => (
             <div key={day}>
               <h3 className="text-sm font-black uppercase tracking-wide text-text-soft">{day}</h3>
               <div className="mt-2 space-y-4">
-                {posts.map(post => {
+                {posts.filter(p => !["rejected", "cancelled"].includes(p.status)).map(post => {
                   const errors = post.qualityReport?.issues.filter(i => i.severity === "error") ?? []
                   const warnings = post.qualityReport?.issues.filter(i => i.severity === "warning") ?? []
                   return (
@@ -176,9 +195,9 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
                         {post.contentType === "story" ? <Badge tone="info">🎬 Story</Badge> : null}
                         <span className="text-text-soft">v{post.version} · QA {post.qualityReport ? `${post.qualityReport.score}/100` : "—"} · {post.platforms.map(p => PLATFORM_LABEL[p]).join(" + ")}</span>
                       </div>
-                      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <details className="mt-3"><summary className="cursor-pointer text-sm font-bold">პრევიუ და სრული ტექსტი</summary><div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                         {post.contentType === "story" ? <StoryPreview post={post} /> : post.platforms.map(p => <PlatformPreview key={p} post={post} platform={p} />)}
-                      </div>
+                      </div></details>
                       {errors.length + warnings.length > 0 ? (
                         <ul className="mt-3 space-y-1 text-sm">
                           {errors.map(i => <li key={i.code + (i.platform ?? "")} className="text-red-700">⛔ {i.message}</li>)}
@@ -231,7 +250,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         </div>
       </section>
 
-      <section className="ui-card p-5 sm:p-6" aria-label="Publishing queue">
+      <section id="publishing" className="ui-card p-5 sm:p-6" aria-label="Publishing queue">
         <h2 className="text-xl font-bold text-text">Publishing რიგი</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -249,7 +268,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         <p className="mt-2 text-xs text-text-soft"><b>needs_review</b> = შედეგი უცნობია (შეიძლება უკვე გამოქვეყნდა). ავტომატურად აღარ იგზავნება — შეამოწმე Page ხელით.</p>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section id="analytics" className="grid gap-4 lg:grid-cols-2">
         <div className="ui-card p-5 sm:p-6" aria-label="Metrics">
           <h2 className="text-xl font-bold text-text">შედეგები (30 დღე)</h2>
           {data.metrics.length === 0 ? <p className="mt-2 text-sm text-text-soft">მეტრიკა ჯერ არ არის. Insights-ის სინქრონიზაცია ჩაირთვება live გაშვების შემდეგ.</p> : (
@@ -262,14 +281,16 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
           <h3 className="mt-5 text-sm font-bold text-text">Ads Planner (მხოლოდ დრაფტი, $0)</h3>
           {data.ads.length === 0 ? <p className="mt-1 text-sm text-text-soft">იდეები არ არის.</p> : <ul className="mt-1 space-y-1 text-sm">{data.ads.map(a => <li key={a.id}>• {a.title} <span className="text-text-soft">({a.objective}, ${a.dailyBudgetUsd})</span></li>)}</ul>}
         </div>
-        <div className="ui-card p-5 sm:p-6" aria-label="Audit log">
-          <h2 className="text-xl font-bold text-text">აუდიტის ჟურნალი</h2>
+        <details className="ui-card p-5 sm:p-6" aria-label="Audit log">
+          <summary className="cursor-pointer text-xl font-bold text-text">აუდიტი და ტექნიკური დიაგნოსტიკა</summary>
+          <form action={runTickAction} className="mt-4"><button disabled={!writable} className="rounded-full border border-amber-600 px-4 py-2 text-sm font-bold disabled:opacity-40">Publishing worker (1 ციკლი)</button></form>
+          <p className="mt-2 text-xs text-text-soft">LIVE რეჟიმში worker-ის გაშვებამ შეიძლება პოსტი რეალურად გამოაქვეყნოს.</p>
           <ol className="mt-3 max-h-96 space-y-1 overflow-y-auto font-mono text-xs">
             {data.audit.length === 0 ? <li className="text-text-soft">ჩანაწერი არ არის.</li> : data.audit.map(a => (
               <li key={a.id} className="break-words"><span className="text-text-soft">{tbilisi(a.occurredAt)}</span> {a.actorType}:{a.actorType === "human" ? "admin" : a.actor} <b>{a.action}</b> → <span className={a.decision === "deny" || a.decision === "failure" ? "text-red-700" : ""}>{a.decision}</span> ({a.reason})</li>
             ))}
           </ol>
-        </div>
+        </details>
       </section>
 
       <div className="flex flex-wrap gap-4 text-sm font-bold">
