@@ -129,6 +129,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         <a className="rounded-lg px-4 py-2 hover:underline" href="#content">კონტენტი</a>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#publishing">გამოქვეყნება</a>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#analytics">ანალიტიკა</a>
+        <Link className="rounded-lg px-4 py-2 hover:underline" href="/admin/social/archive">კვირის კამპანიების არქივი</Link>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#advanced">პარამეტრები</a>
       </nav>
       <section id="overview" aria-label="Overview" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
