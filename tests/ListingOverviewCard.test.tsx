@@ -148,11 +148,10 @@ describe("ListingOverviewCard", () => {
     expect(
       screen.queryByRole("link", { name: ka.listingDetail.loginToMessage }),
     ).not.toBeInTheDocument()
-    expect(screen.getByText("განცხადების დარეპორტება")).toBeInTheDocument()
-    expect(screen.getByText("მომხმარებლის დარეპორტება")).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "მომხმარებლის დაბლოკვა" }),
-    ).toBeInTheDocument()
+    expect(screen.queryByText("განცხადების დარეპორტება")).not.toBeInTheDocument()
+    expect(screen.queryByText("მომხმარებლის დარეპორტება")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "მომხმარებლის დაბლოკვა" })).not.toBeInTheDocument()
+    expect(screen.queryByText("უსაფრთხოდ იყიდე")).not.toBeInTheDocument()
   })
 
   it("does not show report or block mutations to the listing owner", () => {
