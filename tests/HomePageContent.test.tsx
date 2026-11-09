@@ -50,6 +50,7 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("link", { name: "გაყიდე უფასოდ" })).toHaveAttribute("href", "/sell")
     expect(screen.getByRole("heading", { name: "VIP განცხადებები" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.latest })).toBeInTheDocument()
+    expect(screen.queryByText(/აქტიური განცხადება SAMOSELL-ზე/)).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.brands })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: ka.home.howItWorks })).toBeInTheDocument()
     expect(screen.getByText("ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა")).toBeInTheDocument()
