@@ -32,6 +32,13 @@ beforeAll(async () => {
   await db.exec(readFileSync("supabase/migrations/20261007090317_growth_tracking_v1.sql", "utf8"))
   await db.exec(readFileSync("supabase/migrations/20261106120000_listing_publish_failure_reasons.sql", "utf8"))
   await db.exec(readFileSync("supabase/migrations/20261106150000_growth_buyer_contact.sql", "utf8"))
+  await db.exec(`
+    grant usage on schema auth to authenticated;
+    grant select on profiles to authenticated;
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+  `)
+  await db.exec(readFileSync("supabase/migrations/20260803231440_make_admin_helper_invoker.sql", "utf8"))
+  await db.exec(readFileSync("supabase/migrations/20261109110707_facebook_community_sharing.sql", "utf8"))
 }, 30000)
 afterAll(async () => db?.close())
 describe.sequential("Growth authoritative SQL and isolation", () => {
@@ -168,4 +175,52 @@ describe.sequential("Growth authoritative SQL and isolation", () => {
     expect((await db.query("select * from growth_events where event_id=$1", [`boost_purchase_completed:boost:${order}`])).rows).toHaveLength(0)
     expect((await db.query("select * from growth_conversion_keys where event_id=$1", [`boost_purchase_completed:boost:${order}`])).rows).toHaveLength(1)
   })
+  it("records share intent idempotently, without Meta conversions or marketing-preference changes", async () => {
+    const visitor = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+    for (const action of ["facebook_share_clicked", "post_copied", "link_copied", "group_open_clicked"]) {
+      const event = { ...context(), user_id: null, anonymous_id: visitor, event_name: "listing_share_action", event_id: `share:${action}`, share_action: action, listing_id: listing, path: "/listing/:id" }
+      expect((await rpc("ingest_growth_browser_event", event)).rows[0]).toEqual({ result: [] })
+      await rpc("ingest_growth_browser_event", event)
+    }
+    expect(await count("listing_share_action")).toBe(4)
+    expect((await db.query("select * from growth_events where event_name='listing_share_action' and marketing_consent")).rows).toHaveLength(0)
+    expect((await db.query<{ marketing_consent: boolean }>("select marketing_consent from growth_consent_state where anonymous_id=$1", [visitor])).rows[0].marketing_consent).toBe(true)
+    expect((await db.query("select * from claim_growth_meta_events(null,20) where event_name='listing_share_action'")).rows).toHaveLength(0)
+    const result = (await db.query<{ result: Record<string, number> }>("select get_listing_share_summary($1,now()-interval '7 days',now()+interval '1 second') result", [seller])).rows[0].result
+    expect(result).toEqual({ facebook_share_clicked: 1, post_copied: 1, link_copied: 1, group_open_clicked: 1 })
+    await expect(db.query("select get_listing_share_summary($1,now()-interval '7 days',now())", [anon])).rejects.toThrow("Admin required")
+    await expect(db.query("select get_listing_share_summary($1,now()-interval '40 days',now())", [seller])).rejects.toThrow("Invalid period")
+  })
+  it("rejects forged post completion, unknown actions and non-public listings", async () => {
+    const event = { ...context(), user_id: null, event_name: "listing_share_action", event_id: "share:invalid", share_action: "post_copied", listing_id: listing }
+    await expect(rpc("ingest_growth_browser_event", { ...event, share_action: "post_published" })).rejects.toThrow("Invalid share action")
+    await expect(rpc("ingest_growth_browser_event", { ...event, share_action: null })).rejects.toThrow("Invalid share action")
+    await expect(rpc("ingest_growth_browser_event", { ...event, listing_id: order })).rejects.toThrow("Invalid share action")
+    await db.exec(`update listings set status='draft' where id='${listing}';`)
+    await expect(rpc("ingest_growth_browser_event", event)).rejects.toThrow("Invalid share action")
+    await db.exec(`update listings set status='active' where id='${listing}';`)
+    await expect(rpc("ingest_growth_browser_event", { ...event, event_name: "facebook_post_published" })).rejects.toThrow("Untrusted event")
+  })
+  it("shares the existing browser-ingestion rate limit", async () => {
+    const visitor = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+    await db.exec(`insert into growth_events(event_id,event_name,source,anonymous_id) select 'share-limit-'||n,'page_view','browser','${visitor}'::uuid from generate_series(1,120) n;`)
+    await expect(rpc("ingest_growth_browser_event", { ...context(), user_id: null, anonymous_id: visitor, event_name: "listing_share_action", event_id: "share:rate", listing_id: listing, share_action: "link_copied" })).rejects.toThrow("Rate limit")
+  })
+  it("allows public settings reads, rejects non-admin changes and prevents singleton replacement", async () => {
+    await db.exec("set role anon")
+    expect((await db.query("select facebook_group_url from community_settings")).rows).toEqual([{ facebook_group_url: null }])
+    await expect(db.exec("update community_settings set facebook_group_url=null")).rejects.toThrow(/permission denied/)
+    await expect(db.query("select get_listing_share_summary(null,now()-interval '1 day',now())")).rejects.toThrow(/permission denied/)
+    await db.exec("reset role; set role authenticated")
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [anon])
+    expect((await db.query("update community_settings set facebook_group_url=null returning *")).rows).toHaveLength(0)
+    await expect(db.exec("insert into community_settings(singleton) values(false)")).rejects.toThrow(/permission denied/)
+    await expect(db.exec("delete from community_settings")).rejects.toThrow(/permission denied/)
+    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [seller])
+    // Synthetic URL is used only in this disposable local database.
+    expect((await db.query("update community_settings set facebook_group_url='https://www.facebook.com/groups/test-fixture/' returning facebook_group_url")).rows).toHaveLength(1)
+    await expect(db.exec("update community_settings set facebook_group_url='https://evil.test/groups/test/'")).rejects.toThrow(/check constraint/)
+    await db.exec("update community_settings set facebook_group_url=null; reset role")
+  })
+
 })

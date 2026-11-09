@@ -1,6 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import FacebookCommunityShare from "@/components/listings/FacebookCommunityShare"
+import { trackListingShare } from "@/lib/growth/client"
 import { getSafeImageSource } from "@/lib/media"
 import { buildListingSharePost } from "@/lib/share-post"
 
@@ -14,6 +16,8 @@ type ShareStatus =
   | "error"
 
 type ListingSocialShareProps = {
+  listingId?: string
+  facebookGroupUrl?: string | null
   url: string
   title: string
   text: string
@@ -271,6 +275,8 @@ const itemClass =
   "group flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center transition hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
 
 export default function ListingSocialShare({
+  listingId,
+  facebookGroupUrl,
   url,
   title,
   text,
@@ -345,6 +351,7 @@ export default function ListingSocialShare({
   async function copyPost() {
     try {
       await navigator.clipboard.writeText(buildListingSharePost(text, url))
+      if (listingId) void trackListingShare(listingId, "post_copied")
       setStatus("copied")
       resetStatus()
     } catch {
@@ -490,6 +497,7 @@ export default function ListingSocialShare({
 
         <a
           href={facebookUrl}
+          onClick={() => { if (listingId) void trackListingShare(listingId, "facebook_share_clicked") }}
           target="_blank"
           rel="noopener noreferrer"
           className={itemClass}
@@ -551,6 +559,7 @@ export default function ListingSocialShare({
           <span className="text-[10px] font-bold leading-4 text-text-soft sm:text-xs">სხვა</span>
         </button>
       </div>
+      <FacebookCommunityShare listingId={listingId} url={url} text={text} groupUrl={facebookGroupUrl} />
     </section>
   )
 }

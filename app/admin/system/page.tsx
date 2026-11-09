@@ -5,6 +5,9 @@ import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
 import { getFlittReadiness } from "@/lib/flitt"
 import { getSupportConfig } from "@/lib/site"
+import { communitySettingsWritesEnabled } from "@/lib/facebook-community-server"
+import { normalizeFacebookGroupUrl } from "@/lib/facebook-community"
+import { saveFacebookGroupAction } from "./actions"
 
 type ReadinessItem = {
   label: string
@@ -17,9 +20,20 @@ function envPresent(name: string) {
   return Boolean(String(process.env[name] ?? "").trim())
 }
 
-export default async function AdminSystemPage() {
+export default async function AdminSystemPage({ searchParams }: { searchParams?: Promise<{ community?: string }> }) {
   const { supabase } = await requireAdminUser("/dashboard")
   const support = getSupportConfig()
+  const query = await searchParams
+  const { data: community, error: communityError } = await supabase.from("community_settings")
+    .select("facebook_group_url").eq("singleton", true).maybeSingle()
+  const communityAvailable = !communityError && Boolean(community)
+  const communityWritable = communityAvailable && communitySettingsWritesEnabled()
+  const communityMessages: Record<string, string> = {
+    saved: "ჯგუფის პარამეტრი შენახულია.",
+    invalid_url: "მიუთითე Facebook ჯგუფის პირდაპირი HTTPS ბმული.",
+    read_only: "ამ Preview-დან Production პარამეტრების შეცვლა გამორთულია.",
+    unavailable: "პარამეტრის შენახვა ვერ მოხერხდა. გადაამოწმე migration და უფლებები.",
+  }
 
   let flitt: ReturnType<typeof getFlittReadiness> | null = null
   let flittConfigValid = true
@@ -143,6 +157,22 @@ export default async function AdminSystemPage() {
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="ui-card mt-6 p-5 sm:p-6" aria-labelledby="facebook-community-heading">
+        <h2 id="facebook-community-heading" className="text-lg font-black text-text">Facebook Community</h2>
+        <p className="mt-2 text-sm leading-6 text-text-soft">მომხმარებელი ტექსტს თავად ჩასვამს ჯგუფში და გამოქვეყნებას Facebook-ში ადასტურებს. ცარიელი ველი ჯგუფის გახსნის ღილაკს მალავს.</p>
+        <form action={saveFacebookGroupAction} className="mt-4 space-y-3">
+          <label className="block text-sm font-semibold text-text">Facebook ჯგუფის ბმული (facebook_group_url)
+            <input name="facebook_group_url" type="url" maxLength={500} defaultValue={normalizeFacebookGroupUrl(community?.facebook_group_url) ?? ""}
+              disabled={!communityWritable} autoComplete="off" className="ui-input mt-2 min-h-11 w-full" aria-describedby="community-help" />
+          </label>
+          <p id="community-help" className="text-xs leading-5 text-text-soft">მიუთითე არსებული ჯგუფის სრული HTTPS ბმული. ეს პარამეტრი საჯაროა და საიდუმლო მონაცემებს არ უნდა შეიცავდეს.</p>
+          <button type="submit" disabled={!communityWritable} className="ui-btn-primary min-h-11 disabled:opacity-50">შენახვა</button>
+          {!communityAvailable ? <p className="text-sm text-text-soft">კონფიგურაცია მიუწვდომელია — ჯერ საჭიროა community migration.</p>
+            : !communityWritable ? <p className="text-sm text-text-soft">ამ Preview-ში კონფიგურაცია მხოლოდ წაკითხვადია.</p> : null}
+          {query?.community && communityMessages[query.community] ? <p role="status" className="text-sm text-text-soft">{communityMessages[query.community]}</p> : null}
+        </form>
       </section>
 
       <section className="mt-6 grid gap-4 sm:grid-cols-2">

@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react"
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest"
 import { saveBrowserConsent, parseConsent, CONSENT_COOKIE } from "@/lib/browser-preferences"
-import { growthContext, clearGrowthStorage, listingAttempt, clearListingAttempt, trackGrowth } from "@/lib/growth/client"
+import { growthContext, clearGrowthStorage, listingAttempt, clearListingAttempt, trackGrowth, trackListingShare } from "@/lib/growth/client"
 import { growthPeriod, safePath, cleanTouch, META_MAPPING, GROWTH_KEY, type GrowthEvent } from "@/lib/growth/shared"
 import { growthWritesEnabled } from "@/lib/growth/server"
 import { metaServerPayload } from "@/lib/growth/meta-server"
@@ -23,6 +23,23 @@ beforeEach(() => {
 })
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals() })
 describe("Growth consent, UTM and sessions", () => {
+  it("keeps sharing usable without consent and never sends sharing intent to Meta", async () => {
+    const listingId = "11111111-1111-4111-8111-111111111111"
+    await trackListingShare(listingId, "facebook_share_clicked")
+    expect(fetch).not.toHaveBeenCalled()
+    saveBrowserConsent(false, true, true)
+    history.replaceState({}, "", "/listing/test-123?search_id=private")
+    await trackListingShare(listingId, "link_copied")
+    expect(fetch).toHaveBeenCalledOnce()
+    const options = vi.mocked(fetch).mock.calls[0][1]!
+    expect(options.keepalive).toBe(true)
+    expect(JSON.parse(String(options.body))).toMatchObject({ event_name: "listing_share_action", listing_id: listingId, share_action: "link_copied", path: "/listing/:id" })
+    expect(META_MAPPING.listing_share_action).toBeUndefined()
+    expect(document.querySelector('script[src*="facebook"]')).toBeNull()
+    vi.stubEnv("NEXT_PUBLIC_PREVIEW_READ_ONLY", "true")
+    await trackListingShare(listingId, "post_copied")
+    expect(fetch).toHaveBeenCalledOnce()
+  })
   it("keeps legacy analytics permission separate from marketing", () => {
     expect(parseConsent(JSON.stringify({ version: 1, analytics: true, personalization: false, updatedAt: Date.now() }))?.marketing).toBe(false)
     expect(saveBrowserConsent(false, false, true).marketing).toBe(false)
