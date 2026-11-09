@@ -65,7 +65,13 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
     expect(screen.getByText("ნინო")).toBeInTheDocument()
-    expect(screen.getByText(/3.*აქტიური ნივთები/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /3.*აქტიური ნივთები/ })).toHaveAttribute(
+      "href",
+      "/seller/nino#seller-listings",
+    )
+    expect(screen.queryByText(/ტელეფონი მითითებულია/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/SamoSell-ზე 1|SamoSell-ზე 2/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/წევრია:/)).not.toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /მიწერე.*შედი და მიწერე გამყიდველს/ }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
