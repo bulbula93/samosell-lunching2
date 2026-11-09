@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
+import { getAuthPagePath, getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 import { createClient } from "@/lib/supabase/server"
 import { getSiteUrlEnv } from "@/lib/env"
 
@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     }
   }
 
-  if (next === "/reset-password") {
-    const recoveryUrl = new URL("/forgot-password", redirectOrigin)
+  const nextUrl = new URL(next, redirectOrigin)
+  if (nextUrl.pathname === "/reset-password") {
+    const recoveryUrl = new URL(getAuthPagePath("/forgot-password", nextUrl.searchParams.get("next")), redirectOrigin)
     recoveryUrl.searchParams.set("error", "invalid_or_expired")
     return NextResponse.redirect(recoveryUrl)
   }
