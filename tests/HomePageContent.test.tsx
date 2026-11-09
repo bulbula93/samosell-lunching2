@@ -125,13 +125,13 @@ describe("HomePageContent", () => {
     expect(screen.getByRole("link", { name: "იყიდე" })).toHaveAttribute("href", "/catalog")
   })
 
-  it("renders the requested footer description without a sentence-ending period", () => {
+  it("renders the compact footer description", () => {
     render(<SiteFooter />)
 
     const description = screen.getByText(
-      "ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე",
+      "ახალი და მეორადი ტანსაცმლის პლატფორმა საქართველოში. განათავსე განცხადება უფასოდ, გაყიდე საკომისიოს გარეშე.",
     )
-    expect(description.textContent?.endsWith(".")).toBe(false)
+    expect(description).toBeInTheDocument()
   })
 
   it("renders the verified SamoSell social links with accessible names and safe new tabs", () => {
