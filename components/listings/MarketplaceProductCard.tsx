@@ -179,7 +179,7 @@ export default function MarketplaceProductCard({
         </div>
 
         {/* Wrap instead of truncating: on 2-column phones "ახალი"/"თბილისი" used to become "ასა…"/"თბილ…". */}
-        <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-soft sm:text-xs" data-card-meta>
+        <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-soft pb-3 sm:pb-3.5 sm:text-xs" data-card-meta>
           <span className="max-w-full rounded-full bg-[#eff3f1] px-2.5 py-1 sm:px-3">
             {conditionLabel(item.condition)}
           </span>
@@ -189,7 +189,7 @@ export default function MarketplaceProductCard({
           </span>
         </div>
 
-        <div className="mt-3 border-t border-line/75 pt-2.5 sm:mt-3.5 sm:pt-3">
+        <div className="mt-auto border-t border-line/75 pt-2.5 sm:pt-3">
           {sellerHref ? (
             <Link
               href={sellerHref}
