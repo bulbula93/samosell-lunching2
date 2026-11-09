@@ -18,7 +18,6 @@ import {
   genderLabel,
 } from "@/lib/listings"
 import {
-  formatJoinDate,
   listingDetailStatusLabel,
   type ListingSellerProfile,
 } from "@/lib/listing-page"
@@ -129,9 +128,6 @@ export default function ListingOverviewCard({
   const statusMessage = getStatusMessage(listing.status)
   const details = buildDetailItems(listing)
   const description = listing.description?.trim() || ""
-  const sellerJoinedAt = formatJoinDate(
-    sellerProfile?.created_at || listing.seller_created_at,
-  )
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
@@ -142,7 +138,7 @@ export default function ListingOverviewCard({
     ? getSellerTrustSignals({
         profile: sellerProfile,
         reviewSummary: sellerReviewSummary,
-      }).filter((signal) => signal.key !== "reviews" && signal.key !== "verified")
+      }).filter((signal) => !["reviews", "verified", "phone", "tenure"].includes(signal.key))
     : []
   const messagingUnavailable =
     isActive &&
@@ -309,15 +305,17 @@ export default function ListingOverviewCard({
             </div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-soft">
               {sellerProfile?.city ? <span>{sellerProfile.city}</span> : null}
-              {sellerJoinedAt ? (
-                <span>
-                  {ka.listingDetail.memberSince}: {sellerJoinedAt}
-                </span>
-              ) : null}
               {sellerActiveListingsCount > 0 ? (
-                <span>
-                  {sellerActiveListingsCount} {ka.listingDetail.activeListings}
-                </span>
+                sellerProfileHref ? (
+                  <Link
+                    href={`${sellerProfileHref}#seller-listings`}
+                    className="rounded-sm font-semibold text-brand underline decoration-brand/30 underline-offset-2 hover:decoration-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    {sellerActiveListingsCount} {ka.listingDetail.activeListings} →
+                  </Link>
+                ) : (
+                  <span>{sellerActiveListingsCount} {ka.listingDetail.activeListings}</span>
+                )
               ) : null}
             </div>
             {sellerReviewSummary && sellerReviewSummary.reviewCount > 0 ? (
