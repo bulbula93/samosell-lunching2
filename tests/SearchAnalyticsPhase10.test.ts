@@ -50,7 +50,7 @@ describe("phase 10 search analytics feedback loop", () => {
     expect(listingPage).toContain("searchId={searchId}")
     expect(listingOverview).toContain("const listingReturnPath = searchId")
     expect(listingOverview).toContain("nextPath={listingReturnPath}")
-    expect(listingOverview).toContain("encodeURIComponent(listingReturnPath)")
+    expect(listingOverview).toContain("listingReturnPath={listingReturnPath}")
     expect(listingOverview).toContain("searchId={searchId}")
   })
 

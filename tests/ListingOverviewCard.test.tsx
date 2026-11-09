@@ -65,7 +65,13 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
     expect(screen.getByText("ნინო")).toBeInTheDocument()
-    expect(screen.getByText(/3.*აქტიური ნივთები/)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /3.*აქტიური ნივთები/ })).toHaveAttribute(
+      "href",
+      "/seller/nino#seller-listings",
+    )
+    expect(screen.queryByText(/ტელეფონი მითითებულია/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/SamoSell-ზე 1|SamoSell-ზე 2/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/წევრია:/)).not.toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: /მიწერე.*შედი და მიწერე გამყიდველს/ }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
@@ -148,11 +154,10 @@ describe("ListingOverviewCard", () => {
     expect(
       screen.queryByRole("link", { name: ka.listingDetail.loginToMessage }),
     ).not.toBeInTheDocument()
-    expect(screen.getByText("განცხადების დარეპორტება")).toBeInTheDocument()
-    expect(screen.getByText("მომხმარებლის დარეპორტება")).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "მომხმარებლის დაბლოკვა" }),
-    ).toBeInTheDocument()
+    expect(screen.queryByText("განცხადების დარეპორტება")).not.toBeInTheDocument()
+    expect(screen.queryByText("მომხმარებლის დარეპორტება")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "მომხმარებლის დაბლოკვა" })).not.toBeInTheDocument()
+    expect(screen.queryByText("უსაფრთხოდ იყიდე")).not.toBeInTheDocument()
   })
 
   it("does not show report or block mutations to the listing owner", () => {
