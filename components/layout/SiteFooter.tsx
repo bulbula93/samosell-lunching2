@@ -43,8 +43,8 @@ const footerGroups = [
 export default function SiteFooter() {
   return (
     <footer className="bg-[#073f3b] text-white">
-      <div className="ui-container py-8 sm:py-16">
-        <div className="grid gap-6 border-b border-white/15 pb-6 sm:gap-12 sm:pb-12 lg:grid-cols-[1.1fr_2fr]">
+      <div className="ui-container py-6 sm:py-9">
+        <div className="grid gap-6 border-b border-white/15 pb-5 sm:gap-8 sm:pb-7 lg:grid-cols-[1fr_2.3fr]">
           <div className="max-w-md">
             <Link
               href="/"
@@ -57,13 +57,13 @@ export default function SiteFooter() {
                 alt="Samo$ell"
                 width={164}
                 height={50}
-                className="h-[34px] w-auto sm:h-[42px]"
+                className="h-[30px] w-auto sm:h-[34px]"
               />
             </Link>
-            <p className="mt-4 text-sm leading-7 text-white/70">
-              ქართული მეორადი ტანსაცმლის ონლაინ პლატფორმა, სადაც მყიდველი და გამყიდველი ერთმანეთს პირადად ეკონტაქტებიან და ათანხმებენ შეძენის პირობებს ყოველგვარი საკომისიოს გარეშე
+            <p className="mt-3 max-w-sm text-xs leading-5 text-white/70">
+              ახალი და მეორადი ტანსაცმლის პლატფორმა საქართველოში. განათავსე განცხადება უფასოდ, გაყიდე საკომისიოს გარეშე.
             </p>
-            <Link prefetch={false} href="/sell-fast" className="mt-7 hidden min-h-12 sm:inline-flex items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
+            <Link prefetch={false} href="/sell-fast" className="mt-4 hidden min-h-10 sm:inline-flex items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
             </Link>
           </div>
@@ -89,8 +89,8 @@ export default function SiteFooter() {
             {footerGroups.map((group) => (
               <div key={group.title} className="hidden sm:block">
                 <h2 className="text-sm font-black text-white">{group.title}</h2>
-                <ul className="mt-4 space-y-3">
-                  {group.links.map((link) => (
+                <ul className="mt-3 space-y-2">
+                  {group.links.slice(0, group.title === "აღმოაჩინე" ? 5 : undefined).map((link) => (
                     <li key={link.href}>
                       <Link prefetch={false} href={link.href} className="text-sm text-white/70 transition hover:text-white hover:underline">
                         {link.label}
@@ -98,31 +98,41 @@ export default function SiteFooter() {
                     </li>
                   ))}
                 </ul>
+                {group.title === "აღმოაჩინე" ? (
+                  <details className="group mt-2 text-sm">
+                    <summary className="cursor-pointer list-none font-semibold text-white/80 hover:text-white [&::-webkit-details-marker]:hidden">მეტი ბმული <span aria-hidden="true" className="inline-block transition group-open:rotate-90">›</span></summary>
+                    <ul className="mt-2 space-y-2">
+                      {group.links.slice(5).map((link) => (
+                        <li key={link.href}><Link prefetch={false} href={link.href} className="text-sm text-white/70 hover:text-white hover:underline">{link.label}</Link></li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
               </div>
             ))}
           </nav>
         </div>
 
-        <div className="grid grid-cols-2 gap-5 border-b border-white/15 py-6 sm:grid-cols-4 sm:gap-6 sm:py-7">
+        <div className="grid grid-cols-2 gap-4 border-b border-white/15 py-5 sm:grid-cols-4 sm:gap-5 sm:py-5">
           <div className="col-span-2 sm:col-span-1">
             <h2 className="text-sm font-black">მიწოდება</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">ცენტრალიზებული მიწოდების სერვისი ჯერ არ არის ჩართული</p>
+            <p className="mt-1.5 text-xs leading-5 text-white/60">მიწოდებას მყიდველი და გამყიდველი ათანხმებენ.</p>
           </div>
           <div className="col-span-2 sm:col-span-1">
             <h2 className="text-sm font-black">დაბრუნება</h2>
-            <p className="mt-2 text-xs leading-6 text-white/60">პირობები გამყიდველსა და მყიდველს შორის წინასწარ თანხმდება და samosell.ge პასუხისმგებლობას იხსნის ნივთებთან დაკავშირებული პრობლემებისგან</p>
+            <p className="mt-2 text-xs leading-6 text-white/60">დაბრუნების პირობები წინასწარ შეათანხმე გამყიდველთან.</p>
           </div>
           <div>
             <h2 className="text-sm font-black">გადახდის მეთოდები</h2>
             <p className="mt-2 text-xs leading-6 text-white/60">SamoSell-ის ფასიანი ციფრული მომსახურებებისთვის</p>
-            <div className="mt-3 text-neutral-900"><PaymentMethodMarks compact /></div>
-            <Link prefetch={false} href="/payment-terms" className="mt-3 inline-block text-xs font-semibold text-white/80 underline underline-offset-4 hover:text-white">
+            <div className="mt-2 text-neutral-900"><PaymentMethodMarks compact /></div>
+            <Link prefetch={false} href="/payment-terms" className="mt-2 inline-block text-xs font-semibold text-white/80 underline underline-offset-4 hover:text-white">
               დეტალური პირობები
             </Link>
           </div>
           <div>
             <h2 className="text-sm font-black">სოციალური ქსელები</h2>
-            <nav aria-label="SamoSell-ის სოციალური ქსელები" className="mt-3 flex flex-col items-start gap-1">
+            <nav aria-label="SamoSell-ის სოციალური ქსელები" className="mt-2 flex flex-wrap items-start gap-1">
               {SOCIAL_LINKS.map((link) => (
                 <a
                   key={link.name}
@@ -149,7 +159,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 pt-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 pt-4 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p>© {new Date().getFullYear()} {SITE_NAME} ყველა უფლება დაცულია</p>
             <p className="mt-1">პლატფორმის ოპერატორი: {LEGAL_OPERATOR_NAME}</p>
