@@ -189,7 +189,7 @@ export default function MarketplaceProductCard({
           </span>
         </div>
 
-        <div className="mt-auto border-t border-line/75 pt-2.5 sm:pt-3">
+        <div className="mt-3 border-t border-line/75 pt-2.5 sm:mt-3.5 sm:pt-3">
           {sellerHref ? (
             <Link
               href={sellerHref}
