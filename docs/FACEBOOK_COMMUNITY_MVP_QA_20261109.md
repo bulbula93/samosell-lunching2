@@ -31,7 +31,7 @@ One migration: `supabase/migrations/20261109110707_facebook_community_sharing.sq
 - RLS enabled; anonymous/authenticated users may read the public destination.
 - Only authenticated administrators can update `facebook_group_url`; neither role may insert, delete, replace the singleton or write unrelated columns.
 - Existing growth tables and RPCs remain service-only. The aggregate RPC separately verifies the admin actor and a bounded period.
-- Preview/local setting writes reject the Production database hostname, including trailing-slash/query variants. The exact review branch is additionally pinned to existing public Production reads with `NEXT_PUBLIC_PREVIEW_READ_ONLY=true`; Supabase mutations and optional growth telemetry are blocked.
+- Preview/local setting writes reject the Production database hostname, including trailing-slash/query variants. The exact review branch is additionally pinned to existing public Production reads with `NEXT_PUBLIC_PREVIEW_READ_ONLY=true`; the existing proxy blocks admin, authenticated and API routes entirely. Supabase mutations and optional growth telemetry are also blocked.
 - Group read failures/missing migration degrade to copy-only UI; they do not fail the listing page. Public settings reads use a 60-second cache and a 3-second timeout; successful admin saves invalidate that cache.
 - No dependencies, paid services, polling, cron jobs, Production settings, Production migrations or Production deployments added.
 - Connected `Samosell-QA` was inspected read-only; the new table does not exist there. No remote migration was applied to QA or Production.
@@ -52,13 +52,32 @@ Database tests cover anonymous reads, denied anonymous writes, denied non-admin 
 
 Component/API tests cover canonical external links, configured/unconfigured destination, Georgian post and link copying, Clipboard denial/manual text, no false published state, analytics consent, no telemetry in read-only Preview, invalid input, cross-origin requests and body limits. Existing private-listing, metadata and growth/payment tests also pass.
 
-Local runtime is Node 24.14.1; the project specifies Node 22.x. GitHub CI is configured to independently run TypeScript, lint, all tests and fixture build on Node 22. Browser tests and remote CI results are recorded below after Preview creation.
+Local runtime is Node 24.14.1; the project specifies Node 22.x. The existing Vercel project setting is Node 24.x, left unchanged. GitHub CI independently passed TypeScript, lint, all **1,409 tests in 225 files** (including the final settings-server tests), and the fixture build on Node 22. [CI run](https://github.com/bulbula93/samosell-lunching2/actions/runs/42608174276).
 
 ## Preview and release assessment
 
-Preview URL, exact commit, browser evidence and remote CI results: pending deployment.
+[Draft PR #164](https://github.com/bulbula93/samosell-lunching2/pull/164).
 
-Release verdict: **NOT READY for Production activation** until the migration and authenticated persistence/analytics are verified against an isolated deployed backend. No group URL can be activated until the group exists. Public copy/share functionality can be reviewed without a group.
+[Preview](https://samosell-lunching2-3hlkp8ep5-giorgibulbula-6265s-projects.vercel.app/listing/zara-dbfe42c8), deployment `dpl_CaJaTZtxotxFzg29ohpBUEosBfpL`, application commit `5ee272bc6c0e8c96b303a57d194261bdbe2d20cc`. Vercel state **READY**, target **null (Preview)**; no Production aliases promoted. Subsequent QA-report-only commits do not change the tested application.
+
+| Preview scenario | Result | Evidence / limits |
+| --- | --- | --- |
+| Home card → active listing | PASS | Opened a real listing through its homepage card in Chrome; listing content and new community region rendered |
+| Unconfigured group | PASS (render) | Both copy controls and explicit unconfigured message rendered; no invented group destination |
+| Canonical / Open Graph / Twitter | PASS | Authenticated Vercel HTTP fetch returned 200; canonical and `og:url` are `https://samosell.ge/listing/zara-dbfe42c8`; title, size/condition/city description and image are listing-specific |
+| Images | PASS | Actual public `og:image`: HTTP 200 `image/webp`; public fallback: HTTP 200 `image/png` |
+| Missing listing | PASS | HTTP 404 with listing-not-found title and noindex |
+| Preview indexing / caching | PASS | `x-robots-tag: noindex`; listing response private/no-store; security headers retained |
+| Admin route isolation | PASS | Authenticated Vercel HTTP fetch of `/admin/system`: HTTP 403 `preview_read_only`, as required by the existing proxy |
+| API route isolation | PASS | Authenticated Vercel HTTP fetch of `/api/growth/events`: HTTP 403 `preview_read_only`; the Preview cannot reach ingestion |
+| Copy buttons / actual Clipboard | BLOCKED | Chrome automation reported another extension UI on the page; retry after the owner closed the site still failed. Native accessibility inspection found an injected `chrome-extension://.../html/iframe_block_page.html`. No extension or security control was disabled; live copy success is not claimed |
+| Mobile viewport / visual QA | BLOCKED | The same Chrome extension block rejected viewport control and screenshots. Responsive classes and component tests are verified, but live mobile layout is unverified |
+| Authenticated admin save and persisted analytics | NOT RUN | This Preview intentionally blocks admin/API writes and no remote migration was applied. RLS and ingestion were verified in local PostgreSQL, not deployed end-to-end |
+| Group selection / opening / posting | NOT RUN | No real group exists. Synthetic configured destinations were tested only in disposable unit/SQL tests |
+
+The in-app browser also timed out during initialization; Chrome was used to verify the actual page render. Browser interaction limitations are independent of application test/build success.
+
+Release verdict: **NOT READY for Production activation** until isolated deployed admin-save/event-persistence QA, live Clipboard and mobile browser QA are complete. No group URL can be activated until the group exists. The implementation, SQL tests, CI and read-only Preview are available for review.
 
 Facebook destination choices, login/membership requirements, administrator approval, actual posting and rendered Facebook link-preview cache are controlled by Meta. No actual Facebook post was created or confirmed by this work.
 
