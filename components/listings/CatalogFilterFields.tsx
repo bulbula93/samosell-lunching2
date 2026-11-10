@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type ReactNode } from "react"
+import { useId, useMemo, useState, type ReactNode } from "react"
 import { getCatalogItemOptionsForSection } from "@/lib/catalog-taxonomy"
 import { getCatalogSizeLabels } from "@/lib/marketplace-options"
 import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
@@ -109,8 +109,9 @@ function PillGroup({
             <button
               key={option.value || "all"}
               type="button"
+              aria-pressed={active}
               onClick={() => onChange(option.value)}
-              className={`${compact ? "min-h-9 px-3 py-1.5 text-xs" : "min-h-10 px-4 py-2 text-sm"} rounded-full border font-semibold transition ${
+              className={`${compact ? "min-h-11 px-3 py-1.5 text-xs" : "min-h-11 px-4 py-2 text-sm"} rounded-full border font-semibold transition ${
                 active
                   ? tone === "orange"
                     ? "border-[#f2a36a] bg-[#fff0e4] text-[#b75217] shadow-[0_5px_14px_rgba(232,109,19,0.12)]"
@@ -196,20 +197,28 @@ function PlayfulSelect({
   options: readonly PlayfulOption[]
   icon: SelectIconKind
 }) {
+  const labelId = useId()
+  const valueId = useId()
   const selected = options.find((option) => option.value === value) ?? options[0]
 
   return (
     <div className="min-w-0">
-      <FilterLabel>{label}</FilterLabel>
+      <span id={labelId}><FilterLabel>{label}</FilterLabel></span>
       <input type="hidden" name={name} value={value} />
 
-      <details className="group relative">
-        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-semibold text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 lg:min-h-10 lg:gap-2.5 lg:px-3 [&::-webkit-details-marker]:hidden">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand lg:h-7 lg:w-7">
+      <details className="group relative" onKeyDown={(event) => {
+        if (event.key !== "Escape" || !event.currentTarget.open) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.currentTarget.open = false
+        event.currentTarget.querySelector("summary")?.focus()
+      }}>
+        <summary aria-labelledby={`${labelId} ${valueId}`} className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-2xl border border-[#dfe8e4] bg-white px-4 text-sm font-semibold text-brand shadow-[0_5px_16px_rgba(7,63,59,0.05)] transition hover:-translate-y-0.5 hover:border-brand/25 lg:min-h-11 lg:gap-2.5 lg:px-3 [&::-webkit-details-marker]:hidden">
+          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#edf8f4] text-brand lg:h-7 lg:w-7">
             <SelectIcon kind={icon} />
           </span>
-          <span className="min-w-0 flex-1 truncate">{selected?.label ?? "აირჩიე"}</span>
-          <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <span id={valueId} className="min-w-0 flex-1 truncate">{selected?.label ?? "აირჩიე"}</span>
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 shrink-0 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="m5 7 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </summary>
@@ -221,18 +230,21 @@ function PlayfulSelect({
               <button
                 key={option.value || "all"}
                 type="button"
+                aria-pressed={active}
                 onClick={(event) => {
                   onChange(option.value)
-                  event.currentTarget.closest("details")?.removeAttribute("open")
+                  const details = event.currentTarget.closest("details")
+                  details?.removeAttribute("open")
+                  details?.querySelector("summary")?.focus()
                 }}
-                className={`flex min-h-10 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium transition ${
+                className={`flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-medium transition ${
                   active
                     ? "bg-[#e9f6f2] text-brand"
                     : "text-text-soft hover:bg-[#fff7ef] hover:text-[#b75217]"
                 }`}
               >
                 <span className="truncate">{option.label}</span>
-                {active ? <span className="ml-3 text-brand">✓</span> : null}
+                {active ? <span aria-hidden="true" className="ml-3 text-brand">✓</span> : null}
               </button>
             )
           })}
@@ -611,15 +623,16 @@ function PriceAndVip({
     <div
       className={
         mobile
-          ? "grid gap-3"
+          ? "grid grid-cols-2 gap-3"
           : "grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]"
       }
     >
-      <label className="block">
-        <FilterLabel>მინ. ფასი</FilterLabel>
+      <label className="block min-w-0">
+        <FilterLabel>მინ. ფასი (₾)</FilterLabel>
         <input
           name="min_price"
           type="number"
+          inputMode="numeric"
           min="0"
           step="1"
           defaultValue={values.min_price}
@@ -628,15 +641,16 @@ function PriceAndVip({
         />
       </label>
 
-      <label className="block">
-        <FilterLabel>მაქს. ფასი</FilterLabel>
+      <label className="block min-w-0">
+        <FilterLabel>მაქს. ფასი (₾)</FilterLabel>
         <input
           name="max_price"
           type="number"
+          inputMode="numeric"
           min="0"
           step="1"
           defaultValue={values.max_price}
-          placeholder="5000 ₾"
+          placeholder="ნებისმიერი"
           className="ui-input rounded-2xl border-[#dfe8e4] bg-white"
         />
       </label>

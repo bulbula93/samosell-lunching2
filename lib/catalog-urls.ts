@@ -37,6 +37,14 @@ export function catalogCategoryHref(category?: string | null) {
   return buildCatalogUrl(params)
 }
 
+// Clearing item filters keeps the shopper's current section and search.
+export function catalogFilterResetHref(values: { category: string; q: string }) {
+  const params = new URLSearchParams()
+  if (values.category) params.set("category", values.category)
+  if (values.q) params.set("q", values.q)
+  return buildCatalogUrl(params)
+}
+
 // Preserve every non-category parameter, including duplicate values, tracking
 // parameters and saved-search state. Returns null once a URL is normalized.
 export function getCatalogRedirectPath(pathname: string, params: URLSearchParams) {

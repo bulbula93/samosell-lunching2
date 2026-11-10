@@ -1,5 +1,5 @@
 
-import { buildCatalogUrl } from "@/lib/catalog-urls"
+import { buildCatalogUrl, catalogFilterResetHref } from "@/lib/catalog-urls"
 import Link from "next/link"
 import CatalogFilterFields, {
   type CatalogFilterOptions,
@@ -7,6 +7,7 @@ import CatalogFilterFields, {
 } from "@/components/listings/CatalogFilterFields"
 import MobileFiltersDrawer from "@/components/listings/MobileFiltersDrawer"
 import { getCatalogItemLabel } from "@/lib/catalog-taxonomy"
+import { conditionLabel } from "@/lib/listings"
 import { ka } from "@/lib/i18n/ka"
 
 type FilterKey = keyof CatalogFilterValues
@@ -32,7 +33,10 @@ export default function CatalogLandingFilters({
   if (values.item_type) chips.push({ key: "item_type", label: getCatalogItemLabel(values.item_type) })
   if (values.brand) chips.push({ key: "brand", label: values.brand })
   if (values.size) chips.push({ key: "size", label: `${values.category === "perfume" ? "მოცულობა" : "ზომა"} ${values.size}` })
-  if (values.condition) chips.push({ key: "condition", label: values.condition })
+  if (values.condition) {
+    const perfumeLabels: Record<string, string> = { new: "ახალი / გაუხსნელი", like_new: "გახსნილი, თითქმის სავსე", good: "გამოყენებული", fair: "ნაწილობრივ დარჩენილი" }
+    chips.push({ key: "condition", label: values.category === "perfume" ? perfumeLabels[values.condition] || conditionLabel(values.condition) : conditionLabel(values.condition) })
+  }
   if (values.city) chips.push({ key: "city", label: values.city })
   if (values.color) chips.push({ key: "color", label: values.color })
   if (values.gender) {
@@ -48,7 +52,7 @@ export default function CatalogLandingFilters({
   if (values.recent === "7") chips.push({ key: "recent", label: "ბოლო 7 დღე" })
   if (values.sale_type === "gift") chips.push({ key: "sale_type", label: "🎁 ჩუქება" })
   if (values.min_price || values.max_price) chips.push({ key: "price", label: `${values.min_price || "0"}–${values.max_price || "∞"} ₾` })
-  const activeCount = chips.length
+  const activeCount = chips.filter((chip) => chip.key !== "q").length
 
   return (
     <section aria-label="კატალოგის ფილტრები" className="mt-6">
@@ -68,7 +72,7 @@ export default function CatalogLandingFilters({
             />
           </label>
           <button type="submit" className="ui-btn-primary shrink-0 !font-semibold">{ka.catalog.apply}</button>
-          <Link href="/catalog" className="ui-btn-secondary shrink-0 !font-semibold">{ka.catalog.clear}</Link>
+          <Link href={catalogFilterResetHref(values)} className="ui-btn-secondary shrink-0 !font-semibold">{ka.catalog.clear}</Link>
         </div>
         <CatalogFilterFields
           key={`${values.category}:${values.item_type}:${values.size}`}
@@ -97,7 +101,7 @@ export default function CatalogLandingFilters({
               <Link
                 key={`${chip.key}-${chip.label}`}
                 href={buildCatalogHref(nextValues)}
-                className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
+                className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-brand/20 bg-brand-soft/55 px-4 text-xs font-semibold text-brand transition hover:bg-brand-soft"
                 aria-label={`${chip.label} ფილტრის მოხსნა`}
               >
                 {chip.label}<span aria-hidden="true">×</span>
