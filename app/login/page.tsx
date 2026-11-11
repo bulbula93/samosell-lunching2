@@ -41,12 +41,12 @@ export default async function LoginPage({
           </span>
         </>
       }
-      subtitle={
+      subtitle={next === "/dashboard/listings/new" ? "განცხადების დასამატებლად შედი ანგარიშში. შესვლის შემდეგ ნივთის ფოტოებით დაიწყებ." : (
         <>
           შედი შენს ანგარიშში და მართე განცხადებები,{" "}
           <span className="font-bold text-brand">პროფილი და ჩატები.</span>
         </>
-      }
+      )}
       altHref={`/register?next=${encodeURIComponent(next)}`}
       altText="ანგარიში არ გაქვს?"
       altLabel="რეგისტრაცია"

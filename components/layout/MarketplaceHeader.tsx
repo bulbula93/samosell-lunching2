@@ -93,7 +93,7 @@ export default function MarketplaceHeader({
   const searchParams = useSearchParams()
   const unread = useUnreadNotifications(initialUserState.userId, initialUserState.unreadNotifications, initialUserState.unreadChats)
   const userState = { ...initialUserState, unreadNotifications: unread.notifications, unreadChats: unread.chats }
-  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
+  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/login?next=%2Fdashboard%2Flistings%2Fnew"
   const isChatRoute = pathname.startsWith("/dashboard/chats")
   const isChatThread = pathname.startsWith("/dashboard/chats/")
   const isListingCreateRoute = pathname === "/dashboard/listings/new"
@@ -132,7 +132,7 @@ export default function MarketplaceHeader({
         </div>
 
         <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
+          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={false} />
           <MarketplaceActionLink kind="buy" href="/catalog" />
 
           {personalizationPending ? <span aria-hidden="true" className="ui-skeleton h-11 w-36 rounded-xl" /> : userState.signedIn ? (
@@ -241,7 +241,7 @@ export default function MarketplaceHeader({
           </div>
         </> : null}
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex md:ml-0 lg:hidden">
-          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={userState.signedIn ? false : undefined} />
+          <MarketplaceActionLink kind="sell" href={sellHref} prefetch={false} />
           <MarketplaceActionLink kind="buy" href="/catalog" />
         </div>
       </div>

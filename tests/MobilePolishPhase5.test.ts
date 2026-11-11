@@ -29,7 +29,7 @@ describe("Phase 5 mobile QA and app-like polish", () => {
   it("keeps PWA shortcuts for primary mobile actions", () => {
     expect(manifest).toContain("shortcuts")
     expect(manifest).toContain('url: "/catalog"')
-    expect(manifest).toContain('url: "/sell-fast"')
+    expect(manifest).toContain('url: "/login?next=%2Fdashboard%2Flistings%2Fnew"')
   })
 
   it("enables full safe-area viewport coverage on iPhone", () => {

@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import MarketplaceHeader from "@/components/layout/MarketplaceHeader"
+import MobileBottomNavigation from "@/components/layout/MobileBottomNavigation"
 import { ka } from "@/lib/i18n/ka"
 
 vi.mock("@/components/dashboard/SignOutButton", () => ({
@@ -14,6 +15,12 @@ const items = [
 ]
 
 describe("MarketplaceHeader", () => {
+  it.each([false, true])("keeps the mobile sell action on the creation path (signed in: %s)", (signedIn) => {
+    render(<MobileBottomNavigation userState={{ signedIn, profileLabel: "", profileImage: null, isAdmin: false, unreadNotifications: 0 }} />)
+    expect(screen.getByRole("link", { name: "განცხადების დამატება" })).toHaveAttribute(
+      "href", signedIn ? "/dashboard/listings/new" : "/login?next=%2Fdashboard%2Flistings%2Fnew",
+    )
+  })
   it("shows unread chat replies on the envelope without marking the bell unread", () => {
     render(<MarketplaceHeader items={items} userState={{ signedIn: true, profileLabel: "ნინო", profileImage: null, isAdmin: false, unreadNotifications: 0, unreadChats: 1 }} />)
     expect(screen.getByRole("link", { name: "ჩათები — 1 წაუკითხავი" })).toHaveAttribute("href", "/dashboard/chats")
@@ -32,6 +39,9 @@ describe("MarketplaceHeader", () => {
     expect(screen.getByRole("link", { name: ka.nav.login })).toHaveAttribute("href", "/login")
     expect(screen.getByRole("link", { name: ka.nav.register })).toHaveAttribute("href", "/register")
     expect(screen.getAllByRole("link", { name: "ქალებისთვის" }).length).toBeGreaterThan(0)
+    for (const link of screen.getAllByRole("link", { name: "გაყიდე" })) {
+      expect(link).toHaveAttribute("href", "/login?next=%2Fdashboard%2Flistings%2Fnew")
+    }
   })
 
   it("renders account actions from the authenticated state", () => {
@@ -57,6 +67,9 @@ describe("MarketplaceHeader", () => {
     expect(screen.getAllByText("ნინო").length).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: "პროფილი — ნინო" })).toHaveAttribute("href", "/dashboard/profile")
     expect(screen.queryByRole("link", { name: ka.nav.login })).not.toBeInTheDocument()
+    for (const link of screen.getAllByRole("link", { name: "გაყიდე" })) {
+      expect(link).toHaveAttribute("href", "/dashboard/listings/new")
+    }
   })
 
   it("opens the mobile dialog, closes it with Escape, and restores focus", async () => {

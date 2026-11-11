@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
 import CreateListingWizard from "@/components/dashboard/CreateListingWizard"
 import { saveBrowserConsent } from "@/lib/browser-preferences"
-import { readListingDraft, deleteListingDraft } from "@/lib/listing-draft"
+import { readListingDraft, saveListingDraft, deleteListingDraft } from "@/lib/listing-draft"
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
 vi.mock("@/app/dashboard/listings/form-actions", () => ({ prepareListingUploadsAction: vi.fn(), saveListingAction: vi.fn(), abortListingUploadsAction: vi.fn() }))
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ storage: { from: vi.fn() } }) }))
@@ -35,4 +35,52 @@ it("allows discarding the old draft instead of restoring it", async () => {
   await user.click(await screen.findByRole("button", { name: "მონახაზის წაშლა" }))
   expect(deleteListingDraft).toHaveBeenCalledWith("owner-a")
   expect(screen.queryByRole("button", { name: "მონახაზის აღდგენა" })).not.toBeInTheDocument()
+})
+
+function blocksReload() {
+  const event = new Event("beforeunload", { cancelable: true })
+  window.dispatchEvent(event)
+  return event.defaultPrevented
+}
+
+it("explains disabled autosave and protects selected photos without storing them", async () => {
+  saveBrowserConsent(false, false)
+  const user = userEvent.setup()
+  render(<CreateListingWizard {...props} />)
+  expect(screen.getByRole("status")).toHaveTextContent("ავტოშენახვა გამორთულია")
+  expect(blocksReload()).toBe(false)
+  await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"),
+    new File([new Uint8Array([0xff, 0xd8, 0xff])], "item.jpg", { type: "image/jpeg" }))
+  await waitFor(() => expect(blocksReload()).toBe(true))
+  expect(saveListingDraft).not.toHaveBeenCalled()
+  expect(readListingDraft).not.toHaveBeenCalled()
+})
+
+it("keeps protection until the latest photo/text save succeeds and restores it on edits", async () => {
+  vi.mocked(readListingDraft).mockResolvedValue(null)
+  let finishSave!: (value: boolean) => void
+  vi.mocked(saveListingDraft).mockImplementation(() => new Promise<boolean>((resolve) => { finishSave = resolve }))
+  const user = userEvent.setup()
+  render(<CreateListingWizard {...props} />)
+  await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"),
+    new File([new Uint8Array([0xff, 0xd8, 0xff])], "item.jpg", { type: "image/jpeg" }))
+  await waitFor(() => expect(saveListingDraft).toHaveBeenCalled(), { timeout: 2000 })
+  expect(blocksReload()).toBe(true)
+  await act(async () => finishSave(true))
+  expect(screen.getByRole("status")).toHaveTextContent("შენახულია ამ ბრაუზერში")
+  expect(blocksReload()).toBe(false)
+  await user.click(screen.getByRole("button", { name: "გაგრძელება →" }))
+  await user.type(screen.getByLabelText(/^რას ყიდი/), "ქურთუკი")
+  expect(blocksReload()).toBe(true)
+})
+
+it("keeps protection and shows an error if local storage fails", async () => {
+  vi.mocked(readListingDraft).mockResolvedValue(null)
+  vi.mocked(saveListingDraft).mockRejectedValue(new Error("quota"))
+  const user = userEvent.setup()
+  render(<CreateListingWizard {...props} />)
+  await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"),
+    new File([new Uint8Array([0xff, 0xd8, 0xff])], "item.jpg", { type: "image/jpeg" }))
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("ავტოშენახვა ვერ მოხერხდა"), { timeout: 2000 })
+  expect(blocksReload()).toBe(true)
 })

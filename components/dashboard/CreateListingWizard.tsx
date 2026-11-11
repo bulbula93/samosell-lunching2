@@ -7,6 +7,8 @@ import { trackGrowth, listingAttempt, clearListingAttempt } from "@/lib/growth/c
 import type { PublishFailure } from "@/lib/growth/shared"
 import { PERFUME_BRAND_NAMES } from "@/lib/perfume-brands"
 import { useBrowserConsent } from "@/components/privacy/useBrowserConsent"
+import { useUnsavedListingChanges } from "@/components/dashboard/useUnsavedListingChanges"
+import { SETTINGS_EVENT } from "@/lib/browser-preferences"
 import { readListingDraft, saveListingDraft, deleteListingDraft, type ListingDraft } from "@/lib/listing-draft"
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -305,15 +307,25 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const [pendingDraft, setPendingDraft] = useState<ListingDraft | null>(null)
   const [draftChecked, setDraftChecked] = useState(false)
   const [draftStatus, setDraftStatus] = useState("")
+  const [savedDraftKey, setSavedDraftKey] = useState<string | null>(null)
   const publishedRef = useRef(false)
   const draftFields = useMemo(() => ({ title, description, price, categoryId, brandId, customBrand, sizeId, condition,
     saleType, gender, color, material, city, publishNow }),
     [title, description, price, categoryId, brandId, customBrand, sizeId, condition, saleType, gender, color, material, city, publishNow])
+  const canSaveDraft = Boolean(consent?.personalization && userId)
+  const hasContent = Boolean(title || description || price || categoryId || images.length || brandId || customBrand || sizeId || color || material || city)
+  const draftKey = JSON.stringify([draftFields, sizeType, images.map((image) => image.id)])
+  const hasUnsavedChanges = !successResult && (loading || (hasContent && (!canSaveDraft || savedDraftKey !== draftKey)))
+  const visibleDraftStatus = !canSaveDraft
+    ? "ავტოშენახვა გამორთულია"
+    : draftStatus || "მონახაზი შეინახება ამ ბრაუზერში"
+
+  useUnsavedListingChanges(hasUnsavedChanges)
 
   useEffect(() => {
     let cancelled = false
     if (!consent?.personalization || !userId) {
-      queueMicrotask(() => { if (!cancelled) { setPendingDraft(null); setDraftChecked(false); setDraftStatus("") } })
+      queueMicrotask(() => { if (!cancelled) { setPendingDraft(null); setDraftChecked(false); setDraftStatus(""); setSavedDraftKey(null) } })
       return () => { cancelled = true }
     }
     readListingDraft(userId).then((draft) => {
@@ -327,7 +339,6 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   useEffect(() => {
     if (!consent?.personalization || !userId || !draftChecked || pendingDraft || loading || publishedRef.current) return
     let cancelled = false
-    const hasContent = Boolean(title || description || price || categoryId || images.length)
 
     const statusTimer = setTimeout(() => {
       if (!cancelled) setDraftStatus(hasContent ? "ინახება…" : "")
@@ -338,14 +349,21 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         images: images.map((image) => ({ id: image.id, name: image.file.name, type: image.file.type,
           lastModified: image.file.lastModified, blob: image.file })) }) : deleteListingDraft(userId)
       operation.then((saved) => {
-        if (!cancelled && saved !== false) setDraftStatus(hasContent ? "შენახულია ✓" : "")
+        if (!cancelled) {
+          if (saved === false) {
+            setDraftStatus("ავტოშენახვა ვერ მოხერხდა")
+          } else {
+            setSavedDraftKey(draftKey)
+            setDraftStatus(hasContent ? "შენახულია ამ ბრაუზერში ✓" : "")
+          }
+        }
       }).catch(() => {
         if (!cancelled) setDraftStatus("ავტოშენახვა ვერ მოხერხდა")
       })
     }, 700)
     return () => { cancelled = true; clearTimeout(statusTimer); clearTimeout(timer) }
   }, [consent?.personalization, userId, draftChecked, pendingDraft, loading, draftFields, sizeType, images,
-    title, description, price, categoryId])
+    hasContent, draftKey])
 
   function restoreDraft() {
     if (!pendingDraft) return
@@ -875,24 +893,31 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         <div className="bg-[linear-gradient(135deg,#eff8f6_0%,#ffffff_62%)] px-5 py-7 sm:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="ui-eyebrow">ახალი განცხადება</p>
-            {draftStatus ? (
+            {visibleDraftStatus ? (
               <span
                 role="status"
                 className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-[11px] font-bold ${
-                  draftStatus.includes("ვერ")
+                  visibleDraftStatus.includes("ვერ") || visibleDraftStatus.includes("მიუწვდომელია")
                     ? "border-red-200 bg-red-50 text-red-700"
-                    : draftStatus.includes("ინახება")
+                    : !canSaveDraft || visibleDraftStatus.includes("ინახება")
                       ? "border-amber-200 bg-amber-50 text-amber-800"
                       : "border-brand/15 bg-brand-soft text-brand"
                 }`}
               >
-                {draftStatus}
+                {visibleDraftStatus}
               </span>
             ) : null}
           </div>
           <h1 className="mt-2 text-2xl font-black tracking-tight text-text sm:text-3xl">გაყიდე ნივთი 4 ნაბიჯში</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
             დაიწყე ფოტოებით, შემდეგ შეავსე დეტალები და ფასი. ბოლოს ნახავ ზუსტად როგორ გამოიყურება განცხადება.
+          </p>
+          <p className="mt-2 max-w-2xl text-xs leading-6 text-text-soft">
+            {canSaveDraft ? "მონახაზი ინახება მხოლოდ ამ ბრაუზერში; განცხადება საჯარო გახდება გამოქვეყნების შემდეგ." : (
+              <>გვერდის დატოვებისას დაუშენახავი ტექსტი და ფოტოები დაიკარგება. ავტოშენახვისთვის Cookies-ის პარამეტრებში ჩართე „კომფორტი“.
+                {userId ? <button type="button" onClick={() => window.dispatchEvent(new Event(SETTINGS_EVENT))} className="ml-1 inline-flex min-h-11 items-center font-bold text-brand underline">შენახვის პარამეტრები</button> : null}
+              </>
+            )}
           </p>
 
           <ol className="mt-6 grid grid-cols-4 gap-1.5 sm:gap-2" aria-label="განცხადების შექმნის პროგრესი">

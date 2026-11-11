@@ -63,7 +63,7 @@ export default function SiteFooter() {
             <p className="mt-3 max-w-sm text-xs leading-5 text-white/70">
               ახალი და მეორადი ტანსაცმლის პლატფორმა საქართველოში. განათავსე განცხადება უფასოდ, გაყიდე საკომისიოს გარეშე.
             </p>
-            <Link prefetch={false} href="/sell-fast" className="mt-4 hidden min-h-10 sm:inline-flex items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
+            <Link prefetch={false} href="/login?next=%2Fdashboard%2Flistings%2Fnew" className="mt-4 hidden min-h-10 sm:inline-flex items-center justify-center rounded-xl bg-white px-6 text-sm font-black text-brand transition hover:bg-brand-soft">
               {ka.nav.sell}
             </Link>
           </div>
