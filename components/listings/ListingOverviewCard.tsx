@@ -189,6 +189,43 @@ export default function ListingOverviewCard({
         </p>
       ) : null}
 
+      <section aria-labelledby="listing-contact-heading" className="mt-5 rounded-2xl border border-brand/15 bg-brand-soft/25 p-4">
+        <h2 id="listing-contact-heading" className="text-base font-black text-text">
+          {isOwner ? "მართე განცხადება" : isActive ? "დაუკავშირდი გამყიდველს" : "ნახე სხვა ნივთები"}
+        </h2>
+        {!isOwner ? (
+          <p className="mt-2 text-sm text-text-soft">
+            გამყიდველი: {sellerProfileHref ? <Link href={sellerProfileHref} className="font-semibold text-brand underline underline-offset-4">{sellerLabel}</Link> : <span className="font-semibold text-text">{sellerLabel}</span>}
+          </p>
+        ) : null}
+        <div className="mt-3">
+          <MobileListingActionBar
+            listingId={listing.id}
+            listingSlug={listing.slug}
+            sellerLabel={sellerLabel}
+            sellerAvatarSrc={sellerAvatarSrc}
+            listingTitle={listing.title}
+            listingImageSrc={listing.cover_image_url}
+            price={listing.price}
+            currency={listing.currency}
+            saleType={listing.sale_type}
+            isActive={isActive}
+            availabilityLabel={listingDetailStatusLabel(listing.status)}
+            isOwner={isOwner}
+            isAuthenticated={isAuthenticated}
+            canChat={canChat}
+            messagingUnavailable={messagingUnavailable}
+            listingReturnPath={listingReturnPath}
+          />
+        </div>
+        {!isOwner && isActive && !messagingUnavailable ? (
+          <p className="mt-3 text-xs leading-6 text-text-soft">ნივთის მიღებისა და გადახდის პირობები უშუალოდ გამყიდველთან შეათანხმე.</p>
+        ) : null}
+        {messagingUnavailable ? (
+          <p role="status" className="mt-3 text-sm leading-6 text-text-soft">{ka.listingDetail.messageUnavailable}</p>
+        ) : null}
+      </section>
+
       {details.length > 0 ? (
         <section aria-labelledby="listing-details-heading" className="mt-7 border-t border-line pt-6">
           <h2 id="listing-details-heading" className="text-lg font-black text-text">
@@ -299,7 +336,7 @@ export default function ListingOverviewCard({
                   className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand/20 bg-brand-soft px-2 py-1 text-[10px] font-black text-brand"
                 >
                   <span aria-hidden="true" className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-brand text-[9px] text-white">✓</span>
-                  Verified
+                  დადასტურებული
                 </span>
               ) : null}
             </div>
@@ -371,30 +408,8 @@ export default function ListingOverviewCard({
             className="sm:col-span-2"
           />
 
-          <MobileListingActionBar
-            listingId={listing.id}
-            listingSlug={listing.slug}
-            sellerLabel={sellerLabel}
-            sellerAvatarSrc={sellerAvatarSrc}
-            listingTitle={listing.title}
-            listingImageSrc={listing.cover_image_url}
-            price={listing.price}
-            currency={listing.currency}
-            saleType={listing.sale_type}
-            isActive={isActive}
-            isOwner={isOwner}
-            isAuthenticated={isAuthenticated}
-            canChat={canChat}
-            messagingUnavailable={messagingUnavailable}
-            listingReturnPath={listingReturnPath}
-          />
         </div>
 
-        {messagingUnavailable ? (
-          <p role="status" className="mt-4 text-sm leading-6 text-text-soft">
-            {ka.listingDetail.messageUnavailable}
-          </p>
-        ) : null}
       </section>
 
       {chatError ? (

@@ -54,11 +54,24 @@ export default function StartChatButton({
   const sheetRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const wasOpenRef = useRef(false)
   const [body, setBody] = useState("")
   const [state, formAction, pending] = useActionState(
     startChatAction,
     INITIAL_STATE,
   )
+
+  useLayoutEffect(() => {
+    if (!open) {
+      if (wasOpenRef.current) triggerRef.current?.focus()
+      wasOpenRef.current = false
+      return
+    }
+    wasOpenRef.current = true
+    // Opening a phone sheet focuses its close control without raising the keyboard.
+    if (sheetMode) formRef.current?.querySelector<HTMLButtonElement>("[data-chat-close]")?.focus()
+  }, [open, sheetMode])
 
   useLayoutEffect(() => {
     if (!open || !sheetMode) return
@@ -151,10 +164,12 @@ export default function StartChatButton({
   if (!open) {
     return (
       <button
+        ref={triggerRef}
         type="button"
         onClick={openComposer}
         className={className ?? "ui-btn-primary w-full"}
         aria-expanded="false"
+        aria-haspopup={presentation === "sheet" ? "dialog" : undefined}
       >
         {icon}
         <span>{label}</span>
@@ -176,6 +191,27 @@ export default function StartChatButton({
       ref={formRef}
       action={formAction}
       aria-labelledby="first-message-title"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !pending && !event.nativeEvent.isComposing) {
+          event.preventDefault()
+          event.stopPropagation()
+          setOpen(false)
+          return
+        }
+        if (event.key !== "Tab" || !sheetMode) return
+        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]',
+        ))
+        const first = controls[0]
+        const last = controls.at(-1)
+        if (event.shiftKey && event.target === first) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && event.target === last) {
+          event.preventDefault()
+          first?.focus()
+        }
+      }}
       className={`relative flex min-h-0 min-w-0 w-full max-w-full flex-col overflow-hidden bg-white ${
         sheetMode
           ? "h-full"
@@ -192,6 +228,7 @@ export default function StartChatButton({
         style={sheetMode ? { paddingTop: "max(0.75rem, env(safe-area-inset-top))" } : undefined}
       >
         <button
+          data-chat-close
           type="button"
           onClick={() => setOpen(false)}
           disabled={pending}

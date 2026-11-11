@@ -1,5 +1,5 @@
 import React from "react"
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import ListingOverviewCard from "@/components/listings/ListingOverviewCard"
 import { ka } from "@/lib/i18n/ka"
@@ -64,7 +64,7 @@ describe("ListingOverviewCard", () => {
     expect(screen.getByText("SS-A83F2C00")).toBeInTheDocument()
     expect(screen.getByText(/alert\('x'\)/)).toHaveTextContent("მეორე ხაზი")
     expect(document.querySelector("script")).not.toBeInTheDocument()
-    expect(screen.getByText("ნინო")).toBeInTheDocument()
+    expect(screen.getAllByText("ნინო").length).toBeGreaterThan(0)
     expect(screen.getByRole("link", { name: /3.*აქტიური ნივთები/ })).toHaveAttribute(
       "href",
       "/seller/nino#seller-listings",
@@ -73,7 +73,7 @@ describe("ListingOverviewCard", () => {
     expect(screen.queryByText(/SamoSell-ზე 1|SamoSell-ზე 2/)).not.toBeInTheDocument()
     expect(screen.queryByText(/წევრია:/)).not.toBeInTheDocument()
     expect(
-      screen.getByRole("link", { name: /მიწერე.*შედი და მიწერე გამყიდველს/ }),
+      screen.getByRole("link", { name: ka.listingDetail.loginToMessage }),
     ).toHaveAttribute("href", "/login?next=%2Flisting%2Flinen-jacket")
     expect(
       screen.getByRole("button", { name: /რჩეულებში დამატება/ }),
@@ -128,7 +128,7 @@ describe("ListingOverviewCard", () => {
       />,
     )
 
-    expect(screen.getByText(label)).toBeInTheDocument()
+    expect(screen.getAllByText(label).length).toBeGreaterThan(0)
     expect(screen.getByText(message)).toBeInTheDocument()
     expect(
       screen.getByRole("link", { name: ka.listingDetail.edit }),
@@ -203,5 +203,33 @@ describe("ListingOverviewCard", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveClass("break-words")
     expect(screen.getByText(longDescription)).toHaveClass("break-words")
+  })
+
+  it("places the contact action before a long description and keeps search attribution in the login return path", () => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({ description: "გრძელი აღწერა ".repeat(200) })} searchId="search-review-1" />)
+    const contact = screen.getByRole("region", { name: "დაუკავშირდი გამყიდველს" })
+    const description = screen.getByRole("region", { name: ka.listingDetail.description })
+    expect(contact.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(contact).getByRole("link", { name: ka.listingDetail.loginToMessage })).toHaveAttribute(
+      "href", "/login?next=%2Flisting%2Flinen-jacket%3Fsearch_id%3Dsearch-review-1",
+    )
+    expect(within(contact).getByText("საჭიროა შესვლა")).toBeInTheDocument()
+    expect(within(contact).getByRole("link", { name: "ნინო" })).toHaveAttribute("href", "/seller/nino")
+  })
+
+  it.each(["isBlocked", "isBlockedBySeller", "sellerSuspended"] as const)("does not offer messaging when %s is true", (restriction) => {
+    render(<ListingOverviewCard {...baseProps} {...{ [restriction]: true }} isAuthenticated listing={makeListing()} />)
+    expect(screen.queryByRole("button", { name: ka.listingDetail.messageSeller })).not.toBeInTheDocument()
+    const contact = screen.getByRole("region", { name: "დაუკავშირდი გამყიდველს" })
+    expect(within(contact).getByRole("button", { name: "მიუწვდომელია" })).toBeDisabled()
+    expect(within(contact).getByRole("status")).toHaveTextContent(ka.listingDetail.messageUnavailable)
+  })
+
+  it.each(["sold", "reserved"])("offers other items for a %s listing without a chat or login action", (status) => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({ status })} />)
+    const alternatives = screen.getByRole("region", { name: "ნახე სხვა ნივთები" })
+    expect(within(alternatives).getByRole("link", { name: "სხვა ნივთების ნახვა" })).toHaveAttribute("href", "/catalog")
+    expect(screen.queryByRole("link", { name: ka.listingDetail.loginToMessage })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: ka.listingDetail.messageSeller })).not.toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import { buildCatalogUrl } from "@/lib/catalog-urls"
+import { buildCatalogUrl, catalogFilterResetHref } from "@/lib/catalog-urls"
 
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
@@ -37,7 +37,7 @@ function buildCatalogHref(values: CatalogFilterValues, nextSort: string) {
 
 function FilterIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 6h16M7 12h10M10 18h4" />
     </svg>
   )
@@ -45,7 +45,7 @@ function FilterIcon() {
 
 function SortIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8 4v16M8 4 5 7M8 4l3 3M16 20V4m0 16-3-3m3 3 3-3" />
     </svg>
   )
@@ -70,6 +70,7 @@ export default function MobileFiltersDrawer({
   const currentSort = values.sort || (values.q ? "relevance" : "latest")
   const currentSortLabel =
     sortOptions.find((option) => option.value === currentSort)?.label ?? "ახლახან დამატებული"
+  const categoryLabel = options.categories.find((category) => category.slug === values.category)?.name
 
   useEffect(() => {
     if (!panel) return
@@ -80,8 +81,17 @@ export default function MobileFiltersDrawer({
     closeRef.current?.focus()
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return
       if (event.key === "Escape") {
         event.preventDefault()
+        // Native document listeners can run before React's menu handler.
+        // Dismiss the expanded field first, keeping the shopper in the drawer.
+        const expandedField = panelRef.current?.querySelector<HTMLDetailsElement>("details[open]")
+        if (expandedField) {
+          expandedField.open = false
+          expandedField.querySelector("summary")?.focus()
+          return
+        }
         setPanel(null)
         return
       }
@@ -124,6 +134,7 @@ export default function MobileFiltersDrawer({
           ref={filterTriggerRef}
           type="button"
           onClick={() => setPanel("filters")}
+          aria-label={`${ka.catalog.filters} ${activeCount > 0 ? `${activeCount} აქტიური` : "აირჩიე ფილტრები"}`}
           aria-haspopup="dialog"
           aria-expanded={panel === "filters"}
           className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-line bg-white px-3.5 text-left shadow-[0_6px_18px_rgba(7,63,59,0.05)] transition active:scale-[0.98]"
@@ -138,7 +149,7 @@ export default function MobileFiltersDrawer({
             </span>
           </span>
           {activeCount > 0 ? (
-            <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-black text-white">
+            <span aria-hidden="true" className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-black text-white">
               {activeCount}
             </span>
           ) : null}
@@ -148,6 +159,7 @@ export default function MobileFiltersDrawer({
           ref={sortTriggerRef}
           type="button"
           onClick={() => setPanel("sort")}
+          aria-label={`დალაგება ${currentSortLabel}`}
           aria-haspopup="dialog"
           aria-expanded={panel === "sort"}
           className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-line bg-white px-3.5 text-left shadow-[0_6px_18px_rgba(7,63,59,0.05)] transition active:scale-[0.98]"
@@ -176,11 +188,11 @@ export default function MobileFiltersDrawer({
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-catalog-panel-title"
-            className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-hidden rounded-t-[30px] border-t border-line bg-bg shadow-[0_-24px_60px_rgba(7,63,59,0.22)]"
+            className="absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[30px] border-t border-line bg-bg shadow-[0_-24px_60px_rgba(7,63,59,0.22)]"
           >
-            <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-12 rounded-full bg-line" />
+            <div aria-hidden="true" className="mx-auto mt-2.5 h-1.5 w-12 shrink-0 rounded-full bg-line" />
 
-            <div className="flex items-center justify-between px-5 pb-3 pt-3">
+            <div className="flex shrink-0 items-center justify-between px-5 pb-3 pt-3">
               <div>
                 <h2 id="mobile-catalog-panel-title" className="text-xl font-black text-text">
                   {panel === "filters" ? ka.catalog.filters : "დალაგება"}
@@ -192,6 +204,7 @@ export default function MobileFiltersDrawer({
                       : "შეარჩიე სასურველი პარამეტრები"
                     : "აირჩიე შედეგების თანმიმდევრობა"}
                 </p>
+                {panel === "filters" && categoryLabel ? <p className="mt-2 text-sm font-semibold text-brand">{categoryLabel}</p> : null}
               </div>
 
               <button
@@ -206,11 +219,11 @@ export default function MobileFiltersDrawer({
             </div>
 
             {panel === "filters" ? (
-              <form action="/catalog" className="max-h-[calc(88dvh-88px)] overflow-y-auto px-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              <form action="/catalog" className="min-h-0 overflow-y-auto px-5 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {values.q ? <input type="hidden" name="q" value={values.q} /> : null}
                 {values.recent === "7" ? <input type="hidden" name="recent" value="7" /> : null}
 
-                <div className="pb-24 pt-2">
+                <div className="pb-6 pt-2">
                   <CatalogFilterFields
                     key={`${values.category}:${values.item_type}:${values.size}`}
                     options={options}
@@ -225,7 +238,7 @@ export default function MobileFiltersDrawer({
                   style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
                 >
                   <Link
-                    href={values.q ? `/catalog?q=${encodeURIComponent(values.q)}` : "/catalog"}
+                    href={catalogFilterResetHref(values)}
                     className="ui-btn-secondary"
                     onClick={() => setPanel(null)}
                   >
@@ -236,7 +249,7 @@ export default function MobileFiltersDrawer({
               </form>
             ) : (
               <div
-                className="max-h-[calc(88dvh-88px)] overflow-y-auto px-5 pb-5"
+                className="min-h-0 overflow-y-auto px-5 pb-5"
                 style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
               >
                 <div className="space-y-2 pt-2">
@@ -247,6 +260,7 @@ export default function MobileFiltersDrawer({
                       <Link
                         key={option.value}
                         href={buildCatalogHref(values, option.value)}
+                        aria-current={active ? "true" : undefined}
                         onClick={() => setPanel(null)}
                         className={`flex min-h-13 items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
                           active

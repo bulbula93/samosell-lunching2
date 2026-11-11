@@ -14,6 +14,7 @@ type MobileListingActionBarProps = {
   currency: string
   saleType?: string | null
   isActive: boolean
+  availabilityLabel?: string
   isOwner: boolean
   isAuthenticated: boolean
   canChat: boolean
@@ -32,6 +33,7 @@ export default function MobileListingActionBar({
   currency,
   saleType,
   isActive,
+  availabilityLabel,
   isOwner,
   isAuthenticated,
   canChat,
@@ -43,10 +45,10 @@ export default function MobileListingActionBar({
       className="fixed inset-x-0 z-[65] border-t border-line bg-white/96 px-3 py-2 shadow-[0_-12px_30px_rgba(7,63,59,0.12)] backdrop-blur md:static md:col-span-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none"
       style={{ bottom: "calc(var(--mobile-nav-offset) + env(safe-area-inset-bottom))" }}
     >
-      <div className="mx-auto flex max-w-lg items-center gap-3 md:max-w-none">
+      <div className="mx-auto grid max-w-lg grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] items-center gap-3 md:block md:max-w-none">
         <div className="min-w-0 flex-1 md:hidden">
           <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-text-soft">
-            ფასი
+            {isActive ? "ფასი" : availabilityLabel || "მიუწვდომელია"}
           </span>
           <strong className="block truncate text-lg font-black leading-tight text-text">
             {listingPriceLabel(price, currency, saleType)}
@@ -56,7 +58,7 @@ export default function MobileListingActionBar({
         {isOwner ? (
           <Link
             href={`/dashboard/listings/${listingId}/edit`}
-            className="ui-btn-primary min-h-11 shrink-0 px-4 md:w-full"
+            className="ui-btn-primary min-h-12 min-w-0 w-full px-3 text-center md:px-4"
           >
             {ka.listingDetail.edit}
           </Link>
@@ -72,7 +74,7 @@ export default function MobileListingActionBar({
             listingImageSrc={listingImageSrc}
             priceLabel={listingPriceLabel(price, currency, saleType)}
             presentation="responsive"
-            className="ui-btn-primary min-h-11 shrink-0 px-4 md:min-h-12 md:w-full md:shadow-md"
+            className="ui-btn-primary min-h-12 min-w-0 w-full px-3 text-center md:px-4 md:shadow-md"
             label={ka.listingDetail.messageSeller}
           />
         ) : null}
@@ -80,9 +82,13 @@ export default function MobileListingActionBar({
         {isActive && !isOwner && !isAuthenticated ? (
           <Link
             href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
-            className="ui-btn-primary min-h-11 shrink-0 px-4 text-center md:w-full"
+            aria-label={ka.listingDetail.loginToMessage}
+            className="ui-btn-primary min-h-12 min-w-0 w-full px-3 text-center md:px-4"
           >
-            <span className="md:hidden">მიწერე</span>
+            <span className="flex flex-col items-center gap-0.5 md:hidden">
+              <span>მიწერე გამყიდველს</span>
+              <span className="text-[11px] font-normal">საჭიროა შესვლა</span>
+            </span>
             <span className="hidden md:inline">{ka.listingDetail.loginToMessage}</span>
           </Link>
         ) : null}
@@ -91,7 +97,7 @@ export default function MobileListingActionBar({
           <button
             type="button"
             disabled
-            className="ui-btn-secondary min-h-11 shrink-0 px-4 md:hidden"
+            className="ui-btn-secondary min-h-12 min-w-0 w-full px-3 text-center"
             title={ka.listingDetail.messageUnavailable}
           >
             მიუწვდომელია
@@ -99,8 +105,8 @@ export default function MobileListingActionBar({
         ) : null}
 
         {!isActive && !isOwner ? (
-          <Link href="/catalog" className="ui-btn-secondary min-h-11 shrink-0 px-4 md:hidden">
-            კატალოგი
+          <Link href="/catalog" className="ui-btn-secondary min-h-12 min-w-0 w-full px-3 text-center">
+            სხვა ნივთების ნახვა
           </Link>
         ) : null}
       </div>

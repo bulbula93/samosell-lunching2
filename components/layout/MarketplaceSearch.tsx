@@ -121,6 +121,36 @@ export default function MarketplaceSearch({
       action="/catalog"
       role="search"
       className="relative z-[70] w-full min-w-0 max-w-full"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+      }}
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing) return
+        const input = rootRef.current?.querySelector<HTMLInputElement>('input[name="q"]')
+        if (event.key === "Escape" && showPanel) {
+          event.preventDefault()
+          event.stopPropagation()
+          input?.focus()
+          setOpen(false)
+          return
+        }
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
+        const links = Array.from(rootRef.current?.querySelectorAll<HTMLAnchorElement>("[data-search-suggestions] a[href]") ?? [])
+        const index = links.indexOf(event.target as HTMLAnchorElement)
+        if (event.target !== input && index < 0) return
+        event.preventDefault()
+        if (!showPanel) {
+          setRecentSearches(readRecentSearches())
+          setOpen(true)
+          return
+        }
+        if (!links.length) return
+        if (event.key === "ArrowDown") {
+          if (index === links.length - 1) input?.focus()
+          else links[index + 1]?.focus()
+        } else if (index === 0) input?.focus()
+        else links[index < 0 ? links.length - 1 : index - 1]?.focus()
+      }}
       onSubmit={() => {
         rememberSearch(query)
         setOpen(false)
@@ -145,13 +175,28 @@ export default function MarketplaceSearch({
             setOpen(true)
           }}
           placeholder={ka.nav.searchPlaceholder}
-          className="h-10 w-0 min-w-0 flex-1 rounded-full bg-transparent pl-10 pr-1 text-[16px] text-text placeholder:text-text-soft/80 md:text-sm"
-          aria-controls={`${inputId}-suggestions`}
+          className="h-11 w-0 min-w-0 flex-1 rounded-full bg-transparent pl-10 pr-1 text-[16px] text-text placeholder:text-text-soft/80 md:text-sm [&::-webkit-search-cancel-button]:appearance-none"
+          aria-controls={showPanel ? `${inputId}-suggestions` : undefined}
+          aria-describedby={showPanel ? `${inputId}-help` : undefined}
           style={{ outline: "none" }}
         />
+        {hasQuery ? (
+          <button
+            type="button"
+            aria-label="საძიებო ტექსტის გასუფთავება"
+            onClick={() => {
+              setQuery("")
+              rootRef.current?.querySelector<HTMLInputElement>('input[name="q"]')?.focus()
+              setOpen(true)
+            }}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl text-text-soft transition hover:bg-brand-soft hover:text-brand"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : null}
         <button
           type="submit"
-          className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-accent px-4 text-sm font-black text-brand transition hover:bg-accent-hover hover:text-white"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-accent px-4 text-sm font-black text-brand transition hover:bg-accent-hover hover:text-white"
           style={{ outlineOffset: "-3px" }}
         >
           {ka.nav.search}
@@ -161,8 +206,10 @@ export default function MarketplaceSearch({
       {showPanel ? (
         <div
           id={`${inputId}-suggestions`}
+          data-search-suggestions
           className="absolute inset-x-0 top-[calc(100%+8px)] overflow-hidden rounded-[1.35rem] border border-line bg-white shadow-[0_22px_54px_rgba(7,63,59,0.16)]"
         >
+          <p id={`${inputId}-help`} className="sr-only">მინიშნებებზე გადასასვლელად გამოიყენე ზედა და ქვედა ისრები. Enter ხსნის არჩევანს, Escape ხურავს მინიშნებებს.</p>
           <div className="max-h-[min(68vh,420px)] overflow-y-auto p-2">
             {!hasQuery && recentSearches.length > 0 ? (
               <section className="pb-2">
@@ -239,9 +286,9 @@ export default function MarketplaceSearch({
               </section>
             ) : hasQuery ? (
               <div className="px-4 py-5 text-center">
-                <p className="text-sm font-bold text-text">ზუსტი suggestion ვერ მოიძებნა</p>
+                <p className="text-sm font-bold text-text">მსგავსი ბრენდი ან კატეგორია ვერ მოიძებნა</p>
                 <p className="mt-1 text-xs leading-5 text-text-soft">
-                  მაინც მოძებნე — SamoSell typo-სა და მსგავს სიტყვებსაც ამოწმებს.
+                  სცადე ნივთის სახელით ძიება ან შეცვალე საძიებო სიტყვა.
                 </p>
               </div>
             ) : null}
