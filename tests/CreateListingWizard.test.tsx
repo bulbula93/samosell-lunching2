@@ -75,6 +75,9 @@ describe("CreateListingWizard", () => {
     expect(mocks.upload).toHaveBeenCalledOnce()
     expect(mocks.abort).not.toHaveBeenCalled()
     expect(await screen.findByRole("heading", { name: /განცხადება გამოქვეყნდა/ })).toBeInTheDocument()
+    const leaveAfterSuccess = new Event("beforeunload", { cancelable: true })
+    window.dispatchEvent(leaveAfterSuccess)
+    expect(leaveAfterSuccess.defaultPrevented).toBe(false)
   })
 
   it("keeps the attempt ID after a lost preparation response", async () => {

@@ -38,7 +38,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
   // nav's ~87px back to that bar instead of stacking two fixed bars on a phone.
   const hideForOwnActionBar = hidesMobileBottomNavigation(pathname)
   const hidden = hideForChatThread || hideForOwnActionBar
-  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/sell-fast"
+  const sellHref = userState.signedIn ? "/dashboard/listings/new" : "/login?next=%2Fdashboard%2Flistings%2Fnew"
   const messagesHref = userState.signedIn ? "/dashboard/chats" : "/login"
   const profileHref = userState.signedIn ? "/dashboard/profile" : "/login"
   const unreadChats = userState.unreadChats ?? 0
@@ -99,7 +99,7 @@ export default function MobileBottomNavigation({ userState }: { userState: Marke
 
         <Link
           href={sellHref}
-          prefetch={userState.signedIn ? false : undefined}
+          prefetch={false}
           aria-current={active("sell") ? "page" : undefined}
           aria-label="განცხადების დამატება"
           data-mobile-sell

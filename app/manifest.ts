@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "მთავარი", short_name: "მთავარი", url: "/" },
       { name: "კატალოგი", short_name: "კატალოგი", url: "/catalog" },
-      { name: "განცხადების დამატება", short_name: "გაყიდე", url: "/sell-fast" },
+      { name: "განცხადების დამატება", short_name: "გაყიდე", url: "/login?next=%2Fdashboard%2Flistings%2Fnew" },
     ],
     icons: [
       {
