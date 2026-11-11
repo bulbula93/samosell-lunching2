@@ -132,9 +132,9 @@ describe("CreateListingWizard", () => {
     await user.click(continueButton)
 
     expect(
-      screen.getByRole("heading", { name: /Preview — ასე გამოჩნდება განცხადება/ }),
+      screen.getByRole("heading", { name: /გადახედვა — ასე გამოჩნდება განცხადება/ }),
     ).toBeInTheDocument()
-    expect(screen.getByText("4/4 · Preview")).toBeInTheDocument()
+    expect(screen.getByText("4/4 · გადახედვა")).toBeInTheDocument()
     // Native browser activation must not see the clicked navigation button
     // turn into a submit button before the click's default action finishes.
     expect(continueButton).not.toBeInTheDocument()
@@ -155,5 +155,57 @@ describe("CreateListingWizard", () => {
     expect(screen.getByText("დაამატე მინიმუმ ერთი ფოტო.")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: /1\. დაამატე ფოტოები/ })).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "განცხადების დეტალები" })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ["დეტალების შეცვლა", /^რას ყიდი/, "შესწორებული ქურთუკი"],
+    ["ფასის შეცვლა", /^ფასი/, "150"],
+  ])("returns directly to review after %s without publishing", async (button, field, value) => {
+    const user = userEvent.setup()
+    render(<CreateListingWizard {...props} />)
+    await fillWizard(user)
+    await user.click(screen.getByRole("button", { name: button }))
+    const input = screen.getByLabelText(field)
+    await user.clear(input)
+    await user.type(input, value)
+    await user.click(screen.getByRole("button", { name: "გადახედვა →" }))
+    expect(screen.getByRole("heading", { name: /გადახედვა —/ })).toBeVisible()
+    expect(screen.getByText(button === "ფასის შეცვლა" ? "150 ₾" : value)).toBeVisible()
+    expect(mocks.prepare).not.toHaveBeenCalled()
+    expect(mocks.save).not.toHaveBeenCalled()
+  })
+
+  it("does not bypass validation when returning to review or lose the other fields", async () => {
+    const user = userEvent.setup()
+    render(<CreateListingWizard {...props} />)
+    await fillWizard(user)
+    await user.click(screen.getByRole("button", { name: "დეტალების შეცვლა" }))
+    await user.clear(screen.getByLabelText(/^რას ყიდი/))
+    await user.click(screen.getByRole("button", { name: "გადახედვა →" }))
+    expect(screen.getByRole("alert")).toBeVisible()
+    expect(screen.getByRole("heading", { name: "2. რა ნივთს ყიდი?" })).toBeVisible()
+    await user.type(screen.getByLabelText(/^რას ყიდი/), "სწორი სათაური")
+    await user.click(screen.getByRole("button", { name: /4\/4 · გადახედვა/ }))
+    expect(screen.getByRole("heading", { name: /გადახედვა —/ })).toBeVisible()
+    expect(screen.getByText("120 ₾")).toBeVisible()
+    expect(screen.getByText("კარგ მდგომარეობაშია და დეფექტი არ აქვს.")).toBeVisible()
+    expect(mocks.save).not.toHaveBeenCalled()
+  })
+
+  it("requires a replacement photo before returning to review after deleting the last one", async () => {
+    const user = userEvent.setup()
+    render(<CreateListingWizard {...props} />)
+    await fillWizard(user)
+    await user.click(screen.getByRole("button", { name: "ფოტოების შეცვლა" }))
+    await user.click(screen.getByRole("button", { name: "ფოტო 1 წაშალე" }))
+    await user.click(screen.getByRole("button", { name: "გადახედვა →" }))
+    expect(screen.getByRole("heading", { name: /1\. დაამატე ფოტოები/ })).toBeVisible()
+    expect(screen.getByText("დაამატე მინიმუმ ერთი ფოტო.")).toBeVisible()
+    await user.upload(screen.getByLabelText("განცხადების სურათების არჩევა"),
+      new File([new Uint8Array([0xff, 0xd8, 0xff])], "replacement.jpg", { type: "image/jpeg" }))
+    await user.click(screen.getByRole("button", { name: "გადახედვა →" }))
+    expect(screen.getByRole("heading", { name: /გადახედვა —/ })).toBeVisible()
+    expect(screen.getByText("120 ₾")).toBeVisible()
+    expect(mocks.prepare).not.toHaveBeenCalled()
   })
 })
