@@ -78,3 +78,7 @@ comment on table public.ads is
 
 comment on table public.ad_events is
   'Server-written, deduplicated first-party impression and click events. No direct client access.';
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select, insert, update, delete on table public.ads, public.ad_events to service_role;
+grant usage, select on sequence public.ad_events_id_seq to service_role;

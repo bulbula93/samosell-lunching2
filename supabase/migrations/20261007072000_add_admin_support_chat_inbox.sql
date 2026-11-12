@@ -329,3 +329,6 @@ revoke all on function public.admin_send_support_message(uuid,text,uuid) from pu
 grant execute on function public.admin_send_support_message(uuid,text,uuid) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.chat_threads to service_role;

@@ -574,3 +574,6 @@ where c.buyer_id = (select auth.uid()) or c.seller_id = (select auth.uid());
 
 revoke all on table public.chat_threads from anon;
 grant select on table public.chat_threads to authenticated;
+
+-- Explicit Data API privileges: replay safely without Supabase default grants.
+grant select on table public.chat_threads to service_role;
