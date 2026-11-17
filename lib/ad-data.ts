@@ -10,7 +10,7 @@ const getCachedActiveAdRows = unstable_cache(async (placementKeys: AdPlacementKe
   const {data,error}=await supabase.from("ads").select(AD_SELECT).eq("is_active",true).in("placement_key",[...placementKeys]).order("priority",{ascending:false}).order("created_at",{ascending:false})
   if(error) throw new Error(`active_ads_failed:${error.message}`)
   return (data??[]) as AdRecord[]
-},["active-ad-rows-v2"],{revalidate:60,tags:["active-ads"]})
+},["active-ad-rows-v2"],{revalidate:600,tags:["active-ads"]})
 
 async function rows(placementKeys:readonly AdPlacementKey[]) {
   const keys=Array.from(new Set(placementKeys)).sort() as AdPlacementKey[]

@@ -39,7 +39,7 @@ const loadPublicSeller = async (id: string, username: string) => {
     sellerCounts: counts.data as PublicSellerListingCounts | null, sellerReviewData: reviewData }
 }
 function makeReader() {
-  return unstable_cache(loadPublicSeller, ["public-seller-bundle-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+  return unstable_cache(loadPublicSeller, ["public-seller-bundle-v1"], { revalidate: 300, tags: ["public-listings", "public-sellers"] })
 }
 let read: ReturnType<typeof makeReader> | undefined
 export async function getCachedPublicSellerData(id: string, username: string) {
