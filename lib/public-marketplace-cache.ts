@@ -36,14 +36,14 @@ async function executePublicQuery(spec: PublicQuery | null, supabase = createPub
   return { data: result.data, count: result.count, error: null }
 }
 function makeCachedReader() {
-  return unstable_cache(executePublicQuery, ["anonymous-marketplace-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+  return unstable_cache(executePublicQuery, ["anonymous-marketplace-v1"], { revalidate: 600, tags: ["public-listings", "public-sellers"] })
 }
 function makeBatchReader() {
   return unstable_cache(async (specs: (PublicQuery | null)[]) => {
     const supabase = createPublicServerClient()
     return Promise.all(specs.map((spec) => executePublicQuery(spec, supabase)))
   },
-    ["anonymous-marketplace-batch-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+    ["anonymous-marketplace-batch-v1"], { revalidate: 600, tags: ["public-listings", "public-sellers"] })
 }
 let readPublicBatch: ReturnType<typeof makeBatchReader> | undefined
 

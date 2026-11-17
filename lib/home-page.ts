@@ -251,7 +251,9 @@ const getCachedPublicHomePageData = unstable_cache(
   }),
   ["home-public-data-v6"],
   {
-    revalidate: 60,
+    // Must not be shorter than app/page.tsx revalidate: Next regenerates a page at the
+    // SHORTEST data-cache window it reads. Freshness comes from tag invalidation.
+    revalidate: 600,
     tags: ["home-public-data"],
   },
 )

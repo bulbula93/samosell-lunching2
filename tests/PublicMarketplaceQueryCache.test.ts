@@ -30,7 +30,7 @@ describe("anonymous public query cache", () => {
     await read("seller-A")
     await expect(read("seller-B")).resolves.toMatchObject({ data: { id: "seller-B" } })
     expect(mocks.read).toHaveBeenCalledTimes(2)
-    expect(mocks.cache).toHaveBeenCalledWith(["anonymous-marketplace-v1"], { revalidate: 30, tags: ["public-listings", "public-sellers"] })
+    expect(mocks.cache).toHaveBeenCalledWith(["anonymous-marketplace-v1"], { revalidate: 600, tags: ["public-listings", "public-sellers"] })
   })
   it("does not cache a database failure as empty successful public data", async () => {
     mocks.read.mockResolvedValueOnce({ data: null, error: { message: "unavailable" } })
