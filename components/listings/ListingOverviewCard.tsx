@@ -208,16 +208,18 @@ export default function ListingOverviewCard({
         </p>
       ) : null}
 
-      <section aria-labelledby="listing-contact-heading" className="mt-5 rounded-2xl border border-brand/15 bg-brand-soft/25 p-4">
-        <h2 id="listing-contact-heading" className="text-base font-black text-text">
+      {/* Phones: the action bar is pinned to the bottom of the screen, so this card's chrome
+          would only repeat it. From md up the button lives inside this card. */}
+      <section aria-labelledby="listing-contact-heading" className="md:mt-5 md:rounded-2xl md:border md:border-brand/15 md:bg-brand-soft/25 md:p-4">
+        <h2 id="listing-contact-heading" className="sr-only md:not-sr-only md:text-base md:font-black md:text-text">
           {isOwner ? "მართე განცხადება" : isActive ? "დაუკავშირდი გამყიდველს" : "ნახე სხვა ნივთები"}
         </h2>
         {!isOwner ? (
-          <p className="mt-2 text-sm text-text-soft">
+          <p className="mt-2 hidden text-sm text-text-soft md:block">
             გამყიდველი: {sellerProfileHref ? <Link href={sellerProfileHref} className="font-semibold text-brand underline underline-offset-4">{sellerLabel}</Link> : <span className="font-semibold text-text">{sellerLabel}</span>}
           </p>
         ) : null}
-        <div className="mt-3">
+        <div className="md:mt-3">
           <MobileListingActionBar
             listingId={listing.id}
             listingSlug={listing.slug}
@@ -238,15 +240,15 @@ export default function ListingOverviewCard({
           />
         </div>
         {!isOwner && isActive && !messagingUnavailable ? (
-          <p className="mt-3 text-xs leading-6 text-text-soft">ნივთის მიღებისა და გადახდის პირობები უშუალოდ გამყიდველთან შეათანხმე.</p>
+          <p className="mt-3 hidden text-xs leading-6 text-text-soft md:block">ნივთის მიღებისა და გადახდის პირობები უშუალოდ გამყიდველთან შეათანხმე.</p>
         ) : null}
         {messagingUnavailable ? (
-          <p role="status" className="mt-3 text-sm leading-6 text-text-soft">{ka.listingDetail.messageUnavailable}</p>
+          <p role="status" className="mt-4 rounded-xl border border-line bg-surface-alt px-4 py-3 text-sm leading-6 text-text-soft md:mt-3 md:border-0 md:bg-transparent md:p-0">{ka.listingDetail.messageUnavailable}</p>
         ) : null}
       </section>
 
       {description ? (
-        <section aria-labelledby="listing-description-heading" className="mt-6">
+        <section aria-labelledby="listing-description-heading" className="mt-5 md:mt-6">
           <h2 id="listing-description-heading" className="text-lg font-black text-text">
             {ka.listingDetail.description}
           </h2>
