@@ -68,6 +68,22 @@ function getStatusMessage(status?: string | null) {
   return ""
 }
 
+const SECTION_CATEGORY_SLUGS = new Set(["women", "men", "kids"])
+
+/** Size, condition and city are what buyers check first — shown as chips right under the price. */
+function buildQuickFacts(listing: CatalogListing) {
+  return [
+    listing.size_label ? `${ka.listingDetail.size}: ${listing.size_label}` : null,
+    listing.condition ? conditionLabel(listing.condition) : null,
+    listing.city ? `📍 ${listing.city}` : null,
+  ].filter((fact): fact is string => Boolean(fact))
+}
+
+/** Long descriptions start collapsed (CSS-only toggle, no client JavaScript). */
+export function isLongDescription(text: string) {
+  return text.length > 280 || text.split("\n").length > 6
+}
+
 function buildDetailItems(listing: CatalogListing) {
   const details: Array<DetailItem | null> = [
     listing.category_name
@@ -76,23 +92,15 @@ function buildDetailItems(listing: CatalogListing) {
     listing.brand_name
       ? { label: ka.listingDetail.brand, value: listing.brand_name }
       : null,
-    listing.size_label
-      ? { label: ka.listingDetail.size, value: listing.size_label }
-      : null,
-    listing.condition
-      ? { label: ka.listingDetail.condition, value: conditionLabel(listing.condition) }
-      : null,
     listing.color
       ? { label: ka.listingDetail.color, value: listing.color }
       : null,
     listing.material
       ? { label: ka.listingDetail.material, value: listing.material }
       : null,
-    listing.gender
+    // "კატეგორია: ქალებისთვის" already says who it is for — only show gender when it adds information.
+    listing.gender && !SECTION_CATEGORY_SLUGS.has(listing.category_slug ?? "")
       ? { label: ka.listingDetail.section, value: genderLabel(listing.gender) }
-      : null,
-    listing.city
-      ? { label: ka.listingDetail.location, value: listing.city }
       : null,
   ]
 
@@ -127,7 +135,9 @@ export default function ListingOverviewCard({
   const isActive = listing.status === "active"
   const statusMessage = getStatusMessage(listing.status)
   const details = buildDetailItems(listing)
+  const quickFacts = buildQuickFacts(listing)
   const description = listing.description?.trim() || ""
+  const descriptionIsLong = isLongDescription(description)
   const sellerProfileHref = sellerProfile?.username
     ? `/seller/${encodeURIComponent(sellerProfile.username)}`
     : null
@@ -171,13 +181,22 @@ export default function ListingOverviewCard({
         ) : null}
         <h1
           id="listing-title"
-          className="mt-2 break-words text-[1.35rem] font-black leading-tight text-text [overflow-wrap:anywhere] sm:text-3xl"
+          className="mt-2 break-words text-xl font-black leading-snug text-text [overflow-wrap:anywhere] sm:text-3xl"
         >
           {listing.title}
         </h1>
         <p className="mt-3 text-[1.75rem] font-black tracking-tight text-text sm:mt-4 sm:text-4xl">
           {listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
         </p>
+        {quickFacts.length > 0 ? (
+          <ul aria-label="მთავარი ინფორმაცია" className="mt-3 flex flex-wrap gap-2">
+            {quickFacts.map((fact) => (
+              <li key={fact} className="inline-flex min-h-8 items-center rounded-full border border-line bg-surface-alt px-3 py-1 text-sm font-semibold text-text">
+                {fact}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </header>
 
       {statusMessage ? (
@@ -226,12 +245,29 @@ export default function ListingOverviewCard({
         ) : null}
       </section>
 
+      {description ? (
+        <section aria-labelledby="listing-description-heading" className="mt-6">
+          <h2 id="listing-description-heading" className="text-lg font-black text-text">
+            {ka.listingDetail.description}
+          </h2>
+          {descriptionIsLong ? <input id="listing-description-toggle" type="checkbox" className="peer sr-only" /> : null}
+          <p className={`mt-2 whitespace-pre-wrap break-words text-[15px] leading-7 text-text [overflow-wrap:anywhere] ${descriptionIsLong ? "line-clamp-6 peer-checked:line-clamp-none" : ""}`}>
+            {description}
+          </p>
+          {descriptionIsLong ? (
+            <label htmlFor="listing-description-toggle" className="mt-2 inline-flex min-h-10 cursor-pointer items-center text-sm font-bold text-brand underline underline-offset-4 peer-checked:hidden">
+              სრულად ნახვა
+            </label>
+          ) : null}
+        </section>
+      ) : null}
+
       {details.length > 0 ? (
-        <section aria-labelledby="listing-details-heading" className="mt-7 border-t border-line pt-6">
+        <section aria-labelledby="listing-details-heading" className="mt-6 border-t border-line pt-5">
           <h2 id="listing-details-heading" className="text-lg font-black text-text">
             {ka.listingDetail.details}
           </h2>
-          <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
+          <dl className="mt-3 grid grid-cols-2 gap-x-5 gap-y-3">
             {details.map((item) => (
               <div key={item.label} className="min-w-0 border-b border-line/70 pb-3">
                 <dt className="text-xs font-semibold text-text-soft">{item.label}</dt>
@@ -244,16 +280,6 @@ export default function ListingOverviewCard({
         </section>
       ) : null}
 
-      {description ? (
-        <section aria-labelledby="listing-description-heading" className="mt-7 border-t border-line pt-6">
-          <h2 id="listing-description-heading" className="text-lg font-black text-text">
-            {ka.listingDetail.description}
-          </h2>
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-text-soft [overflow-wrap:anywhere]">
-            {description}
-          </p>
-        </section>
-      ) : null}
 
       <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-text-soft">
         {listing.public_id ? (
