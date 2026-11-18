@@ -74,6 +74,24 @@ describe("SmartImage fit", () => {
     const { getByAltText } = render(<SmartImage src={LOCAL_PREVIEW} alt="ქურთუკი" fit="contain" />)
     expect(getByAltText("ქურთუკი").className).toContain("object-contain")
   })
+
+  it("resets loading and measured fit when the image source changes", () => {
+    const { getByAltText, rerender } = render(
+      <SmartImage src={LOCAL_PREVIEW} alt="ფოტო" fit="auto" frameAspect={4 / 5} backdrop />,
+    )
+    loadWithSize(getByAltText("ფოტო") as HTMLImageElement, 1600, 1000)
+    expect(getByAltText("ფოტო")).toHaveAttribute("data-fit", "contain")
+    expect(getByAltText("ფოტო")).toHaveClass("opacity-100")
+
+    rerender(
+      <SmartImage src={`${LOCAL_PREVIEW}-new`} alt="ფოტო" fit="auto" frameAspect={4 / 5} backdrop />,
+    )
+
+    expect(getByAltText("ფოტო")).toHaveAttribute("data-fit", "cover")
+    expect(getByAltText("ფოტო")).toHaveClass("opacity-0")
+    loadWithSize(getByAltText("ფოტო") as HTMLImageElement, 1200, 1500)
+    expect(getByAltText("ფოტო")).toHaveClass("opacity-100")
+  })
 })
 
 describe("listing surfaces use the shape-aware fit", () => {
