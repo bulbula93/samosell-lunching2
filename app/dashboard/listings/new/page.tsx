@@ -36,7 +36,7 @@ export default async function DashboardNewListingPage() {
     <main className="min-h-screen bg-bg px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto w-full max-w-5xl space-y-6">
         {!completion.canPublishListing ? (
-          <ProfilePhoneRequiredCard />
+          <ProfilePhoneRequiredCard initialPhone={sellerPhone} />
         ) : (
           <CreateListingWizard
             categories={categoriesResult.data ?? []}

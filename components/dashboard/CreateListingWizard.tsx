@@ -103,7 +103,7 @@ const stepMeta: Array<{ step: Step; label: string; helper: string }> = [
   { step: 1, label: "ფოტოები", helper: "კამერა, გალერეა, რიგი" },
   { step: 2, label: "დეტალები", helper: "სათაური და მახასიათებლები" },
   { step: 3, label: "ფასი", helper: "ფასი და გაყიდვის ტიპი" },
-  { step: 4, label: "Preview", helper: "შემოწმება და გამოქვეყნება" },
+  { step: 4, label: "გადახედვა", helper: "შემოწმება და გამოქვეყნება" },
 ]
 
 function fieldErrorId(id: string) {
@@ -270,6 +270,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   const draggingImageIdRef = useRef("")
 
   const [step, setStep] = useState<Step>(1)
+  const [editingFromReview, setEditingFromReview] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
@@ -512,6 +513,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }
 
   function jumpToStep(next: Step) {
+    if (step === 4 && next < 4) setEditingFromReview(true)
+    if (next === 4) setEditingFromReview(false)
     setStep(next)
     setFormError("")
     requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
@@ -551,6 +554,16 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
   }
 
   function handleNext() {
+    if (editingFromReview) {
+      for (const target of [1, 2, 3] as const) {
+        if (!validateCurrentStep(target)) {
+          setStep(target)
+          return
+        }
+      }
+      jumpToStep(4)
+      return
+    }
     if (step === 1 && validateCurrentStep(1)) jumpToStep(2)
     if (step === 2 && validateCurrentStep(2)) jumpToStep(3)
     if (step === 3 && validateCurrentStep(3)) jumpToStep(4)
@@ -928,8 +941,8 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                 <li key={item.step} className="min-w-0">
                   <button
                     type="button"
-                    disabled={item.step > step || loading}
-                    onClick={() => item.step <= step && jumpToStep(item.step)}
+                    disabled={(item.step > step && !(editingFromReview && item.step === 4)) || loading}
+                    onClick={() => editingFromReview && item.step === 4 ? handleNext() : item.step <= step && jumpToStep(item.step)}
                     className={`flex min-h-[76px] w-full min-w-0 flex-col items-center justify-center rounded-xl border px-1.5 py-2 text-center transition sm:min-h-0 sm:items-start sm:px-3 sm:py-3 sm:text-left ${
                       active
                         ? "border-brand bg-brand text-white"
@@ -1309,10 +1322,15 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
           <section className="ui-card p-5 sm:p-8" aria-labelledby={`${formPrefix}-review-heading`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 id={`${formPrefix}-review-heading`} className="text-lg font-black text-text">Preview — ასე გამოჩნდება განცხადება</h2>
-                <p className="mt-1 text-sm text-text-soft">თუ რამე შესაცვლელია, შესაბამის ნაბიჯზე დაბრუნდი.</p>
+                <h2 id={`${formPrefix}-review-heading`} className="text-lg font-black text-text">გადახედვა — ასე გამოჩნდება განცხადება</h2>
+                <p className="mt-1 text-sm text-text-soft">შეცვალე ფოტოები, დეტალები ან ფასი და პირდაპირ გადახედვას დაუბრუნდი.</p>
               </div>
               <span className="ui-pill-soft self-start">{images.length} ფოტო</span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2" aria-label="განცხადების შესწორება">
+              <button type="button" onClick={() => jumpToStep(1)} className="ui-btn-secondary min-h-11 px-3 text-xs">ფოტოების შეცვლა</button>
+              <button type="button" onClick={() => jumpToStep(2)} className="ui-btn-secondary min-h-11 px-3 text-xs">დეტალების შეცვლა</button>
+              <button type="button" onClick={() => jumpToStep(3)} className="ui-btn-secondary min-h-11 px-3 text-xs">ფასის შეცვლა</button>
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-[180px_1fr]">
               <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-line bg-surface-alt">
@@ -1437,7 +1455,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         )}
 
         {step < 4 ? (
-          <button key="continue" type="button" disabled={loading} onClick={(event) => { event.preventDefault(); handleNext() }} className="ui-btn-primary min-h-12 px-7">გაგრძელება →</button>
+          <button key="continue" type="button" disabled={loading} onClick={(event) => { event.preventDefault(); handleNext() }} className="ui-btn-primary min-h-12 px-7">{editingFromReview ? "გადახედვა →" : "გაგრძელება →"}</button>
         ) : (
           <button key="publish" type="submit" disabled={loading} className="ui-btn-primary min-h-12 px-7 text-base">
             {loading ? "ინახება…" : publishNow ? "განცხადების გამოქვეყნება" : "დრაფტის შექმნა"}
