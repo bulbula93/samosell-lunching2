@@ -233,3 +233,37 @@ describe("ListingOverviewCard", () => {
     expect(screen.queryByRole("button", { name: ka.listingDetail.messageSeller })).not.toBeInTheDocument()
   })
 })
+
+describe("ListingOverviewCard — readable layout", () => {
+  it("shows size, condition and city as chips under the price, and the description before the details", () => {
+    render(
+      <ListingOverviewCard
+        {...baseProps}
+        listing={makeListing({ description: "მოკლე აღწერა", size_label: "38", condition: "new", city: "ბათუმი", category_slug: "women", category_name: "ქალებისთვის", gender: "women" })}
+      />,
+    )
+    const facts = screen.getByRole("list", { name: "მთავარი ინფორმაცია" })
+    expect(within(facts).getByText(/38/)).toBeInTheDocument()
+    expect(within(facts).getByText(/ბათუმი/)).toBeInTheDocument()
+
+    const description = screen.getByRole("heading", { name: ka.listingDetail.description })
+    const details = screen.getByRole("heading", { name: ka.listingDetail.details })
+    expect(description.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    // "განყოფილება: ქალი" repeats "კატეგორია: ქალებისთვის"
+    expect(screen.queryByText(ka.listingDetail.section)).not.toBeInTheDocument()
+    // short description: no collapse control
+    expect(screen.queryByText("სრულად ნახვა")).not.toBeInTheDocument()
+  })
+
+  it("collapses long descriptions with a no-JS toggle", () => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({ description: "ძალიან კარგი ნივთი. ".repeat(30) })} />)
+    expect(screen.getByText("სრულად ნახვა").tagName).toBe("LABEL")
+    expect(document.getElementById("listing-description-toggle")).toHaveAttribute("type", "checkbox")
+  })
+
+  it("keeps the gender row when the category does not imply it", () => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({ category_slug: "footwear", category_name: "ფეხსაცმელი", gender: "kids" })} />)
+    expect(screen.getByText(ka.listingDetail.section)).toBeInTheDocument()
+  })
+})
