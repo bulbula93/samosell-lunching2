@@ -267,3 +267,19 @@ describe("ListingOverviewCard — readable layout", () => {
     expect(screen.getByText(ka.listingDetail.section)).toBeInTheDocument()
   })
 })
+
+describe("ListingOverviewCard — contact card on phones", () => {
+  it("keeps the action bar but hides the duplicate contact card chrome below md", () => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({})} />)
+    const heading = screen.getByRole("heading", { name: "დაუკავშირდი გამყიდველს" })
+    expect(heading.className).toContain("sr-only")
+    expect(heading.className).toContain("md:not-sr-only")
+    const section = heading.closest("section")!
+    expect(section.className).not.toMatch(/(^|\s)(border|rounded-2xl|p-4)(\s|$)/)
+    expect(section.className).toContain("md:border")
+    const terms = screen.getByText(/ნივთის მიღებისა და გადახდის პირობები/).className.split(/\s+/)
+    expect(terms).toEqual(expect.arrayContaining(["hidden", "md:block"]))
+    // the action itself is still rendered (pinned bar on phones)
+    expect(screen.getByRole("link", { name: ka.listingDetail.loginToMessage })).toBeInTheDocument()
+  })
+})
