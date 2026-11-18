@@ -84,6 +84,27 @@ describe("ListingGallery", () => {
     expect(screen.queryByRole("tab")).not.toBeInTheDocument()
   })
 
+  it("loads another photo after the selected photo fails", () => {
+    render(
+      <ListingGallery
+        title="ფოტოს აღდგენა"
+        coverImageUrl={firstImage}
+        images={[
+          { id: "1", image_url: firstImage, sort_order: 0 },
+          { id: "2", image_url: secondImage, sort_order: 1 },
+        ]}
+      />,
+    )
+
+    fireEvent.error(visibleGalleryImage(/ფოტოს აღდგენა.*1/)!)
+    expect(screen.getByText(ka.product.imageUnavailable)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: ka.listingDetail.nextImage }))
+
+    expect(visibleGalleryImage(/ფოტოს აღდგენა.*2/)).toHaveAttribute("src", secondImage)
+    expect(screen.queryByText(ka.product.imageUnavailable)).not.toBeInTheDocument()
+  })
+
   it("sorts images without mutating the original array", () => {
     const images = [
       { id: "later", image_url: secondImage, sort_order: 5 },

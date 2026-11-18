@@ -39,7 +39,7 @@ export function shouldCoverForAspect(imageAspect: number, frameAspect: number, t
   return ratio <= tolerance && ratio >= 1 / tolerance
 }
 
-export default function SmartImage({
+function SmartImageForSource({
   src,
   alt,
   wrapperClassName = "",
@@ -63,6 +63,10 @@ export default function SmartImage({
     if (isLocalPreview) return rawSrc
     return getSafeImageSource(rawSrc) ?? ""
   }, [isLocalPreview, rawSrc])
+
+  // The URL has already passed our Storage allowlist. Serve uploads directly
+  // so Vercel's image transformation quota cannot hide available photos.
+  const unoptimized = isLocalPreview || safeSrc.startsWith("https://")
 
   if (!safeSrc || failed) {
     return (
@@ -100,7 +104,7 @@ export default function SmartImage({
           alt=""
           aria-hidden="true"
           fill
-          unoptimized={isLocalPreview}
+          unoptimized={unoptimized}
           sizes={sizes}
           loading={loading}
           className="pointer-events-none scale-150 object-cover blur-xl saturate-[1.1]"
@@ -110,7 +114,7 @@ export default function SmartImage({
         src={safeSrc}
         alt={alt}
         fill
-        unoptimized={isLocalPreview}
+        unoptimized={unoptimized}
         sizes={sizes}
         loading={loading}
         fetchPriority={revealImmediately ? "high" : "auto"}
@@ -121,4 +125,10 @@ export default function SmartImage({
       />
     </div>
   )
+}
+
+export default function SmartImage(props: SmartImageProps) {
+  // Loading, errors and measured fit belong to one source. A different photo
+  // must get fresh state, including after the previous photo failed to load.
+  return <SmartImageForSource key={String(props.src ?? "").trim()} {...props} />
 }
