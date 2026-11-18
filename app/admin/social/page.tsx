@@ -8,6 +8,8 @@ import { createSocialStore } from "@/lib/social/supabase-store"
 import type { AdDraft, MetricRow, PublishJob, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
 import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
 import { PlatformPreview, StoryPreview } from "./previews"
+import { getWeeklySocialGoals } from "@/lib/social/weekly-goals"
+import { WeeklyGoalsPanel } from "./weekly-goals-panel"
 
 export const dynamic = "force-dynamic"
 // Server actions on this page may convert a few images for Instagram (sharp); keep headroom.
@@ -94,6 +96,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
   const problemJobs = data.jobs.filter(j => ["needs_review", "dead_letter", "failed"].includes(j.status))
   const upcoming = data.posts.filter(p => ["scheduled", "approved"].includes(p.status)).sort((a,b) => a.scheduledFor.localeCompare(b.scheduledFor))
   const publishedCount = data.posts.filter(p => p.status === "published").length
+  const weekly = getWeeklySocialGoals({ posts: data.posts, jobs: data.jobs, metrics: data.metrics })
 
 
   return (
@@ -126,6 +129,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
 
       <nav aria-label="Social workspace" className="flex flex-wrap gap-2 rounded-xl border p-2 text-sm font-bold">
         <a className="rounded-lg px-4 py-2 hover:underline" href="#overview">მიმოხილვა</a>
+        <a className="rounded-lg px-4 py-2 hover:underline" href="#weekly-goals">კვირის მიზნები</a>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#content">კონტენტი</a>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#publishing">გამოქვეყნება</a>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#analytics">ანალიტიკა</a>
@@ -133,6 +137,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         <Link className="rounded-lg px-4 py-2 hover:underline" href="/admin/social/tiktok">TikTok Draft Agent (QA)</Link>
         <a className="rounded-lg px-4 py-2 hover:underline" href="#advanced">პარამეტრები</a>
       </nav>
+      <WeeklyGoalsPanel {...weekly} simulated={data.simulated} />
       <section id="overview" aria-label="Overview" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="ui-card p-5"><p className="text-xs text-text-soft">შემდეგი გამოქვეყნება</p><p className="mt-2 text-lg font-black">{upcoming[0] ? tbilisi(upcoming[0].scheduledFor) : "არ არის"}</p></div>
         <div className="ui-card p-5"><p className="text-xs text-text-soft">რიგში</p><p className="mt-2 text-3xl font-black">{queuedJobs.length}</p></div>
