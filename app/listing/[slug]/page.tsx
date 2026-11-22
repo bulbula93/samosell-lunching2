@@ -1,3 +1,4 @@
+import { getFacebookGroupUrl } from "@/lib/facebook-community-server"
 import { serverAllowsAnalytics } from "@/lib/browser-consent-server"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
@@ -52,7 +53,7 @@ export default async function ListingDetailsPage({
 }) {
   const { slug } = await params
   const query = (await searchParams) ?? {}
-  const pageData = await fetchListingPageData(slug)
+  const [pageData, facebookGroupUrl] = await Promise.all([fetchListingPageData(slug), getFacebookGroupUrl()])
   if (!pageData) notFound()
 
   const {
@@ -178,6 +179,7 @@ export default async function ListingDetailsPage({
               isBlockedBySeller={isBlockedBySeller}
               sellerSuspended={Boolean(sellerProfile?.is_suspended)}
               sellerReviewSummary={reviewData.summary}
+              facebookGroupUrl={facebookGroupUrl}
               shareUrl={absoluteUrl(`/listing/${listing.slug}`)}
               searchId={searchId}
               sellerStoryOwner={sellerStoryOwner}

@@ -5,6 +5,7 @@ import { getPublicStorageHosts } from "./lib/media";
 const isReadOnlyReviewPreview =
   process.env.VERCEL_ENV === "preview" &&
   [
+    "codex/facebook-community-mvp-20261109",
     "preview/public-cache-personalization-20261019",
     "preview/vercel-storage-optimization-20261014",
     "preview/listing-upload-idempotency-20261016",

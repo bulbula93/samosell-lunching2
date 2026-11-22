@@ -45,6 +45,7 @@ type ListingOverviewCardProps = {
   isBlockedBySeller: boolean
   sellerSuspended: boolean
   sellerReviewSummary?: SellerReviewSummary
+  facebookGroupUrl?: string | null
   shareUrl: string
   searchId?: string | null
   sellerStoryOwner?: StoryOwner | null
@@ -127,6 +128,7 @@ export default function ListingOverviewCard({
   isBlockedBySeller,
   sellerSuspended,
   sellerReviewSummary,
+  facebookGroupUrl,
   shareUrl,
   searchId = null,
   sellerStoryOwner = null,
@@ -421,7 +423,9 @@ export default function ListingOverviewCard({
             />
           ) : null}
 
-          <ListingSocialShare
+          {isActive ? <ListingSocialShare
+            listingId={listing.id}
+            facebookGroupUrl={facebookGroupUrl}
             url={shareUrl}
             title={listing.title}
             text={buildListingShareCaption({
@@ -434,7 +438,7 @@ export default function ListingOverviewCard({
             imageUrl={listing.cover_image_url}
             priceText={listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
             className="sm:col-span-2"
-          />
+          /> : null}
 
         </div>
 

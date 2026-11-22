@@ -34,4 +34,16 @@ describe("cached listing authorization and live price", () => {
     await expect(fetchListingPageData("linen-jacket")).resolves.toBeNull()
     expect(state.cached).not.toHaveBeenCalled()
   })
+  it("provides canonical public Open Graph and Twitter cards without Preview URLs", async () => {
+    state.cached.mockResolvedValue({ data: makeListing({ slug: "linen-jacket", cover_image_url: null, size_label: "M", city: "თბილისი" }), error: null })
+    const metadata = await generateListingMetadata("linen-jacket")
+    expect(metadata?.alternates?.canonical).toBe("https://samosell.ge/listing/linen-jacket")
+    expect(metadata?.openGraph).toMatchObject({
+      url: "https://samosell.ge/listing/linen-jacket", siteName: "SamoSell", type: "website",
+      images: [{ url: "https://samosell.ge/listing-og-fallback.png" }],
+    })
+    expect(metadata?.openGraph?.description).toContain("M")
+    expect(metadata?.openGraph?.description).toContain("თბილისი")
+    expect(metadata?.twitter).toMatchObject({ card: "summary_large_image", images: ["https://samosell.ge/listing-og-fallback.png"] })
+  })
 })

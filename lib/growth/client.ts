@@ -1,4 +1,5 @@
 "use client"
+import { isListingShareAction, type ListingShareAction } from "@/lib/facebook-community"
 import { allowsAnalytics, getBrowserConsent } from "@/lib/browser-preferences"
 import { GROWTH_COOKIE, GROWTH_KEY, TOUCH_TTL, SESSION_TTL, cleanTouch, parseContext, routeGroup, safePath, sanitizePublishFailure, type GrowthContext, type GrowthEventName, type PublishFailure, type Touch, uuid } from "./shared"
 
@@ -61,3 +62,18 @@ export function listingAttempt(userId?: string) {
   return id
 }
 export function clearListingAttempt(userId?: string) { try { sessionStorage.removeItem(`${GROWTH_KEY}:listing:${userId ?? "current"}`) } catch { /* unavailable */ } }
+
+/** Consent-gated first-party intent telemetry. Never a confirmed Facebook post. */
+export async function trackListingShare(listingId: string, action: ListingShareAction): Promise<void> {
+  if (!uuid(listingId) || !isListingShareAction(action) || !allowsAnalytics() || process.env.NEXT_PUBLIC_PREVIEW_READ_ONLY === "true") return
+  try {
+    const context = growthContext()
+    if (!context) return
+    await fetch("/api/growth/events", {
+      method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+      body: JSON.stringify({ event_name: "listing_share_action", event_id: crypto.randomUUID(), context,
+        listing_id: listingId, share_action: action, path: safePath(location.pathname),
+        device_class: innerWidth < 768 ? "mobile" : innerWidth < 1024 ? "tablet" : "desktop" }),
+    })
+  } catch { /* Optional telemetry never blocks the user's share action. */ }
+}

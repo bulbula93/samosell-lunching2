@@ -75,4 +75,22 @@ describe("Growth ingestion security", () => {
     await POST(request({ ...event(), failure: { stage: "save", code: "invalid" } }))
     expect(state.rpc.mock.calls[1][1].p_event).not.toHaveProperty("failure")
   })
+  it("accepts bounded listing-share intent but never returns or delivers Meta conversions", async () => {
+    state.rpc.mockResolvedValue({ data: [{ event_name: "page_view" }], error: null })
+    const result = await POST(request({ ...event(), event_name: "listing_share_action", path: "/listing/test-123?secret=x", listing_id: anon, share_action: "post_copied", title: "private" }, true, true))
+    expect(result.status).toBe(200)
+    expect(await result.json()).toEqual({ conversions: [] })
+    expect(state.after).not.toHaveBeenCalled()
+    const sent = state.rpc.mock.calls[0][1].p_event
+    expect(sent).toMatchObject({ user_id: null, listing_id: anon, share_action: "post_copied", path: "/listing/:id" })
+    expect(sent).not.toHaveProperty("title")
+  })
+  it("rejects invalid share actions, IDs and paths", async () => {
+    const body = { ...event(), event_name: "listing_share_action", path: "/listing/test", listing_id: anon, share_action: "link_copied" }
+    for (const patch of [{ listing_id: "bad" }, { share_action: "published" }, { path: "/admin" }]) {
+      expect((await POST(request({ ...body, ...patch }))).status).toBe(400)
+    }
+    expect(state.rpc).not.toHaveBeenCalled()
+  })
+
 })

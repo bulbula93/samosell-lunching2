@@ -1,3 +1,4 @@
+import { isListingShareAction } from "@/lib/facebook-community"
 import { after } from "next/server"
 import { cookieConsent } from "@/lib/browser-preferences"
 import { BoundedBodyError, readBoundedRequestBody } from "@/lib/bounded-request-body"
@@ -23,13 +24,16 @@ export async function POST(request: Request) {
   }
   if (!consent?.analytics || /bot|crawler|spider|lighthouse|pagespeed/i.test(request.headers.get("user-agent") ?? "")) return Response.json({ conversions: [] }, { headers })
   const context = parseContext(JSON.stringify(body.context))
-  if (!context || !["page_view", "listing_started", "listing_publish_failed", "identify"].includes(String(body.event_name))) return Response.json({ error: "invalid_event" }, { status: 400, headers })
+  if (!context || !["page_view", "listing_started", "listing_publish_failed", "identify", "listing_share_action"].includes(String(body.event_name))) return Response.json({ error: "invalid_event" }, { status: 400, headers })
   if (!uuid(body.event_id) && !(body.event_name === "listing_started" && uuid(body.attempt_id) && body.event_id === `listing_started:${body.attempt_id}`)) return Response.json({ error: "invalid_id" }, { status: 400, headers })
   const path = safePath(body.path)
   if (["listing_started", "listing_publish_failed"].includes(String(body.event_name)) && (!user || path !== "/dashboard/listings/new")) return Response.json({ error: "unauthorized" }, { status: 403, headers })
+  const isShare = body.event_name === "listing_share_action"
+  if (isShare && (!uuid(body.listing_id) || !isListingShareAction(body.share_action) || path !== "/listing/:id")) return Response.json({ error: "invalid_share" }, { status: 400, headers })
   try {
-    const { data, error } = await createAdminClient().rpc("ingest_growth_browser_event", { p_event: { ...context, event_name: body.event_name, event_id: body.event_id, user_id: user?.id ?? null, path, route_group: routeGroup(path), device_class: ["mobile", "tablet", "desktop"].includes(String(body.device_class)) ? body.device_class : "desktop", marketing_consent: consent.marketing === true, consent_updated_at: consent.updatedAt, ...(body.event_name === "listing_publish_failed" ? { failure: sanitizePublishFailure(body.failure) } : {}) } })
+    const { data, error } = await createAdminClient().rpc("ingest_growth_browser_event", { p_event: { ...context, event_name: body.event_name, event_id: body.event_id, user_id: user?.id ?? null, path, route_group: routeGroup(path), device_class: ["mobile", "tablet", "desktop"].includes(String(body.device_class)) ? body.device_class : "desktop", marketing_consent: consent.marketing === true, consent_updated_at: consent.updatedAt, ...(isShare ? { listing_id: body.listing_id, share_action: body.share_action } : {}), ...(body.event_name === "listing_publish_failed" ? { failure: sanitizePublishFailure(body.failure) } : {}) } })
     if (error) return Response.json({ error: "tracking_unavailable" }, { status: error.code === "P0001" ? 429 : 503, headers })
+    if (isShare) return Response.json({ conversions: [] }, { headers })
     after(() => deliverMetaEvents(user?.id).catch(() => undefined))
     return Response.json({ conversions: data ?? [] }, { headers })
   } catch { return Response.json({ error: "tracking_unavailable" }, { status: 503, headers }) }
