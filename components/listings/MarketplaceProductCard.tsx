@@ -89,7 +89,7 @@ export default function MarketplaceProductCard({
         src={sellerAvatar}
         alt={sellerLabel}
         fallbackText={sellerLabel}
-        sizeClassName="h-7 w-7"
+        sizeClassName="h-8 w-8"
         textClassName="text-[10px]"
         className="shrink-0 border border-line/80 shadow-none ring-0"
       />
@@ -107,7 +107,7 @@ export default function MarketplaceProductCard({
   )
 
   return (
-    <article className="group relative flex h-full min-w-0 flex-col rounded-[20px] border border-line bg-white p-2 shadow-[0_7px_22px_rgba(7,63,59,0.045)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-[0_16px_36px_rgba(7,63,59,0.09)] sm:rounded-[22px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
+    <article className="group relative flex h-full min-w-0 flex-col rounded-[22px] border border-[#e7eeeb] bg-white p-2 shadow-[0_8px_26px_rgba(7,63,59,0.055)] transition duration-300 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-[0_16px_36px_rgba(7,63,59,0.1)] sm:rounded-[24px] sm:p-2.5 [contain-intrinsic-size:auto_340px] [content-visibility:auto]">
       <Link
         data-catalog-open=""
         href={listingHref}
@@ -118,7 +118,7 @@ export default function MarketplaceProductCard({
         <span className="sr-only">{item.title}</span>
       </Link>
 
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[15px] bg-[#f1f2ef] sm:rounded-[16px]">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[19px] bg-[#f5f5f4] sm:rounded-[20px]">
         <SmartImage
           src={item.cover_image_url}
           alt={item.title}
@@ -133,7 +133,7 @@ export default function MarketplaceProductCard({
         />
 
         {(isGift || statusBadge || promotionBadge) ? (
-          <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5 sm:left-2.5 sm:top-2.5">
+          <div className="pointer-events-none absolute left-2 top-2 z-20 flex max-w-[calc(100%-4.5rem)] flex-wrap gap-1.5 sm:left-2.5 sm:top-2.5">
             {isGift ? (
               <span className="inline-flex min-h-7 items-center rounded-full border border-[#ffd5b2] bg-[#fff7ed]/95 px-2.5 py-1 text-[11px] font-black text-[#d85f0e] shadow-sm backdrop-blur">
                 🎁 ჩუქება
@@ -154,7 +154,7 @@ export default function MarketplaceProductCard({
         ) : null}
 
         {showFavorite && !unavailable ? (
-          <div className="absolute bottom-2 right-2 z-30 sm:bottom-2.5 sm:right-2.5">
+          <div className="absolute right-2 top-2 z-30 sm:right-2.5 sm:top-2.5">
             <FavoriteToggleForm
               listingId={item.id}
               listingSlug={item.slug}
@@ -162,28 +162,28 @@ export default function MarketplaceProductCard({
               isFavorited={isFavorited}
               searchId={searchId}
               compact
-              className="shadow-[0_6px_18px_rgba(7,63,59,0.14)]"
+              className="shadow-[0_5px_16px_rgba(7,63,59,0.12)]"
             />
           </div>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-2.5 sm:pt-3">
-        <h3 className="line-clamp-2 min-h-10 text-[13px] font-bold leading-5 text-text transition group-hover:text-brand sm:text-sm">
+      <div className="flex flex-1 flex-col px-1.5 pb-1.5 pt-3 sm:px-2 sm:pt-3.5">
+        <h3 className="line-clamp-2 min-h-10 text-[14px] font-bold leading-5 text-text transition group-hover:text-brand sm:text-sm">
           {item.title}
         </h3>
 
-        <div className={`mt-1.5 flex items-center gap-1.5 text-[17px] font-black leading-6 sm:text-lg ${isGift ? "text-[#e96b10]" : "text-brand"}`}>
+        <div className={`mt-1.5 flex items-center gap-1.5 text-[19px] font-black leading-7 sm:text-xl ${isGift ? "text-[#e96b10]" : "text-brand"}`}>
           {isGift ? <span aria-hidden="true" className="text-[15px]">🎁</span> : null}
           <span>{priceLabel}</span>
         </div>
 
         {/* Wrap instead of truncating: on 2-column phones "ახალი"/"თბილისი" used to become "ასა…"/"თბილ…". */}
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 text-xs font-medium text-text-soft sm:gap-1.5" data-card-meta>
-          <span className="max-w-full rounded-full bg-surface-alt px-2 py-0.5 sm:px-2.5 sm:py-1">
+        <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-medium text-text-soft pb-3 sm:pb-3.5 sm:text-xs" data-card-meta>
+          <span className="max-w-full rounded-full bg-[#eff3f1] px-2.5 py-1 sm:px-3">
             {conditionLabel(item.condition)}
           </span>
-          <span className="flex max-w-full items-center gap-1 rounded-full bg-surface-alt px-2 py-0.5 sm:px-2.5 sm:py-1">
+          <span className="flex max-w-full items-center gap-1 rounded-full bg-[#eff3f1] px-2.5 py-1 sm:px-3">
             <LocationIcon />
             <span className="break-words">{locationLabel}</span>
           </span>
@@ -195,7 +195,7 @@ export default function MarketplaceProductCard({
               href={sellerHref}
               prefetch={false}
               aria-label={`${sellerLabel} — გამყიდველის გვერდი`}
-              className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1 text-xs text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
+              className="group/seller relative z-20 -mx-1 flex min-w-0 items-center gap-2 rounded-xl px-1.5 py-1.5 text-[11px] sm:text-xs text-text-soft transition hover:bg-surface-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
             >
               {sellerIdentity}
               <span className="shrink-0 text-text-soft transition group-hover/seller:translate-x-0.5 group-hover/seller:text-brand">
