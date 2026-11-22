@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { getAuthPagePath } from "@/lib/auth-redirect"
 
-export default function ResetPasswordForm() {
+export default function ResetPasswordForm({ nextPath }: { nextPath?: string }) {
   const supabase = createClient()
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -41,7 +42,8 @@ export default function ResetPasswordForm() {
     }
 
     await supabase.auth.signOut({ scope: "local" })
-    window.location.replace("/login?password_reset=success")
+    const loginPath = getAuthPagePath("/login", nextPath)
+    window.location.replace(`${loginPath}${loginPath.includes("?") ? "&" : "?"}password_reset=success`)
   }
 
   return (

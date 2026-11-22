@@ -9,3 +9,11 @@ export function getSafeAuthRedirectPath(input: string | null | undefined, fallba
 
   return safe
 }
+
+export function getAuthPagePath(
+  page: "/login" | "/forgot-password" | "/reset-password",
+  nextPath?: string | null,
+) {
+  const next = getSafeAuthRedirectPath(nextPath)
+  return next === "/" ? page : `${page}?${new URLSearchParams({ next })}`
+}

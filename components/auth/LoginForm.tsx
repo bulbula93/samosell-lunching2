@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons"
-import { getSafeAuthRedirectPath } from "@/lib/auth-redirect"
+import { getAuthPagePath, getSafeAuthRedirectPath } from "@/lib/auth-redirect"
 
 function FieldIcon({ kind }: { kind: "email" | "password" }) {
   return (
@@ -120,7 +120,7 @@ export default function LoginForm({
               <span className="underline decoration-[#ffc45b] decoration-2 underline-offset-4">Password</span>
             </label>
             <Link
-              href="/forgot-password"
+              href={getAuthPagePath("/forgot-password", nextPath)}
               className="text-xs font-bold text-[#e96b10] transition hover:text-[#c95708] hover:underline"
             >
               პაროლი დაგავიწყდა?
