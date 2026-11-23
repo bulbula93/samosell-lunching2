@@ -235,7 +235,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         <div id="plan" className="ui-card scroll-mt-4 p-5">
           <h2 className="text-lg font-bold text-text">📅 კვირის გეგმა</h2>
           <p className="mt-1 text-sm text-text-soft">
-            აგენტი აქტიური ნივთებიდან ადგენს 5 პოსტს (ორშ, ოთხ, პარ, შაბ, კვი, საღამოს). შემდეგი კვირის გეგმა ავტომატურად იქმნება <b>ყოველ ხუთშაბათს 12:20-ზე</b> — შენ მხოლოდ ამტკიცებ.
+            აგენტი აქტიური ნივთებიდან ადგენს 5 პოსტს: ორშ, ხუთ, კვი — 21:00; პარ, შაბ — 15:00 (საიტზე ყველაზე აქტიური საათები). შემდეგი კვირის გეგმა ავტომატურად იქმნება <b>ყოველ ხუთშაბათს 12:20-ზე</b> — შენ მხოლოდ ამტკიცებ.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {weeks.map(w => <WeekCard key={w.target} week={w} writable={writable} />)}

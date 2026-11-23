@@ -57,7 +57,7 @@ describe("approval → queue → dry-run worker", () => {
 
     // Not due yet → nothing claimed.
     expect((await runPublishTick({ store, runtime: preview, now: clock })).claimed).toBe(0)
-    advance("2026-11-09T15:01:00Z")
+    advance("2026-11-09T17:01:00Z")
     const fetchSpy = vi.spyOn(globalThis, "fetch")
     const t1 = await runPublishTick({ store, runtime: preview, now: clock })
     expect(t1.completed).toBe(post.platforms.length)
@@ -95,7 +95,7 @@ describe("approval → queue → dry-run worker", () => {
     const plan = await runPlanningCycle(ctx, { weekStart: "2026-11-09", listings: SIMULATION_LISTINGS })
     await approveAndSchedule(ctx, plan.posts[0].id, 1, ADMIN)
     await store.updateControl({ killSwitch: true })
-    advance("2026-11-09T15:01:00Z")
+    advance("2026-11-09T17:01:00Z")
     expect((await runPublishTick({ store, runtime: preview, now: clock })).state).toBe("stopped")
     expect([...store.jobs.values()].every(j => j.status === "queued")).toBe(true)
   })
@@ -108,7 +108,7 @@ describe("live-mode publishing safety (mocked adapters, production runtime)", ()
     const post = plan.posts[0]
     const r = await approveAndSchedule(s.ctx, post.id, 1, ADMIN)
     expect(r.mode).toBe("live")
-    s.advance("2026-11-09T15:01:00Z")
+    s.advance("2026-11-09T17:01:00Z")
     const tick = () => runPublishTick({ store: s.store, runtime: prodLive, now: s.clock, adapterFactory: p => adapter(p) })
     return { ...s, post, tick }
   }
@@ -116,7 +116,7 @@ describe("live-mode publishing safety (mocked adapters, production runtime)", ()
     const publish = vi.fn(async () => { throw new PublishError("unknown_outcome", false) })
     const { store, tick, advance } = await liveSetup(platform => ({ platform, mode: "live", publish }))
     await tick()
-    advance("2026-11-10T15:01:00Z")
+    advance("2026-11-10T17:01:00Z")
     await tick()
     expect(publish).toHaveBeenCalledTimes(store.jobs.size) // once per job, no second attempt
     expect([...store.jobs.values()].every(j => j.status === "needs_review")).toBe(true)
@@ -124,7 +124,7 @@ describe("live-mode publishing safety (mocked adapters, production runtime)", ()
   it("retryable errors back off, then dead-letter after max attempts", async () => {
     const publish = vi.fn(async () => { throw new PublishError("meta_api_unavailable", true) })
     const { store, tick, advance } = await liveSetup(platform => ({ platform, mode: "live", publish }))
-    for (const at of ["2026-11-09T15:01:00Z", "2026-11-09T15:03:00Z", "2026-11-09T15:10:00Z", "2026-11-09T16:00:00Z"]) { advance(at); await tick() }
+    for (const at of ["2026-11-09T17:01:00Z", "2026-11-09T17:03:00Z", "2026-11-09T17:10:00Z", "2026-11-09T18:00:00Z"]) { advance(at); await tick() }
     expect([...store.jobs.values()].every(j => j.status === "dead_letter" && j.attempt === 3)).toBe(true)
   })
   it("an instagram retry resumes the recorded container (no second container)", async () => {
@@ -141,7 +141,7 @@ describe("live-mode publishing safety (mocked adapters, production runtime)", ()
       },
     }))
     await tick()
-    advance("2026-11-09T15:03:00Z")
+    advance("2026-11-09T17:03:00Z")
     await tick()
     const ig = [...store.jobs.values()].find(j => j.platform === "instagram")
     expect(ig).toBeDefined()
@@ -151,7 +151,7 @@ describe("live-mode publishing safety (mocked adapters, production runtime)", ()
   it("a live job in a runtime that lost live permission is not sent", async () => {
     const publish = vi.fn(async () => ({ externalPostId: "x" }))
     const { store, advance } = await liveSetup(platform => ({ platform, mode: "live", publish }))
-    advance("2026-11-09T15:01:00Z")
+    advance("2026-11-09T17:01:00Z")
     await runPublishTick({ store, runtime: preview, adapterFactory: p => ({ platform: p, mode: "live", publish }) })
     expect(publish).not.toHaveBeenCalled()
   })
