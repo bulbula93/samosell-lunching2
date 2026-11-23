@@ -5,7 +5,7 @@ describe("Catalog timeout resilience", () => {
   const source = readFileSync("app/catalog/catalog-view.tsx", "utf8")
   it("degrades optional facets without crashing the catalog", () => {
     expect(source).toContain("getCachedCatalogFilterOptions().catch((error)")
-    expect(source).toContain("return { sizes: [], colors: [], cities: [] }")
+    expect(source).toContain("return { sizes: [], colors: [], cities: [], brands: [] }")
   })
   it("shows an explicit retry state when the main listing query fails", () => {
     expect(source).toContain('role="alert"')

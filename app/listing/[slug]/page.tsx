@@ -5,6 +5,7 @@ import { after } from "next/server"
 import AdSlotRow from "@/components/ads/AdSlotRow"
 import SiteHeader from "@/components/layout/SiteHeader"
 import ListingBreadcrumbs from "@/components/listings/ListingBreadcrumbs"
+import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import ListingGallery from "@/components/listings/ListingGallery"
 import ListingOverviewCard from "@/components/listings/ListingOverviewCard"
 import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker"
@@ -156,6 +157,19 @@ export default async function ListingDetailsPage({
               title={listing.title}
               coverImageUrl={listing.cover_image_url}
               images={images}
+              photoAction={
+                listing.status === "active" && !isOwner ? (
+                  <FavoriteToggleForm
+                    listingId={listing.id}
+                    listingSlug={listing.slug}
+                    nextPath={searchId ? `/listing/${listing.slug}?search_id=${encodeURIComponent(searchId)}` : `/listing/${listing.slug}`}
+                    isFavorited={isFavorited}
+                    searchId={searchId}
+                    compact
+                    className="shadow-[0_6px_18px_rgba(7,63,59,0.18)]"
+                  />
+                ) : null
+              }
             />
 
             <ListingOverviewCard

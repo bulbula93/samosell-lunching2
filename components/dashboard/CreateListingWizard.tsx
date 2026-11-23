@@ -902,7 +902,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
       <div ref={topRef} className="scroll-mt-28" />
 
       <header className="ui-card overflow-hidden">
-        <div className="bg-[linear-gradient(135deg,#eff8f6_0%,#ffffff_62%)] px-5 py-7 sm:px-8">
+        <div className="bg-[linear-gradient(135deg,#eff8f6_0%,#ffffff_62%)] px-5 py-5 sm:px-8 sm:py-7">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="ui-eyebrow">ახალი განცხადება</p>
             {visibleDraftStatus ? (
@@ -921,10 +921,10 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             ) : null}
           </div>
           <h1 className="mt-2 text-2xl font-black tracking-tight text-text sm:text-3xl">გაყიდე ნივთი 4 ნაბიჯში</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-text-soft">
+          <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-text-soft sm:block">
             დაიწყე ფოტოებით, შემდეგ შეავსე დეტალები და ფასი. ბოლოს ნახავ ზუსტად როგორ გამოიყურება განცხადება.
           </p>
-          <p className="mt-2 max-w-2xl text-xs leading-6 text-text-soft">
+          <p className={`mt-2 max-w-2xl text-xs leading-6 text-text-soft ${canSaveDraft ? "hidden sm:block" : ""}`}>
             {canSaveDraft ? "მონახაზი ინახება მხოლოდ ამ ბრაუზერში; განცხადება საჯარო გახდება გამოქვეყნების შემდეგ." : (
               <>გვერდის დატოვებისას დაუშენახავი ტექსტი და ფოტოები დაიკარგება. ავტოშენახვისთვის Cookies-ის პარამეტრებში ჩართე „კომფორტი“.
                 {userId ? <button type="button" onClick={() => window.dispatchEvent(new Event(SETTINGS_EVENT))} className="ml-1 inline-flex min-h-11 items-center font-bold text-brand underline">შენახვის პარამეტრები</button> : null}
@@ -932,7 +932,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
             )}
           </p>
 
-          <ol className="mt-6 grid grid-cols-4 gap-1.5 sm:gap-2" aria-label="განცხადების შექმნის პროგრესი">
+          <ol className="mt-4 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-2" aria-label="განცხადების შექმნის პროგრესი">
             {stepMeta.map((item) => {
               const active = item.step === step
               const complete = item.step < step
@@ -942,7 +942,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
                     type="button"
                     disabled={item.step > step || loading}
                     onClick={() => item.step <= step && jumpToStep(item.step)}
-                    className={`flex min-h-[76px] w-full min-w-0 flex-col items-center justify-center rounded-xl border px-1.5 py-2 text-center transition sm:min-h-0 sm:items-start sm:px-3 sm:py-3 sm:text-left ${
+                    className={`flex min-h-[64px] w-full min-w-0 flex-col items-center justify-center rounded-xl border px-1.5 py-2 text-center transition sm:min-h-0 sm:items-start sm:px-3 sm:py-3 sm:text-left ${
                       active
                         ? "border-brand bg-brand text-white"
                         : complete

@@ -63,4 +63,23 @@ describe("catalog filter UX", () => {
     expect(screen.getByRole("link", { name: "გამოყენებული ფილტრის მოხსნა" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /ფილტრები 1 აქტიური/ })).toBeInTheDocument()
   })
+
+  it("offers a brand filter for clothing built from brands with active listings", async () => {
+    const user = userEvent.setup()
+    render(<CatalogLandingFilters {...options} brands={["Zara", "Nike"]} values={{ ...values, brand: "" }} />)
+    await user.click(screen.getByRole("button", { name: /ფილტრები/ }))
+    const dialog = screen.getByRole("dialog")
+    const brand = within(dialog).getByText("ყველა ბრენდი", { selector: "summary span[id]" }).closest("summary")!
+    expect(brand).toHaveAccessibleName("ბრენდი ყველა ბრენდი")
+    await user.click(brand)
+    await user.click(within(dialog).getByRole("button", { name: "Nike" }))
+    expect(new FormData(dialog.querySelector("form")!).get("brand")).toBe("Nike")
+  })
+
+  it("hides the clothing brand filter when no brand has listings and none is selected", async () => {
+    const user = userEvent.setup()
+    render(<CatalogLandingFilters {...options} brands={[]} values={{ ...values, brand: "" }} />)
+    await user.click(screen.getByRole("button", { name: /ფილტრები/ }))
+    expect(within(screen.getByRole("dialog")).queryByText("ყველა ბრენდი")).not.toBeInTheDocument()
+  })
 })

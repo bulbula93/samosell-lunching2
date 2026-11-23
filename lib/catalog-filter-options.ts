@@ -8,6 +8,7 @@ type CatalogFilterOptions = {
   sizes: Array<{ label: string; group_name: string; sort_order: number }>
   colors: string[]
   cities: string[]
+  brands: string[]
 }
 
 export const getCachedCatalogFilterOptions = unstable_cache(
@@ -30,6 +31,7 @@ export const getCachedCatalogFilterOptions = unstable_cache(
     const facets = (facetsResponse.data ?? {}) as {
       colors?: unknown
       cities?: unknown
+      brands?: unknown
     }
     const normalizeList = (value: unknown) =>
       Array.isArray(value)
@@ -40,9 +42,11 @@ export const getCachedCatalogFilterOptions = unstable_cache(
       sizes: (sizesResponse.data ?? []) as CatalogFilterOptions["sizes"],
       colors: normalizeList(facets.colors),
       cities: normalizeList(facets.cities),
+      // Brands that currently have active listings, most-used first (added by migration 20261124100000).
+      brands: normalizeList(facets.brands),
     }
   },
-  ["catalog-public-filter-options-v1"],
+  ["catalog-public-filter-options-v2"],
   {
     revalidate: 300,
     tags: ["catalog-public-filter-options"],

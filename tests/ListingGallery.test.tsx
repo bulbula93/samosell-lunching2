@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import ListingGallery, {
   buildGalleryItems,
@@ -144,5 +144,26 @@ describe("ListingGallery", () => {
       "later",
     ])
     expect(images.map((item) => item.id)).toEqual(["later", "first"])
+  })
+})
+
+describe("ListingGallery photo action", () => {
+  it("renders the favorite slot on the main photo when given", () => {
+    render(
+      <ListingGallery
+        title="ქურთუკი"
+        coverImageUrl={null}
+        images={[]}
+        photoAction={<button type="submit">რჩეულებში დამატება</button>}
+      />,
+    )
+    const slot = screen.getByTestId("gallery-photo-action")
+    expect(slot).toHaveClass("absolute", "right-3", "top-3")
+    expect(within(slot).getByRole("button", { name: "რჩეულებში დამატება" })).toBeInTheDocument()
+  })
+
+  it("renders no slot without an action (owner or inactive listing)", () => {
+    render(<ListingGallery title="ქურთუკი" coverImageUrl={null} images={[]} />)
+    expect(screen.queryByTestId("gallery-photo-action")).toBeNull()
   })
 })
