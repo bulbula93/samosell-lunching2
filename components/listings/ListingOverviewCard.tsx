@@ -1,6 +1,7 @@
 import Link from "next/link"
 import FavoriteToggleForm from "@/components/favorites/FavoriteToggleForm"
 import MobileListingActionBar from "@/components/listings/MobileListingActionBar"
+import StartChatButton from "@/components/chat/StartChatButton"
 import ReviewSummary from "@/components/reviews/ReviewSummary"
 import SellerPhoneReveal from "@/components/sellers/SellerPhoneReveal"
 import SellerTrustBadges from "@/components/sellers/SellerTrustBadges"
@@ -248,18 +249,42 @@ export default function ListingOverviewCard({
       </section>
 
       {description ? (
-        <section aria-labelledby="listing-description-heading" className="mt-5 md:mt-6">
+        <section aria-labelledby="listing-description-heading" className="mt-5 md:mt-6" data-testid="listing-description">
           <h2 id="listing-description-heading" className="text-lg font-black text-text">
             {ka.listingDetail.description}
           </h2>
-          {descriptionIsLong ? <input id="listing-description-toggle" type="checkbox" className="peer sr-only" /> : null}
-          <p className={`mt-2 whitespace-pre-wrap break-words text-[15px] leading-7 text-text [overflow-wrap:anywhere] ${descriptionIsLong ? "line-clamp-6 peer-checked:line-clamp-none" : ""}`}>
-            {description}
-          </p>
-          {descriptionIsLong ? (
-            <label htmlFor="listing-description-toggle" className="mt-2 inline-flex min-h-10 cursor-pointer items-center text-sm font-bold text-brand underline underline-offset-4 peer-checked:hidden">
-              სრულად ნახვა
-            </label>
+          <div className="mt-2 rounded-[4px_18px_18px_18px] border-[1.5px] border-[#d5dcda] bg-white px-4 py-3.5 shadow-[0_2px_10px_rgba(7,63,59,0.06)]">
+            {descriptionIsLong ? <input id="listing-description-toggle" type="checkbox" className="peer sr-only" /> : null}
+            <p className={`whitespace-pre-wrap break-words text-base font-medium leading-7 text-text [overflow-wrap:anywhere] ${descriptionIsLong ? "line-clamp-6 peer-checked:line-clamp-none" : ""}`}>
+              {description}
+            </p>
+            {descriptionIsLong ? (
+              <label htmlFor="listing-description-toggle" className="mt-1 inline-flex min-h-10 cursor-pointer items-center text-sm font-bold text-brand underline underline-offset-4 peer-checked:hidden">
+                სრულად წაკითხვა
+              </label>
+            ) : null}
+          </div>
+          {isActive && !isOwner && isAuthenticated && canChat ? (
+            <StartChatButton
+              listingId={listing.id}
+              listingSlug={listing.slug}
+              sellerLabel={sellerLabel}
+              sellerAvatarSrc={sellerAvatarSrc}
+              listingTitle={listing.title}
+              listingImageSrc={listing.cover_image_url}
+              priceLabel={listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
+              presentation="responsive"
+              className="ui-btn-secondary mt-3 min-h-12 w-full px-4 text-center"
+              label="კითხვა გამყიდველს"
+            />
+          ) : null}
+          {isActive && !isOwner && !isAuthenticated ? (
+            <Link
+              href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
+              className="ui-btn-secondary mt-3 min-h-12 w-full px-4 text-center"
+            >
+              კითხვა გამყიდველს
+            </Link>
           ) : null}
         </section>
       ) : null}
