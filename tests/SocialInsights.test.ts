@@ -112,6 +112,31 @@ describe("syncInsights", () => {
   })
 })
 
+describe("Facebook reads use the Page token", () => {
+  it("exchanges the system-user token for the Page token before reading post engagement", async () => {
+    const store = new MemorySocialStore(undefined, { killSwitch: false, executionMode: "live" })
+    seed(store, "p1", "single_image", "2026-11-23T17:00:00Z", [{ platform: "facebook", externalPostId: "122110000000001" }])
+    const calls: Array<{ url: string; auth: string }> = []
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init: RequestInit) => {
+      const auth = String((init.headers as Record<string, string>).Authorization)
+      calls.push({ url, auth })
+      const body = url.includes("fields=access_token") ? { access_token: "PAGE_TOKEN_0123456789abcdef" }
+        : url.includes("fields=followers_count") ? { followers_count: 15 }
+        : url.includes("122110000000001") ? { likes: { summary: { total_count: 2 } }, comments: { summary: { total_count: 1 } } }
+        : { data: [] }
+      return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } })
+    }))
+    try {
+      const r = await syncInsights({ store, runtime: prod, credentials: { ...creds, pageToken: "SYSTEM_TOKEN_0123456789", igToken: "SYSTEM_TOKEN_0123456789" }, now: () => NOW })
+      expect(r).toMatchObject({ updated: 1, failed: 0 })
+      const postRead = calls.find(c => c.url.includes("/122110000000001?"))!
+      expect(postRead.auth).toBe("Bearer PAGE_TOKEN_0123456789abcdef")
+      expect(calls.find(c => c.url.includes("fields=access_token"))!.auth).toBe("Bearer SYSTEM_TOKEN_0123456789")
+      expect(store.metrics[0]).toMatchObject({ platform: "facebook", likes: 2, comments: 1 })
+    } finally { vi.unstubAllGlobals() }
+  })
+})
+
 describe("attribution", () => {
   it("groups tagged visits by utm_content; chats counted separately", () => {
     const v = aggregateSlotVisits([
