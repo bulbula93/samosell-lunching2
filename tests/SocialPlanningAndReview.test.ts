@@ -39,7 +39,7 @@ describe("strategy: notBefore and recently featured items", () => {
   const listings: CandidateListing[] = SIMULATION_LISTINGS
   it("skips slots that are already past (current-week planning)", () => {
     const slots = buildWeeklyPlan({ weekStart: "2026-11-23", listings, platforms: ["facebook"], notBefore: "2026-11-24T00:00:00Z" })
-    expect(slots.map(s => s.slotKey)).toEqual(["plan:2026-11-23:2:how_to_sell", "plan:2026-11-23:4:giveaway", "plan:2026-11-23:5:category_roundup", "plan:2026-11-23:6:trust"])
+    expect(slots.map(s => s.slotKey)).toEqual(["plan:2026-11-23:3:how_to_sell", "plan:2026-11-23:4:giveaway", "plan:2026-11-23:5:category_roundup", "plan:2026-11-23:6:trust"])
     expect(slots.every(s => Date.parse(s.scheduledFor) >= Date.parse("2026-11-24T00:00:00Z"))).toBe(true)
   })
   it("prefers items not featured recently, but falls back instead of skipping a slot", () => {
@@ -51,8 +51,8 @@ describe("strategy: notBefore and recently featured items", () => {
     expect(fallback.pillar).toBe("featured_listing")
     expect(fallback.listing).not.toBeNull()
   })
-  it("weekSlotTimes lists the five evening slots in UTC", () => {
-    expect(weekSlotTimes("2026-11-23")).toEqual(["2026-11-23T15:00:00.000Z", "2026-11-25T15:00:00.000Z", "2026-11-27T14:00:00.000Z", "2026-11-28T08:00:00.000Z", "2026-11-29T16:00:00.000Z"])
+  it("weekSlotTimes lists the five slots in UTC", () => {
+    expect(weekSlotTimes("2026-11-23")).toEqual(["2026-11-23T17:00:00.000Z", "2026-11-26T17:00:00.000Z", "2026-11-27T11:00:00.000Z", "2026-11-28T11:00:00.000Z", "2026-11-29T17:00:00.000Z"])
   })
 })
 
@@ -71,7 +71,7 @@ describe("planning targets and overview", () => {
     expect(again.created).toBe(0)
   })
   it("late in the week only future slots (with 2 h lead time) are created", async () => {
-    const { ctx } = setup("2026-11-28T06:30:00Z") // Sat 10:30 Tbilisi; Saturday 12:00 slot is < 2 h away
+    const { ctx } = setup("2026-11-28T09:30:00Z") // Sat 13:30 Tbilisi; Saturday 15:00 slot is < 2 h away
     const r = await runPlanningCycle(ctx, { target: "current", listings: SIMULATION_LISTINGS })
     expect(r.created).toBe(1)
     expect(r.posts.filter(p => p.contentType !== "story").map(p => p.idempotencyKey)).toEqual(["plan:2026-11-23:6:trust"])

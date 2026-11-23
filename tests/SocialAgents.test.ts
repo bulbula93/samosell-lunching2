@@ -16,7 +16,7 @@ describe("Strategy agent", () => {
     const b = buildWeeklyPlan({ weekStart: "2026-11-09", listings: SIMULATION_LISTINGS, platforms: both })
     expect(a).toEqual(b)
     expect(a).toHaveLength(5)
-    expect(a[0].scheduledFor).toBe("2026-11-09T15:00:00.000Z") // 19:00 Tbilisi
+    expect(a[0].scheduledFor).toBe("2026-11-09T17:00:00.000Z") // 21:00 Tbilisi
     expect(new Set(a.map(s => s.slotKey)).size).toBe(5)
   })
   it("never invents a giveaway and never reuses a listing", () => {

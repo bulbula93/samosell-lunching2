@@ -184,3 +184,10 @@ Instagram Login-ის long-lived token 60 დღეში იწურება
 - **Story QA**: Stories have no caption, so caption length and language rules no longer apply to them. Media, link and platform rules still do.
 - **Publish tick**: the route runs up to 60 s (was 30 s) and starts new jobs only in the first 25 s. Cause of the two `lease_expired` Instagram jobs: a carousel after a Facebook job ran past the 30 s limit, and the function was stopped after the container was recorded.
 - **needs_review**: `social_resolve_review_job` (service_role only) is the only way out. On each tick, Instagram jobs are checked on Meta via the container `status_code`: `PUBLISHED` → published, `FINISHED`/`IN_PROGRESS` → resume the same container, `EXPIRED`/`ERROR`/no container (expired lease only) → resend, or cancel if older than 48 h. Facebook is never auto-resolved. The admin gets "გამოქვეყნებულია / ხელახლა გაგზავნა / გაუქმება" buttons, and an Instagram resend re-checks the container first.
+
+## 2026-11-23 — Slots moved to measured site activity
+
+- Slots: Mon/Thu/Sun 21:00 and Fri/Sat 15:00 Tbilisi (Stories +60 min). Source: growth_events page views over 60 days (815 visitors). The peak hours were 15:00 and 21:00–22:00; the busiest days were Fri, Sun, Thu, Mon. Meta publishes no universal best time. Instagram's per-account `online_followers` needs ≥100 followers, and Facebook's `page_fans_online` is deprecated.
+- Publish tick: `5 11,12,17,18 * * *` UTC. `tests/SocialSchedule.test.ts` fails if slots and cron drift apart.
+- Links carry `utm_content=<plan slot>` so site visits and chats can be attributed to a single post.
+- Migration `20261123120000` moved unapproved plan drafts to the new slots (time and key only; content, version and QA unchanged).

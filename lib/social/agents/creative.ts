@@ -36,8 +36,15 @@ function price(listing: CandidateListing) {
   return `💰 ${Math.round(listing.priceGel)} ₾`
 }
 
-function listingUrl(listing: CandidateListing) {
-  return `${SITE_ORIGIN}/listing/${encodeURIComponent(listing.slug)}?utm_source=social&utm_medium=organic&utm_campaign=agent_os`
+/** utm_content ties a site visit to one plan slot (e.g. plan_2026_11_23_0_featured_listing). */
+export function slotUtm(slotKey: string) {
+  return slotKey.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80)
+}
+function tracked(path: string, slotKey: string) {
+  return `${SITE_ORIGIN}${path}?utm_source=social&utm_medium=organic&utm_campaign=agent_os&utm_content=${slotUtm(slotKey)}`
+}
+function listingUrl(listing: CandidateListing, slotKey: string) {
+  return tracked(`/listing/${encodeURIComponent(listing.slug)}`, slotKey)
 }
 
 /** Instagram's content publishing API only accepts JPEG image URLs. */
@@ -81,7 +88,7 @@ export function createDraft(slot: PlanSlot): CreativeDraft {
         hashtags: unique([...BASE_TAGS, tag(l.brand), tag(l.category), tag(l.city), slot.pillar === "giveaway" ? "გავაჩუქებ" : null]),
         mediaUrls: [l.imageUrl],
         platforms: platformsFor(slot, [l.imageUrl]),
-        linkUrl: listingUrl(l),
+        linkUrl: listingUrl(l, slot.slotKey),
         listingId: l.id,
       }
     }
@@ -102,7 +109,7 @@ export function createDraft(slot: PlanSlot): CreativeDraft {
         hashtags: unique([...BASE_TAGS, ...items.map(l => tag(l.brand))]),
         mediaUrls: items.map(l => l.imageUrl!).slice(0, 10),
         platforms: platformsFor(slot, items.map(l => l.imageUrl!)),
-        linkUrl: `${SITE_ORIGIN}/?utm_source=social&utm_medium=organic&utm_campaign=agent_os`,
+        linkUrl: tracked("/", slot.slotKey),
         listingId: null,
       }
     }
@@ -122,7 +129,7 @@ export function createDraft(slot: PlanSlot): CreativeDraft {
         ].join("\n"),
         hashtags: unique([...BASE_TAGS, "გაყიდე", "რჩევები"]),
         mediaUrls: [BRAND_IMAGE_URL],
-        linkUrl: `${SITE_ORIGIN}/sell?utm_source=social&utm_medium=organic&utm_campaign=agent_os`,
+        linkUrl: tracked("/sell", slot.slotKey),
         listingId: null,
       }
     case "trust":
@@ -141,7 +148,7 @@ export function createDraft(slot: PlanSlot): CreativeDraft {
         ].join("\n"),
         hashtags: unique([...BASE_TAGS, "მოდა"]),
         mediaUrls: [BRAND_IMAGE_URL],
-        linkUrl: `${SITE_ORIGIN}/?utm_source=social&utm_medium=organic&utm_campaign=agent_os`,
+        linkUrl: tracked("/", slot.slotKey),
         listingId: null,
       }
   }
@@ -165,7 +172,7 @@ export function createStoryDraft(feed: { idempotencyKey: string; pillar: Pillar;
     caption: `Story · ${listing.title.trim().slice(0, 120)}`,
     hashtags: [],
     mediaUrls: [storyImageUrl],
-    linkUrl: listingUrl(listing),
+    linkUrl: listingUrl(listing, storyKey(feed.idempotencyKey)),
     listingId: listing.id,
     platforms: [...feed.platforms],
     scheduledFor: at,

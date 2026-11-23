@@ -258,6 +258,31 @@ describe("needs_review resolution (social_resolve_review_job)", () => {
   })
 })
 
+describe("slot migration (20261123120000) moves only unapproved plan drafts", () => {
+  const MOVE_SQL = readFileSync("supabase/migrations/20261123120000_social_slots_from_site_activity.sql", "utf8").split(/\n(?=with slot)/)[1]
+  async function planPost(key: string, status: string, when: string) {
+    const [row] = await svc<{ id: string }>(`insert into social_posts (idempotency_key,pillar,caption,media_urls,platforms,scheduled_for,created_by_type,created_by,status)
+      values ($1,'trust','ტესტის ტექსტი SamoSell-ისთვის','{https://samosell.ge/a.jpg}','{facebook}',$2::timestamptz,'agent','creative',$3) returning id`, [key, when, status])
+    return row.id
+  }
+  it("moves keys and times; leaves approved/published and older weeks alone; keeps the version", async () => {
+    const mon = await planPost("plan:2026-11-23:0:featured_listing", "ready_for_review", "2026-11-23T15:00:00Z")
+    const monStory = await planPost("plan:2026-11-23:0:featured_listing:story", "ready_for_review", "2026-11-23T16:00:00Z")
+    const wed = await planPost("plan:2026-11-30:2:how_to_sell", "qa_failed", "2026-12-02T15:00:00Z")
+    const sat = await planPost("plan:2026-11-30:5:category_roundup", "ready_for_review", "2026-12-05T08:00:00Z")
+    const approved = await planPost("plan:2026-11-30:6:trust", "approved", "2026-12-06T16:00:00Z")
+    const old = await planPost("plan:2026-11-16:0:featured_listing", "ready_for_review", "2026-11-16T15:00:00Z")
+    await db.exec(MOVE_SQL)
+    const get = (id: string) => svc<{ k: string; t: string; version: number }>("select idempotency_key k, to_char(scheduled_for at time zone 'UTC','YYYY-MM-DD HH24:MI') t, version from social_posts where id=$1", [id]).then(r => r[0])
+    expect(await get(mon)).toEqual({ k: "plan:2026-11-23:0:featured_listing", t: "2026-11-23 17:00", version: 1 })
+    expect(await get(monStory)).toEqual({ k: "plan:2026-11-23:0:featured_listing:story", t: "2026-11-23 18:00", version: 1 })
+    expect(await get(wed)).toEqual({ k: "plan:2026-11-30:3:how_to_sell", t: "2026-12-03 17:00", version: 1 })
+    expect(await get(sat)).toEqual({ k: "plan:2026-11-30:5:category_roundup", t: "2026-12-05 11:00", version: 1 })
+    expect((await get(approved)).t).toBe("2026-12-06 16:00")
+    expect((await get(old)).t).toBe("2026-11-16 15:00")
+  })
+})
+
 describe("permissions (RLS, grants, append-only audit)", () => {
   async function asUser(sub: string | null, sql: string) {
     await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${sub ?? ""}', false)`)

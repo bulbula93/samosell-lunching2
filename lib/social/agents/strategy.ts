@@ -13,14 +13,22 @@ export type PlanSlot = {
   listings: CandidateListing[]
 }
 
-/** Tbilisi is UTC+4 all year (no DST). Evenings perform best for consumer marketplaces. */
+/** Tbilisi is UTC+4 all year (no DST). */
 const TBILISI_OFFSET_HOURS = 4
+/**
+ * Posting slots (Tbilisi time), set 2026-11-23 from SamoSell's own site activity (growth_events,
+ * 60 days, 815 visitors): the busiest hours were 15:00 and 21:00–22:00, and the busiest days
+ * Fri > Sun > Thu > Mon > Sat; Tue/Wed were the weakest. Meta does not publish universal best times;
+ * its per-account "most active times" appears only from 100 Instagram followers, so these
+ * slots are a data-based starting point, to be revisited with post-level results.
+ * Keep the pg_cron publish tick (UTC hours) in sync: tests/SocialSchedule.test.ts checks it.
+ */
 const SLOTS: ReadonlyArray<{ dayOffset: number; hourLocal: number; pillar: Pillar }> = [
-  { dayOffset: 0, hourLocal: 19, pillar: "featured_listing" }, // Monday
-  { dayOffset: 2, hourLocal: 19, pillar: "how_to_sell" },      // Wednesday
-  { dayOffset: 4, hourLocal: 18, pillar: "giveaway" },         // Friday
-  { dayOffset: 5, hourLocal: 12, pillar: "category_roundup" }, // Saturday
-  { dayOffset: 6, hourLocal: 20, pillar: "trust" },            // Sunday
+  { dayOffset: 0, hourLocal: 21, pillar: "featured_listing" }, // Monday
+  { dayOffset: 3, hourLocal: 21, pillar: "how_to_sell" },      // Thursday
+  { dayOffset: 4, hourLocal: 15, pillar: "giveaway" },         // Friday
+  { dayOffset: 5, hourLocal: 15, pillar: "category_roundup" }, // Saturday
+  { dayOffset: 6, hourLocal: 21, pillar: "trust" },            // Sunday
 ]
 
 /** Day offset of every slot, aligned with weekSlotTimes(); slot keys are plan:<week>:<dayOffset>:<pillar>. */
