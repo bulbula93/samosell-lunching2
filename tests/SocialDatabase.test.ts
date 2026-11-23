@@ -9,7 +9,8 @@ const ADMIN = "11111111-1111-4111-8111-111111111111"
 const USER = "22222222-2222-4222-8222-222222222222"
 // The review/weekly-plan migration is applied up to its pg_cron section (PGlite has no pg_cron/pg_net).
 const REVIEW_SQL = readFileSync("supabase/migrations/20261123100000_social_review_resolution_and_weekly_plan.sql", "utf8").split("-- Publish tick:")[0]
-const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8") + "\n" + readFileSync("supabase/migrations/20261107010000_social_stories.sql", "utf8") + "\n" + REVIEW_SQL
+const STATS_SQL = readFileSync("supabase/migrations/20261123140000_social_insights_sync.sql", "utf8").split("-- Daily at 07:40")[0]
+const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8") + "\n" + readFileSync("supabase/migrations/20261107010000_social_stories.sql", "utf8") + "\n" + REVIEW_SQL + "\n" + STATS_SQL
 
 async function as<T = Record<string, unknown>>(role: string, sql: string, params: unknown[] = []) {
   await db.exec(`set role ${role}`)
@@ -280,6 +281,21 @@ describe("slot migration (20261123120000) moves only unapproved plan drafts", ()
     expect(await get(sat)).toEqual({ k: "plan:2026-11-30:5:category_roundup", t: "2026-12-05 11:00", version: 1 })
     expect((await get(approved)).t).toBe("2026-12-06 16:00")
     expect((await get(old)).t).toBe("2026-11-16 15:00")
+  })
+})
+
+describe("social_account_stats", () => {
+  it("server can upsert; admins read; normal users and anon see nothing; bad values rejected", async () => {
+    await svc(`insert into social_account_stats (platform,followers,active_hours) values ('instagram',21,null)
+      on conflict (platform) do update set followers=excluded.followers`)
+    await svc(`insert into social_account_stats (platform,followers,active_hours) values ('instagram',22,'{"21":5}')
+      on conflict (platform) do update set followers=excluded.followers, active_hours=excluded.active_hours`)
+    expect((await svc<{ followers: number }>("select followers from social_account_stats where platform='instagram'"))[0].followers).toBe(22)
+    await rejects(svc("insert into social_account_stats (platform,followers) values ('tiktok',1)"), /check/)
+    await rejects(svc("update social_account_stats set error_code='Bad Code!' where platform='instagram'"), /check/)
+    await rejects(svc("delete from social_account_stats"), /permission denied/)
+    await rejects(as("anon", "select * from social_account_stats"), /permission denied/)
+    await rejects(as("authenticated", "insert into social_account_stats (platform) values ('facebook')"), /permission denied/)
   })
 })
 

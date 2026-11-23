@@ -17,12 +17,14 @@ import * as actions from "@/app/admin/social/actions"
 import SocialControlCenter from "@/app/admin/social/page"
 import { GET as tick } from "@/app/api/internal/social/tick/route"
 import { GET as plan } from "@/app/api/internal/social/plan/route"
+import { GET as insights } from "@/app/api/internal/social/insights/route"
 import { MemorySocialStore } from "@/lib/social/store"
 
 const ADMIN = { user: { id: "11111111-1111-4111-8111-111111111111" } }
 const allActions = [
   ["runPlanningAction", () => actions.runPlanningAction(new FormData())],
   ["resolveJobAction", () => actions.resolveJobAction(new FormData())],
+  ["syncInsightsAction", () => actions.syncInsightsAction()],
   ["approvePostAction", () => actions.approvePostAction(new FormData())],
   ["rejectPostAction", () => actions.rejectPostAction(new FormData())],
   ["editCaptionAction", () => actions.editCaptionAction(new FormData())],
@@ -96,6 +98,13 @@ describe("worker route", () => {
     expect((await tick(new Request("http://x/api"))).status).toBe(401)
     expect(mocks.createSocialStore).not.toHaveBeenCalled()
   })
+  it("insights route has the same guard", async () => {
+    vi.stubEnv("CRON_SECRET", "s3cret")
+    expect((await insights(new Request("http://x/api", { headers: { authorization: "Bearer s3cret" } }))).status).toBe(401)
+    vi.stubEnv("SOCIAL_WORKER_ENABLED", "true")
+    expect((await insights(new Request("http://x/api", { headers: { authorization: "Bearer nope!" } }))).status).toBe(401)
+    expect(mocks.createSocialStore).not.toHaveBeenCalled()
+  })
   it("weekly plan route has the same guard", async () => {
     vi.stubEnv("CRON_SECRET", "s3cret")
     expect((await plan(new Request("http://x/api", { headers: { authorization: "Bearer s3cret" } }))).status).toBe(401) // worker disabled
@@ -107,6 +116,23 @@ describe("worker route", () => {
 })
 
 describe("control center page", () => {
+  it("results panel shows followers, the 100-follower note, a permission warning and per-post rows", async () => {
+    mocks.requireAdminUser.mockResolvedValue(ADMIN)
+    const store = new MemorySocialStore(undefined, { killSwitch: false })
+    const when = new Date(Date.now() - 2 * 864e5).toISOString()
+    store.posts.set("p1", { id: "p1", idempotencyKey: "plan:2026-11-23:0:featured_listing", status: "published", pillar: "featured_listing", contentType: "single_image", caption: "x".repeat(30), hashtags: [], mediaUrls: [], linkUrl: null, listingId: null, platforms: ["instagram"], scheduledFor: when, version: 1, qualityPassed: true, qualityReport: null, createdByType: "agent", createdBy: "creative", createdAt: when, updatedAt: when })
+    store.metrics.push({ postId: "p1", platform: "instagram", metricDate: when.slice(0, 10), impressions: 50, reach: 42, likes: 2, comments: 1, shares: 0, saves: 1, linkClicks: 0 })
+    store.accountStats.push({ platform: "instagram", followers: 21, activeHours: null, errorCode: "meta_permission_denied", syncedAt: when }, { platform: "facebook", followers: 15, activeHours: null, errorCode: null, syncedAt: when })
+    store.slotVisits.push({ utmContent: "plan_2026_11_23_0_featured_listing", visitors: 3, pageViews: 5, contacts: 1 })
+    mocks.createSocialStore.mockReturnValue(store)
+    render(await SocialControlCenter({ searchParams: Promise.resolve({}) }))
+    const panel = screen.getByLabelText("Metrics")
+    expect(panel).toHaveTextContent("Instagram მიმდევარი21")
+    expect(panel).toHaveTextContent("ახლა 21, დარჩა 79")
+    expect(panel).toHaveTextContent("instagram_manage_insights")
+    expect(panel).toHaveTextContent("3 / 1")
+    expect(screen.getByRole("button", { name: /შედეგების განახლება/ })).toBeEnabled()
+  })
   it("non-admins never see the page", async () => {
     mocks.requireAdminUser.mockImplementation(async () => { throw new Error("REDIRECT:/dashboard") })
     await expect(SocialControlCenter({ searchParams: Promise.resolve({}) })).rejects.toThrow("REDIRECT:/dashboard")
@@ -150,6 +176,7 @@ describe("control center page", () => {
     expect(status).toHaveTextContent("შემდეგ კვირაში შეიქმნა 5 პოსტი და 2 Story.")
     expect(status.closest("#plan")).not.toBeNull()
     render(await SocialControlCenter({ searchParams: Promise.resolve({ ok: "plan_current_0_0_0_3", at: "plan" }) }))
+    expect(screen.getAllByText(/მიმდევრების აქტიურ საათებს Meta აჩვენებს/).length).toBeGreaterThan(0)
     expect(screen.getByText(/ამ კვირაში ყველა სლოტი უკვე დაგეგმილია/)).toBeInTheDocument()
   })
 })

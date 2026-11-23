@@ -6,9 +6,11 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { SocialRuntime } from "./runtime"
-import { SocialStoreError, type ClaimedJob, type ContentPatch, type ControlPatch, type ReviewResolution, type SocialStore } from "./store"
+import { isMetaId, SocialStoreError, type ClaimedJob, type ContentPatch, type ControlPatch, type ReviewResolution, type SocialStore } from "./store"
 import type { CreativeDraft } from "./agents/creative"
+import { aggregateSlotVisits } from "./insights"
 import type {
+  AccountStats, InsightTarget, SlotVisits,
   AdDraft, AuditEntry, CandidateListing, ExecutionMode, MetricRow, PublishJob, QualityReport,
   SocialApproval, SocialControl, SocialPost, StoredAuditEntry,
 } from "./types"
@@ -203,6 +205,53 @@ export class SupabaseSocialStore implements SocialStore {
     const { data, error } = await this.db.from("social_metrics_daily").select("*").gte("metric_date", sinceDate).limit(500)
     if (error) fail(error)
     return (data ?? []).map(r => ({ postId: r.post_id, platform: r.platform, metricDate: r.metric_date, impressions: r.impressions, reach: r.reach, likes: r.likes, comments: r.comments, shares: r.shares, saves: r.saves, linkClicks: r.link_clicks }))
+  }
+  async listInsightTargets(sinceIso: string, limit: number): Promise<InsightTarget[]> {
+    const { data, error } = await this.db.from("social_publish_jobs")
+      .select("post_id,platform,external_post_id,social_posts!inner(content_type,scheduled_for)")
+      .eq("status", "published").eq("execution_mode", "live").not("external_post_id", "is", null)
+      .gte("social_posts.scheduled_for", sinceIso).order("updated_at", { ascending: false }).limit(Math.min(limit, 100))
+    if (error) fail(error)
+    const out: InsightTarget[] = []
+    for (const r of (data ?? []) as Row[]) {
+      const post = (Array.isArray(r.social_posts) ? r.social_posts[0] : r.social_posts) as Row | undefined
+      const ext = String(r.external_post_id)
+      if (!post || !isMetaId(ext)) continue
+      out.push({ postId: String(r.post_id), platform: r.platform as InsightTarget["platform"], externalPostId: ext, contentType: post.content_type as InsightTarget["contentType"], scheduledFor: String(post.scheduled_for) })
+    }
+    return out
+  }
+  async upsertMetrics(rows: MetricRow[]) {
+    if (!rows.length) return
+    const { error } = await this.db.from("social_metrics_daily").upsert(rows.map(r => ({
+      post_id: r.postId, platform: r.platform, metric_date: r.metricDate, impressions: r.impressions, reach: r.reach,
+      likes: r.likes, comments: r.comments, shares: r.shares, saves: r.saves, link_clicks: r.linkClicks, synced_at: new Date().toISOString(),
+    })), { onConflict: "post_id,platform,metric_date" })
+    if (error) fail(error)
+  }
+  async upsertAccountStats(stats: Omit<AccountStats, "syncedAt">) {
+    const { error } = await this.db.from("social_account_stats").upsert({
+      platform: stats.platform, followers: stats.followers, active_hours: stats.activeHours, error_code: stats.errorCode, synced_at: new Date().toISOString(),
+    }, { onConflict: "platform" })
+    if (error) fail(error)
+  }
+  async listAccountStats(): Promise<AccountStats[]> {
+    const { data, error } = await this.db.from("social_account_stats").select("platform,followers,active_hours,error_code,synced_at")
+    if (error) fail(error)
+    return ((data ?? []) as Row[]).map(r => ({
+      platform: r.platform as AccountStats["platform"], followers: r.followers === null ? null : num(r.followers),
+      activeHours: r.active_hours && typeof r.active_hours === "object" ? r.active_hours as Record<string, number> : null,
+      errorCode: str(r.error_code), syncedAt: String(r.synced_at),
+    }))
+  }
+  async listSlotVisits(sinceIso: string): Promise<SlotVisits[]> {
+    // Only campaign-tagged events, admin pages excluded; bounded read, aggregated here.
+    const { data, error } = await this.db.from("growth_events")
+      .select("event_name,anonymous_id,user_id,last_touch")
+      .eq("last_touch->>utm_campaign", "agent_os").gte("occurred_at", sinceIso)
+      .not("path", "like", "/admin%").limit(5000)
+    if (error) fail(error)
+    return aggregateSlotVisits((data ?? []) as Row[])
   }
   async insertAdDraft(draft: Omit<AdDraft, "id">): Promise<AdDraft> {
     const { data, error } = await this.db.from("social_ad_drafts").upsert({
