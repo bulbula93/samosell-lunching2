@@ -2,7 +2,8 @@
 
 import {
   type KeyboardEvent,
-  type TouchEvent,
+  useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -46,15 +47,36 @@ export default function ListingGallery({
   )
   const [selectedIndex, setSelectedIndex] = useState(0)
   const thumbnailRefs = useRef<Array<HTMLButtonElement | null>>([])
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef(0)
   const activeIndex =
     galleryItems.length > 0 ? Math.min(selectedIndex, galleryItems.length - 1) : 0
-  const activeItem = galleryItems[activeIndex] ?? null
+
+  // Native swipe: photos sit side by side in a scroll-snap track, so the photo follows the
+  // finger (compositor-driven, no JS per frame). The active index is read back from the scroll.
+  const syncFromScroll = useCallback(() => {
+    cancelAnimationFrame(frameRef.current)
+    frameRef.current = requestAnimationFrame(() => {
+      const track = trackRef.current
+      if (!track || track.clientWidth === 0) return
+      const index = Math.round(track.scrollLeft / track.clientWidth)
+      setSelectedIndex(Math.max(0, Math.min(index, galleryItems.length - 1)))
+    })
+  }, [galleryItems.length])
+
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), [])
 
   function selectImage(index: number, moveFocus = false) {
     if (galleryItems.length === 0) return
     const nextIndex = (index + galleryItems.length) % galleryItems.length
     setSelectedIndex(nextIndex)
+    const track = trackRef.current
+    if (track && typeof track.scrollTo === "function") {
+      const reduceMotion = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      // A wrap-around (last → first) jumps instead of scrolling past every photo.
+      const wraps = Math.abs(nextIndex - activeIndex) > 1
+      track.scrollTo({ left: nextIndex * track.clientWidth, behavior: reduceMotion || wraps ? "auto" : "smooth" })
+    }
     if (moveFocus) thumbnailRefs.current[nextIndex]?.focus()
   }
 
@@ -77,46 +99,48 @@ export default function ListingGallery({
     }
   }
 
-  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    const touch = event.touches[0]
-    if (!touch) return
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
-  }
-
-  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
-    const start = touchStartRef.current
-    const touch = event.changedTouches[0]
-    touchStartRef.current = null
-    if (!start || !touch || galleryItems.length < 2) return
-
-    const deltaX = touch.clientX - start.x
-    const deltaY = touch.clientY - start.y
-    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return
-
-    selectImage(activeIndex + (deltaX < 0 ? 1 : -1))
-  }
-
   return (
     <section aria-label={ka.listingDetail.imageRegion} className="min-w-0">
-      <div
-        className="ui-card relative aspect-[4/5] touch-pan-y select-none overflow-hidden bg-surface-alt sm:aspect-square"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
-        <SmartImage
-          src={activeItem?.image_url}
-          alt={
-            activeItem
-              ? `${title} — ${ka.listingDetail.imageCount} ${activeIndex + 1}`
-              : title
-          }
-          wrapperClassName="h-full w-full"
-          fit="contain"
-          backdrop
-          fallbackLabel={ka.product.imageUnavailable}
-          loading="eager"
-          sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 58vw, 720px"
-        />
+      <div className="ui-card relative aspect-[4/5] select-none overflow-hidden bg-surface-alt sm:aspect-square">
+        {galleryItems.length === 0 ? (
+          <SmartImage
+            src={null}
+            alt={title}
+            wrapperClassName="h-full w-full"
+            fallbackLabel={ka.product.imageUnavailable}
+          />
+        ) : (
+          <div
+            ref={trackRef}
+            onScroll={syncFromScroll}
+            data-testid="gallery-track"
+            className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {galleryItems.map((item, index) => {
+              const near = Math.abs(index - activeIndex) <= 1
+              return (
+                <div
+                  key={item.id}
+                  className="h-full w-full shrink-0 snap-center snap-always [contain:paint]"
+                  aria-hidden={index === activeIndex ? undefined : true}
+                >
+                  <SmartImage
+                    src={item.image_url}
+                    alt={`${title} — ${ka.listingDetail.imageCount} ${index + 1}`}
+                    wrapperClassName="h-full w-full"
+                    // Blurred backdrops are costly while scrolling: only the visible photo and its neighbours get one.
+                    fit="contain"
+                    backdrop={near}
+                    fallbackLabel={ka.product.imageUnavailable}
+                    // First photo loads first; the neighbours start loading before the swipe reaches them.
+                    loading={index === 0 || near ? "eager" : "lazy"}
+                    sizes="(max-width: 1023px) 100vw, (max-width: 1439px) 58vw, 720px"
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {galleryItems.length > 1 ? (
           <>
