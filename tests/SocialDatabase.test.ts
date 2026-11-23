@@ -7,7 +7,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 let db: PGlite
 const ADMIN = "11111111-1111-4111-8111-111111111111"
 const USER = "22222222-2222-4222-8222-222222222222"
-const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8") + "\n" + readFileSync("supabase/migrations/20261107010000_social_stories.sql", "utf8")
+// The review/weekly-plan migration is applied up to its pg_cron section (PGlite has no pg_cron/pg_net).
+const REVIEW_SQL = readFileSync("supabase/migrations/20261123100000_social_review_resolution_and_weekly_plan.sql", "utf8").split("-- Publish tick:")[0]
+const SQL = readFileSync("supabase/qa/social_media_agent_os_v1.sql", "utf8") + "\n" + readFileSync("supabase/migrations/20261107010000_social_stories.sql", "utf8") + "\n" + REVIEW_SQL
 
 async function as<T = Record<string, unknown>>(role: string, sql: string, params: unknown[] = []) {
   await db.exec(`set role ${role}`)
@@ -201,6 +203,58 @@ describe("duplicate publishing, queue, locking and retry", () => {
     expect((await svc("select social_record_container($1, gen_random_uuid(), 'c1') as ok", [j.job_id]))[0].ok).toBe(false)
     expect((await svc("select social_record_container($1,$2,'c1') as ok", [j.job_id, j.lease_token]))[0].ok).toBe(true)
     expect((await svc("select social_record_container($1,$2,'c2') as ok", [j.job_id, j.lease_token]))[0].ok).toBe(false)
+  })
+})
+
+describe("needs_review resolution (social_resolve_review_job)", () => {
+  async function stuckJob(key: string, platform = "instagram", container: string | null = "17900000000000001") {
+    const id = await createPost(key, `{${platform}}`)
+    await svc("update social_control set execution_mode='live'")
+    await svc(`insert into social_publish_jobs (post_id,post_version,platform,execution_mode,idempotency_key,scheduled_at,attempt,status,last_error_code,external_container_id)
+      values ($1,1,$2,'live',$3,now() - interval '2 hours',3,'needs_review','lease_expired',$4)`, [id, platform, `rv-${key}`, container])
+    await svc("update social_posts set status='publishing' where id=$1", [id])
+    const [{ id: jobId }] = await svc<{ id: string }>("select id from social_publish_jobs where post_id=$1", [id])
+    return { postId: id, jobId }
+  }
+  const resolve = (jobId: string, resolution: string, ext: string | null = null) => svc<{ s: string }>("select social_resolve_review_job($1,$2,$3) as s", [jobId, resolution, ext])
+  const job = (jobId: string) => svc("select status, attempt, external_post_id, external_container_id, last_error_code from social_publish_jobs where id=$1", [jobId]).then(r => r[0])
+  const post = (postId: string) => svc<{ status: string }>("select status from social_posts where id=$1", [postId]).then(r => r[0].status)
+
+  it("published: records the external id and rolls the post up", async () => {
+    const { postId, jobId } = await stuckJob("p1")
+    await rejects(resolve(jobId, "published"), /external_post_id_required/)
+    expect((await resolve(jobId, "published", "ig_container:17900000000000001"))[0].s).toBe("published")
+    expect(await job(jobId)).toMatchObject({ status: "published", external_post_id: "ig_container:17900000000000001", last_error_code: null })
+    expect(await post(postId)).toBe("published")
+    await rejects(resolve(jobId, "cancel"), /job_not_in_review/) // only from needs_review
+  })
+  it("requeue keeps one attempt available; fresh drops the container, resume keeps it", async () => {
+    const a = await stuckJob("q1")
+    expect((await resolve(a.jobId, "requeue_resume"))[0].s).toBe("queued")
+    expect(await job(a.jobId)).toMatchObject({ status: "queued", attempt: 2, external_container_id: "17900000000000001" })
+    const [claimed] = await svc<{ job_id: string }>("select * from social_claim_publish_jobs(5, 60)")
+    expect(claimed.job_id).toBe(a.jobId)
+    const b = await stuckJob("q2", "instagram", null)
+    await rejects(resolve(b.jobId, "requeue_resume"), /container_missing/)
+    const c = await stuckJob("q3")
+    await resolve(c.jobId, "requeue_fresh")
+    expect(await job(c.jobId)).toMatchObject({ status: "queued", external_container_id: null })
+  })
+  it("cancel: the only job cancelled → post cancelled; a cancelled job does not block a published sibling", async () => {
+    const a = await stuckJob("c1")
+    expect((await resolve(a.jobId, "cancel"))[0].s).toBe("cancelled")
+    expect(await post(a.postId)).toBe("cancelled")
+    const b = await stuckJob("c2")
+    await svc(`insert into social_publish_jobs (post_id,post_version,platform,execution_mode,idempotency_key,scheduled_at,status,external_post_id)
+      values ($1,1,'facebook','live','fb-c2',now(),'published','123_456')`, [b.postId])
+    await resolve(b.jobId, "cancel")
+    expect(await post(b.postId)).toBe("published")
+  })
+  it("rejects unknown resolutions and is server-only", async () => {
+    const { jobId } = await stuckJob("s1")
+    await rejects(resolve(jobId, "delete"), /invalid_resolution/)
+    await rejects(as("authenticated", `select social_resolve_review_job('${jobId}','cancel',null)`), /permission denied/)
+    await rejects(as("anon", `select social_resolve_review_job('${jobId}','cancel',null)`), /permission denied/)
   })
 })
 

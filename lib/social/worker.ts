@@ -5,10 +5,54 @@
 import { createAdapter, PublishError, type MetaCredentials, type PublishAdapter } from "./adapters/meta"
 import { evaluateSocialAction } from "./policy-gateway"
 import { effectiveExecutionMode, type SocialRuntime } from "./runtime"
-import type { SocialStore } from "./store"
+import type { ReviewResolution, SocialStore } from "./store"
 import type { ExecutionMode, SocialPlatform } from "./types"
 
-export type TickResult = { state: "stopped" | "idle" | "ran"; claimed: number; completed: number; failed: number; results: Array<{ jobId: string; outcome: string }> }
+export type TickResult = { state: "stopped" | "idle" | "ran"; claimed: number; completed: number; failed: number; reconciled: number; results: Array<{ jobId: string; outcome: string }> }
+
+/** Instagram jobs older than this that never went public are cancelled instead of posted late. */
+export const STALE_REVIEW_MS = 48 * 3600_000
+const RECONCILABLE = new Set(["lease_expired", "unknown_outcome", "container_already_published"])
+
+/**
+ * Resolve Instagram jobs stuck in needs_review by asking Meta for the container status.
+ * Nothing on Instagram becomes public without media_publish on a recorded container, so:
+ *   PUBLISHED → mark published (no resend) · FINISHED/IN_PROGRESS → resume the same container
+ *   EXPIRED/ERROR or no container → it never went public → resend fresh, or cancel if stale.
+ * Facebook jobs are never auto-resolved (no equivalent check): an admin decides.
+ * If Meta cannot answer, the job stays in needs_review.
+ */
+export async function reconcileReviewJobs(opts: { store: SocialStore; factory: AdapterFactory; now: () => number; limit?: number }): Promise<Array<{ jobId: string; outcome: string }>> {
+  const jobs = (await opts.store.listJobs(50))
+    .filter(j => j.status === "needs_review" && j.platform === "instagram" && j.executionMode === "live" && RECONCILABLE.has(j.lastErrorCode ?? ""))
+    .slice(0, opts.limit ?? 2)
+  const out: Array<{ jobId: string; outcome: string }> = []
+  for (const job of jobs) {
+    let status = "NONE"
+    // No recorded container is only conclusive for an expired lease (media_publish needs a recorded one).
+    if (!job.externalContainerId && job.lastErrorCode !== "lease_expired") continue
+    if (job.externalContainerId) {
+      try {
+        const adapter = opts.factory("instagram", "live")
+        if (!adapter.containerStatus) continue
+        status = await adapter.containerStatus(job.externalContainerId)
+      } catch { out.push({ jobId: job.id, outcome: "reconcile_unavailable" }); continue }
+    }
+    const stale = opts.now() - Date.parse(job.scheduledAt) > STALE_REVIEW_MS
+    let resolution: ReviewResolution | null
+    if (status === "PUBLISHED") resolution = "published"
+    else if (status === "FINISHED" || status === "IN_PROGRESS") resolution = stale ? "cancel" : "requeue_resume"
+    else if (status === "EXPIRED" || status === "ERROR" || status === "NONE") resolution = stale ? "cancel" : "requeue_fresh"
+    else resolution = null
+    if (!resolution) { out.push({ jobId: job.id, outcome: `reconcile_unknown_${status.toLowerCase()}` }); continue }
+    try {
+      const next = await opts.store.resolveReviewJob(job.id, resolution, resolution === "published" ? `ig_container:${job.externalContainerId}` : null)
+      await opts.store.appendAudit({ actorType: "system", actor: "publishing_worker", action: "publish_organic", decision: "success", reason: `review_auto_${resolution}`, resourceType: "social_publish_job", resourceId: job.id, details: { platform: "instagram", container_status: status, stale, next } })
+      out.push({ jobId: job.id, outcome: `reconciled_${resolution}` })
+    } catch { out.push({ jobId: job.id, outcome: "reconcile_failed" }) }
+  }
+  return out
+}
 export type AdapterFactory = (platform: SocialPlatform, mode: ExecutionMode) => PublishAdapter
 
 export async function runPublishTick(opts: {
@@ -28,15 +72,19 @@ export async function runPublishTick(opts: {
   const control = await store.getControl()
   if (!control || control.killSwitch) {
     await store.appendAudit({ actorType: "system", actor: "publishing_worker", action: "publish_organic", decision: "deny", reason: control ? "kill_switch_active" : "control_unavailable", resourceType: "worker", resourceId: null })
-    return { state: "stopped", claimed: 0, completed: 0, failed: 0, results: [] }
+    return { state: "stopped", claimed: 0, completed: 0, failed: 0, reconciled: 0, results: [] }
   }
+  // Only live Instagram jobs are reconciled, and only when live credentials are present.
+  const reconciled = opts.credentials || opts.adapterFactory ? await reconcileReviewJobs({ store, factory, now }).catch(() => []) : []
   const claimed = await store.claimJobs(Math.min(opts.maxJobs ?? 3, 5), 120)
-  const result: TickResult = { state: claimed.length ? "ran" : "idle", claimed: claimed.length, completed: 0, failed: 0, results: [] }
+  const result: TickResult = { state: claimed.length || reconciled.length ? "ran" : "idle", claimed: claimed.length, completed: 0, failed: 0, reconciled: reconciled.filter(r => r.outcome.startsWith("reconciled_")).length, results: [...reconciled] }
 
   for (const { jobId, leaseToken } of claimed) {
     const job = await store.getJob(jobId)
     const post = job ? await store.getPost(job.postId) : null
     if (!job || !post) { await store.failJob(jobId, leaseToken, "job_or_post_missing", false); result.failed++; continue }
+    // Never start a job that might not finish inside the function's maxDuration: an interrupted
+    // Instagram publish leaves an expired lease (needs_review) instead of a clean retry.
     if (now() - started > deadline) {
       // Out of time: give the lease back as retryable without touching the provider.
       await store.failJob(jobId, leaseToken, "worker_deadline", true); result.results.push({ jobId, outcome: "deferred" }); continue

@@ -2,16 +2,17 @@ import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
 import { summarizeMetrics } from "@/lib/social/agents/analytics"
 import { effectiveExecutionMode, currentSocialRuntime, SOCIAL_POLICY, type SocialRuntime } from "@/lib/social/runtime"
+import { summarizeWeeks, type WeekStatus } from "@/lib/social/orchestrator"
 import { runSimulation } from "@/lib/social/simulation"
 import { PLATFORM_LABEL } from "@/lib/social/store"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import type { AdDraft, MetricRow, PublishJob, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
-import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
+import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, resolveJobAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
 import { PlatformPreview, StoryPreview } from "./previews"
 
 export const dynamic = "force-dynamic"
-// Server actions on this page may convert a few images for Instagram (sharp); keep headroom.
-export const maxDuration = 30
+// Server actions (planning with image conversion, manual publish tick) run within this budget.
+export const maxDuration = 60
 export const metadata = { title: "AI Marketing Control Center | SamoSell", robots: { index: false, follow: false } }
 
 const STATUS_LABEL: Record<SocialPost["status"], string> = {
@@ -41,11 +42,68 @@ const FLASH: Record<string, string> = {
   rejected: "პოსტი უარყოფილია.", caption_saved_qa_rerun: "ტექსტი შეინახა, QA ხელახლა შესრულდა.", qa_rerun: "QA ხელახლა შესრულდა.",
   ad_draft_created_zero_budget: "სარეკლამო იდეა შეიქმნა ($0, მხოლოდ დრაფტი).", invalid_input: "არასწორი მონაცემები.",
 }
+const shortDate = (ymd: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "UTC", day: "numeric", month: "short" }).format(new Date(`${ymd}T00:00:00Z`))
+
+/** plan_<target>_<created>_<stories>_<qaFailed>_<existing> → a sentence the owner understands. */
+function planResultText(code: string) {
+  const m = /^plan_(current|next)_(\d+)_(\d+)_(\d+)_(\d+)$/.exec(code)
+  if (!m) return null
+  const [, target, created, stories, qaFailed, existing] = m
+  const week = target === "current" ? "ამ კვირაში" : "შემდეგ კვირაში"
+  if (created === "0") {
+    return existing !== "0"
+      ? `${week} ყველა სლოტი უკვე დაგეგმილია — ახალი არაფერი შექმნილა. პოსტები ქვემოთ, კალენდარშია.`
+      : `${week} დასაგეგმი დრო აღარ დარჩა (ან აქტიური ნივთი არ მოიძებნა).`
+  }
+  return `${week} შეიქმნა ${created} პოსტი${stories !== "0" ? ` და ${stories} Story` : ""}.${qaFailed !== "0" ? ` ${qaFailed} QA-ზე ჩაიჭრა.` : ""} დასამტკიცებლად ჩადი კალენდარში ↓`
+}
+
+const REVIEW_FLASH: Record<string, string> = {
+  review_published: "მონიშნულია როგორც გამოქვეყნებული — ხელახლა აღარ გაიგზავნება.",
+  review_requeue_fresh: "ხელახლა ჩადგა რიგში — გამოქვეყნდება შემდეგ ციკლზე.",
+  review_requeue_resume: "Instagram-ზე მომზადებული პოსტი გაგრძელდება შემდეგ ციკლზე.",
+  review_cancel: "გაუქმებულია — ამ პლატფორმაზე არ გამოქვეყნდება.",
+  job_not_in_review: "ეს ჩანაწერი უკვე აღარ ელოდება გადაწყვეტილებას.", meta_check_failed: "Instagram-თან შემოწმება ვერ მოხერხდა — სცადე მოგვიანებით.",
+}
+
 function flashText(code: string) {
   if (FLASH[code]) return FLASH[code]
+  if (REVIEW_FLASH[code]) return REVIEW_FLASH[code]
+  const plan = planResultText(code)
+  if (plan) return plan
   return code.replace(/_/g, " ")
 }
 const tbilisi = (iso: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))
+
+function WeekCard({ week, writable }: { week: WeekStatus; writable: boolean }) {
+  const title = week.target === "current" ? "ეს კვირა" : "შემდეგი კვირა"
+  const empty = week.feedPosts === 0
+  const canPlan = writable && week.openSlots > 0
+  const button = week.target === "current" ? "დარჩენილი დღეების დაგეგმვა" : "შემდეგი კვირის დაგეგმვა"
+  return (
+    <div className={`rounded-xl border p-4 ${empty && week.openSlots > 0 ? "border-amber-500 bg-amber-50" : ""}`}>
+      <p className="text-sm font-black text-text">{title} <span className="font-normal text-text-soft">· {shortDate(week.weekStart)} – {shortDate(week.weekEnd)}</span></p>
+      {empty ? (
+        <p className="mt-1 text-sm font-bold text-amber-800">{week.openSlots > 0 ? "⚠️ ცარიელია — პოსტი არ არის დაგეგმილი" : "ამ კვირაში დასაგეგმი დრო აღარ დარჩა"}</p>
+      ) : (
+        <ul className="mt-1 space-y-0.5 text-sm text-text">
+          <li>{week.feedPosts} პოსტი{week.stories ? ` + ${week.stories} Story` : ""}</li>
+          {week.awaitingApproval ? <li className="font-bold text-amber-800">⏳ {week.awaitingApproval} ელოდება შენს დამტკიცებას</li> : null}
+          {week.scheduled ? <li>🗓️ {week.scheduled} დამტკიცებული / რიგში</li> : null}
+          {week.published ? <li>✅ {week.published} გამოქვეყნებული</li> : null}
+          {week.qaFailed ? <li className="text-red-700">✕ {week.qaFailed} QA-ზე ჩაიჭრა</li> : null}
+          {week.problems ? <li className="text-red-700">⚠️ {week.problems} ვერ გამოქვეყნდა</li> : null}
+        </ul>
+      )}
+      <form action={runPlanningAction} className="mt-3">
+        <input type="hidden" name="target" value={week.target} />
+        <button disabled={!canPlan} className="w-full rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-40">
+          {canPlan ? `📅 ${button}${week.feedPosts ? ` (+${week.openSlots})` : ""}` : week.feedPosts ? "✓ უკვე დაგეგმილია" : "დასაგეგმი დრო აღარ არის"}
+        </button>
+      </form>
+    </div>
+  )
+}
 
 function Badge({ tone, children }: { tone: "ok" | "warn" | "off" | "info"; children: React.ReactNode }) {
   const cls = { ok: "border-emerald-600 text-emerald-700", warn: "border-amber-500 text-amber-700", off: "border-red-500 text-red-700", info: "border-line text-text" }[tone]
@@ -74,7 +132,7 @@ async function load(runtime: SocialRuntime): Promise<Data> {
   }
 }
 
-export default async function SocialControlCenter({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function SocialControlCenter({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string; at?: string }> }) {
   await requireAdminUser("/dashboard")
   const params = await searchParams
   const runtime = currentSocialRuntime()
@@ -90,6 +148,12 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
     byDay.set(key, [...(byDay.get(key) ?? []), p])
   }
   const flash = params.ok ?? params.error
+  // Messages from the planning card and the job list are shown next to them, not at the top.
+  const flashAt = params.at === "plan" || params.at === "publishing" ? params.at : "top"
+  const flashBox = (where: "top" | "plan" | "publishing") => flash && flashAt === where
+    ? <p role={params.error ? "alert" : "status"} className={`mt-3 rounded-lg border p-3 text-sm ${params.error ? "border-red-500 bg-red-50 text-red-900" : "border-emerald-600 bg-emerald-50 text-emerald-900"}`}>{flashText(flash)}</p>
+    : null
+  const weeks = summarizeWeeks(data.posts)
   const queuedJobs = data.jobs.filter(j => j.status === "queued")
   const problemJobs = data.jobs.filter(j => ["needs_review", "dead_letter", "failed"].includes(j.status))
   const upcoming = data.posts.filter(p => ["scheduled", "approved"].includes(p.status)).sort((a,b) => a.scheduledFor.localeCompare(b.scheduledFor))
@@ -121,7 +185,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
           </p>
         ) : null}
         {data.error ? <p role="alert" className="mt-4 rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-red-900">ბაზის მდგომარეობა ვერ წავიკითხე ({data.error}). სისტემა დახურულ რეჟიმშია.</p> : null}
-        {flash ? <p role={params.error ? "alert" : "status"} className={`mt-4 rounded-lg border p-3 text-sm ${params.error ? "border-red-500 bg-red-50 text-red-900" : "border-emerald-600 bg-emerald-50 text-emerald-900"}`}>{flashText(flash)}</p> : null}
+        {flashBox("top")}
       </header>
 
       <nav aria-label="Social workspace" className="flex flex-wrap gap-2 rounded-xl border p-2 text-sm font-bold">
@@ -168,11 +232,15 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
             <button disabled={!writable} className="mt-2 rounded-full border px-4 py-2 font-bold disabled:opacity-40">შენახვა</button>
           </form>
         </details>
-        <div className="ui-card p-5">
-          <h2 className="text-lg font-bold text-text">აგენტები</h2>
-          <p className="mt-1 text-sm text-text-soft">შემდეგი კვირის გეგმა (5 პოსტი) აქტიური ნივთებიდან. განმეორებით გაშვება დუბლიკატს არ ქმნის.</p>
-          <form action={runPlanningAction} className="mt-3"><button disabled={!writable} className="w-full rounded-full border px-4 py-2 text-sm font-bold disabled:opacity-40">📅 კვირის გეგმის შექმნა</button></form>
-
+        <div id="plan" className="ui-card scroll-mt-4 p-5">
+          <h2 className="text-lg font-bold text-text">📅 კვირის გეგმა</h2>
+          <p className="mt-1 text-sm text-text-soft">
+            აგენტი აქტიური ნივთებიდან ადგენს 5 პოსტს (ორშ, ოთხ, პარ, შაბ, კვი, საღამოს). შემდეგი კვირის გეგმა ავტომატურად იქმნება <b>ყოველ ხუთშაბათს 12:20-ზე</b> — შენ მხოლოდ ამტკიცებ.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {weeks.map(w => <WeekCard key={w.target} week={w} writable={writable} />)}
+          </div>
+          {flashBox("plan")}
           <p className="mt-2 text-xs text-text-soft">Live: {runtime.liveReason}</p>
         </div>
       </section>
@@ -252,7 +320,7 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
         </div>
       </section>
 
-      <section id="publishing" className="ui-card p-5 sm:p-6" aria-label="Publishing queue">
+      <section id="publishing" className="ui-card scroll-mt-4 p-5 sm:p-6" aria-label="Publishing queue">
         <h2 className="text-xl font-bold text-text">Publishing რიგი</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -261,13 +329,23 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
               {data.jobs.length === 0 ? <tr><td colSpan={7} className="py-3 text-text-soft">რიგი ცარიელია.</td></tr> : data.jobs.map(j => (
                 <tr key={j.id} className="border-t">
                   <td className="py-2">{PLATFORM_LABEL[j.platform]}</td><td>{j.executionMode}</td><td className={j.status === "needs_review" || j.status === "dead_letter" ? "font-bold text-red-700" : ""}>{j.status}</td>
-                  <td>{j.attempt}/{j.maxAttempts}</td><td>{tbilisi(j.scheduledAt)}</td><td className="font-mono text-xs">{j.externalPostId ?? "—"}</td><td className="text-xs">{j.lastErrorCode ?? ""}</td>
+                  <td>{j.attempt}/{j.maxAttempts}</td><td>{tbilisi(j.scheduledAt)}</td><td className="font-mono text-xs">{j.externalPostId ?? "—"}</td><td className="text-xs">{j.lastErrorCode ?? ""}
+                    {j.status === "needs_review" && writable ? (
+                      <form action={resolveJobAction} className="mt-1 flex flex-wrap gap-1">
+                        <input type="hidden" name="jobId" value={j.id} />
+                        <button name="choice" value="confirm_published" className="rounded-full border px-2 py-1 font-bold">✓ გამოქვეყნებულია</button>
+                        <button name="choice" value="resend" className="rounded-full border px-2 py-1 font-bold">↻ ხელახლა გაგზავნა</button>
+                        <button name="choice" value="cancel" className="rounded-full border px-2 py-1 font-bold">✕ გაუქმება</button>
+                      </form>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-xs text-text-soft"><b>needs_review</b> = შედეგი უცნობია (შეიძლება უკვე გამოქვეყნდა). ავტომატურად აღარ იგზავნება — შეამოწმე Page ხელით.</p>
+        {flashBox("publishing")}
+        <p className="mt-2 text-xs text-text-soft"><b>needs_review</b> = შედეგი უცნობია (შეიძლება უკვე გამოქვეყნდა). Instagram-ს სისტემა თავად ამოწმებს Meta-ზე და აგვარებს. Facebook-ზე ჯერ Page გადაამოწმე, მერე აირჩიე: „გამოქვეყნებულია“, „ხელახლა გაგზავნა“ ან „გაუქმება“. Instagram-ის ხელახლა გაგზავნისას სისტემა ჯერ ამოწმებს, უკვე ხომ არ გამოქვეყნდა.</p>
       </section>
 
       <section id="analytics" className="grid gap-4 lg:grid-cols-2">

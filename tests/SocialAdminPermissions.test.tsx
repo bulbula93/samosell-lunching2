@@ -16,11 +16,13 @@ vi.mock("@/lib/social/supabase-store", () => ({ createSocialStore: mocks.createS
 import * as actions from "@/app/admin/social/actions"
 import SocialControlCenter from "@/app/admin/social/page"
 import { GET as tick } from "@/app/api/internal/social/tick/route"
+import { GET as plan } from "@/app/api/internal/social/plan/route"
 import { MemorySocialStore } from "@/lib/social/store"
 
 const ADMIN = { user: { id: "11111111-1111-4111-8111-111111111111" } }
 const allActions = [
-  ["runPlanningAction", () => actions.runPlanningAction()],
+  ["runPlanningAction", () => actions.runPlanningAction(new FormData())],
+  ["resolveJobAction", () => actions.resolveJobAction(new FormData())],
   ["approvePostAction", () => actions.approvePostAction(new FormData())],
   ["rejectPostAction", () => actions.rejectPostAction(new FormData())],
   ["editCaptionAction", () => actions.editCaptionAction(new FormData())],
@@ -56,6 +58,16 @@ describe("server actions are admin-only and fail closed", () => {
     const fd = new FormData(); fd.set("postId", "../../etc"); fd.set("version", "1")
     await expect(actions.approvePostAction(fd)).rejects.toThrow("REDIRECT:/admin/social?error=invalid_input")
   })
+  it("job resolution rejects forged ids/choices and jobs that are not in review", async () => {
+    mocks.requireAdminUser.mockResolvedValue(ADMIN)
+    mocks.createSocialStore.mockReturnValue(new MemorySocialStore())
+    const bad = new FormData(); bad.set("jobId", "../x"); bad.set("choice", "cancel")
+    await expect(actions.resolveJobAction(bad)).rejects.toThrow("REDIRECT:/admin/social?error=invalid_input&at=publishing#publishing")
+    const odd = new FormData(); odd.set("jobId", ADMIN.user.id); odd.set("choice", "delete_everything")
+    await expect(actions.resolveJobAction(odd)).rejects.toThrow("error=invalid_input")
+    const missing = new FormData(); missing.set("jobId", ADMIN.user.id); missing.set("choice", "cancel")
+    await expect(actions.resolveJobAction(missing)).rejects.toThrow("error=job_not_in_review")
+  })
   it("settings cannot enable live mode from a preview runtime", async () => {
     mocks.requireAdminUser.mockResolvedValue(ADMIN)
     const store = new MemorySocialStore(undefined, { killSwitch: false })
@@ -82,6 +94,14 @@ describe("worker route", () => {
     vi.stubEnv("SOCIAL_WORKER_ENABLED", "true")
     expect((await tick(new Request("http://x/api", { headers: { authorization: "Bearer wrong!" } }))).status).toBe(401)
     expect((await tick(new Request("http://x/api"))).status).toBe(401)
+    expect(mocks.createSocialStore).not.toHaveBeenCalled()
+  })
+  it("weekly plan route has the same guard", async () => {
+    vi.stubEnv("CRON_SECRET", "s3cret")
+    expect((await plan(new Request("http://x/api", { headers: { authorization: "Bearer s3cret" } }))).status).toBe(401) // worker disabled
+    vi.stubEnv("SOCIAL_WORKER_ENABLED", "true")
+    expect((await plan(new Request("http://x/api", { headers: { authorization: "Bearer wrong!" } }))).status).toBe(401)
+    expect((await plan(new Request("http://x/api"))).status).toBe(401)
     expect(mocks.createSocialStore).not.toHaveBeenCalled()
   })
 })
@@ -118,5 +138,18 @@ describe("control center page", () => {
     render(await SocialControlCenter({ searchParams: Promise.resolve({ ok: "settings_saved" }) }))
     expect(screen.getAllByText(/დამტკიცება და რიგში ჩაყენება \(dry_run\)/).length).toBe(5)
     expect(screen.getByText("პარამეტრები შენახულია.")).toBeInTheDocument()
+  })
+  it("planning card shows both weeks and explains the result next to the buttons", async () => {
+    mocks.requireAdminUser.mockResolvedValue(ADMIN)
+    mocks.createSocialStore.mockReturnValue(new MemorySocialStore(undefined, { killSwitch: false }))
+    render(await SocialControlCenter({ searchParams: Promise.resolve({ ok: "plan_next_5_2_0_0", at: "plan" }) }))
+    expect(screen.getByText("ეს კვირა")).toBeInTheDocument()
+    expect(screen.getByText("შემდეგი კვირა")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /შემდეგი კვირის დაგეგმვა/ })).toBeEnabled()
+    const status = screen.getByRole("status")
+    expect(status).toHaveTextContent("შემდეგ კვირაში შეიქმნა 5 პოსტი და 2 Story.")
+    expect(status.closest("#plan")).not.toBeNull()
+    render(await SocialControlCenter({ searchParams: Promise.resolve({ ok: "plan_current_0_0_0_3", at: "plan" }) }))
+    expect(screen.getByText(/ამ კვირაში ყველა სლოტი უკვე დაგეგმილია/)).toBeInTheDocument()
   })
 })

@@ -36,6 +36,8 @@ export interface PublishAdapter {
   readonly platform: SocialPlatform
   readonly mode: ExecutionMode
   publish(input: PublishInput, hooks: PublishHooks): Promise<PublishResult>
+  /** Instagram only: read-only container status (FINISHED, IN_PROGRESS, PUBLISHED, EXPIRED, ERROR). */
+  containerStatus?(containerId: string): Promise<string>
 }
 
 /** Dry-run: validates the payload exactly like live, makes no network call, returns a deterministic id. */
@@ -167,6 +169,12 @@ export class InstagramLiveAdapter implements PublishAdapter {
     // Stories carry no caption (Instagram ignores it); the container itself is never public.
     if (input.contentType === "story") return id(await this.client.call("POST", `${this.creds.igUserId}/media`, { image_url: input.mediaUrls[0], media_type: "STORIES" }, false))
     return id(await this.client.call("POST", `${this.creds.igUserId}/media`, { image_url: input.mediaUrls[0], caption }, false))
+  }
+
+  async containerStatus(containerId: string): Promise<string> {
+    if (!ID.test(containerId)) throw new PublishError("invalid_container_id", false)
+    const status = await this.client.call("GET", containerId, { fields: "status_code" }, false)
+    return typeof status.status_code === "string" ? status.status_code : "UNKNOWN"
   }
 
   async publish(input: PublishInput, hooks: PublishHooks): Promise<PublishResult> {

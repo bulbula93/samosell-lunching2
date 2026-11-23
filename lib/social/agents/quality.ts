@@ -36,7 +36,10 @@ export function checkQuality(input: QualityInput, now = new Date()): QualityRepo
   const warn = (code: string, message: string, platform?: SocialPlatform) => issues.push({ code, severity: "warning", message, platform })
   const text = input.caption
 
-  if (text.trim().length < 20) err("caption_too_short", "ტექსტი ძალიან მოკლეა.")
+  // Stories are published without a caption: their text is only an internal label in the Control Center,
+  // so caption length/language rules would fail every Story. Media, link and platform rules still apply.
+  const hasCaption = input.contentType !== "story"
+  if (hasCaption && text.trim().length < 20) err("caption_too_short", "ტექსტი ძალიან მოკლეა.")
   if (input.platforms.length === 0) err("no_platform", "პლატფორმა არ არის არჩეული.")
   if ((input.platforms as string[]).includes("tiktok")) err("tiktok_disabled", "TikTok გამორთულია პოლიტიკით.")
   if (BLOCKED_CLAIMS.some(r => r.test(text))) err("unverifiable_claim", "შეიცავს გადაუმოწმებელ დაპირებას (მაგ. „გარანტირებული“, „100% ორიგინალი“).")
@@ -45,7 +48,7 @@ export function checkQuality(input: QualityInput, now = new Date()): QualityRepo
   if (URL_IN_TEXT.test(text)) warn("raw_url_in_caption", "ბმული ტექსტში არ არის საჭირო — ის ცალკე ემატება.")
   const georgian = (text.match(/[ა-ჿ]/g) ?? []).length
   const letters = (text.match(/\p{L}/gu) ?? []).length
-  if (letters > 0 && georgian / letters < 0.5) warn("not_georgian", "ტექსტის უმეტესობა ქართულად არ არის.")
+  if (hasCaption && letters > 0 && georgian / letters < 0.5) warn("not_georgian", "ტექსტის უმეტესობა ქართულად არ არის.")
 
   if (input.hashtags.length > 30) err("too_many_hashtags", "Instagram-ზე მაქსიმუმ 30 ჰეშთეგია დაშვებული.")
   else if (input.hashtags.length > 12) warn("many_hashtags", "12-ზე მეტი ჰეშთეგი ამცირებს წაკითხვადობას.")
@@ -60,7 +63,7 @@ export function checkQuality(input: QualityInput, now = new Date()): QualityRepo
   for (const platform of input.platforms) {
     const rendered = renderCaption(input, platform)
     if (platform === "instagram") {
-      if (rendered.length > 2200) err("caption_too_long", "Instagram-ის ტექსტი 2,200 სიმბოლოს აჭარბებს.", platform)
+      if (hasCaption && rendered.length > 2200) err("caption_too_long", "Instagram-ის ტექსტი 2,200 სიმბოლოს აჭარბებს.", platform)
       if (input.mediaUrls.length === 0) err("instagram_media_required", "Instagram-ს სურათი სჭირდება.", platform)
       if (input.mediaUrls.some(u => !instagramCompatibleMedia(u))) err("instagram_requires_jpeg", "Instagram API მხოლოდ JPEG სურათს იღებს.", platform)
     }

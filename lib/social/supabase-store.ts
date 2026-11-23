@@ -6,7 +6,7 @@ import "server-only"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { SocialRuntime } from "./runtime"
-import { SocialStoreError, type ClaimedJob, type ContentPatch, type ControlPatch, type SocialStore } from "./store"
+import { SocialStoreError, type ClaimedJob, type ContentPatch, type ControlPatch, type ReviewResolution, type SocialStore } from "./store"
 import type { CreativeDraft } from "./agents/creative"
 import type {
   AdDraft, AuditEntry, CandidateListing, ExecutionMode, MetricRow, PublishJob, QualityReport,
@@ -19,7 +19,7 @@ const num = (v: unknown) => (typeof v === "number" ? v : Number(v ?? 0))
 
 /** Map Postgres RAISE codes to stable errors; never leak driver text. */
 function fail(error: { message?: string } | null, fallback = "storage_unavailable"): never {
-  const known = /^(kill_switch_active|live_mode_disabled|post_not_found|post_not_approved|quality_not_passed|approval_missing|no_enabled_platform|social_post_locked|stale_version|post_not_reviewable|approval_not_pending|decider_required|invalid_mode)$/
+  const known = /^(kill_switch_active|live_mode_disabled|post_not_found|post_not_approved|quality_not_passed|approval_missing|no_enabled_platform|social_post_locked|stale_version|post_not_reviewable|approval_not_pending|decider_required|invalid_mode|invalid_resolution|job_not_found|job_not_in_review|external_post_id_required|container_missing)$/
   const msg = error?.message?.trim() ?? ""
   throw new SocialStoreError(known.test(msg) ? msg : fallback)
 }
@@ -191,6 +191,11 @@ export class SupabaseSocialStore implements SocialStore {
   }
   async failJob(jobId: string, token: string, errorCode: string, retryable: boolean) {
     const { data, error } = await this.db.rpc("social_fail_publish_job", { p_job_id: jobId, p_token: token, p_error: errorCode, p_retryable: retryable })
+    if (error) fail(error)
+    return String(data)
+  }
+  async resolveReviewJob(jobId: string, resolution: ReviewResolution, externalPostId: string | null = null) {
+    const { data, error } = await this.db.rpc("social_resolve_review_job", { p_job_id: jobId, p_resolution: resolution, p_external_post_id: externalPostId })
     if (error) fail(error)
     return String(data)
   }

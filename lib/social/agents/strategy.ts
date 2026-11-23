@@ -23,6 +23,9 @@ const SLOTS: ReadonlyArray<{ dayOffset: number; hourLocal: number; pillar: Pilla
   { dayOffset: 6, hourLocal: 20, pillar: "trust" },            // Sunday
 ]
 
+/** Day offset of every slot, aligned with weekSlotTimes(); slot keys are plan:<week>:<dayOffset>:<pillar>. */
+export const SLOT_DAY_OFFSETS: readonly number[] = SLOTS.map(s => s.dayOffset)
+
 export function mondayOf(date: Date): string {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   const day = d.getUTCDay() || 7
@@ -34,7 +37,24 @@ function usable(listing: CandidateListing) {
   return Boolean(listing.imageUrl?.startsWith("https://") && listing.title.trim().length >= 3)
 }
 
-export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateListing[]; platforms: SocialPlatform[] }): PlanSlot[] {
+/** Every slot time of a week (UTC ISO), in plan order — used for status and gap detection. */
+export function weekSlotTimes(weekStart: string): string[] {
+  const start = new Date(`${weekStart}T00:00:00Z`)
+  return SLOTS.map(slot => slotTime(start, slot.dayOffset, slot.hourLocal).toISOString())
+}
+
+function slotTime(start: Date, dayOffset: number, hourLocal: number) {
+  const at = new Date(start)
+  at.setUTCDate(at.getUTCDate() + dayOffset)
+  at.setUTCHours(hourLocal - TBILISI_OFFSET_HOURS, 0, 0, 0)
+  return at
+}
+
+/**
+ * notBefore: slots earlier than this are skipped (used to fill the rest of the current week).
+ * excludeListingIds: items already featured recently/upcoming are used only if nothing else is left.
+ */
+export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateListing[]; platforms: SocialPlatform[]; notBefore?: string; excludeListingIds?: Iterable<string> }): PlanSlot[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.weekStart)) throw new Error("invalid_week_start")
   const start = new Date(`${input.weekStart}T00:00:00Z`)
   if (start.getUTCDay() !== 1) throw new Error("week_must_start_monday")
@@ -43,18 +63,19 @@ export function buildWeeklyPlan(input: { weekStart: string; listings: CandidateL
   const gifts = pool.filter(l => l.isGift)
   const regular = pool.filter(l => !l.isGift)
   const used = new Set<string>()
+  const recent = new Set(input.excludeListingIds ?? [])
+  const notBefore = input.notBefore ? Date.parse(input.notBefore) : Number.NEGATIVE_INFINITY
   const usedEvergreen = new Set<Pillar>()
   const take = (source: CandidateListing[]) => {
-    const found = source.find(l => !used.has(l.id))
+    const found = source.find(l => !used.has(l.id) && !recent.has(l.id)) ?? source.find(l => !used.has(l.id))
     if (found) used.add(found.id)
     return found ?? null
   }
 
   const slots: PlanSlot[] = []
   for (const slot of SLOTS) {
-    const at = new Date(start)
-    at.setUTCDate(at.getUTCDate() + slot.dayOffset)
-    at.setUTCHours(slot.hourLocal - TBILISI_OFFSET_HOURS, 0, 0, 0)
+    const at = slotTime(start, slot.dayOffset, slot.hourLocal)
+    if (at.getTime() < notBefore) continue
     let pillar: Pillar = slot.pillar
     let listing: CandidateListing | null = null
     let listings: CandidateListing[] = []
