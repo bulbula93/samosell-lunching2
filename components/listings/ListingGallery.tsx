@@ -2,6 +2,7 @@
 
 import {
   type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -17,6 +18,8 @@ type ListingGalleryProps = {
   title: string
   coverImageUrl: string | null
   images: ListingImage[]
+  /** Rendered on the main photo, top-right (the favorite heart). */
+  photoAction?: ReactNode
 }
 
 export function buildGalleryItems(coverImageUrl: string | null, images: ListingImage[]) {
@@ -40,6 +43,7 @@ export default function ListingGallery({
   title,
   coverImageUrl,
   images,
+  photoAction = null,
 }: ListingGalleryProps) {
   const galleryItems = useMemo(
     () => buildGalleryItems(coverImageUrl, images),
@@ -187,6 +191,12 @@ export default function ListingGallery({
             className="absolute bottom-3 right-3 rounded-full bg-text/85 px-3 py-1.5 text-xs font-bold text-white"
           >
             {activeIndex + 1} / {galleryItems.length}
+          </div>
+        ) : null}
+
+        {photoAction ? (
+          <div className="absolute right-3 top-3 z-10" data-testid="gallery-photo-action">
+            {photoAction}
           </div>
         ) : null}
       </div>

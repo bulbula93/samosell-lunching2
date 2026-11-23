@@ -435,15 +435,18 @@ export default function ListingOverviewCard({
 
       <section aria-label="ნივთის მოქმედებები" className="mt-7 border-t border-line pt-6">
         <div className="grid gap-3 sm:grid-cols-2">
+          {/* Phones get the heart on the photo instead; the labelled button stays on larger screens. */}
           {isActive && !isOwner ? (
-            <FavoriteToggleForm
-              listingId={listing.id}
-              listingSlug={listing.slug}
-              nextPath={listingReturnPath}
-              isFavorited={isFavorited}
-              searchId={searchId}
-              className="min-h-11 w-full rounded-xl"
-            />
+            <div className="hidden sm:block">
+              <FavoriteToggleForm
+                listingId={listing.id}
+                listingSlug={listing.slug}
+                nextPath={listingReturnPath}
+                isFavorited={isFavorited}
+                searchId={searchId}
+                className="min-h-11 w-full rounded-xl"
+              />
+            </div>
           ) : null}
 
           <ListingSocialShare

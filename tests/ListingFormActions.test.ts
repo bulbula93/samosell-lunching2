@@ -6,6 +6,7 @@ import {
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  createAdminClient: vi.fn(),
   rateLimit: vi.fn(),
   slug: vi.fn(),
   revalidatePath: vi.fn(),
@@ -13,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: mocks.createClient,
+}))
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: mocks.createAdminClient,
 }))
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -455,4 +460,80 @@ describe("listing form server actions", () => {
     if (!result.ok) expect(result.message).not.toContain("postgres")
     expect(mocks.revalidatePath).not.toHaveBeenCalled()
   })
+
+  it.each([["ზარა.", "ზარა"], ["ნაიკი", "ნაიკი"]])(
+    "reuses the canonical brand for a Georgian spelling instead of creating a duplicate (%s)",
+    async (customBrand, aliasLookup) => {
+      const canonical = customBrand.startsWith("ზ") ? "Zara" : "Nike"
+      const canonicalId = "477f3329-6c04-4c40-8f33-873ab3ee4f76"
+      let insertedPayload: Record<string, unknown> | null = null
+      const aliasQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { canonical_term: canonical }, error: null }),
+      }
+      const adminInsert = vi.fn()
+      mocks.createAdminClient.mockReturnValue({
+        from: vi.fn((table: string) => {
+          if (table === "search_query_aliases") return aliasQuery
+          if (table === "brands") return { insert: adminInsert }
+          throw new Error(`Unexpected admin table ${table}`)
+        }),
+      })
+      const brandsQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: canonicalId, is_active: true }, error: null }),
+        limit: vi.fn().mockResolvedValue({
+          data: [
+            { id: "old-duplicate", name: customBrand, is_active: false },
+            { id: canonicalId, name: canonical, is_active: true },
+          ],
+          error: null,
+        }),
+      }
+      const listings = {
+        select: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn((payload: Record<string, unknown>) => {
+          insertedPayload = payload
+          return Promise.resolve({ error: null })
+        }),
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+      }
+      const categoryQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: 1 }, error: null }),
+      }
+      mocks.createClient.mockResolvedValue({
+        auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: ownerId } }, error: null }) },
+        from: vi.fn((table: string) => {
+          if (table === "listings") return listings
+          if (table === "categories") return categoryQuery
+          if (table === "brands") return brandsQuery
+          if (table === "profiles") return profileUpdateBuilder()
+          if (table === "listing_images") return { upsert: vi.fn().mockResolvedValue({ error: null }) }
+          throw new Error(`Unexpected table ${table}`)
+        }),
+        storage: storageStub(),
+      })
+
+      const result = await saveListingAction({
+        mode: "create",
+        listingId,
+        form: { ...validForm, customBrand } as typeof validForm,
+        images: uploadedImages,
+      })
+
+      expect(result).toMatchObject({ ok: true })
+      expect(aliasQuery.ilike).toHaveBeenCalledWith("alias", aliasLookup)
+      expect(insertedPayload).toMatchObject({ brand_id: canonicalId })
+      expect(adminInsert).not.toHaveBeenCalled()
+      expect(mocks.rateLimit).not.toHaveBeenCalledWith(expect.anything(), "brand_create")
+    },
+  )
 })

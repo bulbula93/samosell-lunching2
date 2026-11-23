@@ -28,6 +28,8 @@ export type CatalogFilterOptions = {
   sizes: Array<{ label?: string | null; group_name?: string | null }>
   colors: string[]
   cities: string[]
+  /** Brands with active listings (clothing etc.). Perfume keeps its own curated list. */
+  brands?: string[]
 }
 
 type PlayfulOption = { value: string; label: string }
@@ -511,6 +513,15 @@ export default function CatalogFilterFields({
   }
 
   const showItemType = !FIXED_TYPE_CATEGORIES.has(selectedCategory)
+  const listingBrands = options.brands ?? []
+  const generalBrands =
+    selectedBrandFilter && !listingBrands.includes(selectedBrandFilter)
+      ? [selectedBrandFilter, ...listingBrands]
+      : listingBrands
+  const generalBrandOptions: PlayfulOption[] = [
+    { value: "", label: "ყველა ბრენდი" },
+    ...generalBrands.map((item) => ({ value: item, label: item })),
+  ]
   const footwearAudienceOptions: PlayfulOption[] = [
     { value: "", label: "ყველა" },
     { value: "women", label: "ქალის" },
@@ -535,7 +546,7 @@ export default function CatalogFilterFields({
         </div>
       ) : null}
 
-      <div className={mobile ? "grid gap-4" : "grid gap-3 md:grid-cols-2 xl:grid-cols-5"}>
+      <div className={mobile ? "grid gap-4" : "grid gap-3 md:grid-cols-2 xl:grid-cols-6"}>
         {showItemType ? (
           <PlayfulSelect
             label="ნივთის ტიპი"
@@ -557,6 +568,17 @@ export default function CatalogFilterFields({
           options={sizeOptions}
           icon="size"
         />
+
+        {generalBrands.length > 0 ? (
+          <PlayfulSelect
+            label="ბრენდი"
+            name="brand"
+            value={selectedBrandFilter}
+            onChange={setSelectedBrandFilter}
+            options={generalBrandOptions}
+            icon="brand"
+          />
+        ) : null}
 
         <PlayfulSelect
           label="მდებარეობა"

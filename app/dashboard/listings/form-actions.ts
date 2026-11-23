@@ -221,7 +221,30 @@ async function validateLookupValues(
 }
 
 function normalizeBrandName(value: string) {
-  return value.trim().replace(/\s+/g, " ")
+  // "ზარა." and "ზარა" are the same brand: drop trailing dots/spaces.
+  return value.trim().replace(/\s+/g, " ").replace(/[.\s]+$/, "")
+}
+
+/** Maps a Georgian spelling ("ნაიკი") to the canonical brand ("Nike") via the search brand aliases. */
+async function canonicalBrandName(name: string) {
+  const { data, error } = await createAdminClient()
+    .from("search_query_aliases")
+    .select("canonical_term")
+    .eq("kind", "brand")
+    .eq("is_active", true)
+    .ilike("alias", name.replace(/[\\%_]/g, (char) => `\\${char}`))
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.warn("brand_alias_lookup_failed", error.message)
+    return name
+  }
+  return normalizeBrandName(String(data?.canonical_term ?? "")) || name
+}
+
+function sameBrandName(a: unknown, b: string) {
+  return normalizeBrandName(String(a ?? "")).toLocaleLowerCase("en-US") === b
 }
 
 function brandSlug(value: string) {
@@ -243,8 +266,9 @@ async function resolveBrandId(
 ) {
   if (brandId) return brandId
 
-  const name = normalizeBrandName(customBrand ?? "")
-  if (!name) return null
+  const typedName = normalizeBrandName(customBrand ?? "")
+  if (!typedName) return null
+  const name = await canonicalBrandName(typedName)
 
   const { data: existingRows, error: existingError } = await supabase
     .from("brands")
@@ -254,9 +278,9 @@ async function resolveBrandId(
   if (existingError) throw existingError
 
   const normalized = name.toLocaleLowerCase("en-US")
-  const existing = (existingRows ?? []).find(
-    (row) => String(row.name ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US") === normalized,
-  )
+  // Prefer an active row: merged duplicates stay in the table as inactive.
+  const matches = (existingRows ?? []).filter((row) => sameBrandName(row.name, normalized))
+  const existing = matches.find((row) => row.is_active !== false) ?? matches[0]
 
   if (existing?.id) {
     if (existing.is_active === false) {
@@ -282,9 +306,7 @@ async function resolveBrandId(
       .limit(1000)
 
     if (racedError) throw created.error
-    const raced = (racedRows ?? []).find(
-      (row) => String(row.name ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US") === normalized,
-    )
+    const raced = (racedRows ?? []).find((row) => sameBrandName(row.name, normalized) && row.is_active !== false)
     if (raced?.id && raced.is_active !== false) return String(raced.id)
 
     slug = `${brandSlug(name)}-${crypto.randomUUID().slice(0, 6)}`

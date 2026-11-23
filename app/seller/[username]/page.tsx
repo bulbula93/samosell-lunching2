@@ -583,17 +583,6 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
         </section>
       ) : null}
 
-      {profile.seller_type !== "store" ? (
-        <>
-          <AdSlotRow
-            placementKeys={["profile_inline_left", "profile_inline_right"]}
-            pagePath={`/seller/${username}`}
-            className="pb-10 sm:pb-12"
-          />
-          <SellerReviewsSection data={sellerReviewData} />
-        </>
-      ) : null}
-
       <section id="seller-listings" className={profile.seller_type === "store" ? "scroll-mt-32 bg-white text-text pb-14 pt-10 sm:pt-14" : "mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 sm:px-6"}>
         <div className={profile.seller_type === "store" ? "ui-container" : ""}>
         <div className={`grid gap-6 ${hasStoreDetails ? "lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start" : ""}`}>
@@ -641,16 +630,13 @@ export default async function SellerPage({ params }: { params: Promise<{ usernam
         </div>
         </div>
       </section>
-      {profile.seller_type === "store" ? (
-        <>
-          <AdSlotRow
-            placementKeys={["profile_inline_left", "profile_inline_right"]}
-            pagePath={`/seller/${username}`}
-            className="pb-10 sm:pb-12"
-          />
-          <SellerReviewsSection data={sellerReviewData} />
-        </>
-      ) : null}
+      {/* Listings come first for every seller type; ads and reviews follow them. */}
+      <AdSlotRow
+        placementKeys={["profile_inline_left", "profile_inline_right"]}
+        pagePath={`/seller/${username}`}
+        className="pb-10 sm:pb-12"
+      />
+      <SellerReviewsSection data={sellerReviewData} />
     </main>
   )
 }

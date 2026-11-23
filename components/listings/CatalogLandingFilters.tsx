@@ -25,9 +25,10 @@ export default function CatalogLandingFilters({
   sizes,
   colors,
   cities,
+  brands,
   values,
 }: CatalogFilterOptions & { values: CatalogFilterValues }) {
-  const options = { categories, sizes, colors, cities }
+  const options = { categories, sizes, colors, cities, brands }
   const chips: Array<{ key: FilterKey | "price"; label: string }> = []
   if (values.q) chips.push({ key: "q", label: `ძებნა: ${values.q}` })
   if (values.item_type) chips.push({ key: "item_type", label: getCatalogItemLabel(values.item_type) })

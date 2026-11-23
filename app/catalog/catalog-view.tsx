@@ -87,7 +87,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
     supabase.auth.getUser(),
     getCachedCatalogFilterOptions().catch((error) => {
       console.warn("catalog_optional_facets_unavailable", error instanceof Error ? error.message : "unknown")
-      return { sizes: [], colors: [], cities: [] }
+      return { sizes: [], colors: [], cities: [], brands: [] }
     }),
   ])
   const user = authResponse.data.user
@@ -313,6 +313,7 @@ export default async function CatalogView({ params = {} }: { params?: CatalogPag
             sizes={sizes ?? []}
             colors={uniqueColors}
             cities={cityOptions}
+            brands={filterOptions.brands}
             values={filterValues}
           />
           {!q ? (
