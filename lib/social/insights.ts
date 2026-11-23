@@ -27,6 +27,8 @@ export type InsightsResult = {
 
 /** Instagram returns online_followers from this many followers. */
 export const IG_ACTIVE_HOURS_MIN_FOLLOWERS = 100
+/** Instagram keeps Story insights only while the Story is live. */
+export const STORY_INSIGHTS_WINDOW_MS = 24 * 3600_000
 const IG_FEED_METRICS = "reach,likes,comments,shares,saved,views"
 const IG_STORY_METRICS = "reach,views,shares"
 
@@ -151,8 +153,16 @@ export async function syncInsights(opts: {
   const postErrors: Partial<Record<SocialPlatform, string>> = {}
   for (const t of targets) {
     if (now() - started > deadline) break
+    const isStory = t.contentType === "story"
+    // Facebook exposes no engagement counters for Page Stories; skip them.
+    if (isStory && t.platform === "facebook") continue
+    // Instagram Story insights exist only while the Story is live (24 h): older ones are not errors.
+    if (isStory && now() - Date.parse(t.scheduledFor) > STORY_INSIGHTS_WINDOW_MS) continue
     try { rows.push(t.platform === "instagram" ? await instagramPost(ig, t) : await facebookPost(fb, t)) }
-    catch (e) { fail(errCode(e)); postErrors[t.platform] ??= errCode(e) }
+    catch (e) {
+      if (isStory) continue
+      fail(errCode(e)); postErrors[t.platform] ??= errCode(e)
+    }
   }
   await opts.store.upsertMetrics(rows)
   result.updated = rows.length

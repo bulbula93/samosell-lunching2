@@ -91,6 +91,8 @@ const ERROR_TEXT: Record<string, string> = {
   meta_token_invalid: "Meta-ს ტოკენი აღარ მოქმედებს — საჭიროა ახალი.",
   meta_credentials_missing: "Meta-ს წვდომა ამ გარემოში არ არის კონფიგურირებული.",
   meta_rate_limited: "Meta-მ დროებით შეზღუდა მოთხოვნები — ხვალ თავიდან ვცდით.",
+  meta_invalid_request: "Meta-მ ზოგიერთი პოსტის შედეგი არ მისცა (მაგ. წაშლილი პოსტი) — დანარჩენი განახლდა.",
+  meta_api_unavailable: "Meta დროებით მიუწვდომელი იყო — ხვალ თავიდან ვცდით.",
 }
 const tbilisiShort = (iso: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
 
