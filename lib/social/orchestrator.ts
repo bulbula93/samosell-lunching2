@@ -6,7 +6,7 @@
 import { draftAdPlan } from "./agents/ads-planner"
 import { createDraft, createStoryDraft, storyKey, storyPriceLabel } from "./agents/creative"
 import { checkQuality } from "./agents/quality"
-import { buildWeeklyPlan, mondayOf } from "./agents/strategy"
+import { buildWeeklyPlan, mondayOf, SLOT_DAY_OFFSETS, weekSlotTimes } from "./agents/strategy"
 import { MediaPrepareError, type MediaPreparer, type StoryPreparer } from "./media"
 import { evaluateSocialAction, type PolicyResult, type SocialAction, type SocialAgent } from "./policy-gateway"
 import { effectiveExecutionMode, type SocialRuntime } from "./runtime"
@@ -31,11 +31,69 @@ async function gate(ctx: Ctx, actor: SocialAgent, action: SocialAction, extra: P
   return result
 }
 
+export type PlanTarget = "current" | "next"
+/** Posts for the rest of the current week are only planned this far ahead, so there is time to approve them. */
+export const CURRENT_WEEK_LEAD_MS = 2 * 3600_000
+const DAY_MS = 864e5
+
+export function planWindow(target: PlanTarget, now: Date) {
+  // Weeks follow Tbilisi time (UTC+4, no DST): Monday 00:00–03:59 local is still Sunday in UTC.
+  const local = now.getTime() + 4 * 3600_000
+  const weekStart = mondayOf(new Date(target === "current" ? local : local + 7 * DAY_MS))
+  return { weekStart, notBefore: target === "current" ? new Date(now.getTime() + CURRENT_WEEK_LEAD_MS).toISOString() : undefined }
+}
+
+export type WeekStatus = {
+  target: PlanTarget; weekStart: string; weekEnd: string
+  feedPosts: number; stories: number; awaitingApproval: number; scheduled: number; published: number; qaFailed: number; problems: number
+  /** Plan slots that are still in the future (respecting the lead time) and have no post yet. */
+  openSlots: number
+}
+
+const ACTIVE = (p: SocialPost) => p.status !== "rejected" && p.status !== "cancelled"
+
+/** Range of posts needed by summarizeWeeks (this Tbilisi week + next). */
+export function overviewRange(now = new Date()) {
+  const from = new Date(`${planWindow("current", now).weekStart}T00:00:00Z`).getTime() - 4 * 3600_000
+  return { fromIso: new Date(from).toISOString(), toIso: new Date(from + 14 * DAY_MS).toISOString() }
+}
+
+/** Pure overview for the admin planning card: what exists for this and next week. */
+export function summarizeWeeks(posts: SocialPost[], now = new Date()): WeekStatus[] {
+  return (["current", "next"] as const).map(target => {
+    const { weekStart, notBefore } = planWindow(target, now)
+    const keyPrefix = `plan:${weekStart}:`
+    const week = posts.filter(p => p.idempotencyKey.startsWith(keyPrefix) && ACTIVE(p))
+    const feed = week.filter(p => p.contentType !== "story")
+    const taken = new Set(feed.map(p => p.idempotencyKey.split(":").slice(0, 3).join(":")))
+    const limit = notBefore ? Date.parse(notBefore) : now.getTime()
+    const openSlots = weekSlotTimes(weekStart).filter((iso, i) => Date.parse(iso) >= limit && !taken.has(`plan:${weekStart}:${SLOT_DAY_OFFSETS[i]}`)).length
+    const end = new Date(`${weekStart}T00:00:00Z`); end.setUTCDate(end.getUTCDate() + 6)
+    return {
+      target, weekStart, weekEnd: end.toISOString().slice(0, 10),
+      feedPosts: feed.length, stories: week.length - feed.length,
+      awaitingApproval: week.filter(p => p.status === "ready_for_review").length,
+      scheduled: week.filter(p => p.status === "approved" || p.status === "scheduled" || p.status === "publishing").length,
+      published: week.filter(p => p.status === "published" || p.status === "partially_published").length,
+      qaFailed: week.filter(p => p.status === "qa_failed").length,
+      problems: week.filter(p => p.status === "failed").length,
+      openSlots,
+    }
+  })
+}
+
+export async function getPlanningOverview(store: SocialStore, now = new Date()): Promise<WeekStatus[]> {
+  const { fromIso, toIso } = overviewRange(now)
+  return summarizeWeeks(await store.listPosts(fromIso, toIso, 200), now)
+}
+
 export type PlanningResult = { weekStart: string; created: number; existing: number; passedQa: number; failedQa: number; approvalsRequested: number; storiesCreated: number; posts: SocialPost[] }
 
-export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; listings?: CandidateListing[] } = {}): Promise<PlanningResult> {
+export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; target?: PlanTarget; listings?: CandidateListing[] } = {}): Promise<PlanningResult> {
   const now = ctx.now?.() ?? new Date()
-  const weekStart = input.weekStart ?? mondayOf(new Date(now.getTime() + 7 * 864e5))
+  const window = planWindow(input.target ?? "next", now)
+  const weekStart = input.weekStart ?? window.weekStart
+  const notBefore = input.weekStart ? undefined : window.notBefore
   const planGate = await gate(ctx, "orchestrator", "plan_content")
   if (planGate.decision === "deny") throw new PolicyDeniedError(planGate.reason)
 
@@ -44,8 +102,12 @@ export async function runPlanningCycle(ctx: Ctx, input: { weekStart?: string; li
   if (control?.instagramEnabled) platforms.push("instagram")
   if (control?.facebookEnabled) platforms.push("facebook")
   const listings = input.listings ?? await ctx.store.listCandidateListings(40)
-  const slots = buildWeeklyPlan({ weekStart, listings, platforms })
-  await ctx.store.appendAudit({ actorType: "agent", actor: "strategy", action: "plan_content", decision: "success", reason: "weekly_plan_built", resourceType: "plan", resourceId: weekStart, details: { slots: slots.length, candidates: listings.length } })
+  // Avoid featuring the same item again within ~3 weeks (published, upcoming or pending review).
+  const start = new Date(`${weekStart}T00:00:00Z`).getTime()
+  const nearby = await ctx.store.listPosts(new Date(start - 21 * DAY_MS).toISOString(), new Date(start + 14 * DAY_MS).toISOString(), 200)
+  const excludeListingIds = nearby.filter(p => ACTIVE(p) && p.listingId && !p.idempotencyKey.startsWith(`plan:${weekStart}:`)).map(p => p.listingId as string)
+  const slots = buildWeeklyPlan({ weekStart, listings, platforms, notBefore, excludeListingIds })
+  await ctx.store.appendAudit({ actorType: "agent", actor: "strategy", action: "plan_content", decision: "success", reason: "weekly_plan_built", resourceType: "plan", resourceId: weekStart, details: { slots: slots.length, candidates: listings.length, target: input.target ?? "next", excluded: excludeListingIds.length } })
 
   const result: PlanningResult = { weekStart, created: 0, existing: 0, passedQa: 0, failedQa: 0, approvalsRequested: 0, storiesCreated: 0, posts: [] }
   for (const slot of slots) {

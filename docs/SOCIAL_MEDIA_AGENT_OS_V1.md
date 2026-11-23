@@ -175,3 +175,12 @@ Instagram Login-ის long-lived token 60 დღეში იწურება
 - **Scheduler:** Supabase pg_cron job `samosell-social-publish-tick` (`5 8,14,15,16 * * *` UTC = 12:05/18:05/19:05/20:05 თბილისი), `net.http_get` → `/api/internal/social/tick`, Bearer Vault-იდან (`samosell_social_cron_secret`, Vercel `CRON_SECRET`-ის ტოლი). Vercel Cron განზრახ არ გამოიყენება (პროექტის წესი, `TbcLaunchReadiness` ტესტი). Migration: `20261106230000_social_publish_tick_schedule.sql`.
 - Worker მხოლოდ დამტკიცებულ, დროში მოსულ job-ებს აქვეყნებს; kill switch / dry-run / env ceiling სერვერზე მოწმდება. ცარიელი queue = ~2 DB query, ≤4 გამოძახება დღეში.
 - **გამორთვა:** `select cron.unschedule('samosell-social-publish-tick');` ან Admin → AI მარკეტინგი → kill switch.
+
+## 2026-11-23 — Planning UX, Story QA, needs_review resolution
+
+- **Weekly plan**: `/admin/social` shows "ეს კვირა" and "შემდეგი კვირა" with counts (awaiting approval, scheduled, published, QA failed) and one button each. The current-week button fills only the slots that are at least 2 h ahead. Weeks follow Tbilisi time. The result is shown next to the buttons in Georgian.
+- **Automatic weekly plan**: pg_cron `samosell-social-weekly-plan` calls `GET /api/internal/social/plan` on Thursday 08:20 UTC (12:20 Tbilisi) for the following week. It only creates drafts. QA, approval, kill switch and dry-run still apply, and it is idempotent per slot.
+- **Variety**: items featured in the previous 3 weeks or already scheduled are avoided unless nothing else is available.
+- **Story QA**: Stories have no caption, so caption length and language rules no longer apply to them. Media, link and platform rules still do.
+- **Publish tick**: the route runs up to 60 s (was 30 s) and starts new jobs only in the first 25 s. Cause of the two `lease_expired` Instagram jobs: a carousel after a Facebook job ran past the 30 s limit, and the function was stopped after the container was recorded.
+- **needs_review**: `social_resolve_review_job` (service_role only) is the only way out. On each tick, Instagram jobs are checked on Meta via the container `status_code`: `PUBLISHED` → published, `FINISHED`/`IN_PROGRESS` → resume the same container, `EXPIRED`/`ERROR`/no container (expired lease only) → resend, or cancel if older than 48 h. Facebook is never auto-resolved. The admin gets "გამოქვეყნებულია / ხელახლა გაგზავნა / გაუქმება" buttons, and an Instagram resend re-checks the container first.

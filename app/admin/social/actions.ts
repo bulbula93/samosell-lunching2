@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireAdminUser } from "@/lib/auth"
-import { readMetaCredentials } from "@/lib/social/adapters/meta"
+import { createAdapter, PublishError, readMetaCredentials } from "@/lib/social/adapters/meta"
 import { addStoryForPost, approvePostAndStory, draftAdForPost, enableInstagramForPost, PolicyDeniedError, rejectPost, runPlanningCycle, runQualityCheck } from "@/lib/social/orchestrator"
 import { evaluateSocialAction } from "@/lib/social/policy-gateway"
 import { currentSocialRuntime } from "@/lib/social/runtime"
-import { SocialStoreError, type SocialStore } from "@/lib/social/store"
+import { SocialStoreError, type ReviewResolution, type SocialStore } from "@/lib/social/store"
 import { MediaPrepareError } from "@/lib/social/media"
 import { createSocialMediaPreparer, createSocialStoryPreparer } from "@/lib/social/supabase-media"
 import { createSocialStore } from "@/lib/social/supabase-store"
@@ -16,9 +16,10 @@ import { runPublishTick } from "@/lib/social/worker"
 const PATH = "/admin/social"
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-function go(type: "ok" | "error", code: string): never {
+function go(type: "ok" | "error", code: string, section?: "plan" | "publishing"): never {
   revalidatePath(PATH)
-  redirect(`${PATH}?${type}=${encodeURIComponent(code)}`)
+  // `at` tells the page where to show the message; the hash scrolls there.
+  redirect(`${PATH}?${type}=${encodeURIComponent(code)}${section ? `&at=${section}#${section}` : ""}`)
 }
 
 /** Every action: authenticate as admin FIRST, then resolve the fail-closed backend. */
@@ -43,14 +44,41 @@ function readPost(formData: FormData) {
   return { postId, version }
 }
 
-export async function runPlanningAction() {
+export async function runPlanningAction(formData: FormData) {
   const { store, runtime } = await context()
+  const target = formData.get("target") === "current" ? "current" : "next"
   let code: string
   try {
-    const r = await runPlanningCycle({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime), prepareStory: createSocialStoryPreparer(runtime) })
-    code = `planned_${r.created}_created_${r.passedQa}_qa_passed_${r.storiesCreated}_stories`
-  } catch (e) { go("error", errorCode(e)) }
-  go("ok", code)
+    const r = await runPlanningCycle({ store, runtime, prepareMedia: createSocialMediaPreparer(runtime), prepareStory: createSocialStoryPreparer(runtime) }, { target })
+    // Machine-readable result; the page turns it into a Georgian sentence next to the button.
+    code = `plan_${target}_${r.created}_${r.storiesCreated}_${r.failedQa}_${r.existing}`
+  } catch (e) { go("error", errorCode(e), "plan") }
+  go("ok", code, "plan")
+}
+
+/** Admin decision for a job stuck in needs_review. Instagram is re-checked on Meta before any resend. */
+export async function resolveJobAction(formData: FormData) {
+  const { store, runtime, user } = await context()
+  const jobId = String(formData.get("jobId") ?? "")
+  const choice = String(formData.get("choice") ?? "")
+  if (!UUID.test(jobId) || !["confirm_published", "resend", "cancel"].includes(choice)) go("error", "invalid_input", "publishing")
+  let code: string
+  try {
+    const job = await store.getJob(jobId)
+    if (!job || job.status !== "needs_review") throw new SocialStoreError("job_not_in_review")
+    let resolution: ReviewResolution = choice === "confirm_published" ? "published" : choice === "cancel" ? "cancel" : "requeue_fresh"
+    let externalId: string | null = choice === "confirm_published" ? `manual_confirmed:${new Date().toISOString().slice(0, 10)}` : null
+    if (choice === "resend" && job.platform === "instagram" && job.externalContainerId && runtime.executionModeCeiling === "live") {
+      // Never trust memory for Instagram: if the container went public, record it instead of resending.
+      const status = await createAdapter("instagram", "live", readMetaCredentials()).containerStatus?.(job.externalContainerId)
+      if (status === "PUBLISHED") { resolution = "published"; externalId = `ig_container:${job.externalContainerId}` }
+      else if (status === "FINISHED" || status === "IN_PROGRESS") resolution = "requeue_resume"
+    }
+    const next = await store.resolveReviewJob(jobId, resolution, externalId)
+    await store.appendAudit({ actorType: "human", actor: user.id, action: "publish_organic", decision: "allow", reason: `review_admin_${resolution}`, resourceType: "social_publish_job", resourceId: jobId, details: { platform: job.platform, choice, next } })
+    code = `review_${resolution}`
+  } catch (e) { go("error", e instanceof PublishError ? "meta_check_failed" : errorCode(e), "publishing") }
+  go("ok", code, "publishing")
 }
 
 export async function approvePostAction(formData: FormData) {
@@ -161,7 +189,8 @@ export async function runTickAction() {
   let code: string
   try {
     const credentials = runtime.executionModeCeiling === "live" ? readMetaCredentials() : null
-    const r = await runPublishTick({ store, runtime, credentials, maxJobs: 3, deadlineMs: 20_000 })
+    // Server actions share the route's budget; keep the same deadline as the cron route.
+    const r = await runPublishTick({ store, runtime, credentials, maxJobs: 3, deadlineMs: 25_000 })
     code = `tick_${r.state}_${r.completed}_done_${r.failed}_failed`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)

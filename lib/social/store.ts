@@ -17,6 +17,9 @@ export class SocialStoreError extends Error {
 export type ControlPatch = Partial<Pick<SocialControl, "killSwitch" | "executionMode" | "instagramEnabled" | "facebookEnabled" | "organicAutoPublish" | "storiesEnabled">>
 export type ContentPatch = Partial<Pick<SocialPost, "caption" | "hashtags" | "mediaUrls" | "linkUrl" | "platforms" | "scheduledFor">>
 export type ClaimedJob = { jobId: string; leaseToken: string }
+/** Ways out of needs_review (see social_resolve_review_job). */
+export type ReviewResolution = "published" | "requeue_resume" | "requeue_fresh" | "cancel" | "dead_letter"
+export const REVIEW_RESOLUTIONS: readonly ReviewResolution[] = ["published", "requeue_resume", "requeue_fresh", "cancel", "dead_letter"]
 
 export interface SocialStore {
   readonly kind: "memory" | "supabase"
@@ -40,6 +43,7 @@ export interface SocialStore {
   recordContainer(jobId: string, token: string, containerId: string): Promise<boolean>
   completeJob(jobId: string, token: string, externalPostId: string): Promise<boolean>
   failJob(jobId: string, token: string, errorCode: string, retryable: boolean): Promise<string>
+  resolveReviewJob(jobId: string, resolution: ReviewResolution, externalPostId?: string | null): Promise<string>
   listMetrics(sinceDate: string): Promise<MetricRow[]>
   insertAdDraft(draft: Omit<AdDraft, "id">): Promise<AdDraft>
   listAdDrafts(limit: number): Promise<AdDraft[]>
@@ -204,12 +208,13 @@ export class MemorySocialStore implements SocialStore {
     return true
   }
   private refresh(postId: string) {
-    const jobs = [...this.jobs.values()].filter(j => j.postId === postId)
+    const all = [...this.jobs.values()].filter(j => j.postId === postId)
+    const jobs = all.filter(j => j.status !== "cancelled")
     const done = jobs.filter(j => j.status === "published" || j.status === "dry_run_completed").length
     const bad = jobs.filter(j => ["dead_letter", "needs_review", "failed"].includes(j.status)).length
     const p = this.posts.get(postId)
     if (!p || !["scheduled", "publishing", "partially_published", "failed"].includes(p.status)) return
-    const status: SocialPost["status"] = jobs.length > 0 && done === jobs.length ? "published" : done > 0 && bad > 0 ? "partially_published" : bad > 0 && done === 0 ? "failed" : "publishing"
+    const status: SocialPost["status"] = jobs.length === 0 && all.length > 0 ? "cancelled" : jobs.length > 0 && done === jobs.length ? "published" : done > 0 && bad > 0 ? "partially_published" : bad > 0 && done === 0 ? "failed" : "publishing"
     this.posts.set(postId, { ...p, status })
   }
   async completeJob(jobId: string, token: string, externalPostId: string) {
@@ -230,6 +235,26 @@ export class MemorySocialStore implements SocialStore {
     Object.assign(j, {
       status: next, lastErrorCode: errorCode, leaseToken: null, leasedUntil: null,
       scheduledAt: next === "queued" ? new Date(this.clock().getTime() + 60_000 * 4 ** (j.attempt - 1)).toISOString() : j.scheduledAt,
+    })
+    this.refresh(j.postId)
+    return next
+  }
+  async resolveReviewJob(jobId: string, resolution: ReviewResolution, externalPostId: string | null = null) {
+    if (!REVIEW_RESOLUTIONS.includes(resolution)) throw new SocialStoreError("invalid_resolution")
+    const j = this.jobs.get(jobId)
+    if (!j) throw new SocialStoreError("job_not_found")
+    if (j.status !== "needs_review") throw new SocialStoreError("job_not_in_review")
+    if (resolution === "published" && (!externalPostId || externalPostId.length > 200)) throw new SocialStoreError("external_post_id_required")
+    if (resolution === "requeue_resume" && !j.externalContainerId) throw new SocialStoreError("container_missing")
+    const next: JobStatus = resolution === "published" ? "published" : resolution === "cancel" ? "cancelled" : resolution === "dead_letter" ? "dead_letter" : "queued"
+    Object.assign(j, {
+      status: next,
+      externalPostId: resolution === "published" ? externalPostId : j.externalPostId,
+      externalContainerId: resolution === "requeue_fresh" ? null : j.externalContainerId,
+      attempt: next === "queued" ? Math.min(j.attempt, j.maxAttempts - 1) : j.attempt,
+      scheduledAt: next === "queued" ? this.now() : j.scheduledAt,
+      lastErrorCode: next === "published" ? null : `review_${resolution}`,
+      leaseToken: null, leasedUntil: null,
     })
     this.refresh(j.postId)
     return next

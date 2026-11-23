@@ -4,7 +4,8 @@ import { currentSocialRuntime } from "@/lib/social/runtime"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import { runPublishTick } from "@/lib/social/worker"
 
-export const maxDuration = 30
+/** 60 s: an Instagram carousel (5 containers + status polling) can take > 30 s after a Facebook job. */
+export const maxDuration = 60
 export const dynamic = "force-dynamic"
 
 /**
@@ -24,8 +25,8 @@ export async function GET(request: Request) {
   if (!store) return Response.json({ error: runtime.backendReason }, { status: 503, headers: { "Cache-Control": "no-store" } })
   try {
     const credentials = runtime.executionModeCeiling === "live" ? readMetaCredentials() : null
-    const result = await runPublishTick({ store, runtime, credentials, maxJobs: 3, deadlineMs: 20_000 })
-    return Response.json({ ok: true, state: result.state, claimed: result.claimed, completed: result.completed, failed: result.failed }, { headers: { "Cache-Control": "no-store" } })
+    const result = await runPublishTick({ store, runtime, credentials, maxJobs: 3, deadlineMs: 25_000 })
+    return Response.json({ ok: true, state: result.state, claimed: result.claimed, completed: result.completed, failed: result.failed, reconciled: result.reconciled }, { headers: { "Cache-Control": "no-store" } })
   } catch {
     return Response.json({ ok: false, error: "social_tick_failed" }, { status: 503, headers: { "Cache-Control": "no-store" } })
   }
