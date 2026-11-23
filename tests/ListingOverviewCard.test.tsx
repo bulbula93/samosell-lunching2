@@ -312,4 +312,11 @@ describe("ListingOverviewCard — contact card on phones", () => {
       expect(askButton()).toBeNull()
     })
   })
+
+  it("keeps the description chat button off phones, where the sticky bar already has one", () => {
+    render(<ListingOverviewCard {...baseProps} listing={makeListing({ description: "მოკლე" })} />)
+    const ask = within(screen.getByTestId("listing-description")).getByText("კითხვა გამყიდველს")
+    expect(ask.className).toMatch(/(^|\s)hidden(\s|$)/)
+    expect(ask.className).toContain("md:inline-flex")
+  })
 })

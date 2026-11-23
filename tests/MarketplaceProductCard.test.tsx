@@ -38,4 +38,14 @@ describe("MarketplaceProductCard", () => {
     expect(screen.getByText(ka.product.imageUnavailable)).toBeInTheDocument()
     expect(screen.queryByRole("img")).not.toBeInTheDocument()
   })
+
+  it("shows the size on the card when the listing has one", () => {
+    render(<MarketplaceProductCard item={makeListing({ size_label: "M" })} />)
+    expect(screen.getByText("ზომა M")).toBeInTheDocument()
+  })
+
+  it("omits the size chip when the listing has no size", () => {
+    const { container } = render(<MarketplaceProductCard item={makeListing({ size_label: null })} />)
+    expect(container.querySelector("[data-card-size]")).toBeNull()
+  })
 })
