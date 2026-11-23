@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { act, fireEvent, render, screen } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 import ListingGallery, {
   buildGalleryItems,
 } from "@/components/listings/ListingGallery"
@@ -43,7 +43,7 @@ describe("ListingGallery", () => {
     expect(visibleGalleryImage(/ატლასის კაბა.*2/)).toBeInTheDocument()
   })
 
-  it("switches images with a horizontal touch swipe without relying on arrow controls", () => {
+  it("is a native swipe carousel: all photos sit side by side and the scroll position selects the photo", async () => {
     render(
       <ListingGallery
         title="სვაიპის ტესტი"
@@ -55,20 +55,46 @@ describe("ListingGallery", () => {
       />,
     )
 
-    const region = screen.getByRole("region", { name: ka.listingDetail.imageRegion })
-    const surface = region.firstElementChild as HTMLElement
+    const track = screen.getByTestId("gallery-track")
+    expect(track).toHaveClass("snap-x", "snap-mandatory", "overflow-x-auto")
+    expect(track.children).toHaveLength(2)
+    // The neighbour is already loading before the swipe reaches it.
+    // (off-screen slides are aria-hidden, so look them up by alt text)
+    expect(screen.getAllByAltText(/სვაიპის ტესტი.*2/).find((image) => image.getAttribute("loading") === "eager")).toBeTruthy()
 
-    fireEvent.touchStart(surface, {
-      touches: [{ clientX: 260, clientY: 140 }],
-    })
-    fireEvent.touchEnd(surface, {
-      changedTouches: [{ clientX: 120, clientY: 145 }],
+    Object.defineProperty(track, "clientWidth", { configurable: true, value: 400 })
+    track.scrollLeft = 400
+    await act(async () => {
+      fireEvent.scroll(track)
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
     })
 
-    expect(visibleGalleryImage(/სვაიპის ტესტი.*2/)).toBeInTheDocument()
+    expect(screen.getByText("2 / 2")).toBeInTheDocument()
+    expect(track.children[0]).toHaveAttribute("aria-hidden", "true")
+    expect(track.children[1]).not.toHaveAttribute("aria-hidden")
     expect(
       screen.getByText("ფოტოების სანახავად გადაუსვი მარცხნივ ან მარჯვნივ"),
     ).toBeInTheDocument()
+  })
+
+  it("arrow buttons scroll the track to the photo", () => {
+    render(
+      <ListingGallery
+        title="ისრები"
+        coverImageUrl={firstImage}
+        images={[
+          { id: "1", image_url: firstImage, sort_order: 1 },
+          { id: "2", image_url: secondImage, sort_order: 2 },
+        ]}
+      />,
+    )
+    const track = screen.getByTestId("gallery-track")
+    Object.defineProperty(track, "clientWidth", { configurable: true, value: 500 })
+    const scrollTo = vi.fn()
+    track.scrollTo = scrollTo as unknown as typeof track.scrollTo
+    fireEvent.click(screen.getByRole("button", { name: ka.listingDetail.nextImage }))
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ left: 500 }))
+    expect(screen.getByText("2 / 2")).toBeInTheDocument()
   })
 
   it("uses a stable fallback when images are missing or untrusted", () => {
@@ -101,8 +127,10 @@ describe("ListingGallery", () => {
 
     fireEvent.click(screen.getByRole("button", { name: ka.listingDetail.nextImage }))
 
+    // The broken first photo keeps its own fallback; the next photo still loads normally.
     expect(visibleGalleryImage(/ფოტოს აღდგენა.*2/)).toHaveAttribute("src", secondImage)
-    expect(screen.queryByText(ka.product.imageUnavailable)).not.toBeInTheDocument()
+    expect(screen.getAllByText(ka.product.imageUnavailable)).toHaveLength(1)
+    expect(screen.getByText("2 / 2")).toBeInTheDocument()
   })
 
   it("sorts images without mutating the original array", () => {
