@@ -34,7 +34,8 @@ import {
 } from "@/lib/marketplace-options"
 import { createClient } from "@/lib/supabase/client"
 import { buildListingCategoryOptions, isVirtualListingCategory } from "@/lib/listing-categories"
-import { MAX_LISTING_IMAGES, validateImageFile } from "@/lib/listings"
+import { listingPriceLabel, MAX_LISTING_IMAGES, validateImageFile } from "@/lib/listings"
+import ShareAfterPublishDialog from "@/components/listings/ShareAfterPublishDialog"
 import { prepareListingImageForUpload } from "@/lib/listing-image-compression"
 
 type Option = { id: string; name?: string; label?: string }
@@ -49,6 +50,7 @@ type ListingSuccessResult = {
   status: string
   title: string
   coverImageUrl: string | null
+  priceText: string
 }
 
 const PERFUME_VOLUME_FALLBACK_SIZES: SizeOption[] = [
@@ -794,6 +796,7 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
         status: result.status,
         title,
         coverImageUrl: images[0]?.imageUrl ?? null,
+        priceText: listingPriceLabel(price || 0, "GEL", saleType),
       })
       submittingRef.current = false
       setLoading(false)
@@ -829,6 +832,15 @@ export default function CreateListingWizard({ categories, brands, sizes, initial
 
     return (
       <section className="mx-auto w-full max-w-3xl">
+        {published ? (
+          <ShareAfterPublishDialog
+            listingId={successResult.listingId}
+            listingUrl={`${window.location.origin}/listing/${successResult.slug}`}
+            title={successResult.title}
+            priceText={successResult.priceText}
+            imageUrl={successResult.coverImageUrl}
+          />
+        ) : null}
         <div className="ui-card relative overflow-hidden p-6 text-center sm:p-10">
           <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-accent-soft blur-2xl" />
           <div aria-hidden="true" className="pointer-events-none absolute -bottom-14 -left-8 h-36 w-36 rounded-full bg-brand-soft blur-2xl" />
