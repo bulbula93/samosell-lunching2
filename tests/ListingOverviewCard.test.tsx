@@ -253,12 +253,12 @@ describe("ListingOverviewCard — readable layout", () => {
     // "განყოფილება: ქალი" repeats "კატეგორია: ქალებისთვის"
     expect(screen.queryByText(ka.listingDetail.section)).not.toBeInTheDocument()
     // short description: no collapse control
-    expect(screen.queryByText("სრულად ნახვა")).not.toBeInTheDocument()
+    expect(screen.queryByText("სრულად წაკითხვა")).not.toBeInTheDocument()
   })
 
   it("collapses long descriptions with a no-JS toggle", () => {
     render(<ListingOverviewCard {...baseProps} listing={makeListing({ description: "ძალიან კარგი ნივთი. ".repeat(30) })} />)
-    expect(screen.getByText("სრულად ნახვა").tagName).toBe("LABEL")
+    expect(screen.getByText("სრულად წაკითხვა").tagName).toBe("LABEL")
     expect(document.getElementById("listing-description-toggle")).toHaveAttribute("type", "checkbox")
   })
 
@@ -281,5 +281,35 @@ describe("ListingOverviewCard — contact card on phones", () => {
     expect(terms).toEqual(expect.arrayContaining(["hidden", "md:block"]))
     // the action itself is still rendered (pinned bar on phones)
     expect(screen.getByRole("link", { name: ka.listingDetail.loginToMessage })).toBeInTheDocument()
+  })
+  describe("description card", () => {
+    const listing = () => makeListing({ description: "მოკლე აღწერა" })
+    const askButton = () => within(screen.getByTestId("listing-description")).queryByText("კითხვა გამყიდველს")
+
+    it("shows a chat button for signed-in buyers", () => {
+      render(<ListingOverviewCard {...baseProps} isAuthenticated canChat listing={listing()} />)
+      expect(askButton()?.tagName).toBe("BUTTON")
+    })
+
+    it("sends guests to login and back to the listing", () => {
+      render(<ListingOverviewCard {...baseProps} listing={listing()} />)
+      const link = askButton()?.closest("a")
+      expect(link?.getAttribute("href")).toMatch(/^\/login\?next=/)
+    })
+
+    it("hides the button for the owner", () => {
+      render(<ListingOverviewCard {...baseProps} isOwner isAuthenticated canChat listing={listing()} />)
+      expect(askButton()).toBeNull()
+    })
+
+    it("hides the button when the seller cannot be messaged", () => {
+      render(<ListingOverviewCard {...baseProps} isAuthenticated canChat={false} listing={listing()} />)
+      expect(askButton()).toBeNull()
+    })
+
+    it("hides the button on inactive listings", () => {
+      render(<ListingOverviewCard {...baseProps} isAuthenticated canChat listing={makeListing({ description: "x", status: "sold" })} />)
+      expect(askButton()).toBeNull()
+    })
   })
 })
