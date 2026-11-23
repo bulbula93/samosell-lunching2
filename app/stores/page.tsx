@@ -50,6 +50,11 @@ const demoVipListings: StoreVipListing[] = [
   },
 ]
 
+function storeInitial(store: StoreProfile) {
+  const name = (store.full_name || store.username || "").trim()
+  return name ? Array.from(name)[0].toLocaleUpperCase("ka") : "S"
+}
+
 export async function generateMetadata({ searchParams }: { searchParams?: Promise<StoreParams> }): Promise<Metadata> {
   const { demo } = (await searchParams) ?? {}
   return {
@@ -67,7 +72,6 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
   let stores: StoreProfile[] = []
   let vipListings: StoreVipListing[] = []
   let temporarilyUnavailable = false
-  let vipUnavailable = false
 
   if (!demo) {
     try {
@@ -99,7 +103,6 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
             .filter((listing) => Boolean(listing.seller_username) && activeStoreIds.has(listing.seller_id))
             .slice(0, 6) as StoreVipListing[]
         } catch (error) {
-          vipUnavailable = true
           console.warn("stores_vip_unavailable", error instanceof Error ? error.message : "unknown")
         }
       }
@@ -126,7 +129,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
           <div className="ui-container !px-0">
             <section className="relative overflow-hidden rounded-[30px] border border-[#e8ded3] bg-[#ead0bd] bg-cover bg-center bg-no-repeat shadow-[0_18px_60px_rgba(7,63,59,0.08)]" style={{ backgroundImage: "url('/brand/samosell-shops-boutique.webp')" }}>
               <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,251,246,0.92)_0%,rgba(255,251,246,0.79)_38%,rgba(255,251,246,0.03)_72%,rgba(255,251,246,0.0)_100%)]" />
-              <div className="relative grid min-h-[550px] items-center gap-7 px-6 py-9 sm:px-10 sm:py-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-14">
+              <div className="relative grid items-center lg:min-h-[550px] gap-7 px-6 py-9 sm:px-10 sm:py-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-14">
                 <div className="relative z-10 max-w-2xl">
                   <p className="text-xs font-black tracking-[0.18em] text-brand">SamoSell-ის რჩეული · მაღაზიები</p>
                   <h1 className="mt-5 max-w-[14ch] text-balance text-[clamp(2.5rem,5vw,4.65rem)] font-normal leading-[1.08] tracking-[-0.04em] text-[#172321]">
@@ -144,7 +147,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                     <span>ვინტაჟი</span><span>მეორადი</span><span>დამოუკიდებელი მაღაზიები</span>
                   </div>
                 </div>
-                <div className="relative z-10 flex min-h-48 items-center justify-end lg:h-[420px]">
+                <div className={`relative z-10 items-center justify-end lg:flex lg:h-[420px] ${displayVipListings[0] ? "flex min-h-48" : "hidden"}`}>
                   {displayVipListings[0] ? (
                     <div className="w-full max-w-[405px]">
                       <StoreVipCard item={displayVipListings[0]} demo={demo} featured />
@@ -163,27 +166,21 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
           </div>
         </div>
         <div className="ui-container pb-16 sm:pb-20">
-          <section aria-labelledby="store-vip-heading" className="scroll-mt-28 border-b border-line pb-11 pt-11 sm:pb-16 sm:pt-16">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold text-[#b47b5d]">მაღაზიების გამორჩეული ნივთები</p>
-                <h2 id="store-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიების VIP განცხადებები</h2>
-                <p className="mt-3 text-sm leading-7 text-text-soft">ნახე პროდუქტი, მისი ფასი და პირდაპირ გადადი მაღაზიის პროფილზე.</p>
+          {displayVipListings.length > 0 ? (
+            <section aria-labelledby="store-vip-heading" className="scroll-mt-28 border-b border-line pb-11 pt-11 sm:pb-16 sm:pt-16">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold text-[#b47b5d]">მაღაზიების გამორჩეული ნივთები</p>
+                  <h2 id="store-vip-heading" className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">მაღაზიების VIP განცხადებები</h2>
+                  <p className="mt-3 text-sm leading-7 text-text-soft">ნახე პროდუქტი, მისი ფასი და პირდაპირ გადადი მაღაზიის პროფილზე.</p>
+                </div>
+                {demo ? <span className="rounded-full border border-[#e6c9a9] bg-[#fff3e5] px-4 py-2 text-xs font-bold text-[#91613d]">დიზაინის დემო — საჩვენებელი მონაცემები</span> : null}
               </div>
-              {demo ? <span className="rounded-full border border-[#e6c9a9] bg-[#fff3e5] px-4 py-2 text-xs font-bold text-[#91613d]">დიზაინის დემო — საჩვენებელი მონაცემები</span> : null}
-            </div>
-            {displayVipListings.length > 0 ? (
               <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {displayVipListings.map((item) => <StoreVipCard key={item.id} item={item} demo={demo} />)}
               </div>
-            ) : (
-              <div role="status" className="mt-7 rounded-[24px] border border-dashed border-line bg-white px-6 py-9 text-center">
-                <p className="text-lg font-bold text-brand">{vipUnavailable ? "VIP განცხადებები დროებით ვერ ჩაიტვირთა" : "მაღაზიების VIP განცხადებები მალე გამოჩნდება"}</p>
-                <p className="mt-2 text-sm leading-6 text-text-soft">{vipUnavailable ? "სცადე მოგვიანებით." : "ამჟამად აქტიური VIP განცხადებები არ არის. დიზაინის სანახავად შეგიძლია დემოს გახსნა."}</p>
-                {!vipUnavailable ? <Link href="/stores?demo=1" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand px-5 text-sm font-bold text-white">დემოს ნახვა ↗</Link> : null}
-              </div>
-            )}
-          </section>
+            </section>
+          ) : null}
 
           <section id="discover-stores" className="scroll-mt-28 pt-11 sm:pt-16">
             <div className="flex flex-wrap items-end justify-between gap-5 border-b border-line pb-5">
@@ -192,9 +189,11 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-brand sm:text-4xl">რჩეული მაღაზიები</h2>
                 <p className="mt-3 text-sm leading-6 text-[#717a70]">აღმოაჩინე მაღაზია, დაათვალიერე ნივთები და დაუკავშირდი პირდაპირ.</p>
               </div>
-              <Link href={demo ? "/stores" : "/stores?demo=1"} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-xs font-semibold hover:bg-[#eee6d9]">
-                {demo ? "რეალური მაღაზიების ნახვა" : "დიზაინის დემო"} ↗
-              </Link>
+              {demo ? (
+                <Link href="/stores" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-xs font-semibold hover:bg-[#eee6d9]">
+                  რეალური მაღაზიების ნახვა ↗
+                </Link>
+              ) : null}
             </div>
 
             {demo ? (
@@ -249,7 +248,7 @@ export default async function StoresPage({ searchParams }: { searchParams?: Prom
                               <SmartImage src={store.store_logo_url} alt={store.full_name || "მაღაზიის ლოგო"} wrapperClassName="h-full w-full" sizes="112px" />
                             </div>
                           ) : (
-                            <span className="font-serif text-7xl text-[#6b8b79]">S</span>
+                            <span className="font-serif text-7xl text-[#6b8b79]">{storeInitial(store)}</span>
                           )}
                         </div>
                       )}

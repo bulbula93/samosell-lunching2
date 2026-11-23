@@ -82,6 +82,7 @@ export default function MarketplaceProductCard({
   const priceLabel = listingPriceLabel(item.price, item.currency, item.sale_type)
   const isGift = item.sale_type === "gift"
   const locationLabel = item.city || ka.product.locationUnknown
+  const sizeLabel = item.size_label?.trim() || ""
 
   const sellerIdentity = (
     <>
@@ -180,6 +181,11 @@ export default function MarketplaceProductCard({
 
         {/* Wrap instead of truncating: on 2-column phones "ახალი"/"თბილისი" used to become "ასა…"/"თბილ…". */}
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 text-xs font-medium text-text-soft sm:gap-1.5" data-card-meta>
+          {sizeLabel ? (
+            <span className="max-w-full rounded-full bg-brand-soft px-2 py-0.5 font-bold text-brand sm:px-2.5 sm:py-1" data-card-size>
+              ზომა {sizeLabel}
+            </span>
+          ) : null}
           <span className="max-w-full rounded-full bg-surface-alt px-2 py-0.5 sm:px-2.5 sm:py-1">
             {conditionLabel(item.condition)}
           </span>

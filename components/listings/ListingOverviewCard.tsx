@@ -274,14 +274,14 @@ export default function ListingOverviewCard({
               listingImageSrc={listing.cover_image_url}
               priceLabel={listingPriceLabel(listing.price, listing.currency, listing.sale_type)}
               presentation="responsive"
-              className="ui-btn-secondary mt-3 min-h-12 w-full px-4 text-center"
+              className="ui-btn-secondary mt-3 hidden min-h-12 w-full px-4 text-center md:inline-flex"
               label="კითხვა გამყიდველს"
             />
           ) : null}
           {isActive && !isOwner && !isAuthenticated ? (
             <Link
               href={`/login?next=${encodeURIComponent(listingReturnPath)}`}
-              className="ui-btn-secondary mt-3 min-h-12 w-full px-4 text-center"
+              className="ui-btn-secondary mt-3 hidden min-h-12 w-full px-4 text-center md:inline-flex"
             >
               კითხვა გამყიდველს
             </Link>
