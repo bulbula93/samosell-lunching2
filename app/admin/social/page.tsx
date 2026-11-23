@@ -1,13 +1,14 @@
 import Link from "next/link"
 import { requireAdminUser } from "@/lib/auth"
-import { summarizeMetrics } from "@/lib/social/agents/analytics"
 import { effectiveExecutionMode, currentSocialRuntime, SOCIAL_POLICY, type SocialRuntime } from "@/lib/social/runtime"
 import { summarizeWeeks, type WeekStatus } from "@/lib/social/orchestrator"
 import { runSimulation } from "@/lib/social/simulation"
 import { PLATFORM_LABEL } from "@/lib/social/store"
 import { createSocialStore } from "@/lib/social/supabase-store"
-import type { AdDraft, MetricRow, PublishJob, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
-import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, resolveJobAction, runPlanningAction, runTickAction, settingsAction } from "./actions"
+import type { AccountStats, AdDraft, MetricRow, PublishJob, SlotVisits, SocialControl, SocialPost, StoredAuditEntry } from "@/lib/social/types"
+import { IG_ACTIVE_HOURS_MIN_FOLLOWERS, slotPerformance } from "@/lib/social/insights"
+import { slotUtm } from "@/lib/social/agents/creative"
+import { addStoryAction, approvePostAction, draftAdAction, editCaptionAction, enableInstagramAction, killSwitchAction, rejectPostAction, rerunQualityAction, resolveJobAction, runPlanningAction, syncInsightsAction, runTickAction, settingsAction } from "./actions"
 import { PlatformPreview, StoryPreview } from "./previews"
 
 export const dynamic = "force-dynamic"
@@ -58,6 +59,13 @@ function planResultText(code: string) {
   return `${week} შეიქმნა ${created} პოსტი${stories !== "0" ? ` და ${stories} Story` : ""}.${qaFailed !== "0" ? ` ${qaFailed} QA-ზე ჩაიჭრა.` : ""} დასამტკიცებლად ჩადი კალენდარში ↓`
 }
 
+function insightsText(code: string) {
+  const m = /^insights_(\d+)_(\d+)_(\d+)$/.exec(code)
+  if (!m) return null
+  const [, posts, updated, failed] = m
+  return `შედეგები განახლდა: ${updated} ჩანაწერი ${posts} გამოქვეყნებული პოსტიდან${failed !== "0" ? ` (${failed} ვერ წავიკითხე — იხ. გაფრთხილება ზემოთ)` : ""}.`
+}
+
 const REVIEW_FLASH: Record<string, string> = {
   review_published: "მონიშნულია როგორც გამოქვეყნებული — ხელახლა აღარ გაიგზავნება.",
   review_requeue_fresh: "ხელახლა ჩადგა რიგში — გამოქვეყნდება შემდეგ ციკლზე.",
@@ -71,9 +79,85 @@ function flashText(code: string) {
   if (REVIEW_FLASH[code]) return REVIEW_FLASH[code]
   const plan = planResultText(code)
   if (plan) return plan
+  const insights = insightsText(code)
+  if (insights) return insights
+  if (ERROR_TEXT[code]) return ERROR_TEXT[code]
   return code.replace(/_/g, " ")
 }
 const tbilisi = (iso: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))
+
+const ERROR_TEXT: Record<string, string> = {
+  meta_permission_denied: "Meta-ს ტოკენს შედეგების წაკითხვის უფლება აკლია (instagram_manage_insights / read_insights).",
+  meta_token_invalid: "Meta-ს ტოკენი აღარ მოქმედებს — საჭიროა ახალი.",
+  meta_credentials_missing: "Meta-ს წვდომა ამ გარემოში არ არის კონფიგურირებული.",
+  meta_rate_limited: "Meta-მ დროებით შეზღუდა მოთხოვნები — ხვალ თავიდან ვცდით.",
+}
+const tbilisiShort = (iso: string) => new Intl.DateTimeFormat("ka-GE", { timeZone: "Asia/Tbilisi", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso))
+
+function ResultsPanel({ data, writable }: { data: Data; writable: boolean }) {
+  const ig = data.accounts.find(a => a.platform === "instagram")
+  const fb = data.accounts.find(a => a.platform === "facebook")
+  const posts = data.pastPosts.filter(p => p.status === "published" || p.status === "partially_published")
+  const feed = posts.filter(p => p.contentType !== "story")
+  const visitsBy = new Map(data.visits.map(v => [v.utmContent, v]))
+  const metric = (postId: string, platform: "instagram" | "facebook") => data.metrics.find(m => m.postId === postId && m.platform === platform)
+  const eng = (m?: MetricRow) => (m ? m.likes + m.comments + m.shares + m.saves : 0)
+  const totalVisitors = data.visits.reduce((a, v) => a + v.visitors, 0)
+  const totalContacts = data.visits.reduce((a, v) => a + v.contacts, 0)
+  const totalReach = data.metrics.reduce((a, m) => a + m.reach, 0)
+  const slots = slotPerformance(data.metrics, feed.map(p => ({ id: p.id, scheduledFor: p.scheduledFor, utm: slotUtm(p.idempotencyKey) })), data.visits)
+  const topHours = ig?.activeHours ? Object.entries(ig.activeHours).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([h]) => `${h}:00`) : []
+  const errors = [...new Set([ig?.errorCode, fb?.errorCode].filter((e): e is string => Boolean(e)))]
+  const lastSync = [ig?.syncedAt, fb?.syncedAt].filter((x): x is string => Boolean(x)).sort().at(-1)
+  return (
+    <div className="mt-3 space-y-4 text-sm">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div><p className="text-xs text-text-soft">Instagram მიმდევარი</p><p className="text-2xl font-black">{ig?.followers ?? "—"}</p></div>
+        <div><p className="text-xs text-text-soft">Facebook მიმდევარი</p><p className="text-2xl font-black">{fb?.followers ?? "—"}</p></div>
+        <div><p className="text-xs text-text-soft">Instagram reach</p><p className="text-2xl font-black">{totalReach}</p></div>
+        <div><p className="text-xs text-text-soft">საიტზე მოსული / ჩატი</p><p className="text-2xl font-black">{totalVisitors} / {totalContacts}</p></div>
+      </div>
+      <p className="rounded-lg border p-3 text-text">
+        {topHours.length
+          ? <>🕒 Meta-ს მიხედვით შენი Instagram მიმდევრები ყველაზე აქტიურები არიან: <b>{topHours.join(", ")}</b> (Meta-ს დროის სარტყელში).</>
+          : <>🕒 მიმდევრების აქტიურ საათებს Meta აჩვენებს <b>{IG_ACTIVE_HOURS_MIN_FOLLOWERS} Instagram მიმდევრიდან</b>{ig?.followers != null ? <> — ახლა {ig.followers}, დარჩა {Math.max(0, IG_ACTIVE_HOURS_MIN_FOLLOWERS - ig.followers)}</> : null}. მანამდე განრიგი საიტის აქტივობას ეყრდნობა.</>}
+      </p>
+      {errors.map(e => <p key={e} role="alert" className="rounded-lg border border-amber-500 bg-amber-50 p-3 text-amber-900">⚠️ {ERROR_TEXT[e] ?? e}</p>)}
+      {feed.length === 0 ? <p className="text-text-soft">ბოლო 30 დღეში გამოქვეყნებული პოსტი არ არის.</p> : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left">
+            <thead className="text-xs uppercase text-text-soft"><tr><th className="py-1">როდის</th><th>თემა</th><th>IG reach</th><th>IG რეაქცია</th><th>FB რეაქცია</th><th>საიტზე</th><th>ჩატი</th></tr></thead>
+            <tbody>
+              {feed.slice(0, 15).map(p => {
+                const v = visitsBy.get(slotUtm(p.idempotencyKey))
+                const i = metric(p.id, "instagram"), f = metric(p.id, "facebook")
+                return (
+                  <tr key={p.id} className="border-t">
+                    <td className="py-1">{tbilisiShort(p.scheduledFor)}</td><td>{PILLAR_LABEL[p.pillar]}</td>
+                    <td>{i ? i.reach : "—"}</td><td>{i ? eng(i) : "—"}</td><td>{f ? eng(f) : "—"}</td>
+                    <td>{v ? v.visitors : 0}</td><td>{v ? v.contacts : 0}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <p className="mt-1 text-xs text-text-soft">„საიტზე“ ითვლის მხოლოდ იმ ვიზიტს, რომელიც პოსტის ბმულით მოვიდა (23 ნოემბრამდე შექმნილ პოსტებს ბმულის იარლიყი არ აქვს).</p>
+        </div>
+      )}
+      {slots.length ? (
+        <div>
+          <h3 className="font-bold text-text">რომელი დრო მუშაობს</h3>
+          <ul className="mt-1 space-y-0.5">{slots.map(s => <li key={s.slot}>{s.slot}: {s.posts} პოსტი · reach {s.reach} · რეაქცია {s.engagements} · საიტზე {s.visitors} · ჩატი {s.contacts}</li>)}</ul>
+          <p className="mt-1 text-xs text-text-soft">რამდენიმე კვირის მონაცემამდე განსხვავებები შემთხვევითია — დასკვნას 3–4 კვირის შემდეგ გავაკეთებთ.</p>
+        </div>
+      ) : null}
+      <form action={syncInsightsAction} className="flex flex-wrap items-center gap-3">
+        <button disabled={!writable} className="rounded-full border px-4 py-2 font-bold disabled:opacity-40">🔄 შედეგების განახლება Meta-დან</button>
+        <span className="text-xs text-text-soft">ავტომატურად ყოველდღე 11:40-ზე{lastSync ? ` · ბოლოს: ${tbilisiShort(lastSync)}` : ""}</span>
+      </form>
+    </div>
+  )
+}
 
 function WeekCard({ week, writable }: { week: WeekStatus; writable: boolean }) {
   const title = week.target === "current" ? "ეს კვირა" : "შემდეგი კვირა"
@@ -110,25 +194,31 @@ function Badge({ tone, children }: { tone: "ok" | "warn" | "off" | "info"; child
   return <span className={`rounded-full border px-3 py-1 text-xs font-bold ${cls}`}>{children}</span>
 }
 
-type Data = { control: SocialControl | null; posts: SocialPost[]; jobs: PublishJob[]; audit: StoredAuditEntry[]; ads: AdDraft[]; metrics: MetricRow[]; simulated: boolean; error: string | null }
+type Data = { control: SocialControl | null; posts: SocialPost[]; pastPosts: SocialPost[]; jobs: PublishJob[]; audit: StoredAuditEntry[]; ads: AdDraft[]; metrics: MetricRow[]; accounts: AccountStats[]; visits: SlotVisits[]; simulated: boolean; error: string | null }
+const NO_RESULTS = { pastPosts: [] as SocialPost[], accounts: [] as AccountStats[], visits: [] as SlotVisits[] }
 
 async function load(runtime: SocialRuntime): Promise<Data> {
   const store = createSocialStore(runtime)
   if (!store) {
     const sim = await runSimulation()
-    return { control: sim.control, posts: sim.posts, jobs: sim.jobs, audit: sim.audit, ads: [], metrics: [], simulated: true, error: null }
+    return { control: sim.control, posts: sim.posts, jobs: sim.jobs, audit: sim.audit, ads: [], metrics: [], ...NO_RESULTS, simulated: true, error: null }
   }
   try {
     const now = Date.now()
-    const [control, posts, jobs, audit, ads, metrics] = await Promise.all([
+    const since = new Date(now - 30 * 864e5).toISOString()
+    const [control, posts, pastPosts, jobs, audit, ads, metrics, accounts, visits] = await Promise.all([
       store.getControl(),
       store.listPosts(new Date(now - 7 * 864e5).toISOString(), new Date(now + 21 * 864e5).toISOString(), 60),
+      store.listPosts(since, new Date(now).toISOString(), 120),
       store.listJobs(30), store.listAudit(40), store.listAdDrafts(10),
-      store.listMetrics(new Date(now - 30 * 864e5).toISOString().slice(0, 10)),
+      store.listMetrics(since.slice(0, 10)),
+      // Results panels are optional: a failure here must not take the whole page down.
+      store.listAccountStats().catch(() => [] as AccountStats[]),
+      store.listSlotVisits(since).catch(() => [] as SlotVisits[]),
     ])
-    return { control, posts, jobs, audit, ads, metrics, simulated: false, error: control ? null : "control_unavailable" }
+    return { control, posts, pastPosts, jobs, audit, ads, metrics, accounts, visits, simulated: false, error: control ? null : "control_unavailable" }
   } catch {
-    return { control: null, posts: [], jobs: [], audit: [], ads: [], metrics: [], simulated: false, error: "storage_unavailable" }
+    return { control: null, posts: [], jobs: [], audit: [], ads: [], metrics: [], ...NO_RESULTS, simulated: false, error: "storage_unavailable" }
   }
 }
 
@@ -140,7 +230,6 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
   const c = data.control
   const mode = c ? effectiveExecutionMode(runtime, c.executionMode) : "dry_run"
   const writable = !data.simulated && Boolean(c)
-  const summary = summarizeMetrics(data.metrics, Object.fromEntries(data.posts.map(p => [p.id, p.pillar])))
   const byDay = new Map<string, SocialPost[]>()
   const storyByKey = new Map(data.posts.filter(p => p.contentType === "story").map(p => [p.idempotencyKey, p]))
   for (const p of data.posts) {
@@ -149,8 +238,8 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
   }
   const flash = params.ok ?? params.error
   // Messages from the planning card and the job list are shown next to them, not at the top.
-  const flashAt = params.at === "plan" || params.at === "publishing" ? params.at : "top"
-  const flashBox = (where: "top" | "plan" | "publishing") => flash && flashAt === where
+  const flashAt = params.at === "plan" || params.at === "publishing" || params.at === "results" ? params.at : "top"
+  const flashBox = (where: "top" | "plan" | "publishing" | "results") => flash && flashAt === where
     ? <p role={params.error ? "alert" : "status"} className={`mt-3 rounded-lg border p-3 text-sm ${params.error ? "border-red-500 bg-red-50 text-red-900" : "border-emerald-600 bg-emerald-50 text-emerald-900"}`}>{flashText(flash)}</p>
     : null
   const weeks = summarizeWeeks(data.posts)
@@ -349,15 +438,10 @@ export default async function SocialControlCenter({ searchParams }: { searchPara
       </section>
 
       <section id="analytics" className="grid gap-4 lg:grid-cols-2">
-        <div className="ui-card p-5 sm:p-6" aria-label="Metrics">
+        <div id="results" className="ui-card scroll-mt-4 p-5 sm:p-6" aria-label="Metrics">
           <h2 className="text-xl font-bold text-text">შედეგები (30 დღე)</h2>
-          {data.metrics.length === 0 ? <p className="mt-2 text-sm text-text-soft">მეტრიკა ჯერ არ არის. Insights-ის სინქრონიზაცია ჩაირთვება live გაშვების შემდეგ.</p> : (
-            <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-text-soft">Reach</dt><dd className="text-2xl font-black">{summary.totalReach}</dd></div>
-              <div><dt className="text-text-soft">ჩართულობა</dt><dd className="text-2xl font-black">{(summary.avgEngagementRate * 100).toFixed(1)}%</dd></div>
-              <div><dt className="text-text-soft">საუკეთესო თემა</dt><dd className="font-bold">{summary.bestPillar ? PILLAR_LABEL[summary.bestPillar] : "—"}</dd></div>
-            </dl>
-          )}
+          <ResultsPanel data={data} writable={writable} />
+          {flashBox("results")}
           <h3 className="mt-5 text-sm font-bold text-text">Ads Planner (მხოლოდ დრაფტი, $0)</h3>
           {data.ads.length === 0 ? <p className="mt-1 text-sm text-text-soft">იდეები არ არის.</p> : <ul className="mt-1 space-y-1 text-sm">{data.ads.map(a => <li key={a.id}>• {a.title} <span className="text-text-soft">({a.objective}, ${a.dailyBudgetUsd})</span></li>)}</ul>}
         </div>

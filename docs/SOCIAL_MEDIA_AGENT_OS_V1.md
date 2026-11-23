@@ -191,3 +191,11 @@ Instagram Login-ის long-lived token 60 დღეში იწურება
 - Publish tick: `5 11,12,17,18 * * *` UTC. `tests/SocialSchedule.test.ts` fails if slots and cron drift apart.
 - Links carry `utm_content=<plan slot>` so site visits and chats can be attributed to a single post.
 - Migration `20261123120000` moved unapproved plan drafts to the new slots (time and key only; content, version and QA unchanged).
+
+## 2026-11-23 — Daily results sync (Meta + site)
+
+- `GET /api/internal/social/insights` (pg_cron `40 7 * * *` UTC = 11:40 Tbilisi; admin button "შედეგების განახლება"). GET-only towards Meta, 40 s deadline, Policy Gateway `sync_metrics` (stopped by the kill switch).
+- Instagram: media insights `reach,likes,comments,shares,saved,views` (Stories: `reach,views,shares`), `followers_count`, and `online_followers` only from 100 followers.
+- Facebook: Page Insights need 100+ likes and `page_fans_online` is deprecated, so we read the post/photo counters instead: reactions/likes, comments, shares. Also `followers_count`.
+- `social_metrics_daily` keeps one row per post/platform (`metric_date` = Tbilisi post date) with the latest lifetime totals. `social_account_stats` holds followers, active hours and the last error, for example `meta_permission_denied` when the token lacks `instagram_manage_insights` / `read_insights`.
+- Site attribution: `growth_events` with `utm_campaign=agent_os` are grouped by `utm_content` (visitors, chats) and joined to posts and slots in the admin "შედეგები" panel. `/admin` paths are excluded.

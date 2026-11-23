@@ -12,11 +12,12 @@ import { MediaPrepareError } from "@/lib/social/media"
 import { createSocialMediaPreparer, createSocialStoryPreparer } from "@/lib/social/supabase-media"
 import { createSocialStore } from "@/lib/social/supabase-store"
 import { runPublishTick } from "@/lib/social/worker"
+import { syncInsights } from "@/lib/social/insights"
 
 const PATH = "/admin/social"
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-function go(type: "ok" | "error", code: string, section?: "plan" | "publishing"): never {
+function go(type: "ok" | "error", code: string, section?: "plan" | "publishing" | "results"): never {
   revalidatePath(PATH)
   // `at` tells the page where to show the message; the hash scrolls there.
   redirect(`${PATH}?${type}=${encodeURIComponent(code)}${section ? `&at=${section}#${section}` : ""}`)
@@ -194,4 +195,17 @@ export async function runTickAction() {
     code = `tick_${r.state}_${r.completed}_done_${r.failed}_failed`
   } catch (e) { go("error", errorCode(e)) }
   go("ok", code)
+}
+
+/** Manual "refresh results": the same read-only sync the daily cron runs. */
+export async function syncInsightsAction() {
+  const { store, runtime } = await context()
+  let r: Awaited<ReturnType<typeof syncInsights>>
+  try {
+    const credentials = runtime.executionModeCeiling === "live" ? readMetaCredentials() : null
+    r = await syncInsights({ store, runtime, credentials })
+  } catch (e) { go("error", errorCode(e), "results") }
+  // Outside the try: redirect() works by throwing and must not be caught above.
+  if (r.state !== "ran") go("error", r.firstError ?? "insights_failed", "results")
+  go("ok", `insights_${r.posts}_${r.updated}_${r.failed}`, "results")
 }

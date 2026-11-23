@@ -115,6 +115,15 @@ export type MetricRow = {
   linkClicks: number
 }
 
+/** Follower count and (when Meta provides it) followers online per hour, keyed "0".."23". */
+export type AccountStats = { platform: SocialPlatform; followers: number | null; activeHours: Record<string, number> | null; errorCode: string | null; syncedAt: string }
+
+/** A live, published job whose post results can be read from Meta. */
+export type InsightTarget = { postId: string; platform: SocialPlatform; externalPostId: string; contentType: ContentType; scheduledFor: string }
+
+/** Site visits/chats attributed to a plan slot through utm_content. */
+export type SlotVisits = { utmContent: string; visitors: number; pageViews: number; contacts: number }
+
 export type AdDraft = {
   id: string
   idempotencyKey: string

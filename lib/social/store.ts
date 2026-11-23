@@ -5,6 +5,7 @@
  * simulation. The SQL file is the source of truth and has its own database tests.
  */
 import type {
+  AccountStats, InsightTarget, SlotVisits,
   AdDraft, AuditEntry, CandidateListing, ExecutionMode, JobStatus, MetricRow, PublishJob,
   QualityReport, SocialApproval, SocialControl, SocialPlatform, SocialPost, StoredAuditEntry,
 } from "./types"
@@ -45,6 +46,14 @@ export interface SocialStore {
   failJob(jobId: string, token: string, errorCode: string, retryable: boolean): Promise<string>
   resolveReviewJob(jobId: string, resolution: ReviewResolution, externalPostId?: string | null): Promise<string>
   listMetrics(sinceDate: string): Promise<MetricRow[]>
+  /** Live published jobs for posts scheduled since `sinceIso` (real Meta ids only). */
+  listInsightTargets(sinceIso: string, limit: number): Promise<InsightTarget[]>
+  /** One row per post/platform: latest lifetime totals replace the previous ones. */
+  upsertMetrics(rows: MetricRow[]): Promise<void>
+  upsertAccountStats(stats: Omit<AccountStats, "syncedAt">): Promise<void>
+  listAccountStats(): Promise<AccountStats[]>
+  /** Site visits and chats from links tagged utm_campaign=agent_os, grouped by utm_content. */
+  listSlotVisits(sinceIso: string): Promise<SlotVisits[]>
   insertAdDraft(draft: Omit<AdDraft, "id">): Promise<AdDraft>
   listAdDrafts(limit: number): Promise<AdDraft[]>
   listCandidateListings(limit: number): Promise<CandidateListing[]>
@@ -260,6 +269,30 @@ export class MemorySocialStore implements SocialStore {
     return next
   }
   async listMetrics(sinceDate: string) { return this.metrics.filter(m => m.metricDate >= sinceDate) }
+  accountStats: AccountStats[] = []
+  slotVisits: SlotVisits[] = []
+  async listInsightTargets(sinceIso: string, limit: number) {
+    const out: InsightTarget[] = []
+    for (const j of this.jobs.values()) {
+      const p = this.posts.get(j.postId)
+      if (!p || j.status !== "published" || j.executionMode !== "live" || !j.externalPostId || !isMetaId(j.externalPostId) || p.scheduledFor < sinceIso) continue
+      out.push({ postId: p.id, platform: j.platform, externalPostId: j.externalPostId, contentType: p.contentType, scheduledFor: p.scheduledFor })
+    }
+    return out.sort((a, b) => b.scheduledFor.localeCompare(a.scheduledFor)).slice(0, limit)
+  }
+  async upsertMetrics(rows: MetricRow[]) {
+    for (const r of rows) {
+      const i = this.metrics.findIndex(m => m.postId === r.postId && m.platform === r.platform && m.metricDate === r.metricDate)
+      if (i >= 0) this.metrics[i] = { ...r }; else this.metrics.push({ ...r })
+    }
+  }
+  async upsertAccountStats(stats: Omit<AccountStats, "syncedAt">) {
+    const row = { ...stats, syncedAt: this.now() }
+    const i = this.accountStats.findIndex(a => a.platform === stats.platform)
+    if (i >= 0) this.accountStats[i] = row; else this.accountStats.push(row)
+  }
+  async listAccountStats() { return this.accountStats.map(a => ({ ...a })) }
+  async listSlotVisits() { return this.slotVisits.map(v => ({ ...v })) }
   async insertAdDraft(draft: Omit<AdDraft, "id">) {
     if (draft.dailyBudgetUsd !== 0) throw new SocialStoreError("ads_budget_must_be_zero")
     const existing = this.adDrafts.find(d => d.idempotencyKey === draft.idempotencyKey)
@@ -272,5 +305,8 @@ export class MemorySocialStore implements SocialStore {
   async listCandidateListings(limit: number) { return this.listings.slice(0, limit) }
   async getCandidateListing(id: string) { return this.listings.find(l => l.id === id) ?? null }
 }
+
+/** Ids Meta can answer for: numeric media ids or page_post ids (not dry-run, container or manual markers). */
+export function isMetaId(id: string) { return /^\d{5,40}(_\d{5,40})?$/.test(id) }
 
 export const PLATFORM_LABEL: Record<SocialPlatform, string> = { instagram: "Instagram", facebook: "Facebook" }
