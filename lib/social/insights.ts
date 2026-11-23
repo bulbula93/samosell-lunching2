@@ -110,7 +110,16 @@ export async function syncInsights(opts: {
   }
   if (!opts.credentials && !opts.clients) return { ...empty, firstError: "meta_credentials_missing" }
   const ig = opts.clients?.instagram ?? new MetaGraphClient(igTarget(opts.credentials!))
-  const fb = opts.clients?.facebook ?? new MetaGraphClient(pageTarget(opts.credentials!))
+  const system = opts.clients?.facebook ?? new MetaGraphClient(pageTarget(opts.credentials!))
+  // Like FacebookLiveAdapter: post/photo engagement must be read with the Page access token,
+  // not the system-user token (that one only reads Page-level fields such as followers_count).
+  let fb: GraphCaller = system
+  if (!opts.clients && opts.credentials) {
+    try {
+      const r = await system.call("GET", opts.credentials.pageId, { fields: "access_token" }, false)
+      if (typeof r.access_token === "string" && r.access_token.length >= 20) fb = new MetaGraphClient({ ...pageTarget(opts.credentials), token: r.access_token })
+    } catch { /* keep the system client; post reads will report the permission error */ }
+  }
   const deadline = opts.deadlineMs ?? 40_000
   const result: InsightsResult = { ...empty, state: "ran" }
   const fail = (code: string) => { result.failed++; result.firstError ??= code }
@@ -130,7 +139,7 @@ export async function syncInsights(opts: {
     accounts.push({ platform: "instagram", followers, activeHours, errorCode })
   } catch (e) { accounts.push({ platform: "instagram", followers: null, activeHours: null, errorCode: errCode(e) }); fail(errCode(e)) }
   try {
-    const page = await fb.call("GET", creds?.pageId ?? "me", { fields: "followers_count" }, false)
+    const page = await system.call("GET", creds?.pageId ?? "me", { fields: "followers_count" }, false)
     accounts.push({ platform: "facebook", followers: typeof page.followers_count === "number" ? n(page.followers_count) : null, activeHours: null, errorCode: null })
   } catch (e) { accounts.push({ platform: "facebook", followers: null, activeHours: null, errorCode: errCode(e) }); fail(errCode(e)) }
 
