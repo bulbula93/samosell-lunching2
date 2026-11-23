@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { getSafeImageSource } from "@/lib/media"
+import { createInstagramStoryFile, triggerFileDownload } from "@/lib/share/story-image"
 import { buildListingSharePost } from "@/lib/share-post"
 
 type ShareStatus =
@@ -74,199 +74,6 @@ function ShareMoreIcon() {
   )
 }
 
-function wrapCanvasText(
-  context: CanvasRenderingContext2D,
-  value: string,
-  maxWidth: number,
-  maxLines: number,
-) {
-  const words = value.trim().split(/\s+/)
-  const lines: string[] = []
-  let current = ""
-
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word
-    if (context.measureText(candidate).width <= maxWidth) {
-      current = candidate
-      continue
-    }
-
-    if (current) lines.push(current)
-    current = word
-    if (lines.length >= maxLines - 1) break
-  }
-
-  if (current && lines.length < maxLines) lines.push(current)
-  if (lines.length === maxLines && words.join(" ").length > lines.join(" ").length) {
-    let last = lines[maxLines - 1] ?? ""
-    while (last.length > 1 && context.measureText(`${last}…`).width > maxWidth) {
-      last = last.slice(0, -1)
-    }
-    lines[maxLines - 1] = `${last.trim()}…`
-  }
-
-  return lines
-}
-
-function drawImageCover(
-  context: CanvasRenderingContext2D,
-  image: HTMLImageElement,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) {
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight)
-  const sourceWidth = width / scale
-  const sourceHeight = height / scale
-  const sourceX = (image.naturalWidth - sourceWidth) / 2
-  const sourceY = (image.naturalHeight - sourceHeight) / 2
-
-  context.drawImage(
-    image,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    x,
-    y,
-    width,
-    height,
-  )
-}
-
-async function loadStoryImage(imageUrl?: string | null) {
-  const safeSource = getSafeImageSource(imageUrl)
-  if (!safeSource) return null
-
-  try {
-    const response = await fetch(safeSource, {
-      mode: "cors",
-      credentials: "omit",
-      cache: "force-cache",
-    })
-    if (!response.ok) return null
-
-    const blob = await response.blob()
-    const objectUrl = URL.createObjectURL(blob)
-    const image = new Image()
-    image.decoding = "async"
-
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve()
-      image.onerror = () => reject(new Error("image_load_failed"))
-      image.src = objectUrl
-    })
-
-    return { image, objectUrl }
-  } catch {
-    return null
-  }
-}
-
-async function createInstagramStoryFile({
-  title,
-  priceText,
-  imageUrl,
-  url,
-}: {
-  title: string
-  priceText: string
-  imageUrl?: string | null
-  url: string
-}) {
-  const canvas = document.createElement("canvas")
-  canvas.width = 1080
-  canvas.height = 1920
-
-  const context = canvas.getContext("2d")
-  if (!context) throw new Error("canvas_unavailable")
-
-  const gradient = context.createLinearGradient(0, 0, 1080, 1920)
-  gradient.addColorStop(0, "#fff8f2")
-  gradient.addColorStop(0.58, "#ffffff")
-  gradient.addColorStop(1, "#eef8f5")
-  context.fillStyle = gradient
-  context.fillRect(0, 0, 1080, 1920)
-
-  context.fillStyle = "#0d665d"
-  context.font = "900 72px Arial, sans-serif"
-  context.fillText("SAMOSELL", 90, 135)
-
-  context.fillStyle = "#68736f"
-  context.font = "600 32px Arial, sans-serif"
-  context.fillText("იპოვე · გაყიდე · გაუზიარე", 92, 190)
-
-  context.fillStyle = "#e9eeec"
-  context.fillRect(90, 250, 900, 1060)
-
-  const loadedImage = await loadStoryImage(imageUrl)
-  if (loadedImage) {
-    try {
-      drawImageCover(context, loadedImage.image, 90, 250, 900, 1060)
-    } finally {
-      URL.revokeObjectURL(loadedImage.objectUrl)
-    }
-  } else {
-    context.fillStyle = "#dfe7e4"
-    context.font = "700 42px Arial, sans-serif"
-    context.textAlign = "center"
-    context.fillText("SamoSell", 540, 770)
-    context.textAlign = "start"
-  }
-
-  context.fillStyle = "rgba(255,255,255,0.94)"
-  context.fillRect(90, 1240, 900, 530)
-
-  context.fillStyle = "#17211f"
-  context.font = "900 58px Arial, sans-serif"
-  const titleLines = wrapCanvasText(context, title, 780, 3)
-  titleLines.forEach((line, index) => {
-    context.fillText(line, 150, 1365 + index * 70)
-  })
-
-  context.fillStyle = "#0d665d"
-  context.font = "900 70px Arial, sans-serif"
-  context.fillText(priceText, 150, 1605)
-
-  context.fillStyle = "#17211f"
-  context.font = "700 34px Arial, sans-serif"
-  context.fillText("ნახე ნივთი SamoSell-ზე", 150, 1685)
-
-  context.fillStyle = "#68736f"
-  context.font = "600 28px Arial, sans-serif"
-  let shortUrl = "samosell.ge"
-  try {
-    const parsed = new URL(url)
-    shortUrl = `${parsed.host}${parsed.pathname}`
-  } catch {
-    // Keep the safe fallback domain label.
-  }
-  const clippedUrl = shortUrl.length > 48 ? `${shortUrl.slice(0, 45)}…` : shortUrl
-  context.fillText(clippedUrl, 150, 1735)
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (result) => (result ? resolve(result) : reject(new Error("story_blob_failed"))),
-      "image/png",
-      0.96,
-    )
-  })
-
-  return new File([blob], "samosell-instagram-story.png", { type: "image/png" })
-}
-
-function triggerFileDownload(file: File) {
-  const objectUrl = URL.createObjectURL(file)
-  const link = document.createElement("a")
-  link.href = objectUrl
-  link.download = file.name
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-}
-
 const itemClass =
   "group flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-1 py-2 text-center transition hover:bg-surface-alt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
 
@@ -291,7 +98,7 @@ export default function ListingSocialShare({
       return storyFilePromiseRef.current.promise
     }
 
-    const promise = createInstagramStoryFile({ title, priceText, imageUrl, url })
+    const promise = createInstagramStoryFile({ title, priceText, imageUrl })
       .then((file) => {
         if (storyFilePromiseRef.current?.key === storyKey) {
           storyFileRef.current = { key: storyKey, file }

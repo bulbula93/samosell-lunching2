@@ -71,10 +71,13 @@ describe("ListingSocialShare", () => {
       "utf8",
     )
 
-    expect(source).toContain("canvas.width = 1080")
-    expect(source).toContain("canvas.height = 1920")
+    // The 1080×1920 canvas lives in the shared module (also used by the share-after-publish dialog).
+    const story = readFileSync(join(process.cwd(), "lib", "share", "story-image.ts"), "utf8")
+    expect(story).toContain("STORY_SIZE = { width: 1080, height: 1920 }")
+    expect(story).toContain('LOGO_SRC = "/brand/samosell-header-logo.svg"')
+    expect(story).toContain("new File([blob], \"samosell-instagram-story.png\"")
+    expect(source).toContain('from "@/lib/share/story-image"')
     expect(source).toContain("navigator.canShare({ files: [file] })")
-    expect(source).toContain("new File([blob], \"samosell-instagram-story.png\"")
     expect(source).toContain("InstagramIcon")
     expect(source).toContain("FacebookIcon")
     expect(source).toContain("WhatsAppIcon")
