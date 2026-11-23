@@ -71,10 +71,27 @@ describe("syncInsights", () => {
   })
   it("Stories ask only for metrics Stories support", async () => {
     const store = new MemorySocialStore(undefined, { killSwitch: false, executionMode: "live" })
-    seed(store, "s1", "story", "2026-11-23T18:00:00Z", [{ platform: "instagram", externalPostId: "17901234567890999" }])
+    seed(store, "s1", "story", "2026-11-24T04:00:00Z", [{ platform: "instagram", externalPostId: "17901234567890999" }])
     const f = fakes()
     await syncInsights({ store, runtime: prod, credentials: creds, clients: f.clients, now: () => NOW })
     expect(f.ig.mock.calls.find(c => c[1] === "17901234567890999/insights")![2]).toEqual({ metric: "reach,views,shares" })
+  })
+  it("old Stories and Facebook Stories are skipped, not reported as errors", async () => {
+    const store = new MemorySocialStore(undefined, { killSwitch: false, executionMode: "live" })
+    seed(store, "old", "story", "2026-11-20T15:00:00Z", [{ platform: "instagram", externalPostId: "17901234567890777" }, { platform: "facebook", externalPostId: "122110000000777" }])
+    seed(store, "live", "story", "2026-11-24T06:00:00Z", [{ platform: "instagram", externalPostId: "17901234567890888" }])
+    const f = fakes()
+    const r = await syncInsights({ store, runtime: prod, credentials: creds, clients: f.clients, now: () => NOW })
+    expect(r).toMatchObject({ posts: 3, updated: 1, failed: 0, firstError: null })
+    expect(f.ig.mock.calls.some(c => c[1].startsWith("17901234567890777"))).toBe(false)
+    expect(f.fb.mock.calls.some(c => c[1] === "122110000000777")).toBe(false)
+  })
+  it("a live Story that Meta refuses is not an error either", async () => {
+    const store = new MemorySocialStore(undefined, { killSwitch: false, executionMode: "live" })
+    seed(store, "live", "story", "2026-11-24T06:00:00Z", [{ platform: "instagram", externalPostId: "17901234567890888" }])
+    const r = await syncInsights({ store, runtime: prod, credentials: creds, clients: fakes({ igError: new PublishError("meta_invalid_request", false) }).clients, now: () => NOW })
+    expect(r).toMatchObject({ updated: 0, failed: 0, firstError: null })
+    expect(store.accountStats.find(a => a.platform === "instagram")!.errorCode).toBeNull()
   })
   it("below 100 followers it does not ask for active hours; from 100 it stores them", async () => {
     const small = new MemorySocialStore(undefined, { killSwitch: false, executionMode: "live" })
