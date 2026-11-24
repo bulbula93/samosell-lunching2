@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import PushOptInStep, { markPushPromptShown, resolvePushOptIn, type PushOptInMode } from "@/components/listings/PushOptInStep"
 import { canShareFiles, createInstagramStoryFile, facebookShareUrl, triggerFileDownload, withShareUtm } from "@/lib/share/story-image"
 
 /** Shown once per listing: after "later"/close it never opens again for that listing. */
@@ -15,7 +16,7 @@ type Props = {
   imageUrl: string | null
 }
 
-type View = "choose" | "instagram" | "desktopInstagram"
+type View = "choose" | "instagram" | "desktopInstagram" | "push"
 
 function wasShown(listingId: string) {
   try { return localStorage.getItem(SHARE_PROMPT_KEY(listingId)) === "1" } catch { return false }
@@ -40,6 +41,8 @@ export default function ShareAfterPublishDialog({ listingId, listingUrl, title, 
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
   const [qr, setQr] = useState<string | null>(null)
+  // Next step after sharing: offer chat notifications (once per browser, only when they can work).
+  const [pushOptIn, setPushOptIn] = useState<{ mode: PushOptInMode; vapidPublicKey: string } | null>(null)
   const fileRef = useRef<Promise<File> | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const igUrl = withShareUtm(listingUrl, "instagram")
@@ -59,7 +62,31 @@ export default function ShareAfterPublishDialog({ listingId, listingUrl, title, 
   // Prepare the image as soon as the dialog opens: the share sheet must open from the tap itself.
   useEffect(() => { if (open) void storyFile().catch(() => undefined) }, [open, storyFile])
 
-  const close = useCallback(() => { markShown(listingId); setOpen(false) }, [listingId])
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void resolvePushOptIn().then((next) => { if (!cancelled) setPushOptIn(next) }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [open])
+
+  /**
+   * Any close (X, Escape, backdrop, "მოგვიანებით", "დასრულება") on the share step moves on to the
+   * notifications step when it can work; on the notifications step it closes and counts as "not now".
+   */
+  const close = useCallback(() => {
+    markShown(listingId)
+    if (view === "push") {
+      markPushPromptShown()
+      setOpen(false)
+      return
+    }
+    if (pushOptIn) {
+      setNotice("")
+      setView("push")
+      return
+    }
+    setOpen(false)
+  }, [listingId, pushOptIn, view])
 
   useEffect(() => {
     if (!open) return
@@ -215,6 +242,10 @@ export default function ShareAfterPublishDialog({ listingId, listingUrl, title, 
             <button type="button" onClick={saveImage} className={`${btnBase} bg-[#075a53] text-white`}>Story-ის სურათის ჩამოტვირთვა</button>
             <button type="button" onClick={() => setView("choose")} className="min-h-11 text-[15px] font-bold text-text-soft">უკან</button>
           </div>
+        ) : null}
+
+        {view === "push" && pushOptIn ? (
+          <PushOptInStep mode={pushOptIn.mode} vapidPublicKey={pushOptIn.vapidPublicKey} onClose={() => setOpen(false)} />
         ) : null}
 
         {notice ? <p role="status" aria-live="polite" className="mt-3 text-center text-sm font-semibold text-brand">{notice}</p> : null}
