@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { isIosDevice, urlBase64ToUint8Array } from "@/lib/push-client"
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -10,18 +11,6 @@ type BeforeInstallPromptEvent = Event & {
 type PushConfigResponse = {
   vapidPublicKey?: string
   subscribed?: boolean
-}
-
-function urlBase64ToUint8Array(value: string) {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4)
-  const normalized = (value + padding).replace(/-/g, "+").replace(/_/g, "/")
-  const raw = window.atob(normalized)
-  return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)))
-}
-
-function isIosDevice() {
-  const ua = navigator.userAgent
-  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 }
 
 export default function PushPwaSettings() {
