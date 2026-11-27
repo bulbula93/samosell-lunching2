@@ -53,8 +53,20 @@ export default async function LoginPage({
     >
       <LoginForm
         nextPath={next}
-        initialError={authError === "oauth_callback_failed" ? "სოციალური ავტორიზაცია ვერ დასრულდა. თავიდან სცადე." : ""}
-        initialSuccess={passwordReset === "success" ? "პაროლი წარმატებით შეიცვალა. ახლა შეგიძლია ახალი პაროლით შეხვიდე." : ""}
+        initialError={
+          authError === "oauth_callback_failed"
+            ? "სოციალური ავტორიზაცია ვერ დასრულდა. თავიდან სცადე."
+            : authError === "email_link_invalid"
+              ? "დადასტურების ბმული არასწორია ან ვადაგასულია. სცადე შესვლა ან თავიდან დარეგისტრირდი."
+              : ""
+        }
+        initialSuccess={
+          passwordReset === "success"
+            ? "პაროლი წარმატებით შეიცვალა. ახლა შეგიძლია ახალი პაროლით შეხვიდე."
+            : authError === "email_confirmed_login"
+              ? "ელფოსტა დადასტურებულია ✓ ახლა შედი შენი ელფოსტითა და პაროლით."
+              : ""
+        }
       />
     </AuthCard>
   )

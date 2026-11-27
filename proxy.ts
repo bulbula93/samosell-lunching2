@@ -30,7 +30,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
     }
   }
-  if (isReadOnlyPreview() && (!["GET", "HEAD", "OPTIONS"].includes(request.method) || (pathname === "/auth/callback" && searchParams.has("code")))) {
+  if (isReadOnlyPreview() && (!["GET", "HEAD", "OPTIONS"].includes(request.method) || (pathname === "/auth/callback" && searchParams.has("code")) || (pathname === "/auth/confirm" && searchParams.has("token_hash")))) {
     return NextResponse.json({ error: "preview_read_only" }, { status: 403 })
   }
   if (request.method === "GET" || request.method === "HEAD") {
