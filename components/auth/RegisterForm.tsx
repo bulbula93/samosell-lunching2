@@ -67,6 +67,13 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
       }
 
       if (data?.session) { router.push(continuePath); router.refresh(); return }
+      // Supabase answers a signup for an already-confirmed email with no error,
+      // no session and a user without identities, and sends no email. Without
+      // this check the user waits for a confirmation email that never comes.
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setError("ეს ელფოსტა უკვე დარეგისტრირებულია. შედი ანგარიშში ან, თუ პაროლი დაგავიწყდა, აღადგინე.")
+        return
+      }
       setSuccess(
         sellerType === "store"
           ? "დაადასტურე ანგარიში ელფოსტაზე გამოგზავნილი ბმულით — შემდეგ მაღაზიის შექმნას კონსტრუქტორში გააგრძელებ"

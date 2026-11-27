@@ -24,6 +24,17 @@ describe("Growth auth continuation and seller start", () => {
     expect(auth.signUp).toHaveBeenCalledWith(expect.objectContaining({ options: expect.objectContaining({ emailRedirectTo: expect.stringContaining("/auth/callback?next=%2Fdashboard%2Flistings%2Fnew") }) }))
     expect(auth.push).not.toHaveBeenCalled(); expect(fetch).not.toHaveBeenCalled()
   })
+  it("tells the user when the email is already registered instead of waiting for an email", async () => {
+    auth.signUp.mockResolvedValue({ data: { session: null, user: { id: "x", identities: [] } }, error: null })
+    const user = userEvent.setup()
+    render(<RegisterForm nextPath="/dashboard/listings/new" />)
+    await user.type(screen.getByPlaceholderText("you@example.com"), "seller@example.com")
+    await user.type(screen.getByPlaceholderText("მინიმუმ 6 სიმბოლო"), "password123")
+    await user.type(screen.getByPlaceholderText("ჩაწერე იგივე პაროლი"), "password123")
+    await user.click(screen.getByRole("button", { name: "რეგისტრაცია" }))
+    expect(screen.getByText(/ეს ელფოსტა უკვე დარეგისტრირებულია/)).toBeInTheDocument()
+    expect(screen.queryByText(/გადაამოწმე ელფოსტა/)).not.toBeInTheDocument()
+  })
   it("blocks signup and explains when the repeated password does not match", async () => {
     const user = userEvent.setup()
     render(<RegisterForm nextPath="/dashboard/listings/new" />)
