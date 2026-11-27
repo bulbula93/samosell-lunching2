@@ -68,7 +68,10 @@ describe("email confirmation works across browsers", () => {
   })
 
   it("marks signup redirects and shows Georgian messages on login", () => {
-    expect(read("components/auth/RegisterForm.tsx")).toContain("&flow=email_signup")
+    const register = read("components/auth/RegisterForm.tsx")
+    expect(register).toContain("&flow=email_signup")
+    expect(register).toContain("error.status === 429")
+    expect(register).toContain("დადასტურების წერილების ლიმიტი დროებით ამოიწურა")
     const login = read("app/login/page.tsx")
     expect(login).toContain('authError === "email_confirmed_login"')
     expect(login).toContain("ელფოსტა დადასტურებულია")

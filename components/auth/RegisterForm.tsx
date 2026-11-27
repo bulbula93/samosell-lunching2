@@ -48,7 +48,14 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
       })
 
       if (error) {
-        setError(error.message)
+        const message = error.message.toLowerCase()
+        if (error.status === 429 || message.includes("rate limit") || message.includes("security purposes")) {
+          setError("დადასტურების წერილების ლიმიტი დროებით ამოიწურა. სცადე Google-ით რეგისტრაცია ან რამდენიმე წუთში თავიდან.")
+        } else if (message.includes("already registered")) {
+          setError("ეს ელფოსტა უკვე დარეგისტრირებულია. შედი ანგარიშში ან აღადგინე პაროლი.")
+        } else {
+          setError(error.message)
+        }
         setLoading(false)
         return
       }
