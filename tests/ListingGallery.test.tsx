@@ -122,6 +122,8 @@ describe("ListingGallery", () => {
       />,
     )
 
+    // First failure retries the original Storage URL; the second one is final.
+    fireEvent.error(visibleGalleryImage(/ფოტოს აღდგენა.*1/)!)
     fireEvent.error(visibleGalleryImage(/ფოტოს აღდგენა.*1/)!)
     expect(screen.getByText(ka.product.imageUnavailable)).toBeInTheDocument()
 

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import SmartImage from "@/components/shared/SmartImage"
 import { ka } from "@/lib/i18n/ka"
@@ -12,7 +12,7 @@ const productionImage = `https://lxsvjzbiuewgwpajqrwr.supabase.co${storagePath}`
 afterEach(() => vi.unstubAllEnvs())
 
 describe("SmartImage delivery", () => {
-  it("serves the photo and its backdrop directly from public Storage", () => {
+  it("serves Storage photos and their backdrop through the image optimizer", () => {
     const { container } = render(
       <SmartImage src={productionImage} alt="ფეხსაცმელი" fit="contain" backdrop />,
     )
@@ -20,17 +20,38 @@ describe("SmartImage delivery", () => {
     const images = container.querySelectorAll("img")
     expect(images).toHaveLength(2)
     for (const image of images) {
-      expect(image).toHaveAttribute("src", productionImage)
-      expect(image).not.toHaveAttribute("srcset")
+      const url = new URL(image.getAttribute("src")!, "https://samosell.ge")
+      expect(url.pathname).toBe("/_next/image")
+      expect(url.searchParams.get("url")).toBe(productionImage)
+      expect(image).toHaveAttribute("srcset")
     }
   })
 
-  it("also serves uploads from the configured QA Storage project directly", () => {
+  it("falls back to the original Storage URL when the optimizer fails", () => {
+    render(<SmartImage src={productionImage} alt="ფეხსაცმელი" />)
+
+    fireEvent.error(screen.getByRole("img"))
+
+    expect(screen.getByRole("img")).toHaveAttribute("src", productionImage)
+    expect(screen.queryByText(ka.product.imageUnavailable)).not.toBeInTheDocument()
+  })
+
+  it("shows the placeholder only when the original also fails", () => {
+    render(<SmartImage src={productionImage} alt="ფეხსაცმელი" />)
+
+    fireEvent.error(screen.getByRole("img"))
+    fireEvent.error(screen.getByRole("img"))
+
+    expect(screen.getByText(ka.product.imageUnavailable)).toBeInTheDocument()
+  })
+
+  it("still accepts uploads from the configured QA Storage project", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://ydocqjdjmffysexkzxyc.supabase.co")
     const qaImage = `https://ydocqjdjmffysexkzxyc.supabase.co${storagePath}`
     render(<SmartImage src={qaImage} alt="QA ფოტო" />)
 
-    expect(screen.getByRole("img")).toHaveAttribute("src", qaImage)
+    const url = new URL(screen.getByRole("img").getAttribute("src")!, "https://samosell.ge")
+    expect(url.searchParams.get("url")).toBe(qaImage)
   })
 
   it("retains optimized responsive URLs for bundled site assets", () => {

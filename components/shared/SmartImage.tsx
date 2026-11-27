@@ -53,6 +53,10 @@ function SmartImageForSource({
 }: SmartImageProps) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  // Set when Vercel's optimizer cannot serve the photo (quota, unsupported
+  // host). We then retry once with the original Storage URL instead of
+  // showing the "image unavailable" placeholder.
+  const [optimizerFailed, setOptimizerFailed] = useState(false)
   const [autoContain, setAutoContain] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const revealImmediately = loading === "eager"
@@ -64,9 +68,19 @@ function SmartImageForSource({
     return getSafeImageSource(rawSrc) ?? ""
   }, [isLocalPreview, rawSrc])
 
-  // The URL has already passed our Storage allowlist. Serve uploads directly
-  // so Vercel's image transformation quota cannot hide available photos.
-  const unoptimized = isLocalPreview || safeSrc.startsWith("https://")
+  // Storage photos go through Next/Image so cards download a resized WebP
+  // (~30–80 KB) cached on Vercel's CDN for 31 days, instead of the 0.3–7 MB
+  // original fetched from Supabase on every view. Serving originals directly
+  // pushed Supabase Storage egress past the Free plan quota (Nov 2026).
+  const unoptimized = isLocalPreview || optimizerFailed
+
+  function handleError() {
+    if (!unoptimized && safeSrc.startsWith("https://")) {
+      setOptimizerFailed(true)
+      return
+    }
+    setFailed(true)
+  }
 
   if (!safeSrc || failed) {
     return (
@@ -119,7 +133,7 @@ function SmartImageForSource({
         loading={loading}
         fetchPriority={revealImmediately ? "high" : "auto"}
         onLoad={handleLoad}
-        onError={() => setFailed(true)}
+        onError={handleError}
         data-fit={contain ? "contain" : "cover"}
         className={`h-full w-full ${contain ? "object-contain" : "object-cover"} transition duration-300 ${loaded || revealImmediately ? "scale-100 opacity-100 blur-0" : "scale-[1.03] opacity-0 blur-sm"} ${className}`}
       />
