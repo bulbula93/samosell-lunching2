@@ -14,6 +14,8 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [passwordConfirm, setPasswordConfirm] = useState("")
+  const passwordMismatch = passwordConfirm.length > 0 && passwordConfirm !== password
   const [username, setUsername] = useState("")
   const [fullName, setFullName] = useState("")
   const [sellerType, setSellerType] = useState<"individual" | "store">(() => isStoreSetupPath(nextPath) ? "store" : "individual")
@@ -27,6 +29,10 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
     if (loading) return
     if (isReadOnlyPreview()) {
       setError("ეს Preview მხოლოდ სანახავადაა — რეგისტრაცია გამორთულია")
+      return
+    }
+    if (password !== passwordConfirm) {
+      setError("პაროლები არ ემთხვევა. ჩაწერე ორივე ველში ერთი და იგივე პაროლი.")
       return
     }
     setLoading(true)
@@ -61,6 +67,13 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
       }
 
       if (data?.session) { router.push(continuePath); router.refresh(); return }
+      // Supabase answers a signup for an already-confirmed email with no error,
+      // no session and a user without identities, and sends no email. Without
+      // this check the user waits for a confirmation email that never comes.
+      if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        setError("ეს ელფოსტა უკვე დარეგისტრირებულია. შედი ანგარიშში ან, თუ პაროლი დაგავიწყდა, აღადგინე.")
+        return
+      }
       setSuccess(
         sellerType === "store"
           ? "დაადასტურე ანგარიში ელფოსტაზე გამოგზავნილი ბმულით — შემდეგ მაღაზიის შექმნას კონსტრუქტორში გააგრძელებ"
@@ -146,6 +159,26 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
           className="h-12 w-full rounded-2xl border border-neutral-300 px-4 outline-none"
           placeholder="მინიმუმ 6 სიმბოლო"
         />
+      </div>
+
+      <div>
+        <label htmlFor="register-password-confirm" className="mb-2 block text-sm font-semibold">გაიმეორე პაროლი</label>
+        <input
+          id="register-password-confirm"
+          autoComplete="new-password"
+          type="password"
+          required
+          minLength={6}
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
+          aria-invalid={passwordMismatch}
+          aria-describedby={passwordMismatch ? "register-password-confirm-hint" : undefined}
+          className={`h-12 w-full rounded-2xl border px-4 outline-none ${passwordMismatch ? "border-red-400" : "border-neutral-300"}`}
+          placeholder="ჩაწერე იგივე პაროლი"
+        />
+        {passwordMismatch ? (
+          <p id="register-password-confirm-hint" className="mt-2 text-xs text-red-600">პაროლები არ ემთხვევა</p>
+        ) : null}
       </div>
 
       {error ? (
