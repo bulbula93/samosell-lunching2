@@ -28,7 +28,13 @@ export async function GET(request: Request) {
   }
 
   const loginUrl = new URL("/login", redirectOrigin)
-  loginUrl.searchParams.set("error", "oauth_callback_failed")
+  // Signup confirmation links only reach us with a `code` after Supabase has
+  // already confirmed the email. If the session exchange fails here (typically
+  // the link was opened in another browser / a mail app, so the PKCE verifier
+  // cookie is missing), the account is still confirmed: ask for a password login
+  // instead of showing a misleading "social login failed" error.
+  const isEmailConfirmation = requestUrl.searchParams.get("flow") === "email_signup"
+  loginUrl.searchParams.set("error", code && isEmailConfirmation ? "email_confirmed_login" : "oauth_callback_failed")
   loginUrl.searchParams.set("next", next)
   return NextResponse.redirect(loginUrl)
 }

@@ -38,7 +38,7 @@ export default function RegisterForm({ nextPath }: { nextPath?: string }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(continuePath)}`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(continuePath)}&flow=email_signup`,
           data: {
             username: username.trim() || undefined,
             full_name: fullName.trim(),
