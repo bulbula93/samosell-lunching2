@@ -44,6 +44,7 @@ async function enterAccount() {
   const user = userEvent.setup()
   await user.type(screen.getByLabelText("Email"), "owner@example.com")
   await user.type(screen.getByLabelText("Password"), "password123")
+  await user.type(screen.getByLabelText("გაიმეორე პაროლი"), "password123")
   await user.click(screen.getByRole("button", { name: "შექმენი ანგარიში და გააგრძელე" }))
 }
 
