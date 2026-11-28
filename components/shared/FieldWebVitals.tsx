@@ -63,9 +63,15 @@ function sendMetric(payload: {
 // Module lifetime survives consent component remounts; bounded per document.
 const submittedMetrics = new Map<string, string>()
 
+// Each sampled page view writes up to five rows to Postgres. On the free-tier
+// database that write load counted against the Disk IO budget, so only one in
+// five documents reports. Percentiles stay representative; row counts are 1/5.
+export const WEB_VITALS_SAMPLE_RATE = 0.2
+const documentSampled = typeof window !== "undefined" && Math.random() < WEB_VITALS_SAMPLE_RATE
+
 export default function FieldWebVitals() {
   const report = useCallback<Parameters<typeof useReportWebVitals>[0]>((metric) => {
-    if (navigator.webdriver || !allowsAnalytics()) return
+    if (!documentSampled || navigator.webdriver || !allowsAnalytics()) return
     if (!["LCP", "INP", "CLS", "FCP", "TTFB"].includes(metric.name)) return
 
     const pathname = window.location.pathname || "/"

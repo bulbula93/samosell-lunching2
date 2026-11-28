@@ -25,6 +25,9 @@ type HomePersonalizationContextValue = HomePersonalizationPayload & {
   loaded: boolean
 }
 
+// The header must never stay on its loading skeleton because the database is slow.
+const PERSONALIZATION_TIMEOUT_MS = 8000
+
 const HomePersonalizationContext = createContext<HomePersonalizationContextValue | null>(null)
 
 export function HomePersonalizationProvider({ children }: { children: React.ReactNode }) {
@@ -43,14 +46,49 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
     let request: AbortController | null = null
     const reset = () => setPayload({ userState: guestMarketplaceUserState, favoriteIds: [], storyRail: null })
 
+    // Show the signed-in header straight from the locally stored session so it
+    // never waits on the database; the API response below then fills in the
+    // profile photo, admin flag and unread counts.
+    async function applyLocalSession(current: number) {
+      try {
+        const result = await supabase.auth.getSession?.()
+        const user = result?.data?.session?.user
+        if (!user || !active || current !== generation) return
+        const metadata = (user.user_metadata ?? {}) as Record<string, unknown>
+        const label = [metadata.full_name, metadata.name, metadata.user_name].find(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+        const avatar = [metadata.avatar_url, metadata.picture].find(
+          (value): value is string => typeof value === "string" && value.startsWith("https://"),
+        )
+        setPayload((previous) => previous.userState.userId === user.id ? previous : {
+          userState: {
+            ...guestMarketplaceUserState,
+            userId: user.id,
+            signedIn: true,
+            profileLabel: label ?? guestMarketplaceUserState.profileLabel,
+            profileImage: avatar ?? null,
+          },
+          favoriteIds: [],
+          storyRail: null,
+        })
+        setLoaded(true)
+      } catch {
+        // No readable local session: wait for the API response.
+      }
+    }
+
     async function loadPersonalization() {
       const current = ++generation
       request?.abort()
-      request = new AbortController()
+      const controller = new AbortController()
+      request = controller
+      const timeout = window.setTimeout(() => controller.abort(), PERSONALIZATION_TIMEOUT_MS)
+      void applyLocalSession(current)
       try {
         const response = await fetch("/api/home-personalization", {
           cache: "no-store",
-          signal: request.signal,
+          signal: controller.signal,
           credentials: "same-origin",
           headers: { accept: "application/json" },
         })
@@ -61,6 +99,7 @@ export function HomePersonalizationProvider({ children }: { children: React.Reac
       } catch {
         // Keep the public/guest shell usable when personalization is unavailable.
       } finally {
+        window.clearTimeout(timeout)
         if (active && current === generation) setLoaded(true)
       }
     }
