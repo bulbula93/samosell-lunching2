@@ -2,7 +2,8 @@ import { render, cleanup } from "@testing-library/react"
 import { beforeEach, afterEach, expect, it, vi } from "vitest"
 import FieldWebVitals from "@/components/shared/FieldWebVitals"
 
-const mocks = vi.hoisted(() => ({ hook: vi.fn(), allowed: vi.fn() }))
+// Put this document inside the 20% sample so the reporting logic is exercised.
+const mocks = vi.hoisted(() => { vi.spyOn(Math, "random").mockReturnValue(0); return { hook: vi.fn(), allowed: vi.fn() } })
 vi.mock("next/web-vitals", () => ({ useReportWebVitals: mocks.hook }))
 vi.mock("@/lib/browser-preferences", () => ({ allowsAnalytics: mocks.allowed }))
 beforeEach(() => {
